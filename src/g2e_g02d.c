@@ -47,8 +47,8 @@ struct _BC {
  */
 void CINTg0_2e_2d(double *g, struct _BC *bc, const CINTEnvVars *envs)
 {
-        const int nroots = envs->nrys_roots;
-        int i, j, m, n, off;
+        const FINT nroots = envs->nrys_roots;
+        FINT i, j, m, n, off;
         double *gx = g;
         double *gy = g + envs->g_size;
         double *gz = g + envs->g_size * 2;
@@ -59,10 +59,10 @@ void CINTg0_2e_2d(double *g, struct _BC *bc, const CINTEnvVars *envs)
                 //gz[i] = w[i];
         }
 
-        const int nmax = envs->li_ceil + envs->lj_ceil;
-        const int mmax = envs->lk_ceil + envs->ll_ceil;
-        const int dm = envs->g2d_klmax;
-        const int dn = envs->g2d_ijmax;
+        const FINT nmax = envs->li_ceil + envs->lj_ceil;
+        const FINT mmax = envs->lk_ceil + envs->ll_ceil;
+        const FINT dm = envs->g2d_klmax;
+        const FINT dn = envs->g2d_ijmax;
         const double *RESTRICT c00x = bc->c00;
         const double *RESTRICT c00y = bc->c00+MXRYSROOTS;
         const double *RESTRICT c00z = bc->c00+MXRYSROOTS*2;

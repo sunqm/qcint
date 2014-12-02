@@ -25,10 +25,10 @@
 
 /*
  * <ki|jl> = (ij|kl); i,j\in electron 1; k,l\in electron 2
-void CINTgout2e(double *g, double *gout, const int *idx,
-                const CINTEnvVars *envs, int gout_empty)
+void CINTgout2e(double *g, double *gout, const FINT *idx,
+                const CINTEnvVars *envs, FINT gout_empty)
 {
-        int i, ix, iy, iz, n;
+        FINT i, ix, iy, iz, n;
 
         if (gout_empty) {
                 switch (envs->nrys_roots) {
@@ -243,11 +243,11 @@ void CINTgout2e(double *g, double *gout, const int *idx,
 }
  */
 
-void CINTgout2e(double *g, double *gout, const int *idx,
-                const CINTEnvVars *envs, int gout_empty)
+void CINTgout2e(double *g, double *gout, const FINT *idx,
+                const CINTEnvVars *envs, FINT gout_empty)
 {
-        int i, ix, iy, iz, n;
-        int jx, jy, jz;
+        FINT i, ix, iy, iz, n;
+        FINT jx, jy, jz;
         __m128d r0, r1, r2, r3;
         double s;
 

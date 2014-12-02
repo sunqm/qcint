@@ -24,10 +24,11 @@
 
 #include <string.h>
 #include <complex.h>
+#include "fblas.h"
 
 #define OF_CMPLX        2
 
-void CINTdset0(const int n, double *x)
+void CINTdset0(const FINT n, double *x)
 {
         memset(x, 0, sizeof(double) * n);
 }
@@ -36,12 +37,12 @@ void CINTdset0(const int n, double *x)
 /*
  * v = a * x + y
  */
-void CINTdaxpy2v(const int n, const double a,
+void CINTdaxpy2v(const FINT n, const double a,
                  const double *x, const double *y, double *v)
 {
         //cblas_dcopy(n, y, 1, v, 1);
         //cblas_daxpy(n, a, x, 1, v, 1);
-        int i;
+        FINT i;
         for (i = 0; i < n; i++) {
                 v[i] = a * x[i] + y[i];
         }
@@ -51,9 +52,9 @@ void CINTdaxpy2v(const int n, const double a,
 /*
  * a_t[n,m] = transpose of matrix a[m,n]
  */
-void CINTdmat_transpose(double *a_t, const double *a, const int m, const int n)
+void CINTdmat_transpose(double *a_t, const double *a, const FINT m, const FINT n)
 {
-        int i, j;
+        FINT i, j;
 
         switch (m) {
         case 1:
@@ -210,9 +211,9 @@ void CINTdmat_transpose(double *a_t, const double *a, const int m, const int n)
 }
 
 void CINTzmat_transpose(double complex *a_t, const double complex *a,
-                        const int m, const int n)
+                        const FINT m, const FINT n)
 {
-        int i, j;
+        FINT i, j;
 
         switch (m) {
         case 2:
@@ -239,9 +240,9 @@ void CINTzmat_transpose(double complex *a_t, const double complex *a,
 }
 
 void CINTzmat_dagger(double complex *a_t, const double complex *a,
-                     const int m, const int n)
+                     const FINT m, const FINT n)
 {
-        int i, j;
+        FINT i, j;
 
         for (j = 0; j < n; j++) {
                 for (i = 0; i < m; i++) {

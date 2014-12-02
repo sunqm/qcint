@@ -1,0 +1,7 @@
+Version 1.2.0 (2014-12-01) for libcint v2.2.0:
+	* update cint1e structure
+	* add I8 support
+
+Version 1.0.0 (2014-11-25) for libcint v2.1.2:
+	* Setup qcint for X86 platform
+

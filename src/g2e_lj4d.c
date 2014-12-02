@@ -1189,8 +1189,8 @@ static inline void _g0_lj_4d_2100(double *g, double *c0, double *cp,
 
 void CINTg0_2e_lj2d4d(double *g, const CINTEnvVars *envs,struct _BC *bc)
 {
-        const int nmax = envs->li_ceil + envs->lj_ceil;
-        const int mmax = envs->lk_ceil + envs->ll_ceil;
+        const FINT nmax = envs->li_ceil + envs->lj_ceil;
+        const FINT mmax = envs->lk_ceil + envs->ll_ceil;
         switch (nmax) {
                 case 0: switch(mmax) {
                         case 0: goto _g0_4d_default; // ssss
@@ -1276,7 +1276,8 @@ normal_end:
         return;
 error:
         printf("Dimension error for CINTg0_2e_lj2d4d: iklj = %d %d %d %d",
-               envs->li_ceil, envs->lk_ceil, envs->ll_ceil, envs->lj_ceil);
+               (int)envs->li_ceil, (int)envs->lk_ceil,
+               (int)envs->ll_ceil, (int)envs->lj_ceil);
         exit(1);
 }
 

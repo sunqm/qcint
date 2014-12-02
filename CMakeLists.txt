@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 2.6)
-project (qints)
-set(qints_VERSION "qints.1.0.1")
+project (qcint)
+set(qcint_VERSION "qcint.1.2.0")
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msse3 -O2 -funroll-loops -ftree-vectorize")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DNDEBUG -ffast-math -fno-strict-overflow -fomit-frame-pointer")
@@ -13,7 +13,12 @@ find_package(BLAS REQUIRED)
 
 include_directories(
   ${PROJECT_SOURCE_DIR}/include
-  ${PROJECT_SOURCE_DIR}/src)
+  ${PROJECT_SOURCE_DIR}/src
+  ${PROJECT_BINARY_DIR}/src)
+
+configure_file(
+  "${PROJECT_SOURCE_DIR}/src/config.h.in"
+  "${PROJECT_BINARY_DIR}/src/config.h")
 
 set(cintSrc 
   src/c2f.c src/cart2sph.c src/cint1e.c src/cint2e.c src/cint_bas.c
@@ -39,7 +44,7 @@ else()
   add_library(cint SHARED ${cintSrc})
 
   set_target_properties(cint PROPERTIES
-    VERSION ${qints_VERSION}
+    VERSION ${qcint_VERSION}
     LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 
   target_link_libraries(cint ${BLAS_LIBRARIES})

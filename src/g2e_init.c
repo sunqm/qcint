@@ -40,9 +40,9 @@ void CINTg0_2e_il2d4d(double *g, const CINTEnvVars *envs,struct _BC *bc);
 void CINTg0_2e_ik2d4d(double *g, const CINTEnvVars *envs,struct _BC *bc);
 static void CINTset_g2e_params(CINTEnvVars *envs);
 
-int CINTinit_int2e_EnvVars(CINTEnvVars *envs, const int *ng, const int *shls,
-                           const int *atm, const int natm,
-                           const int *bas, const int nbas, const double *env)
+FINT CINTinit_int2e_EnvVars(CINTEnvVars *envs, const FINT *ng, const FINT *shls,
+                           const FINT *atm, const FINT natm,
+                           const FINT *bas, const FINT nbas, const double *env)
 {
         envs->natm = natm;
         envs->nbas = nbas;
@@ -51,10 +51,10 @@ int CINTinit_int2e_EnvVars(CINTEnvVars *envs, const int *ng, const int *shls,
         envs->env = env;
         envs->shls = shls;
 
-        const int i_sh = shls[0];
-        const int j_sh = shls[1];
-        const int k_sh = shls[2];
-        const int l_sh = shls[3];
+        const FINT i_sh = shls[0];
+        const FINT j_sh = shls[1];
+        const FINT k_sh = shls[2];
+        const FINT l_sh = shls[3];
         envs->i_l = bas(ANG_OF, i_sh);
         envs->j_l = bas(ANG_OF, j_sh);
         envs->k_l = bas(ANG_OF, k_sh);
@@ -131,9 +131,9 @@ int CINTinit_int2e_EnvVars(CINTEnvVars *envs, const int *ng, const int *shls,
 /* set strides and parameters for g0_2d4d algorithm */
 static void CINTset_g2e_params(CINTEnvVars *envs)
 {
-        int dli, dlj, dlk, dll;
-        int ibase = envs->li_ceil > envs->lj_ceil;
-        int kbase = envs->lk_ceil > envs->ll_ceil;
+        FINT dli, dlj, dlk, dll;
+        FINT ibase = envs->li_ceil > envs->lj_ceil;
+        FINT kbase = envs->lk_ceil > envs->ll_ceil;
         if (envs->nrys_roots <= 2) { // use the fully optimized lj_4d algorithm
                 ibase = 0;
                 kbase = 0;
@@ -210,28 +210,28 @@ static void CINTset_g2e_params(CINTEnvVars *envs)
         }
 }
 
-void CINTg2e_index_xyz(int *idx, const CINTEnvVars *envs)
+void CINTg2e_index_xyz(FINT *idx, const CINTEnvVars *envs)
 {
-        const int i_l = envs->i_l;
-        const int j_l = envs->j_l;
-        const int k_l = envs->k_l;
-        const int l_l = envs->l_l;
-        const int nfi = envs->nfi;
-        const int nfj = envs->nfj;
-        const int nfk = envs->nfk;
-        const int nfl = envs->nfl;
-        const int di = envs->g_stride_i;
-        const int dk = envs->g_stride_k;
-        const int dl = envs->g_stride_l;
-        const int dj = envs->g_stride_j;
-        int i, j, k, l, n;
-        int ofx, ofkx, oflx;
-        int ofy, ofky, ofly;
-        int ofz, ofkz, oflz;
-        int i_nx[CART_MAX], i_ny[CART_MAX], i_nz[CART_MAX];
-        int j_nx[CART_MAX], j_ny[CART_MAX], j_nz[CART_MAX];
-        int k_nx[CART_MAX], k_ny[CART_MAX], k_nz[CART_MAX];
-        int l_nx[CART_MAX], l_ny[CART_MAX], l_nz[CART_MAX];
+        const FINT i_l = envs->i_l;
+        const FINT j_l = envs->j_l;
+        const FINT k_l = envs->k_l;
+        const FINT l_l = envs->l_l;
+        const FINT nfi = envs->nfi;
+        const FINT nfj = envs->nfj;
+        const FINT nfk = envs->nfk;
+        const FINT nfl = envs->nfl;
+        const FINT di = envs->g_stride_i;
+        const FINT dk = envs->g_stride_k;
+        const FINT dl = envs->g_stride_l;
+        const FINT dj = envs->g_stride_j;
+        FINT i, j, k, l, n;
+        FINT ofx, ofkx, oflx;
+        FINT ofy, ofky, ofly;
+        FINT ofz, ofkz, oflz;
+        FINT i_nx[CART_MAX], i_ny[CART_MAX], i_nz[CART_MAX];
+        FINT j_nx[CART_MAX], j_ny[CART_MAX], j_nz[CART_MAX];
+        FINT k_nx[CART_MAX], k_ny[CART_MAX], k_nz[CART_MAX];
+        FINT l_nx[CART_MAX], l_ny[CART_MAX], l_nz[CART_MAX];
 
         CINTcart_comp(i_nx, i_ny, i_nz, i_l);
         CINTcart_comp(j_nx, j_ny, j_nz, j_l);
