@@ -1637,7 +1637,7 @@ int cint2e_sph(double *opijkl, const int *shls,
 void cint2e_sph_optimizer(CINTOpt **opt, const int *atm, const int natm,
                           const int *bas, const int nbas, const double *env)
 {
-        int ng[] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+        int ng[] = {0, 0, 0, 0, 0, 1, 1, 1};
         CINTuse_all_optimizer(opt, ng, atm, natm, bas, nbas, env);
 }
 
@@ -1646,7 +1646,7 @@ int cint2e_cart(double *opijkl, const int *shls,
                 const int *bas, const int nbas, const double *env,
                 const CINTOpt *opt)
 {
-        int ng[] = {0, 0, 0, 0, 0, 0, 1, 1, 1};
+        int ng[] = {0, 0, 0, 0, 0, 1, 1, 1};
         CINTEnvVars envs;
         CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
         envs.f_gout = &CINTgout2e;
@@ -1668,7 +1668,7 @@ int cint2e(double *opijkl, const int *shls,
            const int *bas, const int nbas, const double *env,
            const CINTOpt *opt)
 {
-        int ng[] = {0, 0, 0, 0, 0, 0, 1, 1, 1};
+        int ng[] = {0, 0, 0, 0, 0, 1, 1, 1};
         CINTEnvVars envs;
         CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
         envs.f_gout = &CINTgout2e;

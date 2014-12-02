@@ -93,8 +93,8 @@ void CINTg0_2e_2d(double *g, struct _BC *bc, const CINTEnvVars *envs)
                 for (n = 1; n < nmax; n++) {
                         off = n * dn;
                         for (i = 0, j = off; i < nroots-1; i+=2, j+=2) {
-                                r2 = _mm_set1_pd(n);
                                 r1 = _mm_load_pd(&b10[i]);
+                                r2 = _mm_set1_pd(n);
                                 r1 = _mm_mul_pd(r1, r2);
 //FIXME: I assumed the alignment of stack.
 // if not, change _mm_load_pd to _mm_loadu_pd

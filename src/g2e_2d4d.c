@@ -886,9 +886,9 @@ void CINTnabla1l_2e(double *f, const double *g,
  * ri is the shift from the center R_O to the center of |i>
  * r - R_O = (r-R_i) + ri, ri = R_i - R_O
  */
-void CINTx1i_2e(double *f, const double *g,
+void CINTx1i_2e(double *f, const double *g, const double *ri,
                 const int li, const int lj, const int lk, const int ll,
-                const double *ri, const CINTEnvVars *envs)
+                const CINTEnvVars *envs)
 {
         const int nroots = envs->nrys_roots;
         const int di = envs->g_stride_i;
@@ -951,9 +951,9 @@ void CINTx1i_2e(double *f, const double *g,
 /*
  * ( i x^1 j | kl )
  */
-void CINTx1j_2e(double *f, const double *g,
+void CINTx1j_2e(double *f, const double *g, const double *rj,
                 const int li, const int lj, const int lk, const int ll,
-                const double *rj, const CINTEnvVars *envs)
+                const CINTEnvVars *envs)
 {
         const int nroots = envs->nrys_roots;
         const int dj = envs->g_stride_j;
@@ -1016,9 +1016,9 @@ void CINTx1j_2e(double *f, const double *g,
 /*
  * ( ij | x^1 k l )
  */
-void CINTx1k_2e(double *f, const double *g,
+void CINTx1k_2e(double *f, const double *g, const double *rk,
                 const int li, const int lj, const int lk, const int ll,
-                const double *rk, const CINTEnvVars *envs)
+                const CINTEnvVars *envs)
 {
         const int nroots = envs->nrys_roots;
         const int dk = envs->g_stride_k;
@@ -1081,9 +1081,9 @@ void CINTx1k_2e(double *f, const double *g,
 /*
  * ( i j | x^1 kl )
  */
-void CINTx1l_2e(double *f, const double *g,
+void CINTx1l_2e(double *f, const double *g, const double *rl,
                 const int li, const int lj, const int lk, const int ll,
-                const double *rl, const CINTEnvVars *envs)
+                const CINTEnvVars *envs)
 {
         const int nroots = envs->nrys_roots;
         const int dl = envs->g_stride_l;
