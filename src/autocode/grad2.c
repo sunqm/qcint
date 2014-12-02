@@ -1,6 +1,6 @@
 /*
  * Qcint is a general GTO integral library for computational chemistry
- * Copyright (C) 2014 Qiming Sun
+ * Copyright (C) 2014 Qiming Sun <osirpt.sun@gmail.com>
  *
  * This file is part of Qcint.
  *
@@ -37,8 +37,6 @@ double *gout, const int nf, const int *idx,
 const double ai, const double aj,
 const int *shls,
 const int *atm, const int *bas, const double *env) {
-const int INC1 = 1;
-const double D1 = 1;
 const int i_sh = shls[0];
 const int j_sh = shls[1];
 const int i_l = bas(ANG_OF, i_sh);
@@ -88,8 +86,6 @@ double *gout, const int nf, const int *idx,
 const double ai, const double aj,
 const int *shls,
 const int *atm, const int *bas, const double *env) {
-const int INC1 = 1;
-const double D1 = 1;
 const int i_sh = shls[0];
 const int j_sh = shls[1];
 const int i_l = bas(ANG_OF, i_sh);
@@ -175,8 +171,6 @@ double *gout, const int nf, const int *idx,
 const double ai, const double aj,
 const int *shls,
 const int *atm, const int *bas, const double *env) {
-const int INC1 = 1;
-const double D1 = 1;
 const int i_sh = shls[0];
 const int j_sh = shls[1];
 const int i_l = bas(ANG_OF, i_sh);
@@ -226,8 +220,6 @@ double *gout, const int nf, const int *idx,
 const double ai, const double aj,
 const int *shls,
 const int *atm, const int *bas, const double *env) {
-const int INC1 = 1;
-const double D1 = 1;
 const int i_sh = shls[0];
 const int j_sh = shls[1];
 const int i_l = bas(ANG_OF, i_sh);
@@ -277,8 +269,6 @@ double *gout, const int nf, const int *idx,
 const double ai, const double aj,
 const int *shls,
 const int *atm, const int *bas, const double *env) {
-const int INC1 = 1;
-const double D1 = 1;
 const int i_sh = shls[0];
 const int j_sh = shls[1];
 const int i_l = bas(ANG_OF, i_sh);
@@ -373,8 +363,6 @@ double *gout, const int nf, const int *idx,
 const double ai, const double aj,
 const int *shls,
 const int *atm, const int *bas, const double *env) {
-const int INC1 = 1;
-const double D1 = 1;
 const int i_sh = shls[0];
 const int j_sh = shls[1];
 const int i_l = bas(ANG_OF, i_sh);
@@ -467,8 +455,6 @@ C2F_(cint1e_ipsprinvsp)
  * = (NABLA i j|R12 |k l) */
 static void CINTgout2e_cint2e_ip1(double *g,
 double *gout, const int *idx, const CINTEnvVars *envs, int gout_empty) {
-const int INC1 = 1;
-const double D1 = 1;
 const double *env = envs->env;
 const int nf = envs->nf;
 const int i_l = envs->i_l;
@@ -866,8 +852,6 @@ C2Fo_(cint2e_ip1)
  * = (NABLA SIGMA DOT P i SIGMA DOT P j|R12 |k l) */
 static void CINTgout2e_cint2e_ipspsp1(double *g,
 double *gout, const int *idx, const CINTEnvVars *envs, int gout_empty) {
-const int INC1 = 1;
-const double D1 = 1;
 const double *env = envs->env;
 const int nf = envs->nf;
 const int i_l = envs->i_l;
@@ -981,8 +965,6 @@ C2Fo_(cint2e_ipspsp1)
  * = (NABLA i j|R12 |SIGMA DOT P k SIGMA DOT P l) */
 static void CINTgout2e_cint2e_ip1spsp2(double *g,
 double *gout, const int *idx, const CINTEnvVars *envs, int gout_empty) {
-const int INC1 = 1;
-const double D1 = 1;
 const double *env = envs->env;
 const int nf = envs->nf;
 const int i_l = envs->i_l;
@@ -1096,8 +1078,6 @@ C2Fo_(cint2e_ip1spsp2)
  * = (NABLA SIGMA DOT P i SIGMA DOT P j|R12 |SIGMA DOT P k SIGMA DOT P l) */
 static void CINTgout2e_cint2e_ipspsp1spsp2(double *g,
 double *gout, const int *idx, const CINTEnvVars *envs, int gout_empty) {
-const int INC1 = 1;
-const double D1 = 1;
 const double *env = envs->env;
 const int nf = envs->nf;
 const int i_l = envs->i_l;
@@ -1547,8 +1527,6 @@ C2Fo_(cint2e_ipspsp1spsp2)
  * = (NABLA SIGMA DOT R i SIGMA DOT R j|R12 |k l) */
 static void CINTgout2e_cint2e_ipsrsr1(double *g,
 double *gout, const int *idx, const CINTEnvVars *envs, int gout_empty) {
-const int INC1 = 1;
-const double D1 = 1;
 const double *env = envs->env;
 const int nf = envs->nf;
 const int i_l = envs->i_l;
@@ -1662,8 +1640,6 @@ C2Fo_(cint2e_ipsrsr1)
  * = (NABLA i j|R12 |SIGMA DOT R k SIGMA DOT R l) */
 static void CINTgout2e_cint2e_ip1srsr2(double *g,
 double *gout, const int *idx, const CINTEnvVars *envs, int gout_empty) {
-const int INC1 = 1;
-const double D1 = 1;
 const double *env = envs->env;
 const int nf = envs->nf;
 const int i_l = envs->i_l;
@@ -1777,8 +1753,6 @@ C2Fo_(cint2e_ip1srsr2)
  * = (NABLA SIGMA DOT R i SIGMA DOT R j|R12 |SIGMA DOT R k SIGMA DOT R l) */
 static void CINTgout2e_cint2e_ipsrsr1srsr2(double *g,
 double *gout, const int *idx, const CINTEnvVars *envs, int gout_empty) {
-const int INC1 = 1;
-const double D1 = 1;
 const double *env = envs->env;
 const int nf = envs->nf;
 const int i_l = envs->i_l;

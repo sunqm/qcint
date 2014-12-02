@@ -1,6 +1,6 @@
 /*
  * Qcint is a general GTO integral library for computational chemistry
- * Copyright (C) 2014 Qiming Sun
+ * Copyright (C) 2014 Qiming Sun <osirpt.sun@gmail.com>
  *
  * This file is part of Qcint.
  *
@@ -35,8 +35,6 @@
  * = (i SIGMA DOT P j|GAUNT |k SIGMA DOT P l) */
 static void CINTgout2e_cint2e_ssp1ssp2(double *g,
 double *gout, const int *idx, const CINTEnvVars *envs, int gout_empty) {
-const int INC1 = 1;
-const double D1 = 1;
 const double *env = envs->env;
 const int nf = envs->nf;
 const int i_l = envs->i_l;
@@ -1118,8 +1116,6 @@ C2Fo_(cint2e_ssp1ssp2)
  * = (RC CROSS SIGMA i j|GAUNT |k SIGMA DOT P l) */
 static void CINTgout2e_cint2e_cg_ssa10ssp2(double *g,
 double *gout, const int *idx, const CINTEnvVars *envs, int gout_empty) {
-const int INC1 = 1;
-const double D1 = 1;
 const double *env = envs->env;
 const int nf = envs->nf;
 const int i_l = envs->i_l;
@@ -2269,8 +2265,6 @@ C2Fo_(cint2e_cg_ssa10ssp2)
  * = (R CROSS SIGMA i j|GAUNT |k SIGMA DOT P l) */
 static void CINTgout2e_cint2e_giao_ssa10ssp2(double *g,
 double *gout, const int *idx, const CINTEnvVars *envs, int gout_empty) {
-const int INC1 = 1;
-const double D1 = 1;
 const double *env = envs->env;
 const int nf = envs->nf;
 const int i_l = envs->i_l;
@@ -3416,8 +3410,6 @@ C2Fo_(cint2e_giao_ssa10ssp2)
  * = (G i SIGMA DOT P j|GAUNT |k SIGMA DOT P l) */
 static void CINTgout2e_cint2e_gssp1ssp2(double *g,
 double *gout, const int *idx, const CINTEnvVars *envs, int gout_empty) {
-const int INC1 = 1;
-const double D1 = 1;
 const double *env = envs->env;
 const int nf = envs->nf;
 const int i_l = envs->i_l;

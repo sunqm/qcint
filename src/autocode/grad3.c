@@ -1,6 +1,6 @@
 /*
  * Qcint is a general GTO integral library for computational chemistry
- * Copyright (C) 2014 Qiming Sun
+ * Copyright (C) 2014 Qiming Sun <osirpt.sun@gmail.com>
  *
  * This file is part of Qcint.
  *
@@ -37,8 +37,6 @@ double *gout, const int nf, const int *idx,
 const double ai, const double aj,
 const int *shls,
 const int *atm, const int *bas, const double *env) {
-const int INC1 = 1;
-const double D1 = 1;
 const int i_sh = shls[0];
 const int j_sh = shls[1];
 const int i_l = bas(ANG_OF, i_sh);
@@ -88,8 +86,6 @@ double *gout, const int nf, const int *idx,
 const double ai, const double aj,
 const int *shls,
 const int *atm, const int *bas, const double *env) {
-const int INC1 = 1;
-const double D1 = 1;
 const int i_sh = shls[0];
 const int j_sh = shls[1];
 const int i_l = bas(ANG_OF, i_sh);
@@ -175,8 +171,6 @@ double *gout, const int nf, const int *idx,
 const double ai, const double aj,
 const int *shls,
 const int *atm, const int *bas, const double *env) {
-const int INC1 = 1;
-const double D1 = 1;
 const int i_sh = shls[0];
 const int j_sh = shls[1];
 const int i_l = bas(ANG_OF, i_sh);
@@ -226,8 +220,6 @@ double *gout, const int nf, const int *idx,
 const double ai, const double aj,
 const int *shls,
 const int *atm, const int *bas, const double *env) {
-const int INC1 = 1;
-const double D1 = 1;
 const int i_sh = shls[0];
 const int j_sh = shls[1];
 const int i_l = bas(ANG_OF, i_sh);
@@ -277,8 +269,6 @@ double *gout, const int nf, const int *idx,
 const double ai, const double aj,
 const int *shls,
 const int *atm, const int *bas, const double *env) {
-const int INC1 = 1;
-const double D1 = 1;
 const int i_sh = shls[0];
 const int j_sh = shls[1];
 const int i_l = bas(ANG_OF, i_sh);
@@ -320,8 +310,6 @@ C2F_(cint1e_rinv_cart)
  * = (NABLA i j|R12 |k l) */
 static void CINTgout2e_cint2e_ip1_cart(double *g,
 double *gout, const int *idx, const CINTEnvVars *envs, int gout_empty) {
-const int INC1 = 1;
-const double D1 = 1;
 const double *env = envs->env;
 const int nf = envs->nf;
 const int i_l = envs->i_l;

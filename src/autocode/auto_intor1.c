@@ -1,6 +1,6 @@
 /*
  * Qcint is a general GTO integral library for computational chemistry
- * Copyright (C) 2014 Qiming Sun
+ * Copyright (C) 2014 Qiming Sun <osirpt.sun@gmail.com>
  *
  * This file is part of Qcint.
  *
@@ -37,8 +37,6 @@ double *gout, const int nf, const int *idx,
 const double ai, const double aj,
 const int *shls,
 const int *atm, const int *bas, const double *env) {
-const int INC1 = 1;
-const double D1 = 1;
 const int i_sh = shls[0];
 const int j_sh = shls[1];
 const int i_l = bas(ANG_OF, i_sh);
@@ -82,8 +80,6 @@ double *gout, const int nf, const int *idx,
 const double ai, const double aj,
 const int *shls,
 const int *atm, const int *bas, const double *env) {
-const int INC1 = 1;
-const double D1 = 1;
 const int i_sh = shls[0];
 const int j_sh = shls[1];
 const int i_l = bas(ANG_OF, i_sh);
@@ -127,8 +123,6 @@ double *gout, const int nf, const int *idx,
 const double ai, const double aj,
 const int *shls,
 const int *atm, const int *bas, const double *env) {
-const int INC1 = 1;
-const double D1 = 1;
 const int i_sh = shls[0];
 const int j_sh = shls[1];
 const int i_l = bas(ANG_OF, i_sh);
@@ -186,8 +180,6 @@ double *gout, const int nf, const int *idx,
 const double ai, const double aj,
 const int *shls,
 const int *atm, const int *bas, const double *env) {
-const int INC1 = 1;
-const double D1 = 1;
 const int i_sh = shls[0];
 const int j_sh = shls[1];
 const int i_l = bas(ANG_OF, i_sh);
@@ -209,7 +201,7 @@ G1E_D_J(g2, g0, i_l+0
 G1E_D_I(g3, g0, i_l+0
 , j_l+1);
 n = ng[0] * ng[1] * 3;
-daxpy_(&n, &D1, g3, &INC1, g2, &INC1);
+for (ix = 0; ix < n; ix++) {g2[ix] += g3[ix];}
 G1E_D_J(g3, g2, i_l+0, j_l+0);
 for (n = 0; n < nf; n++) {
 ix = idx[n];
@@ -252,8 +244,6 @@ double *gout, const int nf, const int *idx,
 const double ai, const double aj,
 const int *shls,
 const int *atm, const int *bas, const double *env) {
-const int INC1 = 1;
-const double D1 = 1;
 const int i_sh = shls[0];
 const int j_sh = shls[1];
 const int i_l = bas(ANG_OF, i_sh);
@@ -313,8 +303,6 @@ double *gout, const int nf, const int *idx,
 const double ai, const double aj,
 const int *shls,
 const int *atm, const int *bas, const double *env) {
-const int INC1 = 1;
-const double D1 = 1;
 const int i_sh = shls[0];
 const int j_sh = shls[1];
 const int i_l = bas(ANG_OF, i_sh);
@@ -378,8 +366,6 @@ double *gout, const int nf, const int *idx,
 const double ai, const double aj,
 const int *shls,
 const int *atm, const int *bas, const double *env) {
-const int INC1 = 1;
-const double D1 = 1;
 const int i_sh = shls[0];
 const int j_sh = shls[1];
 const int i_l = bas(ANG_OF, i_sh);
@@ -401,7 +387,7 @@ G1E_D_J(g2, g0, i_l+0
 G1E_D_I(g3, g0, i_l+0
 , j_l+1);
 n = ng[0] * ng[1] * 3;
-daxpy_(&n, &D1, g3, &INC1, g2, &INC1);
+for (ix = 0; ix < n; ix++) {g2[ix] += g3[ix];}
 G1E_R_J(g3, g2, i_l+0, j_l+0);
 for (n = 0; n < nf; n++) {
 ix = idx[n];
@@ -450,8 +436,6 @@ double *gout, const int nf, const int *idx,
 const double ai, const double aj,
 const int *shls,
 const int *atm, const int *bas, const double *env) {
-const int INC1 = 1;
-const double D1 = 1;
 const int i_sh = shls[0];
 const int j_sh = shls[1];
 const int i_l = bas(ANG_OF, i_sh);
@@ -477,7 +461,7 @@ G1E_D_J(g2, g0, i_l+0
 G1E_D_I(g3, g0, i_l+0
 , j_l+1);
 n = ng[0] * ng[1] * 3;
-daxpy_(&n, &D1, g3, &INC1, g2, &INC1);
+for (ix = 0; ix < n; ix++) {g2[ix] += g3[ix];}
 G1E_RCJ(g3, g2, i_l+0, j_l+0);
 for (n = 0; n < nf; n++) {
 ix = idx[n];
@@ -526,8 +510,6 @@ double *gout, const int nf, const int *idx,
 const double ai, const double aj,
 const int *shls,
 const int *atm, const int *bas, const double *env) {
-const int INC1 = 1;
-const double D1 = 1;
 const int i_sh = shls[0];
 const int j_sh = shls[1];
 const int i_l = bas(ANG_OF, i_sh);
@@ -560,7 +542,7 @@ G1E_D_J(g2, g0, i_l+1
 G1E_D_I(g3, g0, i_l+1
 , j_l+1);
 n = ng[0] * ng[1] * 3;
-daxpy_(&n, &D1, g3, &INC1, g2, &INC1);
+for (ix = 0; ix < n; ix++) {g2[ix] += g3[ix];}
 G1E_D_J(g3, g2, i_l+1, j_l+0);
 G1E_R0I(g4, g0, i_l+0, j_l);
 G1E_R0I(g5, g1, i_l+0, j_l);
@@ -636,8 +618,6 @@ double *gout, const int nf, const int *idx,
 const double ai, const double aj,
 const int *shls,
 const int *atm, const int *bas, const double *env) {
-const int INC1 = 1;
-const double D1 = 1;
 const int i_sh = shls[0];
 const int j_sh = shls[1];
 const int i_l = bas(ANG_OF, i_sh);
@@ -735,8 +715,6 @@ double *gout, const int nf, const int *idx,
 const double ai, const double aj,
 const int *shls,
 const int *atm, const int *bas, const double *env) {
-const int INC1 = 1;
-const double D1 = 1;
 const int i_sh = shls[0];
 const int j_sh = shls[1];
 const int i_l = bas(ANG_OF, i_sh);
@@ -798,8 +776,6 @@ double *gout, const int nf, const int *idx,
 const double ai, const double aj,
 const int *shls,
 const int *atm, const int *bas, const double *env) {
-const int INC1 = 1;
-const double D1 = 1;
 const int i_sh = shls[0];
 const int j_sh = shls[1];
 const int i_l = bas(ANG_OF, i_sh);
@@ -861,8 +837,6 @@ double *gout, const int nf, const int *idx,
 const double ai, const double aj,
 const int *shls,
 const int *atm, const int *bas, const double *env) {
-const int INC1 = 1;
-const double D1 = 1;
 const int i_sh = shls[0];
 const int j_sh = shls[1];
 const int i_l = bas(ANG_OF, i_sh);
@@ -910,8 +884,6 @@ double *gout, const int nf, const int *idx,
 const double ai, const double aj,
 const int *shls,
 const int *atm, const int *bas, const double *env) {
-const int INC1 = 1;
-const double D1 = 1;
 const int i_sh = shls[0];
 const int j_sh = shls[1];
 const int i_l = bas(ANG_OF, i_sh);
@@ -969,8 +941,6 @@ double *gout, const int nf, const int *idx,
 const double ai, const double aj,
 const int *shls,
 const int *atm, const int *bas, const double *env) {
-const int INC1 = 1;
-const double D1 = 1;
 const int i_sh = shls[0];
 const int j_sh = shls[1];
 const int i_l = bas(ANG_OF, i_sh);
@@ -1020,8 +990,6 @@ double *gout, const int nf, const int *idx,
 const double ai, const double aj,
 const int *shls,
 const int *atm, const int *bas, const double *env) {
-const int INC1 = 1;
-const double D1 = 1;
 const int i_sh = shls[0];
 const int j_sh = shls[1];
 const int i_l = bas(ANG_OF, i_sh);
@@ -1079,8 +1047,6 @@ double *gout, const int nf, const int *idx,
 const double ai, const double aj,
 const int *shls,
 const int *atm, const int *bas, const double *env) {
-const int INC1 = 1;
-const double D1 = 1;
 const int i_sh = shls[0];
 const int j_sh = shls[1];
 const int i_l = bas(ANG_OF, i_sh);
@@ -1146,8 +1112,6 @@ double *gout, const int nf, const int *idx,
 const double ai, const double aj,
 const int *shls,
 const int *atm, const int *bas, const double *env) {
-const int INC1 = 1;
-const double D1 = 1;
 const int i_sh = shls[0];
 const int j_sh = shls[1];
 const int i_l = bas(ANG_OF, i_sh);
@@ -1205,8 +1169,6 @@ C2F_(cint1e_prinvxp_sph)
  * = (P* i CROSS P j|R12 |k l) */
 static void CINTgout2e_cint2e_p1vxp1_sph(double *g,
 double *gout, const int *idx, const CINTEnvVars *envs, int gout_empty) {
-const int INC1 = 1;
-const double D1 = 1;
 const double *env = envs->env;
 const int nf = envs->nf;
 const int i_l = envs->i_l;
@@ -2262,8 +2224,6 @@ C2Fo_(cint2e_p1vxp1_sph)
  * = (G i j|R12 |k l) */
 static void CINTgout2e_cint2e_ig1_sph(double *g,
 double *gout, const int *idx, const CINTEnvVars *envs, int gout_empty) {
-const int INC1 = 1;
-const double D1 = 1;
 const double *env = envs->env;
 const int nf = envs->nf;
 const int i_l = envs->i_l;

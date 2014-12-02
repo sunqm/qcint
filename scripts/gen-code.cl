@@ -1,8 +1,20 @@
-;;;;
-;;;; File: gen-code.cl
-;;;; Author: Qiming Sun <osirpt.sun@gmail.com>
-;;;; Description:
-;;;  dump to output file
+;;; Qcint is a general GTO integral library for computational chemistry
+;;; Copyright (C) 2014 Qiming Sun <osirpt.sun@gmail.com>
+;;;
+;;; This file is part of Qcint.
+;;;
+;;; Qcint is free software: you can redistribute it and/or modify
+;;; it under the terms of the GNU General Public License as published by
+;;; the Free Software Foundation, either version 3 of the License, or
+;;; (at your option) any later version.
+;;;
+;;; This program is distributed in the hope that it will be useful,
+;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;;; GNU General Public License for more details.
+;;;
+;;; You should have received a copy of the GNU General Public License
+;;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (load "utility.cl")
 (load "parser.cl")
@@ -108,7 +120,7 @@
 (defun dump-header (fout)
   (format fout "/*
  * Qcint is a general GTO integral library for computational chemistry
- * Copyright (C) 2014 Qiming Sun
+ * Copyright (C) 2014 Qiming Sun <osirpt.sun@gmail.com>
  *
  * This file is part of Qcint.
  *
@@ -223,7 +235,7 @@
           (format fout fmt-op
                   (g?e-of op) ig ig0 right
                   (g?e-of op) (1+ ig) ig0 right
-                  (1+ ig) ig)
+                  ig (1+ ig))
           (format fout fmt-j (g?e-of op) ig ig0 right))))))
 (defun combo-ket (fout fmt ops-rev ig mask)
   (let* ((right (last-bit1 (ash ig (- mask))))
@@ -304,9 +316,7 @@ double *gout, const int nf, const int *idx,
 const double ai, const double aj,
 const int *shls,
 const int *atm, const int *bas, const double *env) {~%" intname)
-      (format fout "const int INC1 = 1;
-const double D1 = 1;
-const int i_sh = shls[0];
+      (format fout "const int i_sh = shls[0];
 const int j_sh = shls[1];
 const int i_l = bas(ANG_OF, i_sh);
 const int j_l = bas(ANG_OF, j_sh);
@@ -330,7 +340,7 @@ double *g0 = g;~%")
             (fmt-op (mkstr "G1E_~aJ(g~a, g~a, i_l+" i-len ", j_l+~a);
 G1E_~aI(g~a, g~a, i_l+" i-len ", j_l+~a);
 n = ng[0] * ng[1] * 3;
-daxpy_(&n, &D1, g~a, &INC1, g~a, &INC1);~%"))
+for (ix = 0; ix < n; ix++) {g~a[ix] += g~a[ix];}~%"))
             (fmt-j (mkstr "G1E_~aJ(g~a, g~a, i_l+" i-len ", j_l+~a);~%")))
         (dump-combo-braket fout fmt-i fmt-op fmt-j i-rev op-rev j-rev 0))
 ;;; generate gout
@@ -693,9 +703,7 @@ for (i = 0; i < envs->nrys_roots; i++) {~%" (expt 3 n))
 ;;; generate function gout2e
       (format fout "static void CINTgout2e_~a(double *g,
 double *gout, const int *idx, const CINTEnvVars *envs, int gout_empty) {~%" intname)
-      (format fout "const int INC1 = 1;
-const double D1 = 1;
-const double *env = envs->env;
+      (format fout "const double *env = envs->env;
 const int nf = envs->nf;
 const int i_l = envs->i_l;
 const int j_l = envs->j_l;
@@ -727,13 +735,12 @@ double *g0 = g;~%")
             (fmt-op (mkstr "G2E_~aJ(g~a, g~a, i_l+" i-len ", j_l+~a, k_l, l_l);
 G2E_~aI(g~a, g~a, i_l+" i-len ", j_l+~a, k_l, l_l);
 n = envs->g_size * 3;
-daxpy_(&n, &D1, g~a, &INC1, g~a, &INC1);~%"))
+for (ix = 0; ix < n; ix++) {g~a[ix] += g~a[ix];}~%"))
             (fmt-j (mkstr "G2E_~aJ(g~a, g~a, i_l+" i-len ", j_l+~a, k_l, l_l);~%")))
         (dump-combo-braket fout fmt-i fmt-op fmt-j i-rev op-rev j-rev (+ k-len l-len)))
 ;;; generate gout
       ;(dump-s-2e fout tot-bits)
       (dump-s-2e-sse fout tot-bits)
-      ;(dump-s-2e-greduce fout tot-bits)
 ;;; dump result of eval-int
       (format fout "if (gout_empty) {~%")
       (setf goutinc (gen-c-block fout "gout[~a] =" (last1 raw-script)))
