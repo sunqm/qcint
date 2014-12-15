@@ -34,11 +34,11 @@ struct _BC {
 
 void CINTg0_2e_2d(double *g, struct _BC *bc, const CINTEnvVars *envs);
 void CINTg0_lj2d_4d(double *g, const CINTEnvVars *envs);
+void CINTg0_kj2d_3d(double *g, const CINTEnvVars *envs);
 
 /************* some special g0_4d results *************/
 /* 4 digits stand for i_ceil, k_ceil, l_ceil, j_ceil */
-static inline void _g0_lj_4d_0001(double *g, double *c,
-                                  const double *r)
+static void _g0_lj_4d_0001(double *g, double *c, const double *r)
 {
         g[0] = 1;
         g[1] = c[0];
@@ -53,8 +53,7 @@ static inline void _g0_lj_4d_0001(double *g, double *c,
         ////g[8] = w[0];
         //g[10] = c[MXRYSROOTS*2] * g[8];
 }
-static inline void _g0_lj_4d_1000(double *g, double *c,
-                                  const double *r)
+static void _g0_lj_4d_1000(double *g, double *c, const double *r)
 {
         g[0] = 1;
         g[1] = r[0] + c[0];
@@ -69,8 +68,7 @@ static inline void _g0_lj_4d_1000(double *g, double *c,
         ////g[16] = w[0];
         //g[18] =(r[2] + c[MXRYSROOTS*2]) * g[16];
 }
-static inline void _g0_lj_4d_0002(double *g, double *c, double *b,
-                                  const double *r)
+static void _g0_lj_4d_0002(double *g, double *c, double *b, const double *r)
 {
         g[0 ] = 1;
         g[1 ] = 1;
@@ -91,8 +89,7 @@ static inline void _g0_lj_4d_0002(double *g, double *c, double *b,
         g[16] =(c[MXRYSROOTS*2] * c[MXRYSROOTS*2] + b[0])* g[12];
         g[17] =(c[MXRYSROOTS*2+1] * c[MXRYSROOTS*2+1] + b[1])* g[13];
 }
-static inline void _g0_lj_4d_1001(double *g, double *c, double *b,
-                                  const double *r)
+static void _g0_lj_4d_1001(double *g, double *c, double *b, const double *r)
 {
         double rc[] = {r[0]+c[0], r[0]+c[1],
                        r[1]+c[MXRYSROOTS], r[1]+c[MXRYSROOTS+1],
@@ -122,8 +119,7 @@ static inline void _g0_lj_4d_1001(double *g, double *c, double *b,
         g[30] =(rc[4] * c[MXRYSROOTS*2] + b[0])* g[24];
         g[31] =(rc[5] * c[MXRYSROOTS*2+1] + b[1])* g[25];
 }
-static inline void _g0_lj_4d_2000(double *g, double *c, double *b,
-                                  const double *r)
+static void _g0_lj_4d_2000(double *g, double *c, double *b, const double *r)
 {
         double rc[] = {r[0]+c[0], r[0]+c[1],
                        r[1]+c[MXRYSROOTS], r[1]+c[MXRYSROOTS+1],
@@ -147,8 +143,7 @@ static inline void _g0_lj_4d_2000(double *g, double *c, double *b,
         g[40] =(rc[4] * rc[4] + b[0])* g[36];
         g[41] =(rc[5] * rc[5] + b[1])* g[37];
 }
-static inline void _g0_lj_4d_0003(double *g, double *c, double *b,
-                                  const double *r)
+static void _g0_lj_4d_0003(double *g, double *c, double *b, const double *r)
 {
         g[0 ] = 1;
         g[1 ] = 1;
@@ -175,8 +170,7 @@ static inline void _g0_lj_4d_0003(double *g, double *c, double *b,
         g[22] =(c[MXRYSROOTS*2] * c[MXRYSROOTS*2] + 3 * b[0])* c[MXRYSROOTS*2] * g[16];
         g[23] =(c[MXRYSROOTS*2+1] * c[MXRYSROOTS*2+1] + 3 * b[1])* c[MXRYSROOTS*2+1] * g[17];
 }
-static inline void _g0_lj_4d_1002(double *g, double *c, double *b,
-                                  const double *r)
+static void _g0_lj_4d_1002(double *g, double *c, double *b, const double *r)
 {
 /*
         __m128d rcx = _mm_set_pd(r[0]+c[1], r[0]+c[0]);
@@ -310,8 +304,7 @@ static inline void _g0_lj_4d_1002(double *g, double *c, double *b,
         g[42] =(rc[4]*c[MXRYSROOTS*2]*c[MXRYSROOTS*2]+b[0]*(rc[4]+2*c[MXRYSROOTS*2]))*g[32];
         g[43] =(rc[5]*c[MXRYSROOTS*2+1]*c[MXRYSROOTS*2+1]+b[1]*(rc[5]+2*c[MXRYSROOTS*2+1]))*g[33];
 }
-static inline void _g0_lj_4d_2001(double *g, double *c, double *b,
-                                  const double *r)
+static void _g0_lj_4d_2001(double *g, double *c, double *b, const double *r)
 {
         double rc[] = {r[0]+c[0], r[0]+c[1],
                        r[1]+c[MXRYSROOTS], r[1]+c[MXRYSROOTS+1],
@@ -353,8 +346,7 @@ static inline void _g0_lj_4d_2001(double *g, double *c, double *b,
         g[58] =(c[MXRYSROOTS*2]*rc[4]*rc[4] + b[0]*(2*rc[4]+c[MXRYSROOTS*2]))* g[48];
         g[59] =(c[MXRYSROOTS*2+1]*rc[5]*rc[5] + b[1]*(2*rc[5]+c[MXRYSROOTS*2+1]))* g[49];
 }
-static inline void _g0_lj_4d_3000(double *g, double *c, double *b,
-                                  const double *r)
+static void _g0_lj_4d_3000(double *g, double *c, double *b, const double *r)
 {
         double rc[] = {r[0]+c[0], r[0]+c[1],
                        r[1]+c[MXRYSROOTS], r[1]+c[MXRYSROOTS+1],
@@ -384,8 +376,8 @@ static inline void _g0_lj_4d_3000(double *g, double *c, double *b,
         g[70] =(rc[4] * rc[4] + 3 * b[0])* rc[4] * g[64];
         g[71] =(rc[5] * rc[5] + 3 * b[1])* rc[5] * g[65];
 }
-static inline void _g0_lj_4d_0011(double *g, double *c0, double *cp, double *b,
-                                  const double *r0, const double *rp)
+static void _g0_lj_4d_0011(double *g, double *c0, double *cp, double *b,
+                           const double *r0, const double *rp)
 {
         g[0 ] = 1;
         g[1 ] = 1;
@@ -412,8 +404,8 @@ static inline void _g0_lj_4d_0011(double *g, double *c0, double *cp, double *b,
         g[22] =(cp[MXRYSROOTS*2] * c0[MXRYSROOTS*2] + b[0]) * g[16];
         g[23] =(cp[MXRYSROOTS*2+1] * c0[MXRYSROOTS*2+1] + b[1]) * g[17];
 }
-static inline void _g0_lj_4d_1010(double *g, double *c0, double *cp, double *b,
-                                  const double *r0, const double *rp)
+static void _g0_lj_4d_1010(double *g, double *c0, double *cp, double *b,
+                           const double *r0, const double *rp)
 {
         double rc[] = {r0[0]+c0[0], r0[0]+c0[1],
                        r0[1]+c0[MXRYSROOTS], r0[1]+c0[MXRYSROOTS+1],
@@ -443,8 +435,8 @@ static inline void _g0_lj_4d_1010(double *g, double *c0, double *cp, double *b,
         g[38] =(rc[4]*cp[MXRYSROOTS*2] + b[0]) * g[32];
         g[39] =(rc[5]*cp[MXRYSROOTS*2+1] + b[1]) * g[33];
 }
-static inline void _g0_lj_4d_0101(double *g, double *c0, double *cp, double *b,
-                                  const double *r0, const double *rp)
+static void _g0_lj_4d_0101(double *g, double *c0, double *cp, double *b,
+                           const double *r0, const double *rp)
 {
         double rc[] = {rp[0]+cp[0], rp[0]+cp[1],
                        rp[1]+cp[MXRYSROOTS], rp[1]+cp[MXRYSROOTS+1],
@@ -474,8 +466,8 @@ static inline void _g0_lj_4d_0101(double *g, double *c0, double *cp, double *b,
         g[42] =(rc[4]*c0[MXRYSROOTS*2] + b[0]) * g[32];
         g[43] =(rc[5]*c0[MXRYSROOTS*2+1] + b[1]) * g[33];
 }
-static inline void _g0_lj_4d_1100(double *g, double *c0, double *cp, double *b,
-                                  const double *r0, const double *rp)
+static void _g0_lj_4d_1100(double *g, double *c0, double *cp, double *b,
+                           const double *r0, const double *rp)
 {
         double rc0[] = {r0[0]+c0[0], r0[0]+c0[1],
                         r0[1]+c0[MXRYSROOTS], r0[1]+c0[MXRYSROOTS+1],
@@ -508,8 +500,8 @@ static inline void _g0_lj_4d_1100(double *g, double *c0, double *cp, double *b,
         g[70] =(rc0[4]*rcp[4] + b[0]) * g[64];
         g[71] =(rc0[5]*rcp[5] + b[1]) * g[65];
 }
-static inline void _g0_lj_4d_0021(double *g, double *c0, double *cp,
-                                  double *b0, double *b1)
+static void _g0_lj_4d_0021(double *g, double *c0, double *cp,
+                           double *b0, double *b1)
 {
         g[0 ] = 1;
         g[1 ] = 1;
@@ -548,9 +540,9 @@ static inline void _g0_lj_4d_0021(double *g, double *c0, double *cp,
         g[34] = c0[MXRYSROOTS*2] * g[28] + 2 * b0[0] * g[26];
         g[35] = c0[MXRYSROOTS*2+1] * g[29] + 2 * b0[1] * g[27];
 }
-static inline void _g0_lj_4d_1020(double *g, double *c0, double *cp,
-                                  double *b0, double *b1,
-                                  const double *r0, const double *rp)
+static void _g0_lj_4d_1020(double *g, double *c0, double *cp,
+                           double *b0, double *b1,
+                           const double *r0, const double *rp)
 {
         double rc[] = {r0[0]+c0[0], r0[0]+c0[1],
                        r0[1]+c0[MXRYSROOTS], r0[1]+c0[MXRYSROOTS+1],
@@ -592,9 +584,9 @@ static inline void _g0_lj_4d_1020(double *g, double *c0, double *cp,
         g[58] = rc[4] * g[56] + 2 * b0[0] * g[52];
         g[59] = rc[5] * g[57] + 2 * b0[1] * g[53];
 }
-static inline void _g0_lj_4d_0111(double *g, double *c0, double *cp,
-                                  double *b0, double *b1,
-                                  const double *r0, const double *rp)
+static void _g0_lj_4d_0111(double *g, double *c0, double *cp,
+                           double *b0, double *b1,
+                           const double *r0, const double *rp)
 {
         double rc[] = {rp[0]+cp[0], rp[0]+cp[1],
                        rp[1]+cp[MXRYSROOTS], rp[1]+cp[MXRYSROOTS+1],
@@ -648,9 +640,9 @@ static inline void _g0_lj_4d_0111(double *g, double *c0, double *cp,
         g[66] = c0[MXRYSROOTS*2] * g[54] + b0[0] *(g[50] + g[52]);
         g[67] = c0[MXRYSROOTS*2+1] * g[55] + b0[1] *(g[51] + g[53]);
 }
-static inline void _g0_lj_4d_1110(double *g, double *c0, double *cp, 
-                                  double *b0, double *b1,
-                                  const double *r0, const double *rp)
+static void _g0_lj_4d_1110(double *g, double *c0, double *cp, 
+                           double *b0, double *b1,
+                           const double *r0, const double *rp)
 {
         double rc0[] = {r0[0]+c0[0], r0[0]+c0[1],
                         r0[1]+c0[MXRYSROOTS], r0[1]+c0[MXRYSROOTS+1],
@@ -707,9 +699,9 @@ static inline void _g0_lj_4d_1110(double *g, double *c0, double *cp,
         g[110] = rc0[4] * g[108] + b0[0] *(g[100] + g[104]);
         g[111] = rc0[5] * g[109] + b0[1] *(g[101] + g[105]);
 }
-static inline void _g0_lj_4d_0201(double *g, double *c0, double *cp,
-                                  double *b0, double *b1,
-                                  const double *r0, const double *rp)
+static void _g0_lj_4d_0201(double *g, double *c0, double *cp,
+                           double *b0, double *b1,
+                           const double *r0, const double *rp)
 {
         double rc[] = {rp[0]+cp[0], rp[0]+cp[1],
                        rp[1]+cp[MXRYSROOTS], rp[1]+cp[MXRYSROOTS+1],
@@ -751,9 +743,9 @@ static inline void _g0_lj_4d_0201(double *g, double *c0, double *cp,
         g[94] = c0[MXRYSROOTS*2] * g[76] + 2 * b0[0] * g[74];
         g[95] = c0[MXRYSROOTS*2+1] * g[77] + 2 * b0[1] * g[75];
 }
-static inline void _g0_lj_4d_1200(double *g, double *c0, double *cp, 
-                                  double *b0, double *b1,
-                                  const double *r0, const double *rp)
+static void _g0_lj_4d_1200(double *g, double *c0, double *cp, 
+                           double *b0, double *b1,
+                           const double *r0, const double *rp)
 {
         double rc0[] = {r0[0]+c0[0], r0[0]+c0[1],
                         r0[1]+c0[MXRYSROOTS], r0[1]+c0[MXRYSROOTS+1],
@@ -798,8 +790,7 @@ static inline void _g0_lj_4d_1200(double *g, double *c0, double *cp,
         g[154] = rc0[4] * g[152] + 2 * b0[0] * g[148];
         g[155] = rc0[5] * g[153] + 2 * b0[1] * g[149];
 }
-static inline void _g0_lj_4d_0012(double *g, double *c0, double *cp,
-                                  double *b0, double *b1)
+static void _g0_lj_4d_0012(double *g, double *c0, double *cp, double *b0, double *b1)
 {
         g[0 ] = 1;
         g[1 ] = 1;
@@ -838,9 +829,9 @@ static inline void _g0_lj_4d_0012(double *g, double *c0, double *cp,
         g[34] = cp[MXRYSROOTS*2] * g[32] + 2 * b0[0] * g[28];
         g[35] = cp[MXRYSROOTS*2+1] * g[33] + 2 * b0[1] * g[29];
 }
-static inline void _g0_lj_4d_1011(double *g, double *c0, double *cp,
-                                  double *b0, double *b1,
-                                  const double *r0, const double *rp)
+static void _g0_lj_4d_1011(double *g, double *c0, double *cp,
+                           double *b0, double *b1,
+                           const double *r0, const double *rp)
 {
         double rc[] = {r0[0]+c0[0], r0[0]+c0[1],
                        r0[1]+c0[MXRYSROOTS], r0[1]+c0[MXRYSROOTS+1],
@@ -894,9 +885,9 @@ static inline void _g0_lj_4d_1011(double *g, double *c0, double *cp,
         g[62] = cp[MXRYSROOTS*2] * g[58] + b0[0] *(g[50] + g[56]);
         g[63] = cp[MXRYSROOTS*2+1] * g[59] + b0[1] *(g[51] + g[57]);
 }
-static inline void _g0_lj_4d_2010(double *g, double *c0, double *cp,
-                                  double *b0, double *b1,
-                                  const double *r0, const double *rp)
+static void _g0_lj_4d_2010(double *g, double *c0, double *cp,
+                           double *b0, double *b1,
+                           const double *r0, const double *rp)
 {
         double rc[] = {r0[0]+c0[0], r0[0]+c0[1],
                        r0[1]+c0[MXRYSROOTS], r0[1]+c0[MXRYSROOTS+1],
@@ -938,9 +929,9 @@ static inline void _g0_lj_4d_2010(double *g, double *c0, double *cp,
         g[82] = cp[MXRYSROOTS*2] * g[76] + 2 * b0[0] * g[74];
         g[83] = cp[MXRYSROOTS*2+1] * g[77] + 2 * b0[1] * g[75];
 }
-static inline void _g0_lj_4d_0102(double *g, double *c0, double *cp,
-                                  double *b0, double *b1,
-                                  const double *r0, const double *rp)
+static void _g0_lj_4d_0102(double *g, double *c0, double *cp,
+                           double *b0, double *b1,
+                           const double *r0, const double *rp)
 {
         double rc[] = {rp[0]+cp[0], rp[0]+cp[1],
                        rp[1]+cp[MXRYSROOTS], rp[1]+cp[MXRYSROOTS+1],
@@ -982,9 +973,9 @@ static inline void _g0_lj_4d_0102(double *g, double *c0, double *cp,
         g[66] = rc[4] * g[64] + 2 * b0[0] * g[56];
         g[67] = rc[5] * g[65] + 2 * b0[1] * g[57];
 }
-static inline void _g0_lj_4d_1101(double *g, double *c0, double *cp, 
-                                  double *b0, double *b1,
-                                  const double *r0, const double *rp)
+static void _g0_lj_4d_1101(double *g, double *c0, double *cp, 
+                           double *b0, double *b1,
+                           const double *r0, const double *rp)
 {
         double rc0[] = {r0[0]+c0[0], r0[0]+c0[1],
                         r0[1]+c0[MXRYSROOTS], r0[1]+c0[MXRYSROOTS+1],
@@ -1041,9 +1032,9 @@ static inline void _g0_lj_4d_1101(double *g, double *c0, double *cp,
         g[118] = rcp[4] * g[114] + b0[0] *(g[98] + g[112]);
         g[119] = rcp[5] * g[115] + b0[1] *(g[99] + g[113]);
 }
-static inline void _g0_lj_4d_2100(double *g, double *c0, double *cp, 
-                                  double *b0, double *b1,
-                                  const double *r0, const double *rp)
+static void _g0_lj_4d_2100(double *g, double *c0, double *cp, 
+                           double *b0, double *b1,
+                           const double *r0, const double *rp)
 {
 /*
         //double rc0[] = {r0[0]+c0[0], r0[0]+c0[1],
@@ -1275,9 +1266,91 @@ _g0_4d_default:
 normal_end:
         return;
 error:
-        printf("Dimension error for CINTg0_2e_lj2d4d: iklj = %d %d %d %d",
-               (int)envs->li_ceil, (int)envs->lk_ceil,
-               (int)envs->ll_ceil, (int)envs->lj_ceil);
+        fprintf(stderr, "Dimension error for CINTg0_2e_lj2d4d: iklj = %d %d %d %d",
+                (int)envs->li_ceil, (int)envs->lk_ceil,
+                (int)envs->ll_ceil, (int)envs->lj_ceil);
         exit(1);
 }
 
+void CINTg0_3c2e_kj2d3d(double *g, const CINTEnvVars *envs,struct _BC *bc)
+{
+        const FINT nmax = envs->li_ceil + envs->lj_ceil;
+        switch (nmax) {
+                case 0: switch(envs->lk_ceil) {
+                        case 0: goto _g0_4d_default; // ssss
+                        case 1: _g0_lj_4d_1000(g, bc->c0p, envs->rkrl); goto normal_end;
+                        case 2: _g0_lj_4d_2000(g, bc->c0p, bc->b01, envs->rkrl); goto normal_end;
+                        case 3: _g0_lj_4d_3000(g, bc->c0p, bc->b01, envs->rkrl); goto normal_end;
+                        default: goto _g0_4d_default; }
+                case 1: switch(envs->lk_ceil) {
+                        case 0: switch (envs->li_ceil) {
+                                case 0: _g0_lj_4d_0001(g, bc->c00, envs->rirj); goto normal_end;
+                                case 1: _g0_lj_4d_1000(g, bc->c00, envs->rirj); goto normal_end;
+                                default: goto error; }
+                        case 1: switch (envs->li_ceil) {
+                                case 0: _g0_lj_4d_0101(g, bc->c00, bc->c0p, bc->b00, envs->rirj, envs->rkrl); goto normal_end;
+                                case 1: _g0_lj_4d_1100(g, bc->c00, bc->c0p, bc->b00, envs->rirj, envs->rkrl); goto normal_end;
+                                default: goto error; }
+                        case 2: switch (envs->li_ceil) {
+                                case 0: _g0_lj_4d_0201(g, bc->c00, bc->c0p, bc->b00, bc->b01, envs->rirj, envs->rkrl); goto normal_end;
+                                case 1: _g0_lj_4d_1200(g, bc->c00, bc->c0p, bc->b00, bc->b01, envs->rirj, envs->rkrl); goto normal_end;
+                                default: goto error; }
+                        default: goto _g0_4d_default; }
+                case 2: switch(envs->lk_ceil) {
+                        case 0: switch (envs->li_ceil) {
+                                case 0: _g0_lj_4d_0002(g, bc->c00, bc->b10, envs->rirj); goto normal_end;
+                                case 1: _g0_lj_4d_1001(g, bc->c00, bc->b10, envs->rirj); goto normal_end;
+                                case 2: _g0_lj_4d_2000(g, bc->c00, bc->b10, envs->rirj); goto normal_end;
+                                default: goto error; }
+                        case 1: switch (envs->li_ceil) {
+                                case 0: _g0_lj_4d_0102(g, bc->c00, bc->c0p, bc->b00, bc->b10, envs->rirj, envs->rkrl); goto normal_end;
+                                case 1: _g0_lj_4d_1101(g, bc->c00, bc->c0p, bc->b00, bc->b10, envs->rirj, envs->rkrl); goto normal_end;
+                                case 2: _g0_lj_4d_2100(g, bc->c00, bc->c0p, bc->b00, bc->b10, envs->rirj, envs->rkrl); goto normal_end;
+                                default: goto error; }
+                        default: goto _g0_4d_default; }
+                case 3: switch(envs->lk_ceil) {
+                        case 0: switch (envs->li_ceil) {
+                                case 0: _g0_lj_4d_0003(g, bc->c00, bc->b10, envs->rirj); goto normal_end;
+                                case 1: _g0_lj_4d_1002(g, bc->c00, bc->b10, envs->rirj); goto normal_end;
+                                case 2: _g0_lj_4d_2001(g, bc->c00, bc->b10, envs->rirj); goto normal_end;
+                                case 3: _g0_lj_4d_3000(g, bc->c00, bc->b10, envs->rirj); goto normal_end;
+                                default: goto error; }
+                        default: goto _g0_4d_default; }
+                default:
+_g0_4d_default:
+                        CINTg0_2e_2d(g, bc, envs);
+                        CINTg0_kj2d_3d(g, envs);
+        }
+normal_end:
+        return;
+error:
+        fprintf(stderr, "Dimension error for CINTg0_3c2e_kj2d3d: ikj = %d %d %d",
+                (int)envs->li_ceil, (int)envs->lk_ceil, (int)envs->lj_ceil);
+        exit(1);
+}
+
+void CINTg0_2c2e_ik2d(double *g, const CINTEnvVars *envs,struct _BC *bc)
+{
+        switch (envs->li_ceil) {
+                case 0: switch(envs->lk_ceil) {
+                        case 0: goto _g0_4d_default; // ssss
+                        default: goto _g0_4d_default; }
+                case 1: switch(envs->lk_ceil) {
+                        case 0: _g0_lj_4d_1000(g, bc->c00, envs->rirj); goto normal_end;
+                        case 1: _g0_lj_4d_1100(g, bc->c00, bc->c0p, bc->b00, envs->rirj, envs->rkrl); goto normal_end;
+                        case 2: _g0_lj_4d_1200(g, bc->c00, bc->c0p, bc->b00, bc->b01, envs->rirj, envs->rkrl); goto normal_end;
+                        default: goto _g0_4d_default; }
+                case 2: switch(envs->lk_ceil) {
+                        case 0: _g0_lj_4d_2000(g, bc->c00, bc->b10, envs->rirj); goto normal_end;
+                        case 1: _g0_lj_4d_2100(g, bc->c00, bc->c0p, bc->b00, bc->b10, envs->rirj, envs->rkrl); goto normal_end;
+                        default: goto _g0_4d_default; }
+                case 3: switch(envs->lk_ceil) {
+                        case 0: _g0_lj_4d_3000(g, bc->c00, bc->b10, envs->rirj); goto normal_end;
+                        default: goto _g0_4d_default; }
+                default:
+_g0_4d_default:
+                        CINTg0_2e_2d(g, bc, envs);
+        }
+normal_end:
+        return;
+}

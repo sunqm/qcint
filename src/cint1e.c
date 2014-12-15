@@ -38,7 +38,6 @@
 FINT CINT1e_loop(double *gctr, CINTEnvVars *envs, double fac)
 {
         const FINT *shls  = envs->shls;
-        const FINT *atm = envs->atm;
         const FINT *bas = envs->bas;
         const double *env = envs->env;
         const FINT i_sh = shls[0];
@@ -47,8 +46,6 @@ FINT CINT1e_loop(double *gctr, CINTEnvVars *envs, double fac)
         const FINT j_l = envs->j_l;
         const FINT i_ctr = envs->i_ctr;
         const FINT j_ctr = envs->j_ctr;
-        const FINT nfi = envs->nfi;
-        const FINT nfj = envs->nfj;
         const FINT n_comp = envs->ncomp_e1 * envs->ncomp_tensor;
         const FINT nf = envs->nf;
         const double *ri = envs->ri;
@@ -170,8 +167,6 @@ FINT CINT1e_nuc_loop(double *gctr, CINTEnvVars *envs, double fac, FINT nuc_id)
         const FINT j_l = envs->j_l;
         const FINT i_ctr = envs->i_ctr;
         const FINT j_ctr = envs->j_ctr;
-        const FINT nfi = envs->nfi;
-        const FINT nfj = envs->nfj;
         const FINT nf = envs->nf;
         const FINT n_comp = envs->ncomp_e1 * envs->ncomp_tensor;
         const double *ri = envs->ri;
@@ -259,13 +254,9 @@ FINT CINT1e_drv(double *opij, CINTEnvVars *envs, double fac,
                void (*const f_c2s)())
 {
         const FINT *shls  = envs->shls;
-        const FINT *atm = envs->atm;
         const FINT *bas = envs->bas;
-        const double *env = envs->env;
         const FINT i_sh = shls[0];
         const FINT j_sh = shls[1];
-        const FINT i_l = envs->i_l;
-        const FINT j_l = envs->j_l;
         const FINT i_ctr = envs->i_ctr;
         const FINT j_ctr = envs->j_ctr;
         const FINT nfi = envs->nfi;
@@ -298,7 +289,7 @@ FINT CINT1e_drv(double *opij, CINTEnvVars *envs, double fac,
                 CINTdset0(nop * envs->ncomp_tensor, opij);
         } else {
                 for (n = 0; n < envs->ncomp_tensor; n++) {
-                        (*f_c2s)(opij, pgctr, shls, bas);
+                        (*f_c2s)(opij, pgctr, envs);
                         opij += nop;
                         pgctr += nc;
                 }
@@ -315,13 +306,9 @@ FINT CINT1e_rinv_drv(double *opij, CINTEnvVars *envs, double fac,
                     void (*const f_c2s)())
 {
         const FINT *shls  = envs->shls;
-        const FINT *atm = envs->atm;
         const FINT *bas = envs->bas;
-        const double *env = envs->env;
         const FINT i_sh = shls[0];
         const FINT j_sh = shls[1];
-        const FINT i_l = envs->i_l;
-        const FINT j_l = envs->j_l;
         const FINT i_ctr = envs->i_ctr;
         const FINT j_ctr = envs->j_ctr;
         const FINT nfi = envs->nfi;
@@ -354,7 +341,7 @@ FINT CINT1e_rinv_drv(double *opij, CINTEnvVars *envs, double fac,
                 CINTdset0(nop * envs->ncomp_tensor, opij);
         } else {
                 for (n = 0; n < envs->ncomp_tensor; n++) {
-                        (*f_c2s)(opij, pgctr, shls, bas);
+                        (*f_c2s)(opij, pgctr, envs);
                         opij += nop;
                         pgctr += nc;
                 }
@@ -374,11 +361,8 @@ FINT CINT1e_nuc_drv(double *opij, CINTEnvVars *envs, double fac,
         const FINT *shls  = envs->shls;
         const FINT *atm = envs->atm;
         const FINT *bas = envs->bas;
-        const double *env = envs->env;
         const FINT i_sh = shls[0];
         const FINT j_sh = shls[1];
-        const FINT i_l = envs->i_l;
-        const FINT j_l = envs->j_l;
         const FINT i_ctr = envs->i_ctr;
         const FINT j_ctr = envs->j_ctr;
         const FINT nfi = envs->nfi;
@@ -415,7 +399,7 @@ FINT CINT1e_nuc_drv(double *opij, CINTEnvVars *envs, double fac,
                 CINTdset0(nop * envs->ncomp_tensor, opij);
         } else {
                 for (n = 0; n < envs->ncomp_tensor; n++) {
-                        (*f_c2s)(opij, pgctr, shls, bas);
+                        (*f_c2s)(opij, pgctr, envs);
                         opij += nop;
                         pgctr += nc;
                 }

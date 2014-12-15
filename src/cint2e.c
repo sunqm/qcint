@@ -48,273 +48,19 @@
         } \
         *ctrsymb##empty = 0
 
-void CINTprim_to_ctr_0(double *gc, const FINT nf, const double *gp,
-                       const FINT nprim, const FINT nctr, const double *coeff)
+void CINT2e_core(double *gout, double *g, double fac1i,
+                 CINTEnvVars *envs, FINT empty)
 {
-        FINT n, i;
-        double *p0, *p1, *p2;
-        double non0coeff[32];
-        FINT non0idx[32];
-        FINT non0ctr = 0;
-
-        for (i = 0; i < nctr; i++) {
-                if (coeff[nprim*i] != 0) {
-                        non0coeff[non0ctr] = coeff[nprim*i];
-                        non0idx[non0ctr] = i;
-                        non0ctr++;
-                } else { // need to initialize the memory, since += is used later
-                        memset(gc+nf*i, 0, sizeof(double)*nf);
-                }
-        }
-
-        __m128d r0, r1, r2, r3, r4;
-        switch (non0ctr) {
-                case 1:
-                        r0 = _mm_load1_pd(non0coeff);
-                        p0 = gc + nf*non0idx[0];
-                        for (n = 0; n < nf-1; n+=2) {
-                                r3 = _mm_loadu_pd(&gp[n]);
-                                r4 = _mm_mul_pd(r0, r3);
-                                _mm_storeu_pd(p0+n, r4);
-                        }
-                        if (n < nf) {
-                                p0[n] = non0coeff[0] * gp[n];
-                        }
-                        break;
-                case 2:
-                        r0 = _mm_load1_pd(non0coeff);
-                        r1 = _mm_load1_pd(non0coeff+1);
-                        p0 = gc + nf*non0idx[0];
-                        p1 = gc + nf*non0idx[1];
-                        for (n = 0; n < nf-1; n+=2) {
-                                r3 = _mm_loadu_pd(&gp[n]);
-                                r4 = _mm_mul_pd(r0, r3);
-                                _mm_storeu_pd(p0+n, r4);
-                                r4 = _mm_mul_pd(r1, r3);
-                                _mm_storeu_pd(p1+n, r4);
-                        }
-                        if (n < nf) {
-                                p0[n] = non0coeff[0] * gp[n];
-                                p1[n] = non0coeff[1] * gp[n];
-                        }
-                        break;
-                case 3:
-                        r0 = _mm_load1_pd(&non0coeff[0]);
-                        r1 = _mm_load1_pd(&non0coeff[1]);
-                        r2 = _mm_load1_pd(&non0coeff[2]);
-                        p0 = gc + nf*non0idx[0];
-                        p1 = gc + nf*non0idx[1];
-                        p2 = gc + nf*non0idx[2];
-                        for (n = 0; n < nf-1; n+=2) {
-                                r3 = _mm_loadu_pd(&gp[n]);
-                                r4 = _mm_mul_pd(r0, r3);
-                                _mm_storeu_pd(p0+n, r4);
-                                r4 = _mm_mul_pd(r1, r3);
-                                _mm_storeu_pd(p1+n, r4);
-                                r4 = _mm_mul_pd(r2, r3);
-                                _mm_storeu_pd(p2+n, r4);
-                        }
-                        if (n < nf) {
-                                p0[n] = non0coeff[0] * gp[n];
-                                p1[n] = non0coeff[1] * gp[n];
-                                p2[n] = non0coeff[2] * gp[n];
-                        }
-                        break;
-                default:
-                        for (i = 0; i < non0ctr-1; i+=2) {
-                                r0 = _mm_load1_pd(&non0coeff[i  ]);
-                                r1 = _mm_load1_pd(&non0coeff[i+1]);
-                                p0 = gc + nf*non0idx[i  ];
-                                p1 = gc + nf*non0idx[i+1];
-                                for (n = 0; n < nf-1; n+=2) {
-                                        r3 = _mm_loadu_pd(&gp[n]);
-                                        r4 = _mm_mul_pd(r0, r3);
-                                        _mm_storeu_pd(p0+n, r4);
-                                        r4 = _mm_mul_pd(r1, r3);
-                                        _mm_storeu_pd(p1+n, r4);
-                                }
-                                if (n < nf) {
-                                        p0[n] = non0coeff[i  ] * gp[n];
-                                        p1[n] = non0coeff[i+1] * gp[n];
-                                }
-                        }
-                        if (i < non0ctr) {
-                                r0 = _mm_load1_pd(&non0coeff[i]);
-                                p0 = gc + nf*non0idx[i];
-                                for (n = 0; n < nf-1; n+=2) {
-                                        r3 = _mm_loadu_pd(&gp[n]);
-                                        r4 = _mm_mul_pd(r0, r3);
-                                        _mm_storeu_pd(p0+n, r4);
-                                }
-                                if (n < nf) {
-                                        p0[n] = non0coeff[i] * gp[n];
-                                }
-                        }
-        }
-}
-
-static void prim_to_ctr_opt(double *gc, const FINT nf, const double *gp,
-                            double *non0coeff, FINT *non0idx, FINT non0ctr)
-{
-        FINT n, i;
-        double *p0, *p1, *p2;
-
-        __m128d r0, r1, r2, r3, r4, r5;
-        switch (non0ctr) {
-                case 1:
-                        r0 = _mm_load1_pd(non0coeff);
-                        p0 = gc + nf*non0idx[0];
-                        for (n = 0; n < nf-1; n+=2) {
-                                r3 = _mm_loadu_pd(&gp[n]);
-                                r4 = _mm_loadu_pd(&p0[n]);
-                                r5 = _mm_mul_pd(r0, r3);
-                                r4 = _mm_add_pd(r5, r4);
-                                _mm_storeu_pd(p0+n, r4);
-                        }
-                        if (n < nf) {
-                                p0[n] += non0coeff[0] * gp[n];
-                        }
-                        break;
-                case 2:
-                        r0 = _mm_load1_pd(non0coeff);
-                        r1 = _mm_load1_pd(non0coeff+1);
-                        p0 = gc + nf*non0idx[0];
-                        p1 = gc + nf*non0idx[1];
-                        for (n = 0; n < nf-1; n+=2) {
-                                r3 = _mm_loadu_pd(&gp[n]);
-                                r4 = _mm_loadu_pd(&p0[n]);
-                                r5 = _mm_mul_pd(r0, r3);
-                                r4 = _mm_add_pd(r5, r4);
-                                _mm_storeu_pd(p0+n, r4);
-                                r4 = _mm_loadu_pd(&p1[n]);
-                                r5 = _mm_mul_pd(r1, r3);
-                                r4 = _mm_add_pd(r5, r4);
-                                _mm_storeu_pd(p1+n, r4);
-                        }
-                        if (n < nf) {
-                                p0[n] += non0coeff[0] * gp[n];
-                                p1[n] += non0coeff[1] * gp[n];
-                        }
-                        break;
-                case 3:
-                        r0 = _mm_load1_pd(&non0coeff[0]);
-                        r1 = _mm_load1_pd(&non0coeff[1]);
-                        r2 = _mm_load1_pd(&non0coeff[2]);
-                        p0 = gc + nf*non0idx[0];
-                        p1 = gc + nf*non0idx[1];
-                        p2 = gc + nf*non0idx[2];
-                        for (n = 0; n < nf-1; n+=2) {
-                                r3 = _mm_loadu_pd(&gp[n]);
-                                r4 = _mm_loadu_pd(&p0[n]);
-                                r5 = _mm_mul_pd(r0, r3);
-                                r4 = _mm_add_pd(r5, r4);
-                                _mm_storeu_pd(p0+n, r4);
-                                r4 = _mm_loadu_pd(&p1[n]);
-                                r5 = _mm_mul_pd(r1, r3);
-                                r4 = _mm_add_pd(r5, r4);
-                                _mm_storeu_pd(p1+n, r4);
-                                r4 = _mm_loadu_pd(&p2[n]);
-                                r5 = _mm_mul_pd(r2, r3);
-                                r4 = _mm_add_pd(r5, r4);
-                                _mm_storeu_pd(p2+n, r4);
-                        }
-                        if (n < nf) {
-                                p0[n] += non0coeff[0] * gp[n];
-                                p1[n] += non0coeff[1] * gp[n];
-                                p2[n] += non0coeff[2] * gp[n];
-                        }
-                        break;
-                default:
-                        for (i = 0; i < non0ctr-1; i+=2) {
-                                r0 = _mm_load1_pd(&non0coeff[i  ]);
-                                r1 = _mm_load1_pd(&non0coeff[i+1]);
-                                p0 = gc + nf*non0idx[i  ];
-                                p1 = gc + nf*non0idx[i+1];
-                                for (n = 0; n < nf-1; n+=2) {
-                                        r3 = _mm_loadu_pd(&gp[n]);
-                                        r4 = _mm_loadu_pd(&p0[n]);
-                                        r5 = _mm_mul_pd(r0, r3);
-                                        r4 = _mm_add_pd(r5, r4);
-                                        _mm_storeu_pd(p0+n, r4);
-                                        r4 = _mm_loadu_pd(&p1[n]);
-                                        r3 = _mm_mul_pd(r1, r3);
-                                        r4 = _mm_add_pd(r3, r4);
-                                        _mm_storeu_pd(p1+n, r4);
-                                }
-                                if (n < nf) {
-                                        p0[n] += non0coeff[i  ] * gp[n];
-                                        p1[n] += non0coeff[i+1] * gp[n];
-                                }
-                        }
-                        if (i < non0ctr) {
-                                r0 = _mm_load1_pd(&non0coeff[i]);
-                                p0 = gc + nf*non0idx[i];
-                                for (n = 0; n < nf-1; n+=2) {
-                                        r3 = _mm_loadu_pd(&gp[n]);
-                                        r4 = _mm_loadu_pd(&p0[n]);
-                                        r5 = _mm_mul_pd(r0, r3);
-                                        r4 = _mm_add_pd(r5, r4);
-                                        _mm_storeu_pd(p0+n, r4);
-                                }
-                                if (n < nf) {
-                                        p0[n] += non0coeff[i] * gp[n];
-                                }
-                        }
-        }
-}
-
-void CINTprim_to_ctr_1(double *gc, const FINT nf, const double *gp,
-                       const FINT nprim, const FINT nctr, const double *coeff)
-{
-        FINT i;
-        double non0coeff[32];
-        FINT non0idx[32];
-        FINT non0ctr = 0;
-
-        for (i = 0; i < nctr; i++) {
-                if (coeff[nprim*i] != 0) {
-                        non0coeff[non0ctr] = coeff[nprim*i];
-                        non0idx[non0ctr] = i;
-                        non0ctr++;
-                }
-        }
-        prim_to_ctr_opt(gc, nf, gp, non0coeff, non0idx, non0ctr);
-}
-
-/*
-static FINT *_init_index_array(CINTEnvVars *envs, const CINTOpt *opt, const FINT nf)
-{
-        FINT *idx;
-        if (opt) {
-                if (opt->index_xyz_array) {
-                        idx = opt->index_xyz_array[envs->i_l*ANG_MAX*ANG_MAX*ANG_MAX
-                                                  +envs->j_l*ANG_MAX*ANG_MAX
-                                                  +envs->k_l*ANG_MAX
-                                                  +envs->l_l];
-                } else {
-                        idx = (FINT *)malloc(sizeof(FINT) * nf * 3);
-                        CINTg2e_index_xyz(idx, envs);
-                }
+        if (envs->g_size != 1) {
+                CINTg0_2e(g, fac1i, envs);
+                (*envs->f_gout)(g, gout, envs->idx, envs, empty);
         } else {
-                idx = (FINT *)malloc(sizeof(FINT) * nf * 3);
-                CINTg2e_index_xyz(idx, envs);
-        }
-        return idx;
-} */
-
-inline void CINT2e_core(double *gout, double *g, double fac1i,
-                        CINTEnvVars *envs, FINT empty)
-{
-        if (envs->g_size == 1) {
                 if (empty) {
                         *gout = CINTg0_2e_ssss(fac1i, envs);
                 } else { // if same address for gctri and gout and
                          // it has been initialized.
                         *gout+= CINTg0_2e_ssss(fac1i, envs);
                 }
-        } else {
-                CINTg0_2e(g, fac1i, envs);
-                (*envs->f_gout)(g, gout, envs->idx, envs, empty);
         }
 }
 
@@ -589,10 +335,10 @@ k_contracted: ;
                                           ctrsymb##_ctr, c##ctrsymb+ctrsymb##p); \
                 } else { \
                         off = ctrsymb##o + ctrsymb##p; \
-                        prim_to_ctr_opt(gctr##ctrsymb, ngp, gp, \
-                                        opt->non0coeff[off], \
-                                        opt->non0idx[off], \
-                                        opt->non0ctr[off]); \
+                        CINTprim_to_ctr_opt(gctr##ctrsymb, ngp, gp, \
+                                            opt->non0coeff[off], \
+                                            opt->non0idx[off], \
+                                            opt->non0ctr[off]); \
                 } \
         } \
         *ctrsymb##empty = 0
@@ -815,17 +561,17 @@ FINT CINT2e_11n1_loop(double *gctr, CINTEnvVars *envs, const CINTOpt *opt)
 
         USE_OPT;
 
-        for (lp = 0; lp <envs-> l_prim; lp++) {
+        for (lp = 0; lp < envs->l_prim; lp++) {
                 envs->al = al[lp];
                 fac1l = envs->common_factor * cl[lp];
-                for (kp = 0; kp <envs-> k_prim; kp++) {
+                for (kp = 0; kp < envs->k_prim; kp++) {
                         SET_RIJ(k, l);
                         fac1k = fac1l;
                         *jempty = 1;
-                        for (jp = 0; jp <envs-> j_prim; jp++) {
+                        for (jp = 0; jp < envs->j_prim; jp++) {
                                 envs->aj = aj[jp];
                                 fac1j = fac1k * cj[jp];
-                                for (ip = 0; ip <envs-> i_prim; ip++) {
+                                for (ip = 0; ip < envs->i_prim; ip++) {
                                         if (opt->cceij[lo+lp][ko+kp]
                                             +opt->cceij[jo+jp][io+ip]
                                             > CUTOFF15) {
@@ -871,17 +617,17 @@ FINT CINT2e_111n_loop(double *gctr, CINTEnvVars *envs, const CINTOpt *opt)
 
         USE_OPT;
 
-        for (lp = 0; lp <envs-> l_prim; lp++) {
+        for (lp = 0; lp < envs->l_prim; lp++) {
                 envs->al = al[lp];
                 fac1l = envs->common_factor;
                 *kempty = 1;
-                for (kp = 0; kp <envs-> k_prim; kp++) {
+                for (kp = 0; kp < envs->k_prim; kp++) {
                         SET_RIJ(k, l);
                         fac1k = fac1l * ck[kp];
-                        for (jp = 0; jp <envs-> j_prim; jp++) {
+                        for (jp = 0; jp < envs->j_prim; jp++) {
                                 envs->aj = aj[jp];
                                 fac1j = fac1k * cj[jp];
-                                for (ip = 0; ip <envs-> i_prim; ip++) {
+                                for (ip = 0; ip < envs->i_prim; ip++) {
                                         if (opt->cceij[lo+lp][ko+kp]
                                             +opt->cceij[jo+jp][io+ip]
                                             > CUTOFF15) {
@@ -1095,9 +841,9 @@ FINT CINT2e_cart_drv(double *opijkl, CINTEnvVars *envs, const CINTOpt *opt)
         FINT n;
         FINT has_value;
 
-        n = ((envs->i_ctr==1) << 3) + ((envs->j_ctr==1) << 2)
-          + ((envs->k_ctr==1) << 1) +  (envs->l_ctr==1);
         if (opt) {
+                n = ((envs->i_ctr==1) << 3) + ((envs->j_ctr==1) << 2)
+                  + ((envs->k_ctr==1) << 1) +  (envs->l_ctr==1);
                 has_value = CINTf_2e_loop[n](gctr, envs, opt);
         } else {
                 has_value = CINT2e_loop_nopt(gctr, envs);
@@ -1105,7 +851,7 @@ FINT CINT2e_cart_drv(double *opijkl, CINTEnvVars *envs, const CINTOpt *opt)
 
         if (has_value) {
                 for (n = 0; n < envs->ncomp_tensor; n++) {
-                        c2s_cart_2e1(opijkl, pgctr, envs->shls, envs->bas);
+                        c2s_cart_2e1(opijkl, pgctr, envs);
                         opijkl += nop;
                         pgctr += nc;
                 }
@@ -1130,9 +876,9 @@ FINT CINT2e_spheric_drv(double *opijkl, CINTEnvVars *envs, const CINTOpt *opt)
         FINT n;
         FINT has_value;
 
-        n = ((envs->i_ctr==1) << 3) + ((envs->j_ctr==1) << 2)
-          + ((envs->k_ctr==1) << 1) +  (envs->l_ctr==1);
         if (opt) {
+                n = ((envs->i_ctr==1) << 3) + ((envs->j_ctr==1) << 2)
+                  + ((envs->k_ctr==1) << 1) +  (envs->l_ctr==1);
                 has_value = CINTf_2e_loop[n](gctr, envs, opt);
         } else {
                 has_value = CINT2e_loop_nopt(gctr, envs);
@@ -1140,7 +886,7 @@ FINT CINT2e_spheric_drv(double *opijkl, CINTEnvVars *envs, const CINTOpt *opt)
 
         if (has_value) {
                 for (n = 0; n < envs->ncomp_tensor; n++) {
-                        c2s_sph_2e1(opijkl, pgctr, envs->shls, envs->bas);
+                        c2s_sph_2e1(opijkl, pgctr, envs);
                         opijkl += nop;
                         pgctr += nc;
                 }
@@ -1167,9 +913,9 @@ FINT CINT2e_spinor_drv(double *opijkl, CINTEnvVars *envs, const CINTOpt *opt,
         FINT n, m;
         FINT has_value;
 
-        n = ((envs->i_ctr==1) << 3) + ((envs->j_ctr==1) << 2)
-          + ((envs->k_ctr==1) << 1) +  (envs->l_ctr==1);
         if (opt) {
+                n = ((envs->i_ctr==1) << 3) + ((envs->j_ctr==1) << 2)
+                  + ((envs->k_ctr==1) << 1) +  (envs->l_ctr==1);
                 has_value = CINTf_2e_loop[n](gctr, envs, opt);
         } else {
                 has_value = CINT2e_loop_nopt(gctr, envs);
@@ -1180,11 +926,10 @@ FINT CINT2e_spinor_drv(double *opijkl, CINTEnvVars *envs, const CINTOpt *opt,
                 double *opij = gctr + len1;
                 for (n = 0; n < envs->ncomp_tensor; n++) {
                         for (m = 0; m < envs->ncomp_e2; m++) {
-                                (*f_e1_c2s)(opij+n1*m, pgctr, envs->shls,
-                                            envs->bas);
+                                (*f_e1_c2s)(opij+n1*m, pgctr, envs);
                                 pgctr += nc;
                         }
-                        (*f_e2_c2s)(opijkl, opij, envs->shls, envs->bas);
+                        (*f_e2_c2s)(opijkl, opij, envs);
                         opijkl += nop * OF_CMPLX;
                 }
         } else {

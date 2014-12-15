@@ -18,8 +18,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
+#include <string.h>
 #include <math.h>
+#include <pmmintrin.h>
 #include <assert.h>
 #include "cint_bas.h"
 #include "misc.h"
@@ -91,6 +92,7 @@ void CINTg1e_index_xyz(FINT *idx, const CINTEnvVars *envs)
         const FINT j_l = envs->j_l;
         const FINT nfi = envs->nfi;
         const FINT nfj = envs->nfj;
+        const FINT di = envs->g_stride_i;
         const FINT dj = envs->g_stride_j;
         FINT i, j, n;
         FINT ofx, ofy, ofz;
@@ -106,9 +108,9 @@ void CINTg1e_index_xyz(FINT *idx, const CINTEnvVars *envs)
         n = 0;
         for (j = 0; j < nfj; j++) {
                 for (i = 0; i < nfi; i++) {
-                        idx[n+0] = ofx + dj * j_nx[j] + i_nx[i]; //(ix,jx,1)
-                        idx[n+1] = ofy + dj * j_ny[j] + i_ny[i]; //(iy,jy,2)
-                        idx[n+2] = ofz + dj * j_nz[j] + i_nz[i]; //(iz,jz,3)
+                        idx[n+0] = ofx + dj * j_nx[j] + di * i_nx[i]; //(ix,jx,1)
+                        idx[n+1] = ofy + dj * j_ny[j] + di * i_ny[i]; //(iy,jy,2)
+                        idx[n+2] = ofz + dj * j_nz[j] + di * i_nz[i]; //(iz,jz,3)
                         n += 3;
                 }
         }
@@ -329,7 +331,7 @@ void CINTx1j_1e(double *f, const double *g, const double rj[3],
  */
 void CINTprim_to_ctr(double *gc, const FINT nf, const double *gp,
                      const FINT inc, const FINT nprim,
-                     const FINT nctr, const double *pcoeff)
+                     const FINT nctr, const double *coeff)
 {
         const FINT INC1 = 1;
         FINT n, i, k;
@@ -339,7 +341,7 @@ void CINTprim_to_ctr(double *gc, const FINT nf, const double *gp,
         for (i = 0; i < inc; i++) {
                 //dger(nf, nctr, 1.d0, gp(i+1), inc, env(ptr), nprim, gc(1,i*nctr+1), nf)
                 for (n = 0; n < nctr; n++) {
-                        c = pcoeff[nprim*n];
+                        c = coeff[nprim*n];
                         if (c != 0) {
                                 for (k = 0; k < nf; k++) {
                                         pgc[k] += c * gp[k*inc+i];
@@ -349,6 +351,247 @@ void CINTprim_to_ctr(double *gc, const FINT nf, const double *gp,
                         pgc += nf;
                 }
         }
+}
+
+/* optimized
+ * memset(gc, 0, sizeof(double)*nf*nctr);
+ * CINTprim_to_ctr(gc, nf, gp, 1, nprim, nprim, nctr, coeff); */
+void CINTprim_to_ctr_0(double *gc, const FINT nf, const double *gp,
+                       const FINT nprim, const FINT nctr, const double *coeff)
+{
+        FINT n, i;
+        double *p0, *p1, *p2;
+        double non0coeff[32];
+        FINT non0idx[32];
+        FINT non0ctr = 0;
+
+        for (i = 0; i < nctr; i++) {
+                if (coeff[nprim*i] != 0) {
+                        non0coeff[non0ctr] = coeff[nprim*i];
+                        non0idx[non0ctr] = i;
+                        non0ctr++;
+                } else { // need to initialize the memory, since += is used in cint2e
+                        memset(gc+nf*i, 0, sizeof(double)*nf);
+                }
+        }
+
+        __m128d r0, r1, r2, r3, r4;
+        switch (non0ctr) {
+                case 1:
+                        r0 = _mm_load1_pd(non0coeff);
+                        p0 = gc + nf*non0idx[0];
+                        for (n = 0; n < nf-1; n+=2) {
+                                r3 = _mm_loadu_pd(&gp[n]);
+                                r4 = _mm_mul_pd(r0, r3);
+                                _mm_storeu_pd(p0+n, r4);
+                        }
+                        if (n < nf) {
+                                p0[n] = non0coeff[0] * gp[n];
+                        }
+                        break;
+                case 2:
+                        r0 = _mm_load1_pd(non0coeff);
+                        r1 = _mm_load1_pd(non0coeff+1);
+                        p0 = gc + nf*non0idx[0];
+                        p1 = gc + nf*non0idx[1];
+                        for (n = 0; n < nf-1; n+=2) {
+                                r3 = _mm_loadu_pd(&gp[n]);
+                                r4 = _mm_mul_pd(r0, r3);
+                                _mm_storeu_pd(p0+n, r4);
+                                r4 = _mm_mul_pd(r1, r3);
+                                _mm_storeu_pd(p1+n, r4);
+                        }
+                        if (n < nf) {
+                                p0[n] = non0coeff[0] * gp[n];
+                                p1[n] = non0coeff[1] * gp[n];
+                        }
+                        break;
+                case 3:
+                        r0 = _mm_load1_pd(&non0coeff[0]);
+                        r1 = _mm_load1_pd(&non0coeff[1]);
+                        r2 = _mm_load1_pd(&non0coeff[2]);
+                        p0 = gc + nf*non0idx[0];
+                        p1 = gc + nf*non0idx[1];
+                        p2 = gc + nf*non0idx[2];
+                        for (n = 0; n < nf-1; n+=2) {
+                                r3 = _mm_loadu_pd(&gp[n]);
+                                r4 = _mm_mul_pd(r0, r3);
+                                _mm_storeu_pd(p0+n, r4);
+                                r4 = _mm_mul_pd(r1, r3);
+                                _mm_storeu_pd(p1+n, r4);
+                                r4 = _mm_mul_pd(r2, r3);
+                                _mm_storeu_pd(p2+n, r4);
+                        }
+                        if (n < nf) {
+                                p0[n] = non0coeff[0] * gp[n];
+                                p1[n] = non0coeff[1] * gp[n];
+                                p2[n] = non0coeff[2] * gp[n];
+                        }
+                        break;
+                default:
+                        for (i = 0; i < non0ctr-1; i+=2) {
+                                r0 = _mm_load1_pd(&non0coeff[i  ]);
+                                r1 = _mm_load1_pd(&non0coeff[i+1]);
+                                p0 = gc + nf*non0idx[i  ];
+                                p1 = gc + nf*non0idx[i+1];
+                                for (n = 0; n < nf-1; n+=2) {
+                                        r3 = _mm_loadu_pd(&gp[n]);
+                                        r4 = _mm_mul_pd(r0, r3);
+                                        _mm_storeu_pd(p0+n, r4);
+                                        r4 = _mm_mul_pd(r1, r3);
+                                        _mm_storeu_pd(p1+n, r4);
+                                }
+                                if (n < nf) {
+                                        p0[n] = non0coeff[i  ] * gp[n];
+                                        p1[n] = non0coeff[i+1] * gp[n];
+                                }
+                        }
+                        if (i < non0ctr) {
+                                r0 = _mm_load1_pd(&non0coeff[i]);
+                                p0 = gc + nf*non0idx[i];
+                                for (n = 0; n < nf-1; n+=2) {
+                                        r3 = _mm_loadu_pd(&gp[n]);
+                                        r4 = _mm_mul_pd(r0, r3);
+                                        _mm_storeu_pd(p0+n, r4);
+                                }
+                                if (n < nf) {
+                                        p0[n] = non0coeff[i] * gp[n];
+                                }
+                        }
+        }
+}
+
+/* optimized
+ * CINTprim_to_ctr(gc, nf, gp, 1, nprim, nprim, nctr, coeff);
+ * with opt->non0coeff, opt->non0idx, opt->non0ctr */
+void CINTprim_to_ctr_opt(double *gc, const FINT nf, const double *gp,
+                         double *non0coeff, FINT *non0idx, FINT non0ctr)
+{
+        FINT n, i;
+        double *p0, *p1, *p2;
+
+        __m128d r0, r1, r2, r3, r4, r5;
+        switch (non0ctr) {
+                case 1:
+                        r0 = _mm_load1_pd(non0coeff);
+                        p0 = gc + nf*non0idx[0];
+                        for (n = 0; n < nf-1; n+=2) {
+                                r3 = _mm_loadu_pd(&gp[n]);
+                                r4 = _mm_loadu_pd(&p0[n]);
+                                r5 = _mm_mul_pd(r0, r3);
+                                r4 = _mm_add_pd(r5, r4);
+                                _mm_storeu_pd(p0+n, r4);
+                        }
+                        if (n < nf) {
+                                p0[n] += non0coeff[0] * gp[n];
+                        }
+                        break;
+                case 2:
+                        r0 = _mm_load1_pd(non0coeff);
+                        r1 = _mm_load1_pd(non0coeff+1);
+                        p0 = gc + nf*non0idx[0];
+                        p1 = gc + nf*non0idx[1];
+                        for (n = 0; n < nf-1; n+=2) {
+                                r3 = _mm_loadu_pd(&gp[n]);
+                                r4 = _mm_loadu_pd(&p0[n]);
+                                r5 = _mm_mul_pd(r0, r3);
+                                r4 = _mm_add_pd(r5, r4);
+                                _mm_storeu_pd(p0+n, r4);
+                                r4 = _mm_loadu_pd(&p1[n]);
+                                r5 = _mm_mul_pd(r1, r3);
+                                r4 = _mm_add_pd(r5, r4);
+                                _mm_storeu_pd(p1+n, r4);
+                        }
+                        if (n < nf) {
+                                p0[n] += non0coeff[0] * gp[n];
+                                p1[n] += non0coeff[1] * gp[n];
+                        }
+                        break;
+                case 3:
+                        r0 = _mm_load1_pd(&non0coeff[0]);
+                        r1 = _mm_load1_pd(&non0coeff[1]);
+                        r2 = _mm_load1_pd(&non0coeff[2]);
+                        p0 = gc + nf*non0idx[0];
+                        p1 = gc + nf*non0idx[1];
+                        p2 = gc + nf*non0idx[2];
+                        for (n = 0; n < nf-1; n+=2) {
+                                r3 = _mm_loadu_pd(&gp[n]);
+                                r4 = _mm_loadu_pd(&p0[n]);
+                                r5 = _mm_mul_pd(r0, r3);
+                                r4 = _mm_add_pd(r5, r4);
+                                _mm_storeu_pd(p0+n, r4);
+                                r4 = _mm_loadu_pd(&p1[n]);
+                                r5 = _mm_mul_pd(r1, r3);
+                                r4 = _mm_add_pd(r5, r4);
+                                _mm_storeu_pd(p1+n, r4);
+                                r4 = _mm_loadu_pd(&p2[n]);
+                                r5 = _mm_mul_pd(r2, r3);
+                                r4 = _mm_add_pd(r5, r4);
+                                _mm_storeu_pd(p2+n, r4);
+                        }
+                        if (n < nf) {
+                                p0[n] += non0coeff[0] * gp[n];
+                                p1[n] += non0coeff[1] * gp[n];
+                                p2[n] += non0coeff[2] * gp[n];
+                        }
+                        break;
+                default:
+                        for (i = 0; i < non0ctr-1; i+=2) {
+                                r0 = _mm_load1_pd(&non0coeff[i  ]);
+                                r1 = _mm_load1_pd(&non0coeff[i+1]);
+                                p0 = gc + nf*non0idx[i  ];
+                                p1 = gc + nf*non0idx[i+1];
+                                for (n = 0; n < nf-1; n+=2) {
+                                        r3 = _mm_loadu_pd(&gp[n]);
+                                        r4 = _mm_loadu_pd(&p0[n]);
+                                        r5 = _mm_mul_pd(r0, r3);
+                                        r4 = _mm_add_pd(r5, r4);
+                                        _mm_storeu_pd(p0+n, r4);
+                                        r4 = _mm_loadu_pd(&p1[n]);
+                                        r3 = _mm_mul_pd(r1, r3);
+                                        r4 = _mm_add_pd(r3, r4);
+                                        _mm_storeu_pd(p1+n, r4);
+                                }
+                                if (n < nf) {
+                                        p0[n] += non0coeff[i  ] * gp[n];
+                                        p1[n] += non0coeff[i+1] * gp[n];
+                                }
+                        }
+                        if (i < non0ctr) {
+                                r0 = _mm_load1_pd(&non0coeff[i]);
+                                p0 = gc + nf*non0idx[i];
+                                for (n = 0; n < nf-1; n+=2) {
+                                        r3 = _mm_loadu_pd(&gp[n]);
+                                        r4 = _mm_loadu_pd(&p0[n]);
+                                        r5 = _mm_mul_pd(r0, r3);
+                                        r4 = _mm_add_pd(r5, r4);
+                                        _mm_storeu_pd(p0+n, r4);
+                                }
+                                if (n < nf) {
+                                        p0[n] += non0coeff[i] * gp[n];
+                                }
+                        }
+        }
+}
+
+/* optimized
+ * CINTprim_to_ctr(gc, nf, gp, 1, nprim, nprim, nctr, coeff); */
+void CINTprim_to_ctr_1(double *gc, const FINT nf, const double *gp,
+                       const FINT nprim, const FINT nctr, const double *coeff)
+{
+        FINT i;
+        double non0coeff[32];
+        FINT non0idx[32];
+        FINT non0ctr = 0;
+
+        for (i = 0; i < nctr; i++) {
+                if (coeff[nprim*i] != 0) {
+                        non0coeff[non0ctr] = coeff[nprim*i];
+                        non0idx[non0ctr] = i;
+                        non0ctr++;
+                }
+        }
+        CINTprim_to_ctr_opt(gc, nf, gp, non0coeff, non0idx, non0ctr);
 }
 
 /*
