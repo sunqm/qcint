@@ -32,7 +32,6 @@
 #include <pmmintrin.h>
 #include <mm_malloc.h>
 #include <complex.h>
-#include "config.h"
 #include "cint_const.h"
 #include "cint_bas.h"
 #include "cart2sph.h"
