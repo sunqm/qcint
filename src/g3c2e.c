@@ -138,14 +138,17 @@ static void CINTset_g3c2e_params(CINTEnvVars *envs)
                 dll = dlk;
         }
 
-        FINT nroots_padded = envs->nrys_roots;
         if (envs->nrys_roots > 2 && envs->nrys_roots%2) {
-                nroots_padded++;
+                envs->g_stride_i = (envs->nrys_roots+1);
+                envs->g_stride_k = (envs->nrys_roots+1) * dli;
+                envs->g_stride_j = (envs->nrys_roots+1) * dli * dlk * dll;
+                envs->g_size     = (envs->nrys_roots+1) * dli * dlk * dll * dlj;
+        } else {
+                envs->g_stride_i = envs->nrys_roots;
+                envs->g_stride_k = envs->nrys_roots * dli;
+                envs->g_stride_j = envs->nrys_roots * dli * dlk * dll;
+                envs->g_size     = envs->nrys_roots * dli * dlk * dll * dlj;
         }
-        envs->g_stride_i = nroots_padded;
-        envs->g_stride_k = nroots_padded * dli;
-        envs->g_stride_j = nroots_padded * dli * dlk * dll;
-        envs->g_size     = nroots_padded * dli * dlk * dll * dlj;
 
         if (kbase) {
                 envs->g2d_klmax = envs->g_stride_k;
@@ -606,17 +609,15 @@ static void CINTset_g2c2e_params(CINTEnvVars *envs)
                 dll = dlk;
         }
 
-        FINT nroots_padded = envs->nrys_roots;
         if (envs->nrys_roots > 2 && envs->nrys_roots%2) {
-                nroots_padded++;
+                envs->g_stride_i = (envs->nrys_roots+1);
+                envs->g_stride_j = (envs->nrys_roots+1) * dli;
+                envs->g_size     = (envs->nrys_roots+1) * dli * dlk * dll * dlj;
+        } else {
+                envs->g_stride_i = envs->nrys_roots;
+                envs->g_stride_j = envs->nrys_roots * dli;
+                envs->g_size     = envs->nrys_roots * dli * dlk * dll * dlj;
         }
-        envs->g_stride_i = nroots_padded;
-// no g_stride_k because it is needed by *2d4d functions, which are not useful for g2c2e
-//        envs->g_stride_k = nroots_padded * dli;
-// g_stride_j is used only in g1e_index. although called g_stride_j, it
-// corresponds to g_stride_k in CINTset_g2e_params
-        envs->g_stride_j = nroots_padded * dli;
-        envs->g_size     = nroots_padded * dli * dlk * dll * dlj;
 
         if (kbase) {
                 envs->g2d_klmax = envs->g_stride_j;

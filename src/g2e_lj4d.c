@@ -1334,6 +1334,9 @@ void CINTg0_2c2e_ik2d(double *g, const CINTEnvVars *envs,struct _BC *bc)
         switch (envs->li_ceil) {
                 case 0: switch(envs->lk_ceil) {
                         case 0: goto _g0_4d_default; // ssss
+                        case 1: _g0_lj_4d_1000(g, bc->c0p, envs->rkrl); goto normal_end;
+                        case 2: _g0_lj_4d_2000(g, bc->c0p, bc->b01, envs->rkrl); goto normal_end;
+                        case 3: _g0_lj_4d_3000(g, bc->c0p, bc->b01, envs->rkrl); goto normal_end;
                         default: goto _g0_4d_default; }
                 case 1: switch(envs->lk_ceil) {
                         case 0: _g0_lj_4d_1000(g, bc->c00, envs->rirj); goto normal_end;

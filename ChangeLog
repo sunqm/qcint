@@ -1,3 +1,6 @@
+Version 1.4.0 (2014-12-24) for libcint v2.4.0:
+	* Add 2-center, 3-center 2e integrals
+
 Version 1.3.0 (2014-12-14) for libcint v2.3.0:
 	* fix ordering bug in cartesain-GTO integrals
 	* optimize cartesian to spherical transformation
