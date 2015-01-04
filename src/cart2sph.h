@@ -28,7 +28,6 @@
  *
  *************************************************/
 #include <complex.h>
-#include "config.h"
 #include "g1e.h"
 
 void c2s_sph_1e(double *opij, const double *gctr, CINTEnvVars *envs);
@@ -63,10 +62,7 @@ void c2s_sph_3c2e2();
 void c2s_cart_3c2e1(double *fijkl, const double *gctr, CINTEnvVars *envs);
 void c2s_cart_3c2e2();
 
-/*************************************************
- *
- * transform vectors
- *
- *************************************************/
-void c2s_sph_vec(double *sph, const double *cart,
-                 const FINT l, const FINT nvec);
+void c2s_sf_3c2e1(double complex *opijk, double *gctr, CINTEnvVars *envs);
+void c2s_sf_3c2e1i(double complex *opijk, double *gctr, CINTEnvVars *envs);
+void c2s_si_3c2e1(double complex *opijk, double *gctr, CINTEnvVars *envs);
+void c2s_si_3c2e1i(double complex *opijk, double *gctr, CINTEnvVars *envs);

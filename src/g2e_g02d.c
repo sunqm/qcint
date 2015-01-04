@@ -29,20 +29,11 @@
 #include "g2e.h"
 
 #if defined(__GNUC__)
-#define ALIGN16 __attribute__((aligned(16)))
 #define RESTRICT __restrict__
 #else
-#define ALIGN16
 #define RESTRICT
 #endif
 
-struct _BC {
-        double c00[MXRYSROOTS*3];
-        double c0p[MXRYSROOTS*3];
-        double b01[MXRYSROOTS];
-        double b00[MXRYSROOTS];
-        double b10[MXRYSROOTS];
-};
 /*
  * g(nroots,0:nmax,0:mmax)
  */

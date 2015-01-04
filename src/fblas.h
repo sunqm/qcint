@@ -51,19 +51,7 @@ void dsymm_(const char*, const char*, const FINT*, const FINT*,
             const double*, const FINT*,
             const double*, double*, const FINT*);
 
-void dsyr_(const char *uplo, const FINT *n, const double *alpha,
-           const double *x, const FINT *incx, double *a, const FINT *lda);
-void dsyr2_(const char *uplo, const FINT *n, const double *alpha,
-            const double *x, const FINT *incx, const double *y, const FINT *incy,
-            double *a, const FINT *lda);
-void dsyr2k_(const char *uplo, const char *trans, const FINT *n, const FINT *k,
-             const double *alpha, const double *a, const FINT *lda,
-             const double *b, const FINT *ldb,
-             const double *beta, double *c, const FINT *ldc);
-void dsyrk_(const char *uplo, const char *trans, const FINT *n, const FINT *k,
-            const double *alpha, const double *a, const FINT *lda,
-            const double *beta, double *c, const FINT *ldc);
-
+//void dsyrk_
 void zgerc_(const FINT *m, const FINT *n,
             const double complex *alpha, const double complex *x, const FINT *incx,
             const double complex *y, const FINT *incy,
@@ -82,6 +70,7 @@ void zgemm_(const char*, const char*,
 void CINTdset0(const FINT n, double *x);
 void CINTdaxpy2v(const FINT n, const double a,
                  const double *x, const double *y, double *v);
+void CINTdmat_transpose(double *a_t, const double *a, const FINT m, const FINT n);
 void CINTzmat_transpose(double complex *a_t, const double complex *a,
                         const FINT m, const FINT n);
 void CINTzmat_dagger(double complex *a_c, const double complex *a,

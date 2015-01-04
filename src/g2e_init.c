@@ -26,14 +26,6 @@
 #include "cint_bas.h"
 #include "g2e.h"
 
-struct _BC {
-        double c00[MXRYSROOTS*3];
-        double c0p[MXRYSROOTS*3];
-        double b01[MXRYSROOTS];
-        double b00[MXRYSROOTS];
-        double b10[MXRYSROOTS];
-};
-
 void CINTg0_2e_lj2d4d(double *g, const CINTEnvVars *envs,struct _BC *bc);
 void CINTg0_2e_kj2d4d(double *g, const CINTEnvVars *envs,struct _BC *bc);
 void CINTg0_2e_il2d4d(double *g, const CINTEnvVars *envs,struct _BC *bc);

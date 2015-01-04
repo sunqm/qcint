@@ -133,15 +133,6 @@ void cintshells_spinor_offset_(FINT ao_loc[], const FINT *bas, const FINT *nbas)
 }
 
 
-/* 
- * GTO = x^{nx}y^{ny}z^{nz}e^{-ar^2}
- */
-void cintcart_comp_(FINT *nx, FINT *ny, FINT *nz, const FINT *lmax)
-{
-        CINTcart_comp(nx, ny, nz, *lmax);
-}
-
-
 double cintgto_norm_(FINT *n, double *a)
 {
         return CINTgto_norm(*n, *a);

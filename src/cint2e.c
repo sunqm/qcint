@@ -29,6 +29,7 @@
 #include "optimizer.h"
 #include "cint2e.h"
 #include "misc.h"
+#include "fblas.h"
 #include "cart2sph.h"
 #include "c2f.h"
 
@@ -228,44 +229,12 @@ k_contracted: ;
                 }
         } // end loop l_prim
 
-        /* COPY_AND_CLOSING(gctrl, *lempty); */
         if (n_comp > 1 && !*lempty) {
-                const FINT INC1 = 1;
-                double *gctr1, *gctr2, *gctr3;
-                switch (n_comp) {
-                case 3:
-                        gctr1 = gctr  + envs->nf*nc;
-                        gctr2 = gctr1 + envs->nf*nc;
-                        for (n = 0, ip = 0; n < envs->nf*nc; n++, ip+=3) {
-                                gctr [n] = gctrl[ip+0];
-                                gctr1[n] = gctrl[ip+1];
-                                gctr2[n] = gctrl[ip+2];
-                        }
-                        break;
-                default:
-                        for (kp = 0; kp < n_comp-3; kp+=4) {
-                                gctr1 = gctr  + envs->nf*nc;
-                                gctr2 = gctr1 + envs->nf*nc;
-                                gctr3 = gctr2 + envs->nf*nc;
-                                for (n = 0, ip = kp; n < envs->nf*nc; n++,ip+=n_comp) {
-                                        gctr [n] = gctrl[ip+0];
-                                        gctr1[n] = gctrl[ip+1];
-                                        gctr2[n] = gctrl[ip+2];
-                                        gctr3[n] = gctrl[ip+3];
-                                }
-                                gctr += envs->nf*nc * 4;
-                        }
-                        for (; kp < n_comp; kp++) {
-                                n = envs->nf*nc;
-                                dcopy_(&n, gctrl+kp, &n_comp, gctr, &INC1);
-                                gctr += envs->nf*nc;
-                        }
-                }
+                CINTdmat_transpose(gctr, gctrl, envs->nf*nc, n_comp);
         }
         _mm_free(g);
         free(envs->idx);
         return !*lempty;
-        /* COPY_AND_CLOSING(gctrl, *lempty); end */
 }
 
 
@@ -343,43 +312,6 @@ k_contracted: ;
         } \
         *ctrsymb##empty = 0
 
-#define COPY_AND_CLOSING(GCTRL, EMPTY) \
-        if (n_comp > 1 && !(EMPTY)) { \
-                const FINT INC1 = 1; \
-                double *gctr1, *gctr2, *gctr3; \
-                switch (n_comp) { \
-                case 3: \
-                        gctr1 = gctr  +envs->nf*nc; \
-                        gctr2 = gctr1 +envs->nf*nc; \
-                        for (n = 0, ip = 0; n < envs->nf*nc; n++, ip+=3) { \
-                                gctr [n] = GCTRL[ip+0]; \
-                                gctr1[n] = GCTRL[ip+1]; \
-                                gctr2[n] = GCTRL[ip+2]; \
-                        } \
-                        break; \
-                default: \
-                        for (kp = 0; kp < n_comp-3; kp+=4) { \
-                                gctr1 = gctr  +envs->nf*nc; \
-                                gctr2 = gctr1 +envs->nf*nc; \
-                                gctr3 = gctr2 +envs->nf*nc; \
-                                for (n = 0, ip = kp; n < envs->nf*nc; n++,ip+=n_comp) { \
-                                        gctr [n] = GCTRL[ip+0]; \
-                                        gctr1[n] = GCTRL[ip+1]; \
-                                        gctr2[n] = GCTRL[ip+2]; \
-                                        gctr3[n] = GCTRL[ip+3]; \
-                                } \
-                                gctr +=envs->nf*nc * 4; \
-                        } \
-                        for (; kp < n_comp; kp++) { \
-                                n =envs->nf*nc; \
-                                dcopy_(&n, GCTRL+kp, &n_comp, gctr, &INC1); \
-                                gctr +=envs->nf*nc; \
-                        } \
-                } \
-        } \
-        _mm_free(g); \
-        return !(EMPTY);
-
 // i_ctr = j_ctr = k_ctr = l_ctr = 1;
 FINT CINT2e_1111_loop(double *gctr, CINTEnvVars *envs, const CINTOpt *opt)
 {
@@ -425,7 +357,11 @@ k_contracted: ;
                 } // end loop k_prim
         } // end loop l_prim
 
-        COPY_AND_CLOSING(gout, *empty);
+        if (n_comp > 1 && !*empty) {
+                CINTdmat_transpose(gctr, gout, envs->nf*nc, n_comp);
+        }
+        _mm_free(g);
+        return !*empty;
 }
 
 // i_ctr = n; j_ctr = k_ctr = l_ctr = 1;
@@ -478,7 +414,11 @@ k_contracted: ;
                 } // end loop k_prim
         } // end loop l_prim
 
-        COPY_AND_CLOSING(gctri, *iempty);
+        if (n_comp > 1 && !*iempty) {
+                CINTdmat_transpose(gctr, gctri, envs->nf*nc, n_comp);
+        }
+        _mm_free(g);
+        return !*iempty;
 }
 
 // j_ctr = n; i_ctr = k_ctr = l_ctr = 1;
@@ -535,7 +475,11 @@ k_contracted: ;
                 } // end loop k_prim
         } // end loop l_prim
 
-        COPY_AND_CLOSING(gctrj, *jempty);
+        if (n_comp > 1 && !*jempty) {
+                CINTdmat_transpose(gctr, gctrj, envs->nf*nc, n_comp);
+        }
+        _mm_free(g);
+        return !*jempty;
 }
 
 // k_ctr = n; i_ctr = j_ctr = l_ctr = 1;
@@ -591,7 +535,11 @@ k_contracted: ;
                 } // end loop k_prim
         } // end loop l_prim
 
-        COPY_AND_CLOSING(gctrk, *kempty);
+        if (n_comp > 1 && !*kempty) {
+                CINTdmat_transpose(gctr, gctrk, envs->nf*nc, n_comp);
+        }
+        _mm_free(g);
+        return !*kempty;
 }
 
 // l_ctr = n; i_ctr = j_ctr = k_ctr = 1;
@@ -647,7 +595,11 @@ k_contracted: ;
                 }
         } // end loop l_prim
 
-        COPY_AND_CLOSING(gctrl, *lempty);
+        if (n_comp > 1 && !*lempty) {
+                CINTdmat_transpose(gctr, gctrl, envs->nf*nc, n_comp);
+        }
+        _mm_free(g);
+        return !*lempty;
 }
 
 
@@ -655,7 +607,6 @@ FINT CINT2e_loop(double *gctr, CINTEnvVars *envs, const CINTOpt *opt)
 {
         COMMON_ENVS_AND_DECLARE;
         const FINT nc = i_ctr * j_ctr * k_ctr * l_ctr;
-        // (irys,i,j,k,l,coord,0:1); +1 for nabla-r12
         const FINT leng = envs->g_size * 3 * ((1<<envs->gbits)+1);
         const FINT lenl = envs->nf * nc * n_comp; // gctrl
         const FINT lenk = envs->nf * i_ctr * j_ctr * k_ctr * n_comp; // gctrk
@@ -803,7 +754,11 @@ k_contracted: ;
                 }
         } // end loop l_prim
 
-        COPY_AND_CLOSING(gctrl, *lempty);
+        if (n_comp > 1 && !*lempty) {
+                CINTdmat_transpose(gctr, gctrl, envs->nf*nc, n_comp);
+        }
+        _mm_free(g);
+        return !*lempty;
 }
 
 
@@ -834,9 +789,9 @@ FINT CINT2e_cart_drv(double *opijkl, CINTEnvVars *envs, const CINTOpt *opt)
         const FINT lp = CINTcgto_cart(envs->shls[3], envs->bas);
         const FINT nop = ip * jp * kp * lp;
         const FINT nc = envs->nf * envs->i_ctr * envs->j_ctr
-                                * envs->k_ctr * envs->l_ctr * envs->ncomp_e1;
-        double *const gctr = _mm_malloc(sizeof(double) * nc * envs->ncomp_e1
-                                        * envs->ncomp_tensor, 16);
+                                * envs->k_ctr * envs->l_ctr;
+        const FINT n_comp = envs->ncomp_e1 * envs->ncomp_e2 * envs->ncomp_tensor;
+        double *const gctr = _mm_malloc(sizeof(double) * nc * n_comp, 16);
         double *pgctr = gctr;
         FINT n;
         FINT has_value;
@@ -850,13 +805,13 @@ FINT CINT2e_cart_drv(double *opijkl, CINTEnvVars *envs, const CINTOpt *opt)
         }
 
         if (has_value) {
-                for (n = 0; n < envs->ncomp_tensor; n++) {
+                for (n = 0; n < n_comp; n++) {
                         c2s_cart_2e1(opijkl, pgctr, envs);
                         opijkl += nop;
                         pgctr += nc;
                 }
         } else {
-                CINTdset0(nop * envs->ncomp_tensor, opijkl);
+                CINTdset0(nop * n_comp, opijkl);
         }
         _mm_free(gctr);
         return has_value;
@@ -869,9 +824,9 @@ FINT CINT2e_spheric_drv(double *opijkl, CINTEnvVars *envs, const CINTOpt *opt)
         const FINT lp = CINTcgto_spheric(envs->shls[3], envs->bas);
         const FINT nop = ip * jp * kp * lp;
         const FINT nc = envs->nf * envs->i_ctr * envs->j_ctr
-                                * envs->k_ctr * envs->l_ctr * envs->ncomp_e1;
-        double *const gctr = _mm_malloc(sizeof(double) * nc * envs->ncomp_e2
-                                        * envs->ncomp_tensor, 16);
+                                * envs->k_ctr * envs->l_ctr;
+        const FINT n_comp = envs->ncomp_e1 * envs->ncomp_e2 * envs->ncomp_tensor;
+        double *const gctr = _mm_malloc(sizeof(double) * nc * n_comp, 16);
         double *pgctr = gctr;
         FINT n;
         FINT has_value;
@@ -885,13 +840,13 @@ FINT CINT2e_spheric_drv(double *opijkl, CINTEnvVars *envs, const CINTOpt *opt)
         }
 
         if (has_value) {
-                for (n = 0; n < envs->ncomp_tensor; n++) {
+                for (n = 0; n < n_comp; n++) {
                         c2s_sph_2e1(opijkl, pgctr, envs);
                         opijkl += nop;
                         pgctr += nc;
                 }
         } else {
-                CINTdset0(nop * envs->ncomp_tensor, opijkl);
+                CINTdset0(nop * n_comp, opijkl);
         }
         _mm_free(gctr);
         return has_value;
@@ -940,432 +895,6 @@ FINT CINT2e_spinor_drv(double *opijkl, CINTEnvVars *envs, const CINTOpt *opt,
 }
 
 
-static void r1_gout2e(double *g, double *gout, const FINT *idx,
-                      const CINTEnvVars *envs, FINT gout_empty)
-{
-        FINT ix, iy, iz, n;
-
-        if (gout_empty) {
-                for (n = 0; n < envs->nf; n++, idx+=3) {
-                        ix = idx[0];
-                        iy = idx[1];
-                        iz = idx[2];
-                        gout[n] = g[ix] * g[iy] * g[iz];
-                }
-        } else {
-                for (n = 0; n < envs->nf; n++, idx+=3) {
-                        ix = idx[0];
-                        iy = idx[1];
-                        iz = idx[2];
-                        gout[n] += g[ix] * g[iy] * g[iz];
-                }
-        }
-}
-static void r2_gout2e(double *g, double *gout, const FINT *idx,
-                      const CINTEnvVars *envs, FINT gout_empty)
-{
-        FINT ix, iy, iz, n;
-        __m128d r0, r1;
-        double s;
-
-        if (gout_empty) {
-                for (n = 0; n < envs->nf; n++, idx+=3) {
-                        ix = idx[0];
-                        iy = idx[1];
-                        iz = idx[2];
-                        r0 = _mm_load_pd(g+ix  );
-                        r1 = _mm_load_pd(g+iy  );
-                        r0 = _mm_mul_pd(r0, r1);
-                        r1 = _mm_load_pd(g+iz  );
-                        r0 = _mm_mul_pd(r0, r1);
-                        r0 = _mm_hadd_pd(r0, r0);
-                        _mm_store_sd(gout+n, r0);
-                }
-        } else {
-                for (n = 0; n < envs->nf; n++, idx+=3) {
-                        ix = idx[0];
-                        iy = idx[1];
-                        iz = idx[2];
-                        r0 = _mm_load_pd(g+ix  );
-                        r1 = _mm_load_pd(g+iy  );
-                        r0 = _mm_mul_pd(r0, r1);
-                        r1 = _mm_load_pd(g+iz  );
-                        r0 = _mm_mul_pd(r0, r1);
-                        r0 = _mm_hadd_pd(r0, r0);
-                        _mm_store_sd(&s, r0);
-                        gout[n] += s;
-                }
-        }
-}
-static void r3_gout2e(double *g, double *gout, const FINT *idx,
-                      const CINTEnvVars *envs, FINT gout_empty)
-{
-        FINT ix, iy, iz, n;
-        __m128d r0, r1;
-        double s;
-
-        if (gout_empty) {
-                for (n = 0; n < envs->nf; n++, idx+=3) {
-                        ix = idx[0];
-                        iy = idx[1];
-                        iz = idx[2];
-                        r0 = _mm_load_pd(g+ix  );
-                        r1 = _mm_load_pd(g+iy  );
-                        r0 = _mm_mul_pd(r0, r1);
-                        r1 = _mm_load_pd(g+iz  );
-                        r0 = _mm_mul_pd(r0, r1);
-                        r0 = _mm_hadd_pd(r0, r0);
-                        _mm_store_sd(gout+n, r0);
-                        gout[n] += g[ix+2] * g[iy+2] * g[iz+2];
-                }
-        } else {
-                for (n = 0; n < envs->nf; n++, idx+=3) {
-                        ix = idx[0];
-                        iy = idx[1];
-                        iz = idx[2];
-                        r0 = _mm_load_pd(g+ix  );
-                        r1 = _mm_load_pd(g+iy  );
-                        r0 = _mm_mul_pd(r0, r1);
-                        r1 = _mm_load_pd(g+iz  );
-                        r0 = _mm_mul_pd(r0, r1);
-                        r0 = _mm_hadd_pd(r0, r0);
-                        _mm_store_sd(&s, r0);
-                        gout[n] += s + g[ix+2] * g[iy+2] * g[iz+2];
-                }
-        }
-}
-static void r4_gout2e(double *g, double *gout, const FINT *idx,
-                      const CINTEnvVars *envs, FINT gout_empty)
-{
-        FINT ix, iy, iz, n;
-        __m128d r0, r1, r2;
-        double s;
-
-        if (gout_empty) {
-                for (n = 0; n < envs->nf; n++, idx+=3) {
-                        ix = idx[0];
-                        iy = idx[1];
-                        iz = idx[2];
-                        r0 = _mm_load_pd(g+ix  );
-                        r1 = _mm_load_pd(g+iy  );
-                        r0 = _mm_mul_pd(r0, r1);
-                        r1 = _mm_load_pd(g+iz  );
-                        r0 = _mm_mul_pd(r0, r1);
-                        r2 = _mm_load_pd(g+ix+2);
-                        r1 = _mm_load_pd(g+iy+2);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r1 = _mm_load_pd(g+iz+2);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r0 = _mm_add_pd(r0, r2);
-                        r0 = _mm_hadd_pd(r0, r0);
-                        _mm_store_sd(gout+n, r0);
-                }
-        } else {
-                for (n = 0; n < envs->nf; n++, idx+=3) {
-                        ix = idx[0];
-                        iy = idx[1];
-                        iz = idx[2];
-                        r0 = _mm_load_pd(g+ix  );
-                        r1 = _mm_load_pd(g+iy  );
-                        r0 = _mm_mul_pd(r0, r1);
-                        r1 = _mm_load_pd(g+iz  );
-                        r0 = _mm_mul_pd(r0, r1);
-                        r2 = _mm_load_pd(g+ix+2);
-                        r1 = _mm_load_pd(g+iy+2);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r1 = _mm_load_pd(g+iz+2);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r0 = _mm_add_pd(r0, r2);
-                        r0 = _mm_hadd_pd(r0, r0);
-                        _mm_store_sd(&s, r0);
-                        gout[n] += s;
-                }
-        }
-}
-static void r5_gout2e(double *g, double *gout, const FINT *idx,
-                      const CINTEnvVars *envs, FINT gout_empty)
-{
-        FINT ix, iy, iz, n;
-        __m128d r0, r1, r2;
-        double s;
-
-        if (gout_empty) {
-                for (n = 0; n < envs->nf; n++, idx+=3) {
-                        ix = idx[0];
-                        iy = idx[1];
-                        iz = idx[2];
-                        r0 = _mm_load_pd(g+ix  );
-                        r1 = _mm_load_pd(g+iy  );
-                        r0 = _mm_mul_pd(r0, r1);
-                        r1 = _mm_load_pd(g+iz  );
-                        r0 = _mm_mul_pd(r0, r1);
-                        r2 = _mm_load_pd(g+ix+2);
-                        r1 = _mm_load_pd(g+iy+2);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r1 = _mm_load_pd(g+iz+2);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r0 = _mm_add_pd(r0, r2);
-                        r0 = _mm_hadd_pd(r0, r0);
-                        _mm_store_sd(gout+n, r0);
-                        gout[n] += g[ix+4] * g[iy+4] * g[iz+4];
-                }
-        } else {
-                for (n = 0; n < envs->nf; n++, idx+=3) {
-                        ix = idx[0];
-                        iy = idx[1];
-                        iz = idx[2];
-                        r0 = _mm_load_pd(g+ix  );
-                        r1 = _mm_load_pd(g+iy  );
-                        r0 = _mm_mul_pd(r0, r1);
-                        r1 = _mm_load_pd(g+iz  );
-                        r0 = _mm_mul_pd(r0, r1);
-                        r2 = _mm_load_pd(g+ix+2);
-                        r1 = _mm_load_pd(g+iy+2);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r1 = _mm_load_pd(g+iz+2);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r0 = _mm_add_pd(r0, r2);
-                        r0 = _mm_hadd_pd(r0, r0);
-                        _mm_store_sd(&s, r0);
-                        gout[n] += s + g[ix+4] * g[iy+4] * g[iz+4];
-                }
-        }
-}
-static void r6_gout2e(double *g, double *gout, const FINT *idx,
-                      const CINTEnvVars *envs, FINT gout_empty)
-{
-        FINT ix, iy, iz, n;
-        __m128d r0, r1, r2;
-        double s;
-
-        if (gout_empty) {
-                for (n = 0; n < envs->nf; n++, idx+=3) {
-                        ix = idx[0];
-                        iy = idx[1];
-                        iz = idx[2];
-                        r0 = _mm_load_pd(g+ix  );
-                        r1 = _mm_load_pd(g+iy  );
-                        r0 = _mm_mul_pd(r0, r1);
-                        r1 = _mm_load_pd(g+iz  );
-                        r0 = _mm_mul_pd(r0, r1);
-                        r2 = _mm_load_pd(g+ix+2);
-                        r1 = _mm_load_pd(g+iy+2);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r1 = _mm_load_pd(g+iz+2);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r0 = _mm_add_pd(r0, r2);
-                        r2 = _mm_load_pd(g+ix+4);
-                        r1 = _mm_load_pd(g+iy+4);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r1 = _mm_load_pd(g+iz+4);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r0 = _mm_add_pd(r0, r2);
-                        r0 = _mm_hadd_pd(r0, r0);
-                        _mm_store_sd(gout+n, r0);
-                }
-        } else {
-                for (n = 0; n < envs->nf; n++, idx+=3) {
-                        ix = idx[0];
-                        iy = idx[1];
-                        iz = idx[2];
-                        r0 = _mm_load_pd(g+ix  );
-                        r1 = _mm_load_pd(g+iy  );
-                        r0 = _mm_mul_pd(r0, r1);
-                        r1 = _mm_load_pd(g+iz  );
-                        r0 = _mm_mul_pd(r0, r1);
-                        r2 = _mm_load_pd(g+ix+2);
-                        r1 = _mm_load_pd(g+iy+2);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r1 = _mm_load_pd(g+iz+2);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r0 = _mm_add_pd(r0, r2);
-                        r2 = _mm_load_pd(g+ix+4);
-                        r1 = _mm_load_pd(g+iy+4);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r1 = _mm_load_pd(g+iz+4);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r0 = _mm_add_pd(r0, r2);
-                        r0 = _mm_hadd_pd(r0, r0);
-                        _mm_store_sd(&s, r0);
-                        gout[n] += s;
-                }
-        }
-}
-static void r7_gout2e(double *g, double *gout, const FINT *idx,
-                      const CINTEnvVars *envs, FINT gout_empty)
-{
-        FINT ix, iy, iz, n;
-        __m128d r0, r1, r2;
-        double s;
-
-        if (gout_empty) {
-                for (n = 0; n < envs->nf; n++, idx+=3) {
-                        ix = idx[0];
-                        iy = idx[1];
-                        iz = idx[2];
-                        r0 = _mm_load_pd(g+ix  );
-                        r1 = _mm_load_pd(g+iy  );
-                        r0 = _mm_mul_pd(r0, r1);
-                        r1 = _mm_load_pd(g+iz  );
-                        r0 = _mm_mul_pd(r0, r1);
-                        r2 = _mm_load_pd(g+ix+2);
-                        r1 = _mm_load_pd(g+iy+2);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r1 = _mm_load_pd(g+iz+2);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r0 = _mm_add_pd(r0, r2);
-                        r2 = _mm_load_pd(g+ix+4);
-                        r1 = _mm_load_pd(g+iy+4);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r1 = _mm_load_pd(g+iz+4);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r0 = _mm_add_pd(r0, r2);
-                        r0 = _mm_hadd_pd(r0, r0);
-                        _mm_store_sd(gout+n, r0);
-                        gout[n] += g[ix+6] * g[iy+6] * g[iz+6];
-                }
-        } else {
-                for (n = 0; n < envs->nf; n++, idx+=3) {
-                        ix = idx[0];
-                        iy = idx[1];
-                        iz = idx[2];
-                        r0 = _mm_load_pd(g+ix  );
-                        r1 = _mm_load_pd(g+iy  );
-                        r0 = _mm_mul_pd(r0, r1);
-                        r1 = _mm_load_pd(g+iz  );
-                        r0 = _mm_mul_pd(r0, r1);
-                        r2 = _mm_load_pd(g+ix+2);
-                        r1 = _mm_load_pd(g+iy+2);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r1 = _mm_load_pd(g+iz+2);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r0 = _mm_add_pd(r0, r2);
-                        r2 = _mm_load_pd(g+ix+4);
-                        r1 = _mm_load_pd(g+iy+4);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r1 = _mm_load_pd(g+iz+4);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r0 = _mm_add_pd(r0, r2);
-                        r0 = _mm_hadd_pd(r0, r0);
-                        _mm_store_sd(&s, r0);
-                        gout[n] += s + g[ix+6] * g[iy+6] * g[iz+6];
-                }
-        }
-}
-static void ra_gout2e(double *g, double *gout, const FINT *idx,
-                      const CINTEnvVars *envs, FINT gout_empty)
-{
-        FINT i, ix, iy, iz, n;
-        __m128d r0, r1, r2, r3;
-        double s;
-
-        if (gout_empty) {
-                for (n = 0; n < envs->nf; n++, idx+=3) {
-                        ix = idx[0];
-                        iy = idx[1];
-                        iz = idx[2];
-                        r0 = _mm_load_pd(g+ix  );
-                        r1 = _mm_load_pd(g+iy  );
-                        r0 = _mm_mul_pd(r0, r1);
-                        r1 = _mm_load_pd(g+iz  );
-                        r0 = _mm_mul_pd(r0, r1);
-                        r2 = _mm_load_pd(g+ix+2);
-                        r1 = _mm_load_pd(g+iy+2);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r1 = _mm_load_pd(g+iz+2);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r0 = _mm_add_pd(r0, r2);
-                        r2 = _mm_load_pd(g+ix+4);
-                        r1 = _mm_load_pd(g+iy+4);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r1 = _mm_load_pd(g+iz+4);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r0 = _mm_add_pd(r0, r2);
-                        r2 = _mm_load_pd(g+ix+6);
-                        r1 = _mm_load_pd(g+iy+6);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r1 = _mm_load_pd(g+iz+6);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r3 = _mm_add_pd(r0, r2);
-                        for (i = 8; i < envs->nrys_roots-1; i+=2) {
-                                r0 = _mm_load_pd(g+ix+i);
-                                r1 = _mm_load_pd(g+iy+i);
-                                r0 = _mm_mul_pd(r0, r1);
-                                r1 = _mm_load_pd(g+iz+i);
-                                r0 = _mm_mul_pd(r0, r1);
-                                r3 = _mm_add_pd(r3, r0);
-                        }
-                        r3 = _mm_hadd_pd(r3, r3);
-                        _mm_store_sd(gout+n, r3);
-                        if (i < envs->nrys_roots) {
-                                gout[n] += g[ix+i] * g[iy+i] * g[iz+i];
-                        }
-                }
-        } else {
-                for (n = 0; n < envs->nf; n++, idx+=3) {
-                        ix = idx[0];
-                        iy = idx[1];
-                        iz = idx[2];
-                        r0 = _mm_load_pd(g+ix  );
-                        r1 = _mm_load_pd(g+iy  );
-                        r0 = _mm_mul_pd(r0, r1);
-                        r1 = _mm_load_pd(g+iz  );
-                        r0 = _mm_mul_pd(r0, r1);
-                        r2 = _mm_load_pd(g+ix+2);
-                        r1 = _mm_load_pd(g+iy+2);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r1 = _mm_load_pd(g+iz+2);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r0 = _mm_add_pd(r0, r2);
-                        r2 = _mm_load_pd(g+ix+4);
-                        r1 = _mm_load_pd(g+iy+4);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r1 = _mm_load_pd(g+iz+4);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r0 = _mm_add_pd(r0, r2);
-                        r2 = _mm_load_pd(g+ix+6);
-                        r1 = _mm_load_pd(g+iy+6);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r1 = _mm_load_pd(g+iz+6);
-                        r2 = _mm_mul_pd(r2, r1);
-                        r3 = _mm_add_pd(r0, r2);
-                        for (i = 8; i < envs->nrys_roots-1; i+=2) {
-                                r0 = _mm_load_pd(g+ix+i);
-                                r1 = _mm_load_pd(g+iy+i);
-                                r0 = _mm_mul_pd(r0, r1);
-                                r1 = _mm_load_pd(g+iz+i);
-                                r0 = _mm_mul_pd(r0, r1);
-                                r3 = _mm_add_pd(r3, r0);
-                        }
-                        r3 = _mm_hadd_pd(r3, r3);
-                        _mm_store_sd(&s, r3);
-                        if (i < envs->nrys_roots) {
-                                gout[n] += s + g[ix+i]*g[iy+i]*g[iz+i];
-                        } else {
-                                gout[n] += s;
-                        }
-                }
-        }
-}
-static void (*fgout2e[MXRYSROOTS])() = {
-        r1_gout2e,
-        r2_gout2e,
-        r3_gout2e,
-        r4_gout2e,
-        r5_gout2e,
-        r6_gout2e,
-        r7_gout2e,
-        ra_gout2e,
-        ra_gout2e,
-        ra_gout2e,
-        ra_gout2e,
-        ra_gout2e,
-        ra_gout2e,
-        ra_gout2e,
-        ra_gout2e,
-        ra_gout2e,
-};
-
 
 FINT cint2e_sph(double *opijkl, const FINT *shls,
                const FINT *atm, const FINT natm,
@@ -1376,7 +905,6 @@ FINT cint2e_sph(double *opijkl, const FINT *shls,
         CINTEnvVars envs;
         CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
         envs.f_gout = &CINTgout2e;
-        //envs.f_gout = fgout2e[envs.nrys_roots-1];
         return CINT2e_spheric_drv(opijkl, &envs, opt);
 }
 void cint2e_sph_optimizer(CINTOpt **opt, const FINT *atm, const FINT natm,
@@ -1395,7 +923,6 @@ FINT cint2e_cart(double *opijkl, const FINT *shls,
         CINTEnvVars envs;
         CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
         envs.f_gout = &CINTgout2e;
-        //envs.f_gout = fgout2e[envs.nrys_roots-1];
         return CINT2e_cart_drv(opijkl, &envs, opt);
 }
 void cint2e_cart_optimizer(CINTOpt **opt, const FINT *atm, const FINT natm,
@@ -1417,7 +944,6 @@ FINT cint2e(double *opijkl, const FINT *shls,
         CINTEnvVars envs;
         CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
         envs.f_gout = &CINTgout2e;
-        //envs.f_gout = fgout2e[envs.nrys_roots-1];
         return CINT2e_spinor_drv(opijkl, &envs, opt, &c2s_sf_2e1, &c2s_sf_2e2);
 }
 void cint2e_optimizer(CINTOpt **opt, const FINT *atm, const FINT natm,

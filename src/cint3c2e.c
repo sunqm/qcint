@@ -11,11 +11,11 @@
 #include <pmmintrin.h>
 #include <mm_malloc.h>
 #include "cint_bas.h"
-#include "g2e.h"
 #include "g3c2e.h"
 #include "optimizer.h"
 #include "cint2e.h"
 #include "misc.h"
+#include "fblas.h"
 #include "cart2sph.h"
 #include "c2f.h"
 
@@ -110,7 +110,7 @@ FINT CINT3c2e_loop_nopt(double *gctr, CINTEnvVars *envs)
 
         *kempty = 1;
         for (kp = 0; kp < envs->k_prim; kp++) {
-                //envs->ak = ak[kp];
+                envs->ak = ak[kp];
                 envs->akl = ak[kp];
                 if (k_ctr == 1) {
                         fac1k = envs->common_factor * ck[kp];
@@ -159,44 +159,12 @@ i_contracted: ;
                 }
         } // end loop k_prim
 
-        /* COPY_AND_CLOSING(gctrk, *kempty); */
         if (n_comp > 1 && !*kempty) {
-                const FINT INC1 = 1;
-                double *gctr1, *gctr2, *gctr3;
-                switch (n_comp) {
-                case 3:
-                        gctr1 = gctr  + envs->nf*nc;
-                        gctr2 = gctr1 + envs->nf*nc;
-                        for (n = 0, ip = 0; n < envs->nf*nc; n++, ip+=3) {
-                                gctr [n] = gctrk[ip+0];
-                                gctr1[n] = gctrk[ip+1];
-                                gctr2[n] = gctrk[ip+2];
-                        }
-                        break;
-                default:
-                        for (kp = 0; kp < n_comp-3; kp+=4) {
-                                gctr1 = gctr  + envs->nf*nc;
-                                gctr2 = gctr1 + envs->nf*nc;
-                                gctr3 = gctr2 + envs->nf*nc;
-                                for (n = 0, ip = kp; n < envs->nf*nc; n++,ip+=n_comp) {
-                                        gctr [n] = gctrk[ip+0];
-                                        gctr1[n] = gctrk[ip+1];
-                                        gctr2[n] = gctrk[ip+2];
-                                        gctr3[n] = gctrk[ip+3];
-                                }
-                                gctr += envs->nf*nc * 4;
-                        }
-                        for (; kp < n_comp; kp++) {
-                                n = envs->nf*nc;
-                                dcopy_(&n, gctrk+kp, &n_comp, gctr, &INC1);
-                                gctr += envs->nf*nc;
-                        }
-                }
+                CINTdmat_transpose(gctr, gctrk, envs->nf*nc, n_comp);
         }
         _mm_free(g);
         free(envs->idx);
         return !*kempty;
-        /* COPY_AND_CLOSING(gctrk, *kempty); end */
 }
 
 
@@ -220,7 +188,7 @@ i_contracted: ;
         const double *ck = env + bas(PTR_COEFF, k_sh); \
         const FINT n_comp = envs->ncomp_e1 * envs->ncomp_tensor; \
         double fac1i, fac1j, fac1k; \
-        FINT ip, jp, kp, n; \
+        FINT ip, jp, kp; \
         FINT empty[4] = {1, 1, 1, 1}; \
         FINT *iempty = empty + 0; \
         FINT *jempty = empty + 1; \
@@ -268,42 +236,6 @@ i_contracted: ;
         } \
         *ctrsymb##empty = 0
 
-#define COPY_AND_CLOSING(GCTRL, EMPTY) \
-        if (n_comp > 1 && !(EMPTY)) { \
-                const FINT INC1 = 1; \
-                double *gctr1, *gctr2, *gctr3; \
-                switch (n_comp) { \
-                case 3: \
-                        gctr1 = gctr  +envs->nf*nc; \
-                        gctr2 = gctr1 +envs->nf*nc; \
-                        for (n = 0, ip = 0; n < envs->nf*nc; n++, ip+=3) { \
-                                gctr [n] = GCTRL[ip+0]; \
-                                gctr1[n] = GCTRL[ip+1]; \
-                                gctr2[n] = GCTRL[ip+2]; \
-                        } \
-                        break; \
-                default: \
-                        for (kp = 0; kp < n_comp-3; kp+=4) { \
-                                gctr1 = gctr  +envs->nf*nc; \
-                                gctr2 = gctr1 +envs->nf*nc; \
-                                gctr3 = gctr2 +envs->nf*nc; \
-                                for (n = 0, ip = kp; n < envs->nf*nc; n++,ip+=n_comp) { \
-                                        gctr [n] = GCTRL[ip+0]; \
-                                        gctr1[n] = GCTRL[ip+1]; \
-                                        gctr2[n] = GCTRL[ip+2]; \
-                                        gctr3[n] = GCTRL[ip+3]; \
-                                } \
-                                gctr +=envs->nf*nc * 4; \
-                        } \
-                        for (; kp < n_comp; kp++) { \
-                                n =envs->nf*nc; \
-                                dcopy_(&n, GCTRL+kp, &n_comp, gctr, &INC1); \
-                                gctr +=envs->nf*nc; \
-                        } \
-                } \
-        } \
-        _mm_free(g); \
-        return !(EMPTY);
 
 // i_ctr = j_ctr = k_ctr = 1;
 FINT CINT3c2e_111_loop(double *gctr, CINTEnvVars *envs, const CINTOpt *opt)
@@ -324,6 +256,7 @@ FINT CINT3c2e_111_loop(double *gctr, CINTEnvVars *envs, const CINTOpt *opt)
         USE_OPT;
 
         for (kp = 0; kp < envs->k_prim; kp++) {
+                envs->ak = ak[kp];
                 envs->akl = ak[kp];
                 fac1k = envs->common_factor * ck[kp];
 
@@ -340,7 +273,11 @@ i_contracted: ;
                 } // end loop j_prim
         } // end loop k_prim
 
-        COPY_AND_CLOSING(gout, *empty);
+        if (n_comp > 1 && !*empty) {
+                CINTdmat_transpose(gctr, gout, envs->nf*nc, n_comp);
+        }
+        _mm_free(g);
+        return !*empty;
 }
 
 // i_ctr = n; j_ctr = k_ctr = 1;
@@ -367,6 +304,7 @@ FINT CINT3c2e_n11_loop(double *gctr, CINTEnvVars *envs, const CINTOpt *opt)
         USE_OPT;
 
         for (kp = 0; kp < envs->k_prim; kp++) {
+                envs->ak = ak[kp];
                 envs->akl = ak[kp];
                 fac1k = envs->common_factor * ck[kp];
 
@@ -383,7 +321,11 @@ i_contracted: ;
                 } // end loop j_prim
         } // end loop k_prim
 
-        COPY_AND_CLOSING(gctri, *iempty);
+        if (n_comp > 1 && !*iempty) {
+                CINTdmat_transpose(gctr, gctri, envs->nf*nc, n_comp);
+        }
+        _mm_free(g);
+        return !*iempty;
 }
 
 // j_ctr = n; i_ctr = k_ctr = 1;
@@ -410,6 +352,7 @@ FINT CINT3c2e_1n1_loop(double *gctr, CINTEnvVars *envs, const CINTOpt *opt)
         USE_OPT;
 
         for (kp = 0; kp < envs->k_prim; kp++) {
+                envs->ak = ak[kp];
                 envs->akl = ak[kp];
                 fac1k = envs->common_factor * ck[kp];
 
@@ -430,7 +373,11 @@ i_contracted: ;
                 } // end loop j_prim
         } // end loop k_prim
 
-        COPY_AND_CLOSING(gctrj, *jempty);
+        if (n_comp > 1 && !*jempty) {
+                CINTdmat_transpose(gctr, gctrj, envs->nf*nc, n_comp);
+        }
+        _mm_free(g);
+        return !*jempty;
 }
 
 // k_ctr = n; i_ctr = j_ctr = l_ctr = 1;
@@ -457,6 +404,7 @@ FINT CINT3c2e_11n_loop(double *gctr, CINTEnvVars *envs, const CINTOpt *opt)
         USE_OPT;
 
         for (kp = 0; kp < envs->k_prim; kp++) {
+                envs->ak = ak[kp];
                 envs->akl = ak[kp];
                 fac1k = envs->common_factor * ck[kp];
                 *jempty = 1;
@@ -477,7 +425,11 @@ i_contracted: ;
 k_contracted: ;
         } // end loop k_prim
 
-        COPY_AND_CLOSING(gctrk, *kempty);
+        if (n_comp > 1 && !*kempty) {
+                CINTdmat_transpose(gctr, gctrk, envs->nf*nc, n_comp);
+        }
+        _mm_free(g);
+        return !*kempty;
 }
 
 
@@ -587,7 +539,11 @@ i_contracted: ;
                 }
         } // end loop k_prim
 
-        COPY_AND_CLOSING(gctrk, *kempty);
+        if (n_comp > 1 && !*kempty) {
+                CINTdmat_transpose(gctr, gctrk, envs->nf*nc, n_comp);
+        }
+        _mm_free(g);
+        return !*kempty;
 }
 
 static FINT (*CINTf_3c2e_loop[8])() = {
@@ -607,9 +563,9 @@ FINT CINT3c2e_cart_drv(double *opijk, CINTEnvVars *envs, const CINTOpt *opt)
         const FINT jp = CINTcgto_cart(envs->shls[1], envs->bas);
         const FINT kp = CINTcgto_cart(envs->shls[2], envs->bas);
         const FINT nop = ip * jp * kp;
-        const FINT nc = envs->nf * envs->i_ctr * envs->j_ctr
-                                * envs->k_ctr * envs->ncomp_e1;
-        double *const gctr = _mm_malloc(sizeof(double) * nc * envs->ncomp_tensor, 16);
+        const FINT nc = envs->nf * envs->i_ctr * envs->j_ctr * envs->k_ctr;
+        const FINT n_comp = envs->ncomp_e1 * envs->ncomp_tensor;
+        double *const gctr = _mm_malloc(sizeof(double) * nc * n_comp, 16);
         double *pgctr = gctr;
         FINT n;
         FINT has_value;
@@ -623,13 +579,13 @@ FINT CINT3c2e_cart_drv(double *opijk, CINTEnvVars *envs, const CINTOpt *opt)
         }
 
         if (has_value) {
-                for (n = 0; n < envs->ncomp_tensor; n++) {
+                for (n = 0; n < n_comp; n++) {
                         c2s_cart_3c2e1(opijk, pgctr, envs);
                         opijk += nop;
                         pgctr += nc;
                 }
         } else {
-                CINTdset0(nop * envs->ncomp_tensor, opijk);
+                CINTdset0(nop * n_comp, opijk);
         }
         _mm_free(gctr);
         return has_value;
@@ -640,9 +596,43 @@ FINT CINT3c2e_spheric_drv(double *opijk, CINTEnvVars *envs, const CINTOpt *opt)
         const FINT jp = CINTcgto_spheric(envs->shls[1], envs->bas);
         const FINT kp = CINTcgto_spheric(envs->shls[2], envs->bas);
         const FINT nop = ip * jp * kp;
+        const FINT nc = envs->nf * envs->i_ctr * envs->j_ctr * envs->k_ctr;
+        const FINT n_comp = envs->ncomp_e1 * envs->ncomp_tensor;
+        double *const gctr = _mm_malloc(sizeof(double) * nc * n_comp, 16);
+        double *pgctr = gctr;
+        FINT n;
+        FINT has_value;
+
+        if (opt) {
+                n = ((envs->i_ctr==1) << 2) + ((envs->j_ctr==1) << 1)
+                  + (envs->k_ctr==1);
+                has_value = CINTf_3c2e_loop[n](gctr, envs, opt);
+        } else {
+                has_value = CINT3c2e_loop_nopt(gctr, envs);
+        }
+
+        if (has_value) {
+                for (n = 0; n < n_comp; n++) {
+                        c2s_sph_3c2e1(opijk, pgctr, envs);
+                        opijk += nop;
+                        pgctr += nc;
+                }
+        } else {
+                CINTdset0(nop * n_comp, opijk);
+        }
+        _mm_free(gctr);
+        return has_value;
+}
+FINT CINT3c2e_spinor_drv(double *opijk, CINTEnvVars *envs, const CINTOpt *opt,
+                        void (*const f_e1_c2s)())
+{
+        const FINT ip = CINTcgto_spinor(envs->shls[0], envs->bas);
+        const FINT jp = CINTcgto_spinor(envs->shls[1], envs->bas);
+        const FINT kp = CINTcgto_spheric(envs->shls[2], envs->bas);
+        const FINT nop = ip * jp * kp;
         const FINT nc = envs->nf * envs->i_ctr * envs->j_ctr
                                 * envs->k_ctr * envs->ncomp_e1;
-        double *const gctr = _mm_malloc(sizeof(double) * nc * envs->ncomp_tensor, 16);
+        double *gctr = _mm_malloc(sizeof(double)*nc*envs->ncomp_tensor, 16);
         double *pgctr = gctr;
         FINT n;
         FINT has_value;
@@ -657,12 +647,12 @@ FINT CINT3c2e_spheric_drv(double *opijk, CINTEnvVars *envs, const CINTOpt *opt)
 
         if (has_value) {
                 for (n = 0; n < envs->ncomp_tensor; n++) {
-                        c2s_sph_3c2e1(opijk, pgctr, envs);
-                        opijk += nop;
+                        (*f_e1_c2s)(opijk, pgctr, envs);
                         pgctr += nc;
+                        opijk += nop * OF_CMPLX;
                 }
         } else {
-                CINTdset0(nop * envs->ncomp_tensor, opijk);
+                CINTdset0(nop * OF_CMPLX * envs->ncomp_tensor, opijk);
         }
         _mm_free(gctr);
         return has_value;
@@ -707,6 +697,24 @@ void cint3c2e_cart_optimizer(CINTOpt **opt, const FINT *atm, const FINT natm,
 }
 
 
+FINT cint3c2e_spinor(double *opijk, const FINT *shls,
+                    const FINT *atm, const FINT natm,
+                    const FINT *bas, const FINT nbas, const double *env,
+                    const CINTOpt *opt)
+{
+        FINT ng[] = {0, 0, 0, 0, 0, 1, 1, 1};
+        CINTEnvVars envs;
+        CINTinit_int3c2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+        envs.f_gout = &CINTgout2e;
+        return CINT3c2e_spinor_drv(opijk, &envs, opt, &c2s_sf_3c2e1);
+}
+void cint3c2e_spinor_optimizer(CINTOpt **opt, const FINT *atm, const FINT natm,
+                               const FINT *bas, const FINT nbas, const double *env)
+{
+        cint3c2e_sph_optimizer(opt, atm, natm, bas, nbas, env);
+}
+
+
 /*
  * * * * * * * * * * * * * * * * * * * * *
  * c to fortran interface
@@ -714,6 +722,8 @@ void cint3c2e_cart_optimizer(CINTOpt **opt, const FINT *atm, const FINT natm,
 
 C2Fo_(cint3c2e_cart);
 C2Fo_(cint3c2e_sph);
+C2Fo_(cint3c2e_spinor);
 OPTIMIZER2F_(cint3c2e_cart_optimizer);
 OPTIMIZER2F_(cint3c2e_sph_optimizer);
+OPTIMIZER2F_(cint3c2e_spinor_optimizer);
 
