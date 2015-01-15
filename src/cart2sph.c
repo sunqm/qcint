@@ -30,7 +30,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pmmintrin.h>
-#include <mm_malloc.h>
 #include <complex.h>
 #include "config.h"
 #include "cint_const.h"
@@ -39,11 +38,6 @@
 #include "g1e.h"
 #include "misc.h"
 
-#if defined(__GNUC__)
-#define ALIGN16 __attribute__((aligned(16)))
-#else
-#define ALIGN16
-#endif
 
 
 static const double g_trans_cart2sph[] = {
@@ -3308,11 +3302,11 @@ static void a_bra_cart2spinor_e1sf(double complex *gsp, FINT nket,
                                    double *gcart, FINT l, FINT kappa)
 {
         const FINT nf = CINTlen_cart(l);
-        double complex *tmp1 = _mm_malloc(sizeof(double complex)*nf*nket, 16);
+        double complex *tmp1 = malloc(sizeof(double complex)*nf*nket);
 
         CINTdcmplx_re(nf*nket, tmp1, gcart);
         a_bra_cart2spinor_sf(gsp, nket, tmp1, l, kappa);
-        _mm_free(tmp1);
+        free(tmp1);
 }
 
 static void a_bra_cart2spinor_si(double complex *gsp, FINT nket,
@@ -5979,9 +5973,9 @@ void c2s_sph_1e(double *opij, const double *gctr, CINTEnvVars *envs)
         const FINT nfi = envs->nfi;
         const FINT nf = envs->nf;
         FINT ic, jc;
-        const FINT buflen = (nfi*dj + 16) & 0xfffffff0;
-        double buf1[buflen*2] ALIGN16;
-        double *const buf2 = buf1 + buflen;
+        const FINT buflen = nfi*dj;
+        double *buf1 = malloc(sizeof(double) * buflen*2);
+        double *buf2 = buf1 + buflen;
         double *pij;
         double *tmp1;
 
@@ -5994,6 +5988,7 @@ void c2s_sph_1e(double *opij, const double *gctr, CINTEnvVars *envs)
         dcopy_ij(pij, tmp1, ni, nj, di, dj);
         gctr += nf;
                 } }
+        free(buf1);
 }
 
 
@@ -6020,8 +6015,8 @@ void c2s_sf_1e(double complex *opij, const double *gctr, CINTEnvVars *envs)
         const FINT nf2j = nfj + nfj;
         const FINT nf = envs->nf;
         FINT ic, jc;
-        double complex *const tmp1 = malloc(sizeof(double complex) * di*nf2j * 2);
-        double complex *const tmp2 = tmp1 + di*nf2j;
+        double complex *tmp1 = malloc(sizeof(double complex) * di*nf2j * 2);
+        double complex *tmp2 = tmp1 + di*nf2j;
 
         for (jc = 0; jc < nj; jc += dj)
                 for (ic = 0; ic < ni; ic += di) {
@@ -6053,8 +6048,8 @@ void c2s_sf_1ei(double complex *opij, const double *gctr, CINTEnvVars *envs)
         const FINT nf2j = nfj + nfj;
         const FINT nf = envs->nf;
         FINT ic, jc;
-        double complex *const tmp1 = malloc(sizeof(double complex) * di*nf2j * 2);
-        double complex *const tmp2 = tmp1 + di*nf2j;
+        double complex *tmp1 = malloc(sizeof(double complex) * di*nf2j * 2);
+        double complex *tmp2 = tmp1 + di*nf2j;
 
         for (jc = 0; jc < nj; jc += dj)
                 for (ic = 0; ic < ni; ic += di) {
@@ -6097,9 +6092,9 @@ void c2s_si_1e(double complex *opij, const double *gctr, CINTEnvVars *envs)
         const double *gc_y = gc_x + nf * i_ctr * j_ctr;
         const double *gc_z = gc_y + nf * i_ctr * j_ctr;
         const double *gc_1 = gc_z + nf * i_ctr * j_ctr;
-        double complex *const tmp1 = malloc(sizeof(double complex)*nf2i*nf2j
-                                            +sizeof(double complex)*di*nf2j);
-        double complex *const tmp2 = tmp1 + nf2i*nf2j;
+        double complex *tmp1 = malloc(sizeof(double complex)*nf2i*nf2j
+                                      +sizeof(double complex)*di*nf2j);
+        double complex *tmp2 = tmp1 + nf2i*nf2j;
 
         for (jc = 0; jc < nj; jc += dj)
                 for (ic = 0; ic < ni; ic += di) {
@@ -6148,9 +6143,9 @@ void c2s_si_1ei(double complex *opij, const double *gctr, CINTEnvVars *envs)
         const double *gc_y = gc_x + nf * i_ctr * j_ctr;
         const double *gc_z = gc_y + nf * i_ctr * j_ctr;
         const double *gc_1 = gc_z + nf * i_ctr * j_ctr;
-        double complex *const tmp1 = malloc(sizeof(double complex)*nf2i*nf2j
-                                            +sizeof(double complex)*di*nf2j);
-        double complex *const tmp2 = tmp1 + nf2i*nf2j;
+        double complex *tmp1 = malloc(sizeof(double complex)*nf2i*nf2j
+                                      +sizeof(double complex)*di*nf2j);
+        double complex *tmp2 = tmp1 + nf2i*nf2j;
 
         for (jc = 0; jc < nj; jc += dj)
                 for (ic = 0; ic < ni; ic += di) {
@@ -6211,13 +6206,11 @@ void c2s_sph_2e1(double *fijkl, const double *gctr, CINTEnvVars *envs)
         FINT ofk = ni * nj;
         FINT ofl = nk * ni * nj;
         FINT ic, jc, kc, lc;
-        const FINT buflen = (nfikl*dj + 16) & 0xfffffff0; // align for SSE
-        // for l=6, stacksize < 8.7 MB causes Segmentation fault
-        double buf1[buflen*4] ALIGN16;
-        //double *const buf1 = (double *)_mm_malloc(sizeof(double)*buflen*3, 16);
-        double *const buf2 = buf1 + buflen;
-        double *const buf3 = buf2 + buflen;
-        double *const buf4 = buf3 + buflen;
+        const FINT buflen = nfikl*dj;
+        double *buf1 = malloc(sizeof(double)*buflen*4);
+        double *buf2 = buf1 + buflen;
+        double *buf3 = buf2 + buflen;
+        double *buf4 = buf3 + buflen;
         double *pfijkl, *tmp1;
 
         for (lc = 0; lc < nl; lc += dl) {
@@ -6235,7 +6228,7 @@ void c2s_sph_2e1(double *fijkl, const double *gctr, CINTEnvVars *envs)
         gctr += nf;
                                 } } } }
 
-        //_mm_free(buf1);
+        free(buf1);
 }
 void c2s_sph_2e2() {};
 /*
@@ -6288,8 +6281,7 @@ void c2s_sf_2e1(double complex *opij, const double *gctr, CINTEnvVars *envs)
         const FINT d_i = di * nfk * nfl;
         const FINT d_j = nfk * nfl * nfj;
         FINT i;
-        double complex *const tmp1 = _mm_malloc(sizeof(double complex)
-                                                * di*nfk*nfl*nf2j, 16);
+        double complex *tmp1 = malloc(sizeof(double complex) * di*nfk*nfl*nf2j);
 
         for (i = 0; i < i_ctr * j_ctr * k_ctr * l_ctr; i++) {
                 (f_bra_spinor_e1sf[i_l])(tmp1, d_j, gctr, i_l, i_kp);
@@ -6298,7 +6290,7 @@ void c2s_sf_2e1(double complex *opij, const double *gctr, CINTEnvVars *envs)
                 opij += no;
         }
 
-        _mm_free(tmp1);
+        free(tmp1);
 }
 void c2s_sf_2e1i(double complex *opij, const double *gctr, CINTEnvVars *envs)
 {
@@ -6325,8 +6317,7 @@ void c2s_sf_2e1i(double complex *opij, const double *gctr, CINTEnvVars *envs)
         const FINT d_i = di * nfk * nfl;
         const FINT d_j = nfk * nfl * nfj;
         FINT i;
-        double complex*const tmp1 = _mm_malloc(sizeof(double complex)
-                                               * di*nfk*nfl*nf2j, 16);
+        double complex *tmp1 = malloc(sizeof(double complex) * di*nfk*nfl*nf2j);
 
         for (i = 0; i < i_ctr * j_ctr * k_ctr * l_ctr; i++) {
                 (f_bra_spinor_e1sf[i_l])(tmp1, d_j, gctr, i_l, i_kp);
@@ -6335,7 +6326,7 @@ void c2s_sf_2e1i(double complex *opij, const double *gctr, CINTEnvVars *envs)
                 opij += no;
         }
 
-        _mm_free(tmp1);
+        free(tmp1);
 }
 
 
@@ -6384,11 +6375,10 @@ void c2s_sf_2e2(double complex *fijkl, const double complex *opij, CINTEnvVars *
         FINT ofl = nk * ni * nj;
         FINT ic, jc, kc, lc;
         double complex *pfijkl;
-        const FINT len1 = (nf2k*di*dj*nf2l + 16) & 0xfffffff0;
+        const FINT len1 = nf2k*di*dj*nf2l;
         const FINT len2 = dk*di*dj*nf2l;
-        double complex *const tmp1 = _mm_malloc(sizeof(double complex)
-                                                * (len1+len2), 16);
-        double complex *const tmp2 = tmp1 + len1;
+        double complex *tmp1 = malloc(sizeof(double complex) * (len1+len2));
+        double complex *tmp2 = tmp1 + len1;
 
         for (lc = 0; lc < nl; lc += dl) {
                 for (kc = 0; kc < nk; kc += dk) {
@@ -6403,7 +6393,7 @@ void c2s_sf_2e2(double complex *fijkl, const double complex *opij, CINTEnvVars *
         opij += nop;
                                 } } } }
 
-        _mm_free(tmp1);
+        free(tmp1);
 }
 void c2s_sf_2e2i(double complex *fijkl, const double complex *opij, CINTEnvVars *envs)
 {
@@ -6445,11 +6435,10 @@ void c2s_sf_2e2i(double complex *fijkl, const double complex *opij, CINTEnvVars 
         FINT ofl = nk * ni * nj;
         FINT ic, jc, kc, lc;
         double complex *pfijkl;
-        const FINT len1 = (nf2k*di*dj*nf2l + 16) & 0xfffffff0;
+        const FINT len1 = nf2k*di*dj*nf2l;
         const FINT len2 = dk*di*dj*nf2l;
-        double complex *const tmp1 = _mm_malloc(sizeof(double complex)
-                                                * (len1+len2), 16);
-        double complex *const tmp2 = tmp1 + len1;
+        double complex *tmp1 = malloc(sizeof(double complex) * (len1+len2));
+        double complex *tmp2 = tmp1 + len1;
 
         for (lc = 0; lc < nl; lc += dl) {
                 for (kc = 0; kc < nk; kc += dk) {
@@ -6464,7 +6453,7 @@ void c2s_sf_2e2i(double complex *fijkl, const double complex *opij, CINTEnvVars 
         opij += nop;
                                 } } } }
 
-        _mm_free(tmp1);
+        free(tmp1);
 }
 
 /*
@@ -6504,11 +6493,10 @@ void c2s_si_2e1(double complex *opij, const double *gctr, CINTEnvVars *envs)
         const double *gc_y = gc_x + nf * i_ctr * j_ctr * k_ctr * l_ctr;
         const double *gc_z = gc_y + nf * i_ctr * j_ctr * k_ctr * l_ctr;
         const double *gc_1 = gc_z + nf * i_ctr * j_ctr * k_ctr * l_ctr;
-        const FINT len1 = (nf2i*nfk*nfl*nf2j + 16) & 0xfffffff0;
+        const FINT len1 = nf2i*nfk*nfl*nf2j;
         const FINT len2 = di*nfk*nfl*nf2j;
-        double complex *const tmp1 = _mm_malloc(sizeof(double complex)
-                                                * (len1+len2), 16);
-        double complex *const tmp2 = tmp1 + len1;
+        double complex *tmp1 = malloc(sizeof(double complex) * (len1+len2));
+        double complex *tmp2 = tmp1 + len1;
 
         for (i = 0; i < i_ctr * j_ctr * k_ctr * l_ctr; i++) {
                 //cmplx( gctr.POS_1, gctr.POS_Z)
@@ -6528,7 +6516,7 @@ void c2s_si_2e1(double complex *opij, const double *gctr, CINTEnvVars *envs)
                 opij += no;
         }
 
-        _mm_free(tmp1);
+        free(tmp1);
 }
 void c2s_si_2e1i(double complex *opij, const double *gctr, CINTEnvVars *envs)
 {
@@ -6561,11 +6549,10 @@ void c2s_si_2e1i(double complex *opij, const double *gctr, CINTEnvVars *envs)
         const double *gc_y = gc_x + nf * i_ctr * j_ctr * k_ctr * l_ctr;
         const double *gc_z = gc_y + nf * i_ctr * j_ctr * k_ctr * l_ctr;
         const double *gc_1 = gc_z + nf * i_ctr * j_ctr * k_ctr * l_ctr;
-        const FINT len1 = (nf2i*nfk*nfl*nf2j + 16) & 0xfffffff0;
+        const FINT len1 = nf2i*nfk*nfl*nf2j;
         const FINT len2 = di*nfk*nfl*nf2j;
-        double complex *const tmp1 = _mm_malloc(sizeof(double complex)
-                                                * (len1+len2), 16);
-        double complex *const tmp2 = tmp1 + len1;
+        double complex *tmp1 = malloc(sizeof(double complex)*(len1+len2));
+        double complex *tmp2 = tmp1 + len1;
 
         for (i = 0; i < i_ctr * j_ctr * k_ctr * l_ctr; i++) {
                 //cmplx( gctr.POS_1, gctr.POS_Z)
@@ -6584,7 +6571,7 @@ void c2s_si_2e1i(double complex *opij, const double *gctr, CINTEnvVars *envs)
                 gc_1 += nf;
                 opij += no;
         }
-        _mm_free(tmp1);
+        free(tmp1);
 }
 
 /*
@@ -6690,11 +6677,10 @@ void c2s_si_2e2(double complex *fijkl, const double complex *opij, CINTEnvVars *
         const double complex *oy = ox + nop * i_ctr * j_ctr * k_ctr * l_ctr;
         const double complex *oz = oy + nop * i_ctr * j_ctr * k_ctr * l_ctr;
         const double complex *o1 = oz + nop * i_ctr * j_ctr * k_ctr * l_ctr;
-        const FINT len1 = (nf2k*di*dj*nf2l + 16) & 0xfffffff0;
+        const FINT len1 = nf2k*di*dj*nf2l;
         const FINT len2 = dk*di*dj*nf2l;
-        double complex *const tmp1 = _mm_malloc(sizeof(double complex)
-                                                * (len1+len2), 16);
-        double complex *const tmp2 = tmp1 + len1;
+        double complex *tmp1 = malloc(sizeof(double complex) * (len1+len2));
+        double complex *tmp2 = tmp1 + len1;
 
         for (lc = 0; lc < nl; lc += dl) {
                 for (kc = 0; kc < nk; kc += dk) {
@@ -6713,7 +6699,7 @@ void c2s_si_2e2(double complex *fijkl, const double complex *opij, CINTEnvVars *
         o1 += nop;
                                 } } } }
 
-        _mm_free(tmp1);
+        free(tmp1);
 }
 void c2s_si_2e2i(double complex *fijkl, const double complex *opij, CINTEnvVars *envs)
 {
@@ -6759,11 +6745,10 @@ void c2s_si_2e2i(double complex *fijkl, const double complex *opij, CINTEnvVars 
         const double complex *oy = ox + nop * i_ctr * j_ctr * k_ctr * l_ctr;
         const double complex *oz = oy + nop * i_ctr * j_ctr * k_ctr * l_ctr;
         const double complex *o1 = oz + nop * i_ctr * j_ctr * k_ctr * l_ctr;
-        const FINT len1 = (nf2k*di*dj*nf2l + 16) & 0xfffffff0;
+        const FINT len1 = nf2k*di*dj*nf2l;
         const FINT len2 = dk*di*dj*nf2l;
-        double complex *const tmp1 = _mm_malloc(sizeof(double complex)
-                                                * (len1+len2), 16);
-        double complex *const tmp2 = tmp1 + len1;
+        double complex *tmp1 = malloc(sizeof(double complex) * (len1+len2));
+        double complex *tmp2 = tmp1 + len1;
 
         for (lc = 0; lc < nl; lc += dl) {
                 for (kc = 0; kc < nk; kc += dk) {
@@ -6782,7 +6767,7 @@ void c2s_si_2e2i(double complex *fijkl, const double complex *opij, CINTEnvVars 
         o1 += nop;
                                 } } } }
 
-        _mm_free(tmp1);
+        free(tmp1);
 }
 
 /*
@@ -6870,10 +6855,10 @@ void c2s_sph_3c2e1(double *bufijk, const double *gctr, CINTEnvVars *envs)
         FINT ofj = ni;
         FINT ofk = ni * nj;
         FINT ic, jc, kc;
-        const FINT buflen = (nfi*nfk*dj + 16) & 0xfffffff0;
-        double buf1[buflen*3] ALIGN16;
-        double *const buf2 = buf1 + buflen;
-        double *const buf3 = buf2 + buflen;
+        const FINT buflen = nfi*nfk*dj;
+        double *buf1 = malloc(sizeof(double) * buflen*3);
+        double *buf2 = buf1 + buflen;
+        double *buf3 = buf2 + buflen;
         double *pijk;
         double *tmp1;
 
@@ -6887,6 +6872,7 @@ void c2s_sph_3c2e1(double *bufijk, const double *gctr, CINTEnvVars *envs)
         dcopy_iklj(pijk, tmp1, ni, nj, nk, 1, di, dj, dk, 1);
         gctr += nf;
                         } } }
+        free(buf1);
 
 }
 
@@ -6950,13 +6936,12 @@ void c2s_sf_3c2e1(double complex *opijk, double *gctr, CINTEnvVars *envs)
         const FINT d_i = di * dk;
         const FINT d_j = dk * nfj;
         FINT ic, jc, kc;
-        const FINT buflen = (nfi*dk*nfj+16) & 0xfffffff0;
-        double buf[buflen] ALIGN16;
+        const FINT buflen = nfi*dk*nfj;
+        double *buf = malloc(sizeof(double) * buflen);
         double *pbuf;
-        FINT len1 = (di*dk*nf2j + 16) & 0xfffffff0;
+        FINT len1 = di*dk*nf2j;
         FINT len2 = di*dk*dj;
-        double complex *tmp1 = _mm_malloc(sizeof(double complex)
-                                          * (len1+len2), 16);
+        double complex *tmp1 = malloc(sizeof(double complex) * (len1+len2));
         double complex *tmp2 = tmp1 + len1;
         double complex *pijk;
 
@@ -6970,8 +6955,8 @@ void c2s_sf_3c2e1(double complex *opijk, double *gctr, CINTEnvVars *envs)
         zcopy_iklj(pijk, tmp2, ni, nj, nk, 1, di, dj, dk, 1);
         gctr += nf;
                         } } }
-
-        _mm_free(tmp1);
+        free(buf);
+        free(tmp1);
 }
 void c2s_sf_3c2e1i(double complex *opijk, double *gctr, CINTEnvVars *envs)
 {
@@ -7004,13 +6989,12 @@ void c2s_sf_3c2e1i(double complex *opijk, double *gctr, CINTEnvVars *envs)
         const FINT d_i = di * dk;
         const FINT d_j = dk * nfj;
         FINT ic, jc, kc;
-        const FINT buflen = (nfi*dk*nfj + 16) & 0xfffffff0;
-        double buf[buflen] ALIGN16;
+        const FINT buflen = nfi*dk*nfj;
+        double *buf = malloc(sizeof(double) * buflen);
         double *pbuf;
-        FINT len1 = (di*dk*nf2j + 16) & 0xfffffff0;
+        FINT len1 = di*dk*nf2j;
         FINT len2 = di*dk*dj;
-        double complex *tmp1 = _mm_malloc(sizeof(double complex)
-                                          * (len1+len2), 16);
+        double complex *tmp1 = malloc(sizeof(double complex) * (len1+len2));
         double complex *tmp2 = tmp1 + len1;
         double complex *pijk;
 
@@ -7024,8 +7008,8 @@ void c2s_sf_3c2e1i(double complex *opijk, double *gctr, CINTEnvVars *envs)
         zcopy_iklj(pijk, tmp2, ni, nj, nk, 1, di, dj, dk, 1);
         gctr += nf;
                         } } }
-
-        _mm_free(tmp1);
+        free(buf);
+        free(tmp1);
 }
 /*
  * 3c2e integrals, cartesian to spinor for electron 1.
@@ -7067,17 +7051,17 @@ void c2s_si_3c2e1(double complex *opijk, double *gctr, CINTEnvVars *envs)
         double *gc_y = gc_x + nf * i_ctr * j_ctr * k_ctr;
         double *gc_z = gc_y + nf * i_ctr * j_ctr * k_ctr;
         double *gc_1 = gc_z + nf * i_ctr * j_ctr * k_ctr;
-        const FINT buflen = (nfi*dk*nfj + 16) & 0xfffffff0;
-        double *bufx = _mm_malloc(sizeof(double)*buflen*4, 16);
+        const FINT buflen = nfi*dk*nfj;
+        double *bufx = malloc(sizeof(double)*buflen*4);
         double *bufy = bufx + buflen;
         double *bufz = bufy + buflen;
         double *buf1 = bufz + buflen;
         double *pbufx, *pbufy, *pbufz, *pbuf1;
-        const FINT len1 = (nf2i*dk*nf2j + 16) & 0xfffffff0;
-        const FINT len2 = (di*dk*nf2j + 16) & 0xfffffff0;
+        const FINT len1 = nf2i*dk*nf2j;
+        const FINT len2 = di*dk*nf2j;
         const FINT len3 = di*dk*dj;
-        double complex *tmp1 = _mm_malloc(sizeof(double complex)
-                                          * (len1+len2+len3), 16);
+        double complex *tmp1 = malloc(sizeof(double complex)
+                                          * (len1+len2+len3));
         double complex *tmp2 = tmp1 + len1;
         double complex *tmp3 = tmp2 + len2;
         double complex *pijk;
@@ -7107,8 +7091,8 @@ void c2s_si_3c2e1(double complex *opijk, double *gctr, CINTEnvVars *envs)
         gc_1 += nf;
                         } } }
 
-        _mm_free(bufx);
-        _mm_free(tmp1);
+        free(bufx);
+        free(tmp1);
 }
 void c2s_si_3c2e1i(double complex *opijk, double *gctr, CINTEnvVars *envs)
 {
@@ -7147,17 +7131,17 @@ void c2s_si_3c2e1i(double complex *opijk, double *gctr, CINTEnvVars *envs)
         double *gc_y = gc_x + nf * i_ctr * j_ctr * k_ctr;
         double *gc_z = gc_y + nf * i_ctr * j_ctr * k_ctr;
         double *gc_1 = gc_z + nf * i_ctr * j_ctr * k_ctr;
-        const FINT buflen = (nfi*dk*nfj + 16) & 0xfffffff0;
-        double *bufx = _mm_malloc(sizeof(double)*buflen*4, 16);
+        const FINT buflen = nfi*dk*nfj;
+        double *bufx = malloc(sizeof(double)*buflen*4);
         double *bufy = bufx + buflen;
         double *bufz = bufy + buflen;
         double *buf1 = bufz + buflen;
         double *pbufx, *pbufy, *pbufz, *pbuf1;
-        const FINT len1 = (nf2i*dk*nf2j + 16) & 0xfffffff0;
-        const FINT len2 = (di*dk*nf2j + 16) & 0xfffffff0;
+        const FINT len1 = nf2i*dk*nf2j;
+        const FINT len2 = di*dk*nf2j;
         const FINT len3 = di*dk*dj;
-        double complex *tmp1 = _mm_malloc(sizeof(double complex)
-                                          * (len1+len2+len3), 16);
+        double complex *tmp1 = malloc(sizeof(double complex)
+                                          * (len1+len2+len3));
         double complex *tmp2 = tmp1 + len1;
         double complex *tmp3 = tmp2 + len2;
         double complex *pijk;
@@ -7187,8 +7171,8 @@ void c2s_si_3c2e1i(double complex *opijk, double *gctr, CINTEnvVars *envs)
         gc_1 += nf;
                         } } }
 
-        _mm_free(bufx);
-        _mm_free(tmp1);
+        free(bufx);
+        free(tmp1);
 }
 
 
