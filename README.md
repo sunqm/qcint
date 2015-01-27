@@ -5,7 +5,7 @@ An optimized libcint branch for X86 platform
 
 version 1.5.1
 
-2014-1-14
+2014-1-26
 
 
 What is qcint
