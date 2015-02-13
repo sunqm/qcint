@@ -1,3 +1,6 @@
+Version 1.5.2 (2014-02-10) for libcint v2.5.2::
+	* Expose cartesian to spherical transformation
+
 Version 1.5.1 (2014-01-26) for libcint v2.5.1::
 	* Remove unsafe code which relies on stack size
 	* Add densit fitting integrals (sp i sp j|K)

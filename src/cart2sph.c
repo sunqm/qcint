@@ -2700,6 +2700,10 @@ static FINT _len_spinor(FINT l, FINT kappa)
         }
 }
 
+static FINT _len_cart[] = {
+        1, 3, 6, 10, 15, 21, 28, 36
+};
+
 struct cart2sp_t {
         const double *cart2sph;
         const double complex *cart2j_lt_l; // j < l, kappa > 0
@@ -2816,7 +2820,7 @@ static void c2s_zgemm(const char transa, const char transb,
 // transform integrals from cartesian to spheric
 static double *a_bra_cart2spheric(double *gsph, FINT nket, double *gcart, FINT l)
 {
-        const FINT nf = CINTlen_cart(l);
+        const FINT nf = _len_cart[l];
         const FINT nd = l * 2 + 1;
         c2s_dgemm('T', 'N', nd, nket, nf,
                   1, g_c2s[l].cart2sph, nf, gcart, nf, 0, gsph, nd);
@@ -2825,7 +2829,7 @@ static double *a_bra_cart2spheric(double *gsph, FINT nket, double *gcart, FINT l
 
 static double *a_ket_cart2spheric(double *gsph, FINT nbra, double *gcart, FINT l)
 {
-        const FINT nf = CINTlen_cart(l);
+        const FINT nf = _len_cart[l];
         const FINT nd = l * 2 + 1;
         c2s_dgemm('N', 'N', nbra, nd, nf,
                   1, gcart, nbra, g_c2s[l].cart2sph, nf, 0, gsph, nbra);
@@ -3284,7 +3288,7 @@ static double *(*f_ket_sph[])() = {
 static void a_bra_cart2spinor_sf(double complex *gsp, FINT nket,
                                  double complex *gcart, FINT l, FINT kappa)
 {
-        const FINT nf = CINTlen_cart(l);
+        const FINT nf = _len_cart[l];
         const FINT nd = _len_spinor(l, kappa);
         const double complex *coeff_c2s;
 
@@ -3301,7 +3305,7 @@ static void a_bra_cart2spinor_sf(double complex *gsp, FINT nket,
 static void a_bra_cart2spinor_e1sf(double complex *gsp, FINT nket,
                                    double *gcart, FINT l, FINT kappa)
 {
-        const FINT nf = CINTlen_cart(l);
+        const FINT nf = _len_cart[l];
         double complex *tmp1 = malloc(sizeof(double complex)*nf*nket);
 
         CINTdcmplx_re(nf*nket, tmp1, gcart);
@@ -3312,7 +3316,7 @@ static void a_bra_cart2spinor_e1sf(double complex *gsp, FINT nket,
 static void a_bra_cart2spinor_si(double complex *gsp, FINT nket,
                                  double complex *gcart, FINT l, FINT kappa)
 {
-        const FINT nf = CINTlen_cart(l);
+        const FINT nf = _len_cart[l];
         const FINT nd = _len_spinor(l, kappa);
         const double complex *coeff_c2s;
 
@@ -3330,7 +3334,7 @@ static void a_bra_cart2spinor_si(double complex *gsp, FINT nket,
 static void a_ket_cart2spinor(double complex *gsp, FINT nbra,
                               double complex *gcart, FINT l, FINT kappa)
 {
-        const FINT nf = CINTlen_cart(l);
+        const FINT nf = _len_cart[l];
         const FINT nd = _len_spinor(l, kappa);
         const double complex *coeff_c2s;
 
@@ -3347,7 +3351,7 @@ static void a_iket_cart2spinor(double complex *gsp, FINT nbra,
                                double complex *gcart, FINT l, FINT kappa)
 {
         const double complex ZI = 0 + 1 * _Complex_I;
-        const FINT nf = CINTlen_cart(l);
+        const FINT nf = _len_cart[l];
         const FINT nd = _len_spinor(l, kappa);
         const double complex *coeff_c2s;
 
@@ -6044,7 +6048,7 @@ void c2s_sf_1ei(double complex *opij, const double *gctr, CINTEnvVars *envs)
         const FINT dj = _len_spinor(j_l, j_kp);
         const FINT ni = di * i_ctr;
         const FINT nj = dj * j_ctr;
-        const FINT nfj = CINTlen_cart(j_l);
+        const FINT nfj = _len_cart[j_l];
         const FINT nf2j = nfj + nfj;
         const FINT nf = envs->nf;
         FINT ic, jc;
@@ -7185,4 +7189,16 @@ void c2s_si_3c2e1i(double complex *opijk, double *gctr, CINTEnvVars *envs)
 double *CINTc2s_bra_sph(double *sph, FINT nket, double *cart, FINT l)
 {
         return (f_bra_sph[l])(sph, nket, cart, l);
+}
+double *CINTc2s_ket_sph(double *sph, FINT nket, double *cart, FINT l)
+{
+        return (f_ket_sph[l])(sph, nket, cart, l);
+}
+void CINTc2s_ket_spinor(double *sph, FINT nket, double *cart, FINT l, FINT kappa)
+{
+        (f_ket_spinor[l])(sph, nket, cart, l, kappa);
+}
+void CINTc2s_iket_spinor(double *sph, FINT nket, double *cart, FINT l, FINT kappa)
+{
+        (f_iket_spinor[l])(sph, nket, cart, l, kappa);
 }
