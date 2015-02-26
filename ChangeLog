@@ -1,3 +1,6 @@
+Version 1.5.3 (2014-02-26) for libcint v2.5.3:
+	* Add integral ( p i | nuc | p j )
+
 Version 1.5.2 (2014-02-10) for libcint v2.5.2::
 	* Expose cartesian to spherical transformation
 

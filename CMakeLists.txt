@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 2.6)
 project (qcint)
-set(qcint_VERSION "qcint.1.5.1")
+set(qcint_VERSION "qcint.1.5.3")
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msse3 -O2 -funroll-loops -ftree-vectorize")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DNDEBUG -ffast-math -fno-strict-overflow -fomit-frame-pointer")
