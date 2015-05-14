@@ -422,7 +422,6 @@ i_contracted: ;
                 if (!*jempty) {
                         PRIM2CTR(k, gout,envs->nf*n_comp);
                 }
-k_contracted: ;
         } // end loop k_prim
 
         if (n_comp > 1 && !*kempty) {

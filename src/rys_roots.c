@@ -1,6 +1,6 @@
 /*
  * Qcint is a general GTO integral library for computational chemistry
- * Copyright (C) 2014 Qiming Sun <osirpt.sun@gmail.com>
+ * Copyright (C) 2014- Qiming Sun <osirpt.sun@gmail.com>
  *
  * This file is part of Qcint.
  *
@@ -1710,8 +1710,44 @@ L70:
 
 /*
  ******************************************************
- * float128
+ * 80 bit double
  */
+#ifdef HAVE_FABSL
+#define FABSL   fabsl
+#else
+static long double c99_fabsl(long double x)
+{
+        return x > 0 ? x : -x;
+}
+#define FABSL   c99_fabsl
+#endif
+
+#ifdef HAVE_SQRTL
+#define SQRTL   sqrtl
+#else
+static long double c99_sqrtl(long double x)
+{
+        long double z = sqrt(x);
+// ref. Babylonian method
+// http://en.wikipedia.org/wiki/Methods_of_computing_square_roots
+// An extra update should be enough due to the quadratic convergence
+        return (z*z + x)/(z * 2);
+}
+#define SQRTL   c99_sqrtl
+#endif
+
+#ifdef HAVE_EXPL
+#define EXPL    expl
+#else
+// Does it need to swith to 128 bit expl algorithm?
+// ref https://github.com/JuliaLang/openlibm/ld128/e_expl.c
+static long double c99_expl(long double x)
+{
+        return exp(x);
+}
+#define EXPL    c99_expl
+#endif
+
 static void R_qnode(long double *a, long double *rt, FINT k)
 {
     const long double accrt = 1e-11l;
@@ -1754,7 +1790,7 @@ L30:
 	dr = .0625l * dr;
 	r5 = r - dr;
 	r6 = r + dr;
-	if (fabsl(delta) < accrt || r5 == r || r6 == r) {
+	if (FABSL(delta) < accrt || r5 == r || r6 == r) {
 	    goto L90;
 	}
 	++icount;
@@ -1812,7 +1848,7 @@ static void qgamma_inc_like(long double *ff, long double x, FINT n)
 {
         const long double pie4 = .7853981633974483096156608458l; // PI/4
         const long double xsw = 33.;
-        const long double e = .5l * expl(-x);
+        const long double e = .5l * EXPL(-x);
         const long double fac0 = n + .5l;
         long double term[200];
         long double sum, fac, sum1, suma, term0;
@@ -1820,7 +1856,7 @@ static void qgamma_inc_like(long double *ff, long double x, FINT n)
         FINT nterm = 0;
 
         if (x > xsw) {
-                sum = sqrtl(pie4 / x);
+                sum = SQRTL(pie4 / x);
                 fac = -.5l;
                 for (k = 0; k < n; ++k) {
                         fac += 1;
@@ -1932,7 +1968,7 @@ L60:
                 fprintf(stderr, "libcint::rys_roots negative value in sqrt\n");
                 exit(1);
         }
-	fac = 1 / sqrtl(fac);
+	fac = 1 / SQRTL(fac);
 	cs[j + j * MXROOTS1] = fac;
 	if (kmax == 0) {
 	    goto L100;
@@ -1976,7 +2012,7 @@ static void R_qroot(FINT nroots, double x,
     w[0] = wsum;
     r[0] = ff[1] / wsum;
 
-    dum = sqrtl(cs[2*MXROOTS1+1] * cs[2*MXROOTS1+1]
+    dum = SQRTL(cs[2*MXROOTS1+1] * cs[2*MXROOTS1+1]
                - 4 * cs[2*MXROOTS1+0] * cs[2*MXROOTS1+2]);
     r[MXROOTS  ] = .5 * (-cs[2*MXROOTS1+1] - dum) / cs[2*MXROOTS1+2];
     r[MXROOTS+1] = .5 * (-cs[2*MXROOTS1+1] + dum) / cs[2*MXROOTS1+2];

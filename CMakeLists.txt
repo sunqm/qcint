@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 2.6)
 project (qcint)
-set(qcint_VERSION "qcint.1.5.4")
+set(qcint_VERSION "qcint.1.5.5")
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msse3 -O2 -funroll-loops -ftree-vectorize")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DNDEBUG -ffast-math -fno-strict-overflow -fomit-frame-pointer")
@@ -10,6 +10,11 @@ set(CMAKE_VERBOSE_MAKEFILE OFF)
 
 #enable_language(Fortran)
 find_package(BLAS REQUIRED)
+set(CMAKE_REQUIRED_INCLUDES math.h)
+set(CMAKE_REQUIRED_LIBRARIES m)
+check_function_exists(expl HAVE_EXPL)
+check_function_exists(sqrtl HAVE_SQRTL)
+check_function_exists(fabsl HAVE_FABSL)
 
 include_directories(
   ${PROJECT_SOURCE_DIR}/include

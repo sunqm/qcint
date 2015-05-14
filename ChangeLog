@@ -1,3 +1,7 @@
+Version 1.5.5 (2014-05-14) for libcint v2.5.5:
+	* Provide sqrtl, expl, fabsl functions when compiler does not
+	fully support c99.
+
 Version 1.5.4 (2014-03-02) for libcint v2.5.4:
 	* Change origin of <z>, <zz>, <r> ... integrals.  The existed
 	  <z> <r> ... integrals are renamed.

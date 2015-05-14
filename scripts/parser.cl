@@ -1,5 +1,5 @@
 ;;; Qcint is a general GTO integral library for computational chemistry
-;;; Copyright (C) 2014 Qiming Sun <osirpt.sun@gmail.com>
+;;; Copyright (C) 2014- Qiming Sun <osirpt.sun@gmail.com>
 ;;;
 ;;; This file is part of Qcint.
 ;;;
