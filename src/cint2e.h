@@ -35,3 +35,9 @@ FINT CINT2e_cart_drv(double *opijkl, CINTEnvVars *envs, const CINTOpt *opt);
 FINT CINT2e_spheric_drv(double *opijkl, CINTEnvVars *envs, const CINTOpt *opt);
 FINT CINT2e_spinor_drv(double *opijkl, CINTEnvVars *envs, const CINTOpt *opt,
                       void (*const f_e1_c2s)(), void (*const f_e2_c2s)());
+
+FINT CINT2c2e_spheric_drv(double *opij, CINTEnvVars *envs, const CINTOpt *opt);
+
+FINT CINT3c2e_spheric_drv(double *opijk, CINTEnvVars *envs, const CINTOpt *opt);
+FINT CINT3c2e_spinor_drv(double *opijk, CINTEnvVars *envs, const CINTOpt *opt,
+                        void (*const f_e1_c2s)());

@@ -94,7 +94,7 @@ FINT CINT2e_loop_nopt(double *gctr, CINTEnvVars *envs)
         const FINT n_comp = envs->ncomp_e1 * envs->ncomp_e2
                                   * envs->ncomp_tensor;
         double fac1i, fac1j, fac1k, fac1l;
-        FINT ip, jp, kp, lp, n;
+        FINT ip, jp, kp, lp;
         FINT empty[5] = {1, 1, 1, 1, 1};
         FINT *iempty = empty + 0;
         FINT *jempty = empty + 1;
@@ -260,7 +260,7 @@ k_contracted: ;
         const double *cl = env + bas(PTR_COEFF, l_sh); \
         const FINT n_comp = envs->ncomp_e1 * envs->ncomp_e2 * envs->ncomp_tensor; \
         double fac1i, fac1j, fac1k, fac1l; \
-        FINT ip, jp, kp, lp, n; \
+        FINT ip, jp, kp, lp; \
         FINT empty[5] = {1, 1, 1, 1, 1}; \
         FINT *iempty = empty + 0; \
         FINT *jempty = empty + 1; \

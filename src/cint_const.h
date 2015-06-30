@@ -111,6 +111,9 @@
 #define OF_CMPLX        2
 
 #define PI              3.1415926535897932384626433832795028
+#ifndef M_PI
+#define M_PI            PI
+#endif
 #define SQRTPI          1.7724538509055160272981674833411451
 
 #define POINT_NUC       1

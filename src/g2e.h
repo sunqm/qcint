@@ -41,6 +41,7 @@ FINT CINTinit_int2e_EnvVars(CINTEnvVars *envs, const FINT ng[],
                            const FINT *bas, const FINT nbas, const double *env);
 
 void CINTg0_2e(double *g, const double fac, const CINTEnvVars *envs);
+void CINTg0_2e_2d(double *g, struct _BC *bc, const CINTEnvVars *envs);
 
 double CINTg0_2e_ssss(const double fac, const CINTEnvVars *envs);
 
