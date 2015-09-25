@@ -1,3 +1,8 @@
+Version 1.6.0 (2014-09-25) for libcint v2.6.0:
+	* API Updates!  To support user-specified gaussian nuclear model,
+	the intrinsic nuclear model functions are removed.  Accordingly,
+	the 4th element of "atm" argument are changed.
+
 Version 1.5.5 (2014-05-14) for libcint v2.5.5:
 	* Provide sqrtl, expl, fabsl functions when compiler does not
 	fully support c99.
