@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 2.6)
 project (qcint)
-set(qcint_VERSION "1.6.1")
+set(qcint_VERSION "1.6.2")
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msse3 -O2 -funroll-loops -ftree-vectorize")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DNDEBUG -ffast-math -fno-strict-overflow -fomit-frame-pointer")
@@ -31,6 +31,7 @@ set(cintSrc
   src/g2e_lj4d.c src/g2e_ssss.c src/gout2e_sse3.c src/misc.c
   src/optimizer.c src/rys_roots.c
   src/cint2c2e.c src/g2c2e.c src/cint3c2e.c src/g3c2e.c src/optimizer_3c2e.c 
+  src/cint3c1e.c src/g3c1e.c
   src/autocode/auto_intor1.c src/autocode/auto_intor2.c
   src/autocode/auto_intor3.c src/autocode/gaunt1.c src/autocode/grad1.c
   src/autocode/grad2.c src/autocode/grad3.c src/autocode/auto_hess.c
