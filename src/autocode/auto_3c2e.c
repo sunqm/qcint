@@ -1,6 +1,6 @@
 /*
  * Qcint is a general GTO integral library for computational chemistry
- * Copyright (C) 2014 Qiming Sun <osirpt.sun@gmail.com>
+ * Copyright (C) 2014- Qiming Sun <osirpt.sun@gmail.com>
  *
  * This file is part of Qcint.
  *
@@ -34,7 +34,7 @@
 #include "fblas.h"
 #include "c2f.h"
 /* (NABLA i j|R12 |k) */
-static void CINTgout3c2e_cint3c2e_ip1_sph(double *g,
+void CINTgout3c2e_cint3c2e_ip1_sph(double *g,
 double *gout, const FINT *idx, const CINTEnvVars *envs, FINT gout_empty) {
 const double *env = envs->env;
 const FINT nf = envs->nf;
@@ -425,12 +425,12 @@ CINTEnvVars envs;
 CINTinit_int3c2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout3c2e_cint3c2e_ip1_sph;
 envs.common_factor *= 1;
-return CINT3c2e_spheric_drv(opijkl, &envs, opt);
+return CINT3c2e_spheric_drv(opijkl, &envs, opt, &c2s_sph_3c2e1, 0);
 }
 OPTIMIZER2F_(cint3c2e_ip1_sph_optimizer);
 C2Fo_(cint3c2e_ip1_sph)
 /* (i j|R12 |NABLA k) */
-static void CINTgout3c2e_cint3c2e_ip2_sph(double *g,
+void CINTgout3c2e_cint3c2e_ip2_sph(double *g,
 double *gout, const FINT *idx, const CINTEnvVars *envs, FINT gout_empty) {
 const double *env = envs->env;
 const FINT nf = envs->nf;
@@ -821,7 +821,7 @@ CINTEnvVars envs;
 CINTinit_int3c2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout3c2e_cint3c2e_ip2_sph;
 envs.common_factor *= 1;
-return CINT3c2e_spheric_drv(opijkl, &envs, opt);
+return CINT3c2e_spheric_drv(opijkl, &envs, opt, &c2s_sph_3c2e1, 0);
 }
 OPTIMIZER2F_(cint3c2e_ip2_sph_optimizer);
 C2Fo_(cint3c2e_ip2_sph)
@@ -2011,7 +2011,7 @@ return CINT2e_spheric_drv(opijkl, &envs, opt);
 OPTIMIZER2F_(cint2e_ip2_sph_optimizer);
 C2Fo_(cint2e_ip2_sph)
 /* (NABLA i j|R12 |k) */
-static void CINTgout3c2e_cint3c2e_ip1_spinor(double *g,
+void CINTgout3c2e_cint3c2e_ip1_spinor(double *g,
 double *gout, const FINT *idx, const CINTEnvVars *envs, FINT gout_empty) {
 const double *env = envs->env;
 const FINT nf = envs->nf;
@@ -2402,12 +2402,12 @@ CINTEnvVars envs;
 CINTinit_int3c2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout3c2e_cint3c2e_ip1_spinor;
 envs.common_factor *= 1;
-return CINT3c2e_spinor_drv(opijkl, &envs, opt, &c2s_sf_3c2e1);
+return CINT3c2e_spinor_drv(opijkl, &envs, opt, &c2s_sf_3c2e1, 0);
 }
 OPTIMIZER2F_(cint3c2e_ip1_spinor_optimizer);
 C2Fo_(cint3c2e_ip1_spinor)
 /* (i j|R12 |NABLA k) */
-static void CINTgout3c2e_cint3c2e_ip2_spinor(double *g,
+void CINTgout3c2e_cint3c2e_ip2_spinor(double *g,
 double *gout, const FINT *idx, const CINTEnvVars *envs, FINT gout_empty) {
 const double *env = envs->env;
 const FINT nf = envs->nf;
@@ -2798,12 +2798,12 @@ CINTEnvVars envs;
 CINTinit_int3c2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout3c2e_cint3c2e_ip2_spinor;
 envs.common_factor *= 1;
-return CINT3c2e_spinor_drv(opijkl, &envs, opt, &c2s_sf_3c2e1);
+return CINT3c2e_spinor_drv(opijkl, &envs, opt, &c2s_sf_3c2e1, 0);
 }
 OPTIMIZER2F_(cint3c2e_ip2_spinor_optimizer);
 C2Fo_(cint3c2e_ip2_spinor)
 /* (SIGMA DOT P i SIGMA DOT P j|R12 |k) */
-static void CINTgout3c2e_cint3c2e_spsp1_spinor(double *g,
+void CINTgout3c2e_cint3c2e_spsp1_spinor(double *g,
 double *gout, const FINT *idx, const CINTEnvVars *envs, FINT gout_empty) {
 const double *env = envs->env;
 const FINT nf = envs->nf;
@@ -3854,12 +3854,12 @@ CINTEnvVars envs;
 CINTinit_int3c2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout3c2e_cint3c2e_spsp1_spinor;
 envs.common_factor *= 1;
-return CINT3c2e_spinor_drv(opijkl, &envs, opt, &c2s_si_3c2e1);
+return CINT3c2e_spinor_drv(opijkl, &envs, opt, &c2s_si_3c2e1, 0);
 }
 OPTIMIZER2F_(cint3c2e_spsp1_spinor_optimizer);
 C2Fo_(cint3c2e_spsp1_spinor)
 /* (NABLA SIGMA DOT P i SIGMA DOT P j|R12 |k) */
-static void CINTgout3c2e_cint3c2e_ipspsp1_spinor(double *g,
+void CINTgout3c2e_cint3c2e_ipspsp1_spinor(double *g,
 double *gout, const FINT *idx, const CINTEnvVars *envs, FINT gout_empty) {
 const double *env = envs->env;
 const FINT nf = envs->nf;
@@ -3966,12 +3966,12 @@ CINTEnvVars envs;
 CINTinit_int3c2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout3c2e_cint3c2e_ipspsp1_spinor;
 envs.common_factor *= 1;
-return CINT3c2e_spinor_drv(opijkl, &envs, opt, &c2s_si_3c2e1);
+return CINT3c2e_spinor_drv(opijkl, &envs, opt, &c2s_si_3c2e1, 0);
 }
 OPTIMIZER2F_(cint3c2e_ipspsp1_spinor_optimizer);
 C2Fo_(cint3c2e_ipspsp1_spinor)
 /* (SIGMA DOT P i SIGMA DOT P j|R12 |NABLA k) */
-static void CINTgout3c2e_cint3c2e_spsp1ip2_spinor(double *g,
+void CINTgout3c2e_cint3c2e_spsp1ip2_spinor(double *g,
 double *gout, const FINT *idx, const CINTEnvVars *envs, FINT gout_empty) {
 const double *env = envs->env;
 const FINT nf = envs->nf;
@@ -4078,7 +4078,7 @@ CINTEnvVars envs;
 CINTinit_int3c2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout3c2e_cint3c2e_spsp1ip2_spinor;
 envs.common_factor *= 1;
-return CINT3c2e_spinor_drv(opijkl, &envs, opt, &c2s_si_3c2e1);
+return CINT3c2e_spinor_drv(opijkl, &envs, opt, &c2s_si_3c2e1, 0);
 }
 OPTIMIZER2F_(cint3c2e_spsp1ip2_spinor_optimizer);
 C2Fo_(cint3c2e_spsp1ip2_spinor)
