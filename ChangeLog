@@ -1,41 +1,48 @@
-Version 1.6.4 (2014-10-19) for libcint v2.6.4:
+Version 1.6.5 (2015-12-21): for libcint v2.6.6:
+	* Integrals (i, s, sp j | sp k, s, l) for Gaunt term
+
+Version 1.6.5 (2015-10-28): for libcint v2.6.5:
+	* 3c1e integral generator
+	* New 3c1e integrals <ij|r^2|k> <ij|r^4|k> <ij|r^6|k>
+
+Version 1.6.4 (2015-10-19) for libcint v2.6.4:
 	* cart2sph transformation for l=12
 
-Version 1.6.3 (2014-10-15) for libcint v2.6.3:
+Version 1.6.3 (2015-10-15) for libcint v2.6.3:
 	* mixed spinor-cartesian 3c2e integrals
 
-Version 1.6.2 (2014-10-09) for libcint v2.6.2:
+Version 1.6.2 (2015-10-09) for libcint v2.6.2:
 	* 3-center 1-electron integrals
 	* mixed spheric-cartesian 3c2e integrals
 	* Restore cart2sph transformation interface
 
-Version 1.6.1 (2014-10-07) for libcint v2.6.1:
+Version 1.6.1 (2015-10-07) for libcint v2.6.1:
 	* Expose cart2sph transformation functions
 
-Version 1.6.0 (2014-09-25) for libcint v2.6.0:
+Version 1.6.0 (2015-09-25) for libcint v2.6.0:
 	* API Updates!  To support user-specified gaussian nuclear model,
 	the intrinsic nuclear model functions are removed.  Accordingly,
 	the 4th element of "atm" argument are changed.
 
-Version 1.5.5 (2014-05-14) for libcint v2.5.5:
+Version 1.5.5 (2015-05-14) for libcint v2.5.5:
 	* Provide sqrtl, expl, fabsl functions when compiler does not
 	fully support c99.
 
-Version 1.5.4 (2014-03-02) for libcint v2.5.4:
+Version 1.5.4 (2015-03-02) for libcint v2.5.4:
 	* Change origin of <z>, <zz>, <r> ... integrals.  The existed
 	  <z> <r> ... integrals are renamed.
 
-Version 1.5.3 (2014-02-26) for libcint v2.5.3:
+Version 1.5.3 (2015-02-26) for libcint v2.5.3:
 	* Add integral ( p i | nuc | p j )
 
-Version 1.5.2 (2014-02-10) for libcint v2.5.2::
+Version 1.5.2 (2015-02-10) for libcint v2.5.2::
 	* Expose cartesian to spherical transformation
 
-Version 1.5.1 (2014-01-26) for libcint v2.5.1::
+Version 1.5.1 (2015-01-26) for libcint v2.5.1::
 	* Remove unsafe code which relies on stack size
 	* Add densit fitting integrals (sp i sp j|K)
 
-Version 1.5.0 (2014-01-04) for libcint v2.5.0::
+Version 1.5.0 (2015-01-04) for libcint v2.5.0::
 	* Add general 2-center and 3-center 2e integrals
 	* Extend code generator for 2-center and 3-center 2e integrals 
 	* fix a tensor ordering problem of the code generator
