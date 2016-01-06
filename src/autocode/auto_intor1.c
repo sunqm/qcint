@@ -155,12 +155,9 @@ double *g3 = g2  + envs->g_size * 3;
 double *g4 = g3  + envs->g_size * 3;
 double s[9];
 G1E_D_J(g1, g0, i_l+0, j_l+0);
-G1E_D_J(g2, g0, i_l+0
-, j_l+1);
-G1E_D_I(g3, g0, i_l+0
-, j_l+1);
-n = envs->g_size * 3;
-for (ix = 0; ix < n; ix++) {g2[ix] += g3[ix];}
+G1E_D_J(g2, g0, i_l+0, j_l+1);
+G1E_D_I(g3, g0, i_l+0, j_l+1);
+for (ix = 0; ix < envs->g_size * 3; ix++) {g2[ix] += g3[ix];}
 G1E_D_J(g3, g2, i_l+0, j_l+0);
 for (n = 0; n < nf; n++, idx+=3) {
 ix = idx[0];
@@ -302,12 +299,9 @@ double *g3 = g2  + envs->g_size * 3;
 double *g4 = g3  + envs->g_size * 3;
 double s[9];
 G1E_R_J(g1, g0, i_l+0, j_l+0);
-G1E_D_J(g2, g0, i_l+0
-, j_l+1);
-G1E_D_I(g3, g0, i_l+0
-, j_l+1);
-n = envs->g_size * 3;
-for (ix = 0; ix < n; ix++) {g2[ix] += g3[ix];}
+G1E_D_J(g2, g0, i_l+0, j_l+1);
+G1E_D_I(g3, g0, i_l+0, j_l+1);
+for (ix = 0; ix < envs->g_size * 3; ix++) {g2[ix] += g3[ix];}
 G1E_R_J(g3, g2, i_l+0, j_l+0);
 for (n = 0; n < nf; n++, idx+=3) {
 ix = idx[0];
@@ -363,12 +357,9 @@ drj[0] = rj[0] - env[PTR_COMMON_ORIG+0];
 drj[1] = rj[1] - env[PTR_COMMON_ORIG+1];
 drj[2] = rj[2] - env[PTR_COMMON_ORIG+2];
 G1E_RCJ(g1, g0, i_l+0, j_l+0);
-G1E_D_J(g2, g0, i_l+0
-, j_l+1);
-G1E_D_I(g3, g0, i_l+0
-, j_l+1);
-n = envs->g_size * 3;
-for (ix = 0; ix < n; ix++) {g2[ix] += g3[ix];}
+G1E_D_J(g2, g0, i_l+0, j_l+1);
+G1E_D_I(g3, g0, i_l+0, j_l+1);
+for (ix = 0; ix < envs->g_size * 3; ix++) {g2[ix] += g3[ix];}
 G1E_RCJ(g3, g2, i_l+0, j_l+0);
 for (n = 0; n < nf; n++, idx+=3) {
 ix = idx[0];
@@ -431,12 +422,9 @@ c[0] = 1 * rirj[0];
 c[1] = 1 * rirj[1];
 c[2] = 1 * rirj[2];
 G1E_D_J(g1, g0, i_l+1, j_l+0);
-G1E_D_J(g2, g0, i_l+1
-, j_l+1);
-G1E_D_I(g3, g0, i_l+1
-, j_l+1);
-n = envs->g_size * 3;
-for (ix = 0; ix < n; ix++) {g2[ix] += g3[ix];}
+G1E_D_J(g2, g0, i_l+1, j_l+1);
+G1E_D_I(g3, g0, i_l+1, j_l+1);
+for (ix = 0; ix < envs->g_size * 3; ix++) {g2[ix] += g3[ix];}
 G1E_D_J(g3, g2, i_l+1, j_l+0);
 G1E_R0I(g4, g0, i_l+0, j_l);
 G1E_R0I(g5, g1, i_l+0, j_l);
