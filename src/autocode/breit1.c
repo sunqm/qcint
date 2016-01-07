@@ -34,8 +34,8 @@
 #include "misc.h"
 #include "fblas.h"
 #include "c2f.h"
-/* <k i|BREIT-R1 |R SIGMA DOT P j SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
- * = (i R SIGMA DOT P j|BREIT-R1 |k SIGMA DOT P l) */
+/* <k i|BREIT-R1 |R0 SIGMA DOT P j SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
+ * = (i R0 SIGMA DOT P j|BREIT-R1 |k SIGMA DOT P l) */
 static void CINTgout2e_cint2e_gauge_r1_ssp1ssp2(double *g,
 double *gout, const FINT *idx, const CINTEnvVars *envs, FINT gout_empty) {
 const double *env = envs->env;
@@ -70,8 +70,8 @@ double s[81];
 G2E_D_L(g1, g0, i_l+1, j_l+3, k_l+0, l_l+0);
 G2E_D_J(g2, g0, i_l+0, j_l+0, k_l, l_l);
 G2E_D_J(g3, g1, i_l+0, j_l+0, k_l, l_l);
-G2E_R_J(g4, g0, i_l+0, j_l+1, k_l, l_l);
-G2E_R_J(g5, g1, i_l+0, j_l+1, k_l, l_l);
+G2E_R0J(g4, g0, i_l+0, j_l+1, k_l, l_l);
+G2E_R0J(g5, g1, i_l+0, j_l+1, k_l, l_l);
 G2E_D_J(g6, g4, i_l+0, j_l+0, k_l, l_l);
 G2E_D_J(g7, g5, i_l+0, j_l+0, k_l, l_l);
 G2E_D_J(g8, g0, i_l+0, j_l+2, k_l, l_l);
@@ -82,8 +82,8 @@ G2E_D_I(g10, g1, i_l+0, j_l+2, k_l, l_l);
 for (ix = 0; ix < envs->g_size * 3; ix++) {g9[ix] += g10[ix];}
 G2E_D_J(g10, g8, i_l+0, j_l+0, k_l, l_l);
 G2E_D_J(g11, g9, i_l+0, j_l+0, k_l, l_l);
-G2E_R_J(g12, g8, i_l+0, j_l+1, k_l, l_l);
-G2E_R_J(g13, g9, i_l+0, j_l+1, k_l, l_l);
+G2E_R0J(g12, g8, i_l+0, j_l+1, k_l, l_l);
+G2E_R0J(g13, g9, i_l+0, j_l+1, k_l, l_l);
 G2E_D_J(g14, g12, i_l+0, j_l+0, k_l, l_l);
 G2E_D_J(g15, g13, i_l+0, j_l+0, k_l, l_l);
 __m128d r0, r1, r2, r3;
@@ -229,8 +229,8 @@ return CINT2e_spinor_drv(opijkl, &envs, opt, &c2s_si_2e1i, &c2s_si_2e2i);
 }
 OPTIMIZER2F_(cint2e_gauge_r1_ssp1ssp2_optimizer);
 C2Fo_(cint2e_gauge_r1_ssp1ssp2)
-/* <SIGMA DOT P k i|BREIT-R1 |R SIGMA DOT P j l> : i,j \in electron 1; k,l \in electron 2
- * = (i R SIGMA DOT P j|BREIT-R1 |SIGMA DOT P k l) */
+/* <SIGMA DOT P k i|BREIT-R1 |R0 SIGMA DOT P j l> : i,j \in electron 1; k,l \in electron 2
+ * = (i R0 SIGMA DOT P j|BREIT-R1 |SIGMA DOT P k l) */
 static void CINTgout2e_cint2e_gauge_r1_ssp1sps2(double *g,
 double *gout, const FINT *idx, const CINTEnvVars *envs, FINT gout_empty) {
 const double *env = envs->env;
@@ -265,8 +265,8 @@ double s[81];
 G2E_D_K(g1, g0, i_l+1, j_l+3, k_l+0, l_l);
 G2E_D_J(g2, g0, i_l+0, j_l+0, k_l, l_l);
 G2E_D_J(g3, g1, i_l+0, j_l+0, k_l, l_l);
-G2E_R_J(g4, g0, i_l+0, j_l+1, k_l, l_l);
-G2E_R_J(g5, g1, i_l+0, j_l+1, k_l, l_l);
+G2E_R0J(g4, g0, i_l+0, j_l+1, k_l, l_l);
+G2E_R0J(g5, g1, i_l+0, j_l+1, k_l, l_l);
 G2E_D_J(g6, g4, i_l+0, j_l+0, k_l, l_l);
 G2E_D_J(g7, g5, i_l+0, j_l+0, k_l, l_l);
 G2E_D_J(g8, g0, i_l+0, j_l+2, k_l, l_l);
@@ -277,8 +277,8 @@ G2E_D_I(g10, g1, i_l+0, j_l+2, k_l, l_l);
 for (ix = 0; ix < envs->g_size * 3; ix++) {g9[ix] += g10[ix];}
 G2E_D_J(g10, g8, i_l+0, j_l+0, k_l, l_l);
 G2E_D_J(g11, g9, i_l+0, j_l+0, k_l, l_l);
-G2E_R_J(g12, g8, i_l+0, j_l+1, k_l, l_l);
-G2E_R_J(g13, g9, i_l+0, j_l+1, k_l, l_l);
+G2E_R0J(g12, g8, i_l+0, j_l+1, k_l, l_l);
+G2E_R0J(g13, g9, i_l+0, j_l+1, k_l, l_l);
 G2E_D_J(g14, g12, i_l+0, j_l+0, k_l, l_l);
 G2E_D_J(g15, g13, i_l+0, j_l+0, k_l, l_l);
 __m128d r0, r1, r2, r3;
@@ -424,8 +424,8 @@ return CINT2e_spinor_drv(opijkl, &envs, opt, &c2s_si_2e1i, &c2s_si_2e2i);
 }
 OPTIMIZER2F_(cint2e_gauge_r1_ssp1sps2_optimizer);
 C2Fo_(cint2e_gauge_r1_ssp1sps2)
-/* <k SIGMA DOT P i|BREIT-R1 |R j SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
- * = (SIGMA DOT P i R j|BREIT-R1 |k SIGMA DOT P l) */
+/* <k SIGMA DOT P i|BREIT-R1 |R0 j SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
+ * = (SIGMA DOT P i R0 j|BREIT-R1 |k SIGMA DOT P l) */
 static void CINTgout2e_cint2e_gauge_r1_sps1ssp2(double *g,
 double *gout, const FINT *idx, const CINTEnvVars *envs, FINT gout_empty) {
 const double *env = envs->env;
@@ -458,16 +458,16 @@ double *g15 = g14 + envs->g_size * 3;
 double *g16 = g15 + envs->g_size * 3;
 double s[81];
 G2E_D_L(g1, g0, i_l+2, j_l+2, k_l+0, l_l+0);
-G2E_R_J(g2, g0, i_l+1, j_l+0, k_l, l_l);
-G2E_R_J(g3, g1, i_l+1, j_l+0, k_l, l_l);
+G2E_R0J(g2, g0, i_l+1, j_l+0, k_l, l_l);
+G2E_R0J(g3, g1, i_l+1, j_l+0, k_l, l_l);
 G2E_D_J(g4, g0, i_l+1, j_l+1, k_l, l_l);
 G2E_D_I(g5, g0, i_l+1, j_l+1, k_l, l_l);
 for (ix = 0; ix < envs->g_size * 3; ix++) {g4[ix] += g5[ix];}
 G2E_D_J(g5, g1, i_l+1, j_l+1, k_l, l_l);
 G2E_D_I(g6, g1, i_l+1, j_l+1, k_l, l_l);
 for (ix = 0; ix < envs->g_size * 3; ix++) {g5[ix] += g6[ix];}
-G2E_R_J(g6, g4, i_l+1, j_l+0, k_l, l_l);
-G2E_R_J(g7, g5, i_l+1, j_l+0, k_l, l_l);
+G2E_R0J(g6, g4, i_l+1, j_l+0, k_l, l_l);
+G2E_R0J(g7, g5, i_l+1, j_l+0, k_l, l_l);
 G2E_D_I(g8, g0, i_l+0, j_l, k_l, l_l);
 G2E_D_I(g9, g1, i_l+0, j_l, k_l, l_l);
 G2E_D_I(g10, g2, i_l+0, j_l, k_l, l_l);
@@ -619,8 +619,8 @@ return CINT2e_spinor_drv(opijkl, &envs, opt, &c2s_si_2e1i, &c2s_si_2e2i);
 }
 OPTIMIZER2F_(cint2e_gauge_r1_sps1ssp2_optimizer);
 C2Fo_(cint2e_gauge_r1_sps1ssp2)
-/* <SIGMA DOT P k SIGMA DOT P i|BREIT-R1 |R j l> : i,j \in electron 1; k,l \in electron 2
- * = (SIGMA DOT P i R j|BREIT-R1 |SIGMA DOT P k l) */
+/* <SIGMA DOT P k SIGMA DOT P i|BREIT-R1 |R0 j l> : i,j \in electron 1; k,l \in electron 2
+ * = (SIGMA DOT P i R0 j|BREIT-R1 |SIGMA DOT P k l) */
 static void CINTgout2e_cint2e_gauge_r1_sps1sps2(double *g,
 double *gout, const FINT *idx, const CINTEnvVars *envs, FINT gout_empty) {
 const double *env = envs->env;
@@ -653,16 +653,16 @@ double *g15 = g14 + envs->g_size * 3;
 double *g16 = g15 + envs->g_size * 3;
 double s[81];
 G2E_D_K(g1, g0, i_l+2, j_l+2, k_l+0, l_l);
-G2E_R_J(g2, g0, i_l+1, j_l+0, k_l, l_l);
-G2E_R_J(g3, g1, i_l+1, j_l+0, k_l, l_l);
+G2E_R0J(g2, g0, i_l+1, j_l+0, k_l, l_l);
+G2E_R0J(g3, g1, i_l+1, j_l+0, k_l, l_l);
 G2E_D_J(g4, g0, i_l+1, j_l+1, k_l, l_l);
 G2E_D_I(g5, g0, i_l+1, j_l+1, k_l, l_l);
 for (ix = 0; ix < envs->g_size * 3; ix++) {g4[ix] += g5[ix];}
 G2E_D_J(g5, g1, i_l+1, j_l+1, k_l, l_l);
 G2E_D_I(g6, g1, i_l+1, j_l+1, k_l, l_l);
 for (ix = 0; ix < envs->g_size * 3; ix++) {g5[ix] += g6[ix];}
-G2E_R_J(g6, g4, i_l+1, j_l+0, k_l, l_l);
-G2E_R_J(g7, g5, i_l+1, j_l+0, k_l, l_l);
+G2E_R0J(g6, g4, i_l+1, j_l+0, k_l, l_l);
+G2E_R0J(g7, g5, i_l+1, j_l+0, k_l, l_l);
 G2E_D_I(g8, g0, i_l+0, j_l, k_l, l_l);
 G2E_D_I(g9, g1, i_l+0, j_l, k_l, l_l);
 G2E_D_I(g10, g2, i_l+0, j_l, k_l, l_l);
@@ -814,8 +814,8 @@ return CINT2e_spinor_drv(opijkl, &envs, opt, &c2s_si_2e1i, &c2s_si_2e2i);
 }
 OPTIMIZER2F_(cint2e_gauge_r1_sps1sps2_optimizer);
 C2Fo_(cint2e_gauge_r1_sps1sps2)
-/* <k i|BREIT-R2 |SIGMA DOT P j R SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
- * = (i SIGMA DOT P j|BREIT-R2 |k R SIGMA DOT P l) */
+/* <k i|BREIT-R2 |SIGMA DOT P j R0 SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
+ * = (i SIGMA DOT P j|BREIT-R2 |k R0 SIGMA DOT P l) */
 static void CINTgout2e_cint2e_gauge_r2_ssp1ssp2(double *g,
 double *gout, const FINT *idx, const CINTEnvVars *envs, FINT gout_empty) {
 const double *env = envs->env;
@@ -848,7 +848,7 @@ double *g15 = g14 + envs->g_size * 3;
 double *g16 = g15 + envs->g_size * 3;
 double s[81];
 G2E_D_L(g1, g0, i_l+1, j_l+2, k_l+0, l_l+0);
-G2E_R_L(g2, g0, i_l+1, j_l+2, k_l+0, l_l+1);
+G2E_R0L(g2, g0, i_l+1, j_l+2, k_l+0, l_l+1);
 G2E_D_L(g3, g2, i_l+1, j_l+2, k_l+0, l_l+0);
 G2E_D_J(g4, g0, i_l+0, j_l+0, k_l, l_l);
 G2E_D_J(g5, g1, i_l+0, j_l+0, k_l, l_l);
@@ -1013,8 +1013,8 @@ return CINT2e_spinor_drv(opijkl, &envs, opt, &c2s_si_2e1i, &c2s_si_2e2i);
 }
 OPTIMIZER2F_(cint2e_gauge_r2_ssp1ssp2_optimizer);
 C2Fo_(cint2e_gauge_r2_ssp1ssp2)
-/* <SIGMA DOT P k i|BREIT-R2 |SIGMA DOT P j R l> : i,j \in electron 1; k,l \in electron 2
- * = (i SIGMA DOT P j|BREIT-R2 |SIGMA DOT P k R l) */
+/* <SIGMA DOT P k i|BREIT-R2 |SIGMA DOT P j R0 l> : i,j \in electron 1; k,l \in electron 2
+ * = (i SIGMA DOT P j|BREIT-R2 |SIGMA DOT P k R0 l) */
 static void CINTgout2e_cint2e_gauge_r2_ssp1sps2(double *g,
 double *gout, const FINT *idx, const CINTEnvVars *envs, FINT gout_empty) {
 const double *env = envs->env;
@@ -1046,7 +1046,7 @@ double *g14 = g13 + envs->g_size * 3;
 double *g15 = g14 + envs->g_size * 3;
 double *g16 = g15 + envs->g_size * 3;
 double s[81];
-G2E_R_L(g1, g0, i_l+1, j_l+2, k_l+1, l_l+0);
+G2E_R0L(g1, g0, i_l+1, j_l+2, k_l+1, l_l+0);
 G2E_D_K(g2, g0, i_l+1, j_l+2, k_l+0, l_l);
 G2E_D_K(g3, g1, i_l+1, j_l+2, k_l+0, l_l);
 G2E_D_J(g4, g0, i_l+0, j_l+0, k_l, l_l);
@@ -1212,8 +1212,8 @@ return CINT2e_spinor_drv(opijkl, &envs, opt, &c2s_si_2e1i, &c2s_si_2e2i);
 }
 OPTIMIZER2F_(cint2e_gauge_r2_ssp1sps2_optimizer);
 C2Fo_(cint2e_gauge_r2_ssp1sps2)
-/* <k SIGMA DOT P i|BREIT-R2 |j R SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
- * = (SIGMA DOT P i j|BREIT-R2 |k R SIGMA DOT P l) */
+/* <k SIGMA DOT P i|BREIT-R2 |j R0 SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
+ * = (SIGMA DOT P i j|BREIT-R2 |k R0 SIGMA DOT P l) */
 static void CINTgout2e_cint2e_gauge_r2_sps1ssp2(double *g,
 double *gout, const FINT *idx, const CINTEnvVars *envs, FINT gout_empty) {
 const double *env = envs->env;
@@ -1246,7 +1246,7 @@ double *g15 = g14 + envs->g_size * 3;
 double *g16 = g15 + envs->g_size * 3;
 double s[81];
 G2E_D_L(g1, g0, i_l+2, j_l+1, k_l+0, l_l+0);
-G2E_R_L(g2, g0, i_l+2, j_l+1, k_l+0, l_l+1);
+G2E_R0L(g2, g0, i_l+2, j_l+1, k_l+0, l_l+1);
 G2E_D_L(g3, g2, i_l+2, j_l+1, k_l+0, l_l+0);
 G2E_D_J(g4, g0, i_l+1, j_l+0, k_l, l_l);
 G2E_D_I(g5, g0, i_l+1, j_l+0, k_l, l_l);
@@ -1411,8 +1411,8 @@ return CINT2e_spinor_drv(opijkl, &envs, opt, &c2s_si_2e1i, &c2s_si_2e2i);
 }
 OPTIMIZER2F_(cint2e_gauge_r2_sps1ssp2_optimizer);
 C2Fo_(cint2e_gauge_r2_sps1ssp2)
-/* <SIGMA DOT P k SIGMA DOT P i|BREIT-R2 |j R l> : i,j \in electron 1; k,l \in electron 2
- * = (SIGMA DOT P i j|BREIT-R2 |SIGMA DOT P k R l) */
+/* <SIGMA DOT P k SIGMA DOT P i|BREIT-R2 |j R0 l> : i,j \in electron 1; k,l \in electron 2
+ * = (SIGMA DOT P i j|BREIT-R2 |SIGMA DOT P k R0 l) */
 static void CINTgout2e_cint2e_gauge_r2_sps1sps2(double *g,
 double *gout, const FINT *idx, const CINTEnvVars *envs, FINT gout_empty) {
 const double *env = envs->env;
@@ -1444,7 +1444,7 @@ double *g14 = g13 + envs->g_size * 3;
 double *g15 = g14 + envs->g_size * 3;
 double *g16 = g15 + envs->g_size * 3;
 double s[81];
-G2E_R_L(g1, g0, i_l+2, j_l+1, k_l+1, l_l+0);
+G2E_R0L(g1, g0, i_l+2, j_l+1, k_l+1, l_l+0);
 G2E_D_K(g2, g0, i_l+2, j_l+1, k_l+0, l_l);
 G2E_D_K(g3, g1, i_l+2, j_l+1, k_l+0, l_l);
 G2E_D_J(g4, g0, i_l+1, j_l+0, k_l, l_l);
