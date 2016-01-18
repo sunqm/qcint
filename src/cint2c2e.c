@@ -402,7 +402,7 @@ FINT CINT2c2e_cart_drv(double *opij, CINTEnvVars *envs, const CINTOpt *opt)
         FINT n;
         FINT has_value;
 
-        if (opt) {
+        if (opt != NULL) {
                 n = ((envs->i_ctr==1) << 1) + (envs->k_ctr==1);
                 has_value = CINTf_2c2e_loop[n](gctr, envs, opt);
         } else {
@@ -432,7 +432,7 @@ FINT CINT2c2e_spheric_drv(double *opij, CINTEnvVars *envs, const CINTOpt *opt)
         FINT n;
         FINT has_value;
 
-        if (opt) {
+        if (opt != NULL) {
                 n = ((envs->i_ctr==1) << 1) + (envs->k_ctr==1);
                 has_value = CINTf_2c2e_loop[n](gctr, envs, opt);
         } else {
