@@ -584,7 +584,6 @@
                                    (member x '(sigma))
                                    (member x *intvar*) ; ??
                                    (member x *operator*)
-                                   (member x *intvar*)
                                    (member x *one-electron-operator*)
                                    (member x *two-electron-operator*)))
                              op)))

@@ -27,12 +27,12 @@
 
  */
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 #include "cint_const.h"
 #include "rys_roots.h"
-#include "stdio.h"
 
 #define MXROOTS   MXRYSROOTS
 //#define MXROOTS1  (MXROOTS+1)
@@ -1484,6 +1484,15 @@ L90:
     return;
 }
 
+#ifdef __clang__
+double __attibute__((noinline))
+__prevent_clang_optimizing_add_d(double x, double y) {
+        return x + y;
+}
+#define DADD(x, y)      __prevent_clang_optimizing_add_d(x, y)
+#else
+#define DADD(x, y)      (x + y)
+#endif
 /* Incomplete gamma function
  * f(2n,x) = \int t^{2n} exp(-xt^2) dt
  *         = 1/2 \int r^{n-1/2} exp(-xr) dr
@@ -1509,7 +1518,7 @@ void gamma_inc_like(double *ff, double x, FINT n)
                 }
 
                 term[0] = -e / x;
-                suma = sum + term[0];
+                suma = DADD(sum, term[0]);
                 if (sum == suma) {
                         goto _CONV;
                 }
@@ -1518,7 +1527,7 @@ void gamma_inc_like(double *ff, double x, FINT n)
                         fac -= 1;
                         term[nterm] = term[nterm-1] * fac / x;
                         sum1 = suma;
-                        suma += term[nterm];
+                        suma = DADD(suma, term[nterm]);
                         if (sum1 == suma) {
                                 goto _CONV;
                         }
@@ -1537,7 +1546,7 @@ void gamma_inc_like(double *ff, double x, FINT n)
 
         fac += 1;
         term[0] = term0 * x / fac;
-        suma = sum + term[0];
+        suma = DADD(sum, term[0]);
         if (sum == suma) {
                 goto _CONV;
         }
@@ -1546,7 +1555,7 @@ void gamma_inc_like(double *ff, double x, FINT n)
                 fac += 1;
                 term[nterm] = term[nterm-1] * x / fac;
                 sum1 = suma;
-                suma += term[nterm];
+                suma = DADD(suma, term[nterm]);
                 if (sum1 - suma == 0) {
                         goto _CONV;
                 }
@@ -1844,6 +1853,15 @@ L90:
     return;
 }
 
+#ifdef __clang__
+long double __attibute__((noinline))
+__prevent_clang_optimizing_add_q(long double x, long double y) {
+        return x + y;
+}
+#define QADD(x, y)      __prevent_clang_optimizing_add_q(x, y)
+#else
+#define QADD(x, y)      (x + y)
+#endif
 static void qgamma_inc_like(long double *ff, long double x, FINT n)
 {
         const long double pie4 = .7853981633974483096156608458l; // PI/4
@@ -1864,7 +1882,7 @@ static void qgamma_inc_like(long double *ff, long double x, FINT n)
                 }
 
                 term[0] = -e / x;
-                suma = sum + term[0];
+                suma = QADD(sum, term[0]);
                 if (sum == suma) {
                         goto _CONV;
                 }
@@ -1873,7 +1891,7 @@ static void qgamma_inc_like(long double *ff, long double x, FINT n)
                         fac -= 1;
                         term[nterm] = term[nterm-1] * fac / x;
                         sum1 = suma;
-                        suma += term[nterm];
+                        suma = QADD(suma, term[nterm]);
                         if (sum1 == suma) {
                                 goto _CONV;
                         }
@@ -1892,7 +1910,7 @@ static void qgamma_inc_like(long double *ff, long double x, FINT n)
 
         fac += 1;
         term[0] = term0 * x / fac;
-        suma = sum + term[0];
+        suma = QADD(sum, term[0]);
         if (sum == suma) {
                 goto _CONV;
         }
@@ -1901,13 +1919,13 @@ static void qgamma_inc_like(long double *ff, long double x, FINT n)
                 fac += 1;
                 term[nterm] = term[nterm-1] * x / fac;
                 sum1 = suma;
-                suma += term[nterm];
+                suma = QADD(suma, term[nterm]);
                 if (sum1 - suma == 0) {
                         goto _CONV;
                 }
         }
         if (nterm > 199) {
-                fprintf(stderr, "libcint::rys_roots power series of gamma_inc_like not converge"
+                fprintf(stderr, "libcint::rys_roots power series of qgamma_inc_like not converge"
                         "val=%.16Lg last term=%.16Lg x=%.16Lg n=%d\n",
                         suma, term[199], x, (int)n);
                 exit(1);
