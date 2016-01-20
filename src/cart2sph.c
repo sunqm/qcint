@@ -2837,17 +2837,17 @@ static struct cart2sp_t g_c2s[] = {
         {g_trans_cart2sph+6370,NULL,NULL}, // l = 12
 };
 
-double *CINTaddress_cart2sph(int l)
+const double *CINTaddress_cart2sph(int l)
 {
         return g_c2s[l].cart2sph;
 }
 
-double *CINTaddress_cart2j_lt_l(int l)
+const double *CINTaddress_cart2j_lt_l(int l)
 {
         return g_c2s[l].cart2j_lt_l;
 }
 
-double *CINTaddress_cart2j_gt_l(int l)
+const double *CINTaddress_cart2j_gt_l(int l)
 {
         return g_c2s[l].cart2j_gt_l;
 }
