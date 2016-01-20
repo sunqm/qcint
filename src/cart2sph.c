@@ -2842,12 +2842,12 @@ const double *CINTaddress_cart2sph(int l)
         return g_c2s[l].cart2sph;
 }
 
-const double *CINTaddress_cart2j_lt_l(int l)
+const double complex *CINTaddress_cart2j_lt_l(int l)
 {
         return g_c2s[l].cart2j_lt_l;
 }
 
-const double *CINTaddress_cart2j_gt_l(int l)
+const double complex *CINTaddress_cart2j_gt_l(int l)
 {
         return g_c2s[l].cart2j_gt_l;
 }
