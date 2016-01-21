@@ -62,6 +62,6 @@ else()
   target_link_libraries(cint ${BLAS_LIBRARIES})
 
   install(TARGETS cint DESTINATION lib)
-  install(FILES ${PROJECT_SOURCE_DIR}/include/cint.h DESTINATION include)
+  install(FILES ${PROJECT_BINARY_DIR}/include/cint.h DESTINATION include)
 
 endif()
