@@ -49,7 +49,7 @@ endif()
 
 add_library(cint ${cintSrc})
 set_target_properties(cint PROPERTIES
-  VERSION ${cint_VERSION}
+  VERSION ${qcint_VERSION}
   LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 target_link_libraries(cint ${BLAS_LIBRARIES})
 
