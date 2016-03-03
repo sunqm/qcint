@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 2.6)
 project (qcint)
-set(qcint_VERSION "1.6")
+set(qcint_VERSION "1.7")
 
 set(CMAKE_BUILD_TYPE RELWITHDEBINFO)
 set(CMAKE_VERBOSE_MAKEFILE OFF)
