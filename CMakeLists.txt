@@ -2,9 +2,9 @@ cmake_minimum_required (VERSION 2.6)
 project (qcint)
 set(qcint_VERSION "1.6")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msse3 -O2 -funroll-loops -ftree-vectorize")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DNDEBUG -ffast-math -fno-strict-overflow -fomit-frame-pointer")
+set(CMAKE_BUILD_TYPE RELWITHDEBINFO)
 set(CMAKE_VERBOSE_MAKEFILE OFF)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msse3 -O2 -funroll-loops -ftree-vectorize -ffast-math")
 
 #set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -42,26 +42,16 @@ set(cintSrc
   src/autocode/gaunt1.c src/autocode/breit1.c)
 
 
-if (${ENABLE_STATIC})
-  add_library(cintStatic STATIC ${cintSrc})
-  set_target_properties(cintStatic PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}
-    OUTPUT_NAME cint)
-
-  install(TARGETS cintStatic DESTINATION lib)
-  install(FILES ${PROJECT_BINARY_DIR}/include/cint.h DESTINATION include)
-
-else()
-
-  add_library(cint SHARED ${cintSrc})
-
-  set_target_properties(cint PROPERTIES
-    VERSION ${qcint_VERSION}
-    LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
-
-  target_link_libraries(cint ${BLAS_LIBRARIES})
-
-  install(TARGETS cint DESTINATION lib)
-  install(FILES ${PROJECT_BINARY_DIR}/include/cint.h DESTINATION include)
-
+set(BUILD_SHARED_LIBS 1)
+if(ENABLE_STATIC)
+  option(BUILD_SHARED_LIBS 0)
 endif()
+
+add_library(cint ${cintSrc})
+set_target_properties(cint PROPERTIES
+  VERSION ${cint_VERSION}
+  LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
+target_link_libraries(cint ${BLAS_LIBRARIES})
+
+install(TARGETS cint DESTINATION lib)
+install(FILES ${PROJECT_BINARY_DIR}/include/cint.h DESTINATION include)
