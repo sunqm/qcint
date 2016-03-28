@@ -1,3 +1,6 @@
+Version 1.8.0 (2016-03-28): for libcint v2.8.0:
+	* Resolve the optimization bug of LLVM for expression (x+epsilon == x)
+
 Version 1.7.0 (2016-03-03) for libcint v2.7.0:
 	* Adjust for tensor ordering,  from  XX, YX, ZX, XY ...  to  XX, XY, XZ, YX ...
 	* Update all tests due to the change of cutoff value estimation
