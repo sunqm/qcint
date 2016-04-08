@@ -223,7 +223,8 @@ FINT CINT3c1e_cart_drv(double *opijk, CINTEnvVars *envs, const CINTOpt *opt)
         free(gctr);
         return has_value;
 }
-FINT CINT3c1e_spheric_drv(double *opijk, CINTEnvVars *envs, const CINTOpt *opt)
+FINT CINT3c1e_spheric_drv(double *opijk, CINTEnvVars *envs, const CINTOpt *opt,
+                         void (*const f_e1_c2s)(), FINT is_ssc)
 {
         const FINT ip = CINTcgto_spheric(envs->shls[0], envs->bas);
         const FINT jp = CINTcgto_spheric(envs->shls[1], envs->bas);
@@ -246,7 +247,7 @@ FINT CINT3c1e_spheric_drv(double *opijk, CINTEnvVars *envs, const CINTOpt *opt)
 
         if (has_value) {
                 for (n = 0; n < n_comp; n++) {
-                        c2s_sph_3c1e(opijk, pgctr, envs);
+                        (*f_e1_c2s)(opijk, pgctr, envs);
                         opijk += nop;
                         pgctr += nc;
                 }
@@ -288,7 +289,7 @@ FINT cint3c1e_sph(double *opijk, const FINT *shls,
         CINTEnvVars envs;
         CINTinit_int3c1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
         envs.f_gout = &CINTgout3c1e;
-        return CINT3c1e_spheric_drv(opijk, &envs, opt);
+        return CINT3c1e_spheric_drv(opijk, &envs, opt, &c2s_sph_3c1e, 0);
 }
 void cint3c1e_sph_optimizer(CINTOpt **opt, const FINT *atm, const FINT natm,
                           const FINT *bas, const FINT nbas, const double *env)
