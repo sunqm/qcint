@@ -16,6 +16,7 @@ check_function_exists(expl HAVE_EXPL)
 check_function_exists(sqrtl HAVE_SQRTL)
 
 include_directories(
+  ${PROJECT_BINARY_DIR}/include
   ${PROJECT_SOURCE_DIR}/src
   ${PROJECT_BINARY_DIR}/src)
 

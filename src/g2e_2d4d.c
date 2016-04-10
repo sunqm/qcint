@@ -446,6 +446,11 @@ void CINTg0_2e(double *g, const double fac, const CINTEnvVars *envs)
 {
         const double aij = envs->aij;
         const double akl = envs->akl;
+#ifdef WITH_RANGE_COULOMB
+        const double omega = envs->env[PTR_RANGE_OMEGA];
+#else
+        const double omega = 0;
+#endif
         double a0, a1, fac1, x;
         double u[MXRYSROOTS];
         double *w = g + envs->g_size * 2; // ~ gz
@@ -456,6 +461,14 @@ void CINTg0_2e(double *g, const double fac, const CINTEnvVars *envs)
 
         a1 = aij * akl;
         a0 = a1 / (aij + akl);
+
+        double theta = 0;
+        if (omega > 0) {
+// For long-range part of range-separated Coulomb operator
+                theta = omega * omega / (omega * omega + a0);
+                a0 *= theta;
+        }
+
         fac1 = sqrt(a0 / (a1 * a1 * a1)) * fac;
         x = a0 *(rijrkl[0] * rijrkl[0]
                + rijrkl[1] * rijrkl[1]
@@ -463,6 +476,17 @@ void CINTg0_2e(double *g, const double fac, const CINTEnvVars *envs)
         CINTrys_roots(envs->nrys_roots, x, u, w);
 
         FINT irys;
+        if (omega > 0) {
+                /* u[:] = tau^2 / (1 - tau^2)
+                 * omega^2u^2 = a0 * tau^2 / (theta^-1 - tau^2)
+                 * transform u[:] to theta^-1 tau^2 / (theta^-1 - tau^2)
+                 * so the rest code can be reused.
+                 */
+                for (irys = 0; irys < envs->nrys_roots; irys++) {
+                        u[irys] /= u[irys] + 1 - u[irys] * theta;
+                }
+        }
+
         double u2, div, tmp1, tmp2, tmp3, tmp4;
         const double *RESTRICT rijrx = envs->rijrx;
         const double *RESTRICT rklrx = envs->rklrx;

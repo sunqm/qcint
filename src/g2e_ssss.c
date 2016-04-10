@@ -79,18 +79,34 @@ double CINTg0_2e_ssss(const double fac, const CINTEnvVars *envs)
 {
         const double aij = envs->aij;
         const double akl = envs->akl;
+#ifdef WITH_RANGE_COULOMB
+        const double omega = envs->env[PTR_RANGE_OMEGA];
+#else
+        const double omega = 0;
+#endif
         double a0, a1, x;
         double rijrkl[3];
+        double rr;
         rijrkl[0] = envs->rij[0] - envs->rkl[0];
         rijrkl[1] = envs->rij[1] - envs->rkl[1];
         rijrkl[2] = envs->rij[2] - envs->rkl[2];
+        rr = rijrkl[0]*rijrkl[0] + rijrkl[1]*rijrkl[1] + rijrkl[2]*rijrkl[2];
 
         a1 = aij * akl;
         a0 = a1 / (aij + akl);
-        x = a0 *(rijrkl[0] * rijrkl[0]
-               + rijrkl[1] * rijrkl[1]
-               + rijrkl[2] * rijrkl[2]);
 
-        return sqrt(a0 / (a1 * a1 * a1)) * fac * rys_root1(x);
+        double theta, u;
+        if (omega > 0) {
+// For long-range part of range-separated Coulomb operator
+                theta = omega * omega / (omega * omega + a0);
+                a0 *= theta;
+                x = a0 * rr;
+                u = rys_root1(x);
+                u /= u + 1 - u * theta;
+        } else {
+                x = a0 * rr;
+                u = rys_root1(x);
+        }
+        return sqrt(a0 / (a1 * a1 * a1)) * fac * u;
 }
 
