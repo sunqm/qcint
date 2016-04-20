@@ -1,3 +1,6 @@
+Version 1.8.3 (2016-04-20): for libcint v2.8.3:
+	* New 1e integral p Vnuc cross p
+
 Version 1.8.2 (2016-04-09): for libcint v2.8.2:
 	* Long range part of range-separated Coulomb operator
 
