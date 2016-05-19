@@ -1414,7 +1414,7 @@ static void R_dnode(double *a, double *rt, FINT k)
         if (prod < 0) {
             goto L20;
         }
-        fprintf(stderr, " 0ROOT NUMBER %4d WAS NOT FOUND FOR POLYNOMIAL OF ORDER %4d\n", m, k);
+        fprintf(stderr, " 0ROOT NUMBER %4d WAS NOT FOUND FOR POLYNOMIAL OF ORDER %4d\n", (int)m, (int)k);
 L20:
         r5 = r1;
         p5 = p1;
@@ -1548,7 +1548,7 @@ void gamma_inc_like(double *ff, double x, FINT n)
         if (nterm > 199) {
                 fprintf(stderr, "libcint::rys_roots power series of gamma_inc_like not converge"
                         "val=%.16g last term=%.16g x=%.16g n=%d\n",
-                        suma, term[199], x, n);
+                        suma, term[199], x, (int)n);
                 exit(1);
         }
 
@@ -1750,7 +1750,7 @@ static void R_qnode(long double *a, long double *rt, FINT k)
         if (prod < 0) {
             goto L20;
         }
-        fprintf(stderr, " 0ROOT NUMBER %4d WAS NOT FOUND FOR POLYNOMIAL OF ORDER %4d\n", m, k);
+        fprintf(stderr, " 0ROOT NUMBER %4d WAS NOT FOUND FOR POLYNOMIAL OF ORDER %4d\n", (int)m, (int)k);
 L20:
         r5 = r1;
         p5 = p1;
@@ -1878,7 +1878,7 @@ static void qgamma_inc_like(long double *ff, long double x, FINT n)
         if (nterm > 199) {
                 fprintf(stderr, "libcint::rys_roots power series of gamma_inc_like not converge"
                         "val=%.16Lg last term=%.16Lg x=%.16Lg n=%d\n",
-                        suma, term[199], x, n);
+                        suma, term[199], x, (int)n);
                 exit(1);
         }
 
