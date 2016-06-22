@@ -1,3 +1,9 @@
+Version 1.8.5 (2016-06-22): for libcint v2.8.5:
+	* New integrals <r^2 i|j> and <r^4 i|j>
+
+Version 1.8.4 (2016-05-19): for libcint v2.8.4:
+	* Fix precompile problem for range separation Coulomb integrals
+
 Version 1.8.3 (2016-04-20): for libcint v2.8.3:
 	* New 1e integral p Vnuc cross p
 
