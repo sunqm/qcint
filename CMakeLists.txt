@@ -6,8 +6,9 @@ set(CMAKE_BUILD_TYPE RELWITHDEBINFO)
 set(CMAKE_VERBOSE_MAKEFILE OFF)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msse3 -O2 -funroll-loops -ftree-vectorize -ffast-math")
 
-include(GNUInstallDirs)
-
+if (${CMAKE_VERSION} GREATER 2.8.5)
+  include(GNUInstallDirs)
+endif (${CMAKE_VERSION} GREATER 2.8.5)
 #set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 #enable_language(Fortran)
