@@ -8,6 +8,9 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msse3 -O2 -funroll-loops -ftree-vectorize -
 
 if (${CMAKE_VERSION} GREATER 2.8.5)
   include(GNUInstallDirs)
+else (${CMAKE_VERSION} GREATER 2.8.5)
+  set(CMAKE_INSTALL_LIBDIR lib)
+  set(CMAKE_INSTALL_INCLUDEDIR include)
 endif (${CMAKE_VERSION} GREATER 2.8.5)
 #set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
