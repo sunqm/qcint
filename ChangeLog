@@ -1,3 +1,6 @@
+Version 1.8.8 (2016-10-13): for libcint v2.8.8:
+	* Use float128 for high order rys_roots
+
 Version 1.8.6 (2016-07-06): for libcint v2.8.6:
 	* Update incomplete gamma function
 
