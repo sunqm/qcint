@@ -56,9 +56,9 @@ set(cintSrc
   src/autocode/gaunt1.c src/autocode/breit1.c)
 
 
-set(BUILD_SHARED_LIBS 1)
+option(BUILD_SHARED_LIBS "build shared libraries" 1)
 if(ENABLE_STATIC)
-  option(BUILD_SHARED_LIBS 0)
+  set(BUILD_SHARED_LIBS 0)
 endif()
 
 add_library(cint ${cintSrc})
