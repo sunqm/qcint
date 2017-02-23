@@ -1,3 +1,6 @@
+Version 1.8.10 (2017-02-22): for libcint v2.8.10:
+	* New 2e integrals (pi dot pj|kl),  (pi dot pj|pk dot pl)
+
 Version 1.8.9 (2017-01-09): for libcint v2.8.9:
 	* New 3c2e integral (pi dot pj|k)
 
