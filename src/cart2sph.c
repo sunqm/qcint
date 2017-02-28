@@ -2966,6 +2966,16 @@ static double *a_ket_cart2spheric(double *gsph, FINT nbra, double *gcart, FINT l
         return gsph;
 }
 
+static double *a_ket_cart2spheric1(double *gsph, FINT ldg, double *gcart,
+                                   FINT nbra, FINT l)
+{
+        const FINT nf = CINTlen_cart(l);
+        const FINT nd = l * 2 + 1;
+        c2s_dgemm('N', 'N', nbra, nd, nf,
+                  1, gcart, nbra, g_c2s[l].cart2sph, nf, 0, gsph, ldg);
+        return gsph;
+}
+
 // transform s function from cartesian to spheric
 static double *s_bra_cart2spheric(double *gsph, FINT nket, double *gcart, FINT l)
 {
@@ -2984,6 +2994,15 @@ static double *s_ket_cart2spheric(double *gsph, FINT nbra, double *gcart, FINT l
                 gsph[i] = gcart[i];
         }*/
         return gcart;
+}
+static double *s_ket_cart2spheric1(double *gsph, FINT ldg, double *gcart,
+                                   FINT nbra, FINT l)
+{
+        FINT i;
+        for (i = 0; i < nbra; i++) {
+                gsph[i] = gcart[i];
+        }
+        return gsph;
 }
 
 // transform p function from cartesian to spheric
@@ -3011,6 +3030,17 @@ static double *p_ket_cart2spheric(double *gsph, FINT nbra, double *gcart, FINT l
                 gsph[1*nbra+i] = gcart[1*nbra+i];
                 gsph[2*nbra+i] = gcart[2*nbra+i];
         }*/
+        return gcart;
+}
+static double *p_ket_cart2spheric1(double *gsph, FINT ldg, double *gcart,
+                                   FINT nbra, FINT l)
+{
+        FINT i;
+        for (i = 0; i < nbra; i++) {
+                gsph[0*ldg+i] = gcart[0*nbra+i];
+                gsph[1*ldg+i] = gcart[1*nbra+i];
+                gsph[2*ldg+i] = gcart[2*nbra+i];
+        }
         return gcart;
 }
 
@@ -3082,6 +3112,58 @@ static double *d_ket_cart2spheric(double *gsph, FINT nbra, double *gcart, FINT l
                 gsph[3*nbra+i] = coeff_c2s[20] * gcart[2*nbra+i];
                 gsph[4*nbra+i] = coeff_c2s[24] * gcart[0*nbra+i]
                                + coeff_c2s[27] * gcart[3*nbra+i];
+        }
+        return pgsph;
+}
+static double *d_ket_cart2spheric1(double *gsph, FINT ldg, double *gcart,
+                                   FINT nbra, FINT l)
+{
+        const double *coeff_c2s = g_c2s[2].cart2sph;
+        double *const pgsph = gsph;
+        FINT i;
+        __m128d r0, r1, r2, r3, r4, r5;
+        __m128d s0, s1, s2, s3, s4, s5, s6, s7;
+        __m128d c0 = _mm_load1_pd(&coeff_c2s[ 1]);
+        __m128d c1 = _mm_load1_pd(&coeff_c2s[10]);
+        __m128d c2 = _mm_load1_pd(&coeff_c2s[12]);
+        __m128d c3 = _mm_load1_pd(&coeff_c2s[15]);
+        __m128d c4 = _mm_load1_pd(&coeff_c2s[17]);
+        __m128d c5 = _mm_load1_pd(&coeff_c2s[20]);
+        __m128d c6 = _mm_load1_pd(&coeff_c2s[24]);
+        __m128d c7 = _mm_load1_pd(&coeff_c2s[27]);
+        for (i = 0; i < nbra-1; i+=2) {
+                r0 = _mm_loadu_pd(&gcart[0*nbra+i]);
+                r1 = _mm_loadu_pd(&gcart[1*nbra+i]);
+                r2 = _mm_loadu_pd(&gcart[2*nbra+i]);
+                r3 = _mm_loadu_pd(&gcart[3*nbra+i]);
+                r4 = _mm_loadu_pd(&gcart[4*nbra+i]);
+                r5 = _mm_loadu_pd(&gcart[5*nbra+i]);
+                s0 = _mm_mul_pd(c0, r1);
+                _mm_storeu_pd(&gsph[0*ldg+i], s0);
+                s1 = _mm_mul_pd(c1, r4);
+                _mm_storeu_pd(&gsph[1*ldg+i], s1);
+                s2 = _mm_mul_pd(c2, r0);
+                s3 = _mm_mul_pd(c3, r3);
+                s2 = _mm_add_pd(s2, s3);
+                s4 = _mm_mul_pd(c4, r5);
+                s2 = _mm_add_pd(s2, s4);
+                _mm_storeu_pd(&gsph[2*ldg+i], s2);
+                s5 = _mm_mul_pd(c5, r2);
+                _mm_storeu_pd(&gsph[3*ldg+i], s5);
+                s6 = _mm_mul_pd(c6, r0);
+                s7 = _mm_mul_pd(c7, r3);
+                s6 = _mm_add_pd(s6, s7);
+                _mm_storeu_pd(&gsph[4*ldg+i], s6);
+        }
+        if (i < nbra) {
+                gsph[0*ldg+i] = coeff_c2s[ 1] * gcart[1*nbra+i];
+                gsph[1*ldg+i] = coeff_c2s[10] * gcart[4*nbra+i];
+                gsph[2*ldg+i] = coeff_c2s[12] * gcart[0*nbra+i]
+                              + coeff_c2s[15] * gcart[3*nbra+i]
+                              + coeff_c2s[17] * gcart[5*nbra+i];
+                gsph[3*ldg+i] = coeff_c2s[20] * gcart[2*nbra+i];
+                gsph[4*ldg+i] = coeff_c2s[24] * gcart[0*nbra+i]
+                              + coeff_c2s[27] * gcart[3*nbra+i];
         }
         return pgsph;
 }
@@ -3199,6 +3281,95 @@ static double *f_ket_cart2spheric(double *gsph, FINT nbra, double *gcart, FINT l
                                + coeff_c2s[57] * gcart[7*nbra+i];
                 gsph[6*nbra+i] = coeff_c2s[60] * gcart[0*nbra+i]
                                + coeff_c2s[63] * gcart[3*nbra+i];
+        }
+        return pgsph;
+}
+static double *f_ket_cart2spheric1(double *gsph, FINT ldg, double *gcart,
+                                   FINT nbra, FINT l)
+{
+        const double *coeff_c2s = g_c2s[3].cart2sph;
+        double *const pgsph = gsph;
+        FINT i;
+        __m128d r0, r1, r2, r3, r4, r5, r6, r7, r8, r9;
+        __m128d s0 , s1 , s2 , s3 , s4 , s5 , s6 , s7 ,
+                s8 , s9 , s10, s11, s12, s13, s14, s15;
+        __m128d c0  = _mm_load1_pd(&coeff_c2s[ 1]);
+        __m128d c1  = _mm_load1_pd(&coeff_c2s[ 6]);
+        __m128d c2  = _mm_load1_pd(&coeff_c2s[14]);
+        __m128d c3  = _mm_load1_pd(&coeff_c2s[21]);
+        __m128d c4  = _mm_load1_pd(&coeff_c2s[26]);
+        __m128d c5  = _mm_load1_pd(&coeff_c2s[28]);
+        __m128d c6  = _mm_load1_pd(&coeff_c2s[32]);
+        __m128d c7  = _mm_load1_pd(&coeff_c2s[37]);
+        __m128d c8  = _mm_load1_pd(&coeff_c2s[39]);
+        __m128d c9  = _mm_load1_pd(&coeff_c2s[40]);
+        __m128d c10 = _mm_load1_pd(&coeff_c2s[43]);
+        __m128d c11 = _mm_load1_pd(&coeff_c2s[45]);
+        __m128d c12 = _mm_load1_pd(&coeff_c2s[52]);
+        __m128d c13 = _mm_load1_pd(&coeff_c2s[57]);
+        __m128d c14 = _mm_load1_pd(&coeff_c2s[60]);
+        __m128d c15 = _mm_load1_pd(&coeff_c2s[63]);
+        for (i = 0; i < nbra-1; i+=2) {
+                r0 = _mm_loadu_pd(&gcart[0*nbra+i]);
+                r1 = _mm_loadu_pd(&gcart[1*nbra+i]);
+                r2 = _mm_loadu_pd(&gcart[2*nbra+i]);
+                r3 = _mm_loadu_pd(&gcart[3*nbra+i]);
+                r4 = _mm_loadu_pd(&gcart[4*nbra+i]);
+                r5 = _mm_loadu_pd(&gcart[5*nbra+i]);
+                r6 = _mm_loadu_pd(&gcart[6*nbra+i]);
+                r7 = _mm_loadu_pd(&gcart[7*nbra+i]);
+                r8 = _mm_loadu_pd(&gcart[8*nbra+i]);
+                r9 = _mm_loadu_pd(&gcart[9*nbra+i]);
+                s0  = _mm_mul_pd(c0 , r1);
+                s1  = _mm_mul_pd(c1 , r6);
+                s0  = _mm_add_pd(s0 , s1);
+                _mm_storeu_pd(&gsph[0*ldg+i], s0);
+                s2  = _mm_mul_pd(c2 , r4);
+                _mm_storeu_pd(&gsph[1*ldg+i], s2);
+                s3  = _mm_mul_pd(c3 , r1);
+                s4  = _mm_mul_pd(c4 , r6);
+                s3  = _mm_add_pd(s3 , s4);
+                s5  = _mm_mul_pd(c5 , r8);
+                s3  = _mm_add_pd(s3 , s5);
+                _mm_storeu_pd(&gsph[2*ldg+i], s3);
+                s6  = _mm_mul_pd(c6 , r2);
+                s7  = _mm_mul_pd(c7 , r7);
+                s6  = _mm_add_pd(s6 , s7);
+                s8  = _mm_mul_pd(c8 , r9);
+                s6  = _mm_add_pd(s6 , s8);
+                _mm_storeu_pd(&gsph[3*ldg+i], s6);
+                s9  = _mm_mul_pd(c9 , r0);
+                s10 = _mm_mul_pd(c10, r3);
+                s9  = _mm_add_pd(s9 , s10);
+                s11 = _mm_mul_pd(c11, r5);
+                s9  = _mm_add_pd(s9 , s11);
+                _mm_storeu_pd(&gsph[4*ldg+i], s9);
+                s12 = _mm_mul_pd(c12, r2);
+                s13 = _mm_mul_pd(c13, r7);
+                s12 = _mm_add_pd(s12, s13);
+                _mm_storeu_pd(&gsph[5*ldg+i], s12);
+                s14 = _mm_mul_pd(c14, r0);
+                s15 = _mm_mul_pd(c15, r3);
+                s14 = _mm_add_pd(s14, s15);
+                _mm_storeu_pd(&gsph[6*ldg+i], s14);
+        }
+        if (i < nbra) {
+                gsph[0*ldg+i] = coeff_c2s[ 1] * gcart[1*nbra+i]
+                              + coeff_c2s[ 6] * gcart[6*nbra+i];
+                gsph[1*ldg+i] = coeff_c2s[14] * gcart[4*nbra+i];
+                gsph[2*ldg+i] = coeff_c2s[21] * gcart[1*nbra+i]
+                              + coeff_c2s[26] * gcart[6*nbra+i]
+                              + coeff_c2s[28] * gcart[8*nbra+i];
+                gsph[3*ldg+i] = coeff_c2s[32] * gcart[2*nbra+i]
+                              + coeff_c2s[37] * gcart[7*nbra+i]
+                              + coeff_c2s[39] * gcart[9*nbra+i];
+                gsph[4*ldg+i] = coeff_c2s[40] * gcart[0*nbra+i]
+                              + coeff_c2s[43] * gcart[3*nbra+i]
+                              + coeff_c2s[45] * gcart[5*nbra+i];
+                gsph[5*ldg+i] = coeff_c2s[52] * gcart[2*nbra+i]
+                              + coeff_c2s[57] * gcart[7*nbra+i];
+                gsph[6*ldg+i] = coeff_c2s[60] * gcart[0*nbra+i]
+                              + coeff_c2s[63] * gcart[3*nbra+i];
         }
         return pgsph;
 }
@@ -3386,6 +3557,151 @@ static double *g_ket_cart2spheric(double *gsph, FINT nbra, double *gcart, FINT l
         }
         return pgsph;
 }
+static double *g_ket_cart2spheric1(double *gsph, FINT ldg, double *gcart,
+                                   FINT nbra, FINT l)
+{
+        const double *coeff_c2s = g_c2s[4].cart2sph;
+        double *const pgsph = gsph;
+        FINT i;
+        __m128d r0, r1, r2, r3, r4, r5, r6, r7,
+                r8, r9, r10, r11, r12, r13, r14;
+        __m128d s0 , s1 , s2 , s3 , s4 , s5 , s6 , s7 ,
+                s8 , s9 , s10, s11, s12, s13, s14, s15,
+                s16, s17, s18, s19, s20, s21, s22, s23,
+                s24, s25, s26, s27;
+        __m128d c0  = _mm_load1_pd(&coeff_c2s[  1]);
+        __m128d c1  = _mm_load1_pd(&coeff_c2s[  6]);
+        __m128d c2  = _mm_load1_pd(&coeff_c2s[ 19]);
+        __m128d c3  = _mm_load1_pd(&coeff_c2s[ 26]);
+        __m128d c4  = _mm_load1_pd(&coeff_c2s[ 31]);
+        __m128d c5  = _mm_load1_pd(&coeff_c2s[ 36]);
+        __m128d c6  = _mm_load1_pd(&coeff_c2s[ 38]);
+        __m128d c7  = _mm_load1_pd(&coeff_c2s[ 49]);
+        __m128d c8  = _mm_load1_pd(&coeff_c2s[ 56]);
+        __m128d c9  = _mm_load1_pd(&coeff_c2s[ 58]);
+        __m128d c10 = _mm_load1_pd(&coeff_c2s[ 60]);
+        __m128d c11 = _mm_load1_pd(&coeff_c2s[ 63]);
+        __m128d c12 = _mm_load1_pd(&coeff_c2s[ 65]);
+        __m128d c13 = _mm_load1_pd(&coeff_c2s[ 70]);
+        __m128d c14 = _mm_load1_pd(&coeff_c2s[ 72]);
+        __m128d c15 = _mm_load1_pd(&coeff_c2s[ 74]);
+        __m128d c16 = _mm_load1_pd(&coeff_c2s[ 77]);
+        __m128d c17 = _mm_load1_pd(&coeff_c2s[ 82]);
+        __m128d c18 = _mm_load1_pd(&coeff_c2s[ 84]);
+        __m128d c19 = _mm_load1_pd(&coeff_c2s[ 90]);
+        __m128d c20 = _mm_load1_pd(&coeff_c2s[ 95]);
+        __m128d c21 = _mm_load1_pd(&coeff_c2s[100]);
+        __m128d c22 = _mm_load1_pd(&coeff_c2s[102]);
+        __m128d c23 = _mm_load1_pd(&coeff_c2s[107]);
+        __m128d c24 = _mm_load1_pd(&coeff_c2s[112]);
+        __m128d c25 = _mm_load1_pd(&coeff_c2s[120]);
+        __m128d c26 = _mm_load1_pd(&coeff_c2s[123]);
+        __m128d c27 = _mm_load1_pd(&coeff_c2s[130]);
+        for (i = 0; i < nbra-1; i+=2) {
+                r0  = _mm_loadu_pd(&gcart[0 *nbra+i]);
+                r1  = _mm_loadu_pd(&gcart[1 *nbra+i]);
+                r2  = _mm_loadu_pd(&gcart[2 *nbra+i]);
+                r3  = _mm_loadu_pd(&gcart[3 *nbra+i]);
+                r4  = _mm_loadu_pd(&gcart[4 *nbra+i]);
+                r5  = _mm_loadu_pd(&gcart[5 *nbra+i]);
+                r6  = _mm_loadu_pd(&gcart[6 *nbra+i]);
+                r7  = _mm_loadu_pd(&gcart[7 *nbra+i]);
+                r8  = _mm_loadu_pd(&gcart[8 *nbra+i]);
+                r9  = _mm_loadu_pd(&gcart[9 *nbra+i]);
+                r10 = _mm_loadu_pd(&gcart[10*nbra+i]);
+                r11 = _mm_loadu_pd(&gcart[11*nbra+i]);
+                r12 = _mm_loadu_pd(&gcart[12*nbra+i]);
+                r13 = _mm_loadu_pd(&gcart[13*nbra+i]);
+                r14 = _mm_loadu_pd(&gcart[14*nbra+i]);
+                s0  = _mm_mul_pd(c0 , r1 );
+                s1  = _mm_mul_pd(c1 , r6 );
+                s0  = _mm_add_pd(s0 , s1 );
+                _mm_storeu_pd(&gsph[0*ldg+i], s0 );
+                s2  = _mm_mul_pd(c2 , r4 );
+                s3  = _mm_mul_pd(c3 , r11);
+                s2  = _mm_add_pd(s2 , s3 );
+                _mm_storeu_pd(&gsph[1*ldg+i], s2 );
+                s4  = _mm_mul_pd(c4 , r1 );
+                s5  = _mm_mul_pd(c5 , r6 );
+                s4  = _mm_add_pd(s4 , s5 );
+                s6  = _mm_mul_pd(c6 , r8 );
+                s4  = _mm_add_pd(s4 , s6 );
+                _mm_storeu_pd(&gsph[2*ldg+i], s4 );
+                s7  = _mm_mul_pd(c7 , r4 );
+                s8  = _mm_mul_pd(c8 , r11);
+                s7  = _mm_add_pd(s7 , s8 );
+                s9  = _mm_mul_pd(c9 , r13);
+                s7  = _mm_add_pd(s7 , s9 );
+                _mm_storeu_pd(&gsph[3*ldg+i], s7 );
+                s10 = _mm_mul_pd(c10, r0 );
+                s11 = _mm_mul_pd(c11, r3 );
+                s10 = _mm_add_pd(s10, s11);
+                s12 = _mm_mul_pd(c12, r5 );
+                s10 = _mm_add_pd(s10, s12);
+                s13 = _mm_mul_pd(c13, r10);
+                s10 = _mm_add_pd(s10, s13);
+                s14 = _mm_mul_pd(c14, r12);
+                s10 = _mm_add_pd(s10, s14);
+                s15 = _mm_mul_pd(c15, r14);
+                s10 = _mm_add_pd(s10, s15);
+                _mm_storeu_pd(&gsph[4*ldg+i], s10);
+                s16 = _mm_mul_pd(c16, r2 );
+                s17 = _mm_mul_pd(c17, r7 );
+                s16 = _mm_add_pd(s16, s17);
+                s18 = _mm_mul_pd(c18, r9 );
+                s16 = _mm_add_pd(s16, s18);
+                _mm_storeu_pd(&gsph[5*ldg+i], s16);
+                s19 = _mm_mul_pd(c19, r0 );
+                s20 = _mm_mul_pd(c20, r5 );
+                s19 = _mm_add_pd(s19, s20);
+                s21 = _mm_mul_pd(c21, r10);
+                s19 = _mm_add_pd(s19, s21);
+                s22 = _mm_mul_pd(c22, r12);
+                s19 = _mm_add_pd(s19, s22);
+                _mm_storeu_pd(&gsph[6*ldg+i], s19);
+                s23 = _mm_mul_pd(c23, r2 );
+                s24 = _mm_mul_pd(c24, r7 );
+                s23 = _mm_add_pd(s23, s24);
+                _mm_storeu_pd(&gsph[7*ldg+i], s23);
+                s25 = _mm_mul_pd(c25, r0 );
+                s26 = _mm_mul_pd(c26, r3 );
+                s25 = _mm_add_pd(s25, s26);
+                s27 = _mm_mul_pd(c27, r10);
+                s25 = _mm_add_pd(s25, s27);
+                _mm_storeu_pd(&gsph[8*ldg+i], s25);
+        }
+        if (i < nbra) {
+                gsph[0*ldg+i] = coeff_c2s[  1] * gcart[ 1*nbra+i]
+                              + coeff_c2s[  6] * gcart[ 6*nbra+i];
+                gsph[1*ldg+i] = coeff_c2s[ 19] * gcart[ 4*nbra+i]
+                              + coeff_c2s[ 26] * gcart[11*nbra+i];
+                gsph[2*ldg+i] = coeff_c2s[ 31] * gcart[ 1*nbra+i]
+                              + coeff_c2s[ 36] * gcart[ 6*nbra+i]
+                              + coeff_c2s[ 38] * gcart[ 8*nbra+i];
+                gsph[3*ldg+i] = coeff_c2s[ 49] * gcart[ 4*nbra+i]
+                              + coeff_c2s[ 56] * gcart[11*nbra+i]
+                              + coeff_c2s[ 58] * gcart[13*nbra+i];
+                gsph[4*ldg+i] = coeff_c2s[ 60] * gcart[ 0*nbra+i]
+                              + coeff_c2s[ 63] * gcart[ 3*nbra+i]
+                              + coeff_c2s[ 65] * gcart[ 5*nbra+i]
+                              + coeff_c2s[ 70] * gcart[10*nbra+i]
+                              + coeff_c2s[ 72] * gcart[12*nbra+i]
+                              + coeff_c2s[ 74] * gcart[14*nbra+i];
+                gsph[5*ldg+i] = coeff_c2s[ 77] * gcart[ 2*nbra+i]
+                              + coeff_c2s[ 82] * gcart[ 7*nbra+i]
+                              + coeff_c2s[ 84] * gcart[ 9*nbra+i];
+                gsph[6*ldg+i] = coeff_c2s[ 90] * gcart[ 0*nbra+i]
+                              + coeff_c2s[ 95] * gcart[ 5*nbra+i]
+                              + coeff_c2s[100] * gcart[10*nbra+i]
+                              + coeff_c2s[102] * gcart[12*nbra+i];
+                gsph[7*ldg+i] = coeff_c2s[107] * gcart[ 2*nbra+i]
+                              + coeff_c2s[112] * gcart[ 7*nbra+i];
+                gsph[8*ldg+i] = coeff_c2s[120] * gcart[ 0*nbra+i]
+                              + coeff_c2s[123] * gcart[ 3*nbra+i]
+                              + coeff_c2s[130] * gcart[10*nbra+i];
+        }
+        return pgsph;
+}
 
 /*
  * return the address of gemm results, for s,p function, results ==
@@ -3421,6 +3737,22 @@ double *(*c2s_ket_sph[])() = {
         a_ket_cart2spheric,
         a_ket_cart2spheric,
         a_ket_cart2spheric,
+};
+
+double *(*c2s_ket_sph1[])() = {
+        s_ket_cart2spheric1,
+        p_ket_cart2spheric1,
+        d_ket_cart2spheric1,
+        f_ket_cart2spheric1,
+        g_ket_cart2spheric1,
+        a_ket_cart2spheric1,
+        a_ket_cart2spheric1,
+        a_ket_cart2spheric1,
+        a_ket_cart2spheric1,
+        a_ket_cart2spheric1,
+        a_ket_cart2spheric1,
+        a_ket_cart2spheric1,
+        a_ket_cart2spheric1,
 };
 
 
@@ -7682,6 +8014,10 @@ double *CINTc2s_bra_sph(double *gsph, FINT nket, double *gcart, FINT l)
 double *CINTc2s_ket_sph(double *gsph, FINT nbra, double *gcart, FINT l)
 {
         return (c2s_ket_sph[l])(gsph, nbra, gcart, l);
+}
+double *CINTc2s_ket_sph1(double *sph, FINT lds, double *cart, FINT ldc, FINT l)
+{
+        return (c2s_ket_sph1[l])(sph, lds, cart, ldc, l);
 }
 void CINTc2s_bra_spinor_e1sf(double complex *gsp, FINT nket,
                              double *gcart, FINT l, FINT kappa)
