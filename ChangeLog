@@ -1,3 +1,6 @@
+Version 1.8.11 (2017-03-06): for libcint v2.8.11:
+	* New 1e integral <pi |Vnuc| dot pj>
+
 Version 1.8.10 (2017-02-22): for libcint v2.8.10:
 	* New 2e integrals (pi dot pj|kl),  (pi dot pj|pk dot pl)
 
