@@ -98,7 +98,7 @@ if (out == NULL) { return int1e_cache_size(&envs);
 } else {
 return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1e);
 }} // int1e_srsr_spinor
-ALL_CINT(int1e_srsr)
+ALL_CINT1E(int1e_srsr)
 //ALL_CINT_FORTRAN_(cint1e_srsr)
 /* <SIGMA DOT R i|OVLP |j> */
 static void CINTgout1e_int1e_sr(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
@@ -156,7 +156,7 @@ if (out == NULL) { return int1e_cache_size(&envs);
 } else {
 return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1ei);
 }} // int1e_sr_spinor
-ALL_CINT(int1e_sr)
+ALL_CINT1E(int1e_sr)
 //ALL_CINT_FORTRAN_(cint1e_sr)
 /* <SIGMA DOT R i|OVLP |SIGMA DOT P j> */
 static void CINTgout1e_int1e_srsp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
@@ -224,7 +224,7 @@ if (out == NULL) { return int1e_cache_size(&envs);
 } else {
 return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1ei);
 }} // int1e_srsp_spinor
-ALL_CINT(int1e_srsp)
+ALL_CINT1E(int1e_srsp)
 //ALL_CINT_FORTRAN_(cint1e_srsp)
 /* <SIGMA DOT P i|OVLP |SIGMA DOT P j> */
 static void CINTgout1e_int1e_spsp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
@@ -289,7 +289,7 @@ if (out == NULL) { return int1e_cache_size(&envs);
 } else {
 return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_1e);
 }} // int1e_spsp_spinor
-ALL_CINT(int1e_spsp)
+ALL_CINT1E(int1e_spsp)
 //ALL_CINT_FORTRAN_(cint1e_spsp)
 /* <SIGMA DOT P i|OVLP |j> */
 static void CINTgout1e_int1e_sp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
@@ -347,7 +347,7 @@ if (out == NULL) { return int1e_cache_size(&envs);
 } else {
 return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1e);
 }} // int1e_sp_spinor
-ALL_CINT(int1e_sp)
+ALL_CINT1E(int1e_sp)
 //ALL_CINT_FORTRAN_(cint1e_sp)
 /* <SIGMA DOT P i|NUC |SIGMA DOT P j> */
 static void CINTgout1e_int1e_spnucsp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
@@ -423,7 +423,7 @@ if (out == NULL) { return int1e_cache_size(&envs);
 } else {
 return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1e);
 }} // int1e_spnucsp_spinor
-ALL_CINT(int1e_spnucsp)
+ALL_CINT1E(int1e_spnucsp)
 //ALL_CINT_FORTRAN_(cint1e_spnucsp)
 /* <SIGMA DOT R i|NUC |SIGMA DOT R j> */
 static void CINTgout1e_int1e_srnucsr(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
@@ -499,7 +499,7 @@ if (out == NULL) { return int1e_cache_size(&envs);
 } else {
 return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1e);
 }} // int1e_srnucsr_spinor
-ALL_CINT(int1e_srnucsr)
+ALL_CINT1E(int1e_srnucsr)
 //ALL_CINT_FORTRAN_(cint1e_srnucsr)
 /* <G i|OVLP |j> */
 static void CINTgout1e_int1e_govlp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
@@ -583,7 +583,7 @@ for (i = 0; i < nc * envs.ncomp_tensor; i++) { out[i] = 0; }
 return 0; }
 return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_1ei);
 }} // int1e_govlp_spinor
-ALL_CINT(int1e_govlp)
+ALL_CINT1E(int1e_govlp)
 //ALL_CINT_FORTRAN_(cint1e_govlp)
 /* <G i|NUC |j> */
 static void CINTgout1e_int1e_gnuc(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
@@ -675,7 +675,7 @@ for (i = 0; i < nc * envs.ncomp_tensor; i++) { out[i] = 0; }
 return 0; }
 return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_1ei);
 }} // int1e_gnuc_spinor
-ALL_CINT(int1e_gnuc)
+ALL_CINT1E(int1e_gnuc)
 //ALL_CINT_FORTRAN_(cint1e_gnuc)
 /* <SIGMA CROSS RC i|SIGMA CROSS NABLA-RINV |j> */
 static void CINTgout1e_int1e_cg_sa10sa01(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
@@ -789,7 +789,7 @@ if (out == NULL) { return int1e_cache_size(&envs);
 } else {
 return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1e);
 }} // int1e_cg_sa10sa01_spinor
-ALL_CINT(int1e_cg_sa10sa01)
+ALL_CINT1E(int1e_cg_sa10sa01)
 //ALL_CINT_FORTRAN_(cint1e_cg_sa10sa01)
 /* <RC CROSS SIGMA i|OVLP |SIGMA DOT P j> */
 static void CINTgout1e_int1e_cg_sa10sp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
@@ -872,7 +872,7 @@ if (out == NULL) { return int1e_cache_size(&envs);
 } else {
 return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1ei);
 }} // int1e_cg_sa10sp_spinor
-ALL_CINT(int1e_cg_sa10sp)
+ALL_CINT1E(int1e_cg_sa10sp)
 //ALL_CINT_FORTRAN_(cint1e_cg_sa10sp)
 /* <RC CROSS SIGMA i|NUC |SIGMA DOT P j> */
 static void CINTgout1e_int1e_cg_sa10nucsp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
@@ -963,7 +963,7 @@ if (out == NULL) { return int1e_cache_size(&envs);
 } else {
 return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1ei);
 }} // int1e_cg_sa10nucsp_spinor
-ALL_CINT(int1e_cg_sa10nucsp)
+ALL_CINT1E(int1e_cg_sa10nucsp)
 //ALL_CINT_FORTRAN_(cint1e_cg_sa10nucsp)
 /* <SIGMA CROSS R i|SIGMA CROSS NABLA-RINV |j> */
 static void CINTgout1e_int1e_giao_sa10sa01(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
@@ -1073,7 +1073,7 @@ if (out == NULL) { return int1e_cache_size(&envs);
 } else {
 return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1e);
 }} // int1e_giao_sa10sa01_spinor
-ALL_CINT(int1e_giao_sa10sa01)
+ALL_CINT1E(int1e_giao_sa10sa01)
 //ALL_CINT_FORTRAN_(cint1e_giao_sa10sa01)
 /* <R CROSS SIGMA i|OVLP |SIGMA DOT P j> */
 static void CINTgout1e_int1e_giao_sa10sp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
@@ -1152,7 +1152,7 @@ if (out == NULL) { return int1e_cache_size(&envs);
 } else {
 return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1ei);
 }} // int1e_giao_sa10sp_spinor
-ALL_CINT(int1e_giao_sa10sp)
+ALL_CINT1E(int1e_giao_sa10sp)
 //ALL_CINT_FORTRAN_(cint1e_giao_sa10sp)
 /* <R CROSS SIGMA i|NUC |SIGMA DOT P j> */
 static void CINTgout1e_int1e_giao_sa10nucsp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
@@ -1239,7 +1239,7 @@ if (out == NULL) { return int1e_cache_size(&envs);
 } else {
 return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1ei);
 }} // int1e_giao_sa10nucsp_spinor
-ALL_CINT(int1e_giao_sa10nucsp)
+ALL_CINT1E(int1e_giao_sa10nucsp)
 //ALL_CINT_FORTRAN_(cint1e_giao_sa10nucsp)
 /* <i|NABLA-RINV CROSS SIGMA |SIGMA DOT P j> */
 static void CINTgout1e_int1e_sa01sp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
@@ -1322,7 +1322,7 @@ if (out == NULL) { return int1e_cache_size(&envs);
 } else {
 return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1ei);
 }} // int1e_sa01sp_spinor
-ALL_CINT(int1e_sa01sp)
+ALL_CINT1E(int1e_sa01sp)
 //ALL_CINT_FORTRAN_(cint1e_sa01sp)
 /* <G SIGMA DOT P i|OVLP |SIGMA DOT P j> */
 static void CINTgout1e_int1e_spgsp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
@@ -1451,7 +1451,7 @@ for (i = 0; i < nc * envs.ncomp_tensor; i++) { out[i] = 0; }
 return 0; }
 return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1ei);
 }} // int1e_spgsp_spinor
-ALL_CINT(int1e_spgsp)
+ALL_CINT1E(int1e_spgsp)
 //ALL_CINT_FORTRAN_(cint1e_spgsp)
 /* <G SIGMA DOT P i|NUC |SIGMA DOT P j> */
 static void CINTgout1e_int1e_spgnucsp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
@@ -1588,7 +1588,7 @@ for (i = 0; i < nc * envs.ncomp_tensor; i++) { out[i] = 0; }
 return 0; }
 return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1ei);
 }} // int1e_spgnucsp_spinor
-ALL_CINT(int1e_spgnucsp)
+ALL_CINT1E(int1e_spgnucsp)
 //ALL_CINT_FORTRAN_(cint1e_spgnucsp)
 /* <G SIGMA DOT P i|NABLA-RINV CROSS SIGMA |j> */
 static void CINTgout1e_int1e_spgsa01(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
@@ -1748,5 +1748,5 @@ for (i = 0; i < nc * envs.ncomp_tensor; i++) { out[i] = 0; }
 return 0; }
 return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1e);
 }} // int1e_spgsa01_spinor
-ALL_CINT(int1e_spgsa01)
+ALL_CINT1E(int1e_spgsa01)
 //ALL_CINT_FORTRAN_(cint1e_spgsa01)

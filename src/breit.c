@@ -30,32 +30,32 @@
 #include "cint_bas.h"
 #include "optimizer.h"
 
-#define DECLARE(X)      FINT X(double complex *opijkl, FINT *shls, \
-                              FINT *atm, FINT natm, \
-                              FINT *bas, FINT nbas, double *env, CINTOpt *opt)
+#define DECLARE(X)      int X(double complex *opijkl, int *shls, \
+                              int *atm, int natm, \
+                              int *bas, int nbas, double *env, CINTOpt *opt)
 
 #define BREIT0(X) \
 DECLARE(cint2e_##X); \
 DECLARE(cint2e_gauge_r1_##X); \
 DECLARE(cint2e_gauge_r2_##X); \
-void cint2e_breit_##X##_optimizer(CINTOpt **opt, FINT *atm, FINT natm, \
-                                  FINT *bas, FINT nbas, double *env) \
+void cint2e_breit_##X##_optimizer(CINTOpt **opt, int *atm, int natm, \
+                                  int *bas, int nbas, double *env) \
 { \
         *opt = NULL; \
 } \
-FINT cint2e_breit_##X(double complex *opijkl, FINT *shls, \
-                          FINT *atm, FINT natm, \
-                          FINT *bas, FINT nbas, double *env, CINTOpt *opt) \
+int cint2e_breit_##X(double complex *opijkl, int *shls, \
+                          int *atm, int natm, \
+                          int *bas, int nbas, double *env, CINTOpt *opt) \
 { \
-        FINT has_value = cint2e_##X(opijkl, shls, atm, natm, bas, nbas, env, NULL); \
+        int has_value = cint2e_##X(opijkl, shls, atm, natm, bas, nbas, env, NULL); \
  \
-        const FINT ip = CINTcgto_spinor(shls[0], bas); \
-        const FINT jp = CINTcgto_spinor(shls[1], bas); \
-        const FINT kp = CINTcgto_spinor(shls[2], bas); \
-        const FINT lp = CINTcgto_spinor(shls[3], bas); \
-        const FINT nop = ip * jp * kp * lp; \
+        const int ip = CINTcgto_spinor(shls[0], bas); \
+        const int jp = CINTcgto_spinor(shls[1], bas); \
+        const int kp = CINTcgto_spinor(shls[2], bas); \
+        const int lp = CINTcgto_spinor(shls[3], bas); \
+        const int nop = ip * jp * kp * lp; \
         double complex *buf = malloc(sizeof(double complex) * nop); \
-        FINT i; \
+        int i; \
         has_value = (cint2e_gauge_r1_##X(buf, shls, atm, natm, bas, nbas, env, NULL) || \
                      has_value); \
         /* [1/2 gaunt] - [1/2 xxx*\sigma\dot r1] */ \

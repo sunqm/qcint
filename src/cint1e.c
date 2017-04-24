@@ -559,8 +559,6 @@ int int1e_nuc_spinor(double complex *out, int *dims, int *shls, int *atm, int na
 }
 
 
-ALL_CINT(int1e_ovlp)
-ALL_CINT(int1e_nuc)
-ALL_CINT_FORTRAN_(cint1e_ovlp)
-ALL_CINT_FORTRAN_(cint1e_nuc)
+ALL_CINT1E(int1e_ovlp)
+ALL_CINT1E(int1e_nuc)
 

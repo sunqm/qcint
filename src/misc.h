@@ -58,3 +58,17 @@ void c##NAME##_optimizer(CINTOpt **opt, int *atm, int natm, \
                          int *bas, int nbas, double *env) { \
         NAME##_optimizer(opt, atm, natm, bas, nbas, env); \
 }
+
+#define INT2CINT1E(NAME, SUFFIX) \
+int c##NAME##SUFFIX(double *out, int *shls, int *atm, int natm, \
+                    int *bas, int nbas, double *env) { \
+        return NAME##SUFFIX(out, NULL, shls, atm, natm, bas, nbas, env, NULL, NULL); \
+}
+#define ALL_CINT1E(NAME) \
+    INT2CINT1E(NAME, _cart) \
+    INT2CINT1E(NAME, _sph) \
+int c##NAME(double *out, int *shls, int *atm, int natm, \
+            int *bas, int nbas, double *env) { \
+        return NAME##_spinor((double complex *)out, NULL, shls, \
+                             atm, natm, bas, nbas, env, NULL, NULL); \
+}

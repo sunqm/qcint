@@ -124,7 +124,7 @@ if (out == NULL) { return int1e_cache_size(&envs);
 } else {
 return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1e);
 }} // int1e_spspsp_spinor
-ALL_CINT(int1e_spspsp)
+ALL_CINT1E(int1e_spspsp)
 //ALL_CINT_FORTRAN_(cint1e_spspsp)
 /* <SIGMA DOT P i|NUC |j> */
 static void CINTgout1e_int1e_spnuc(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
@@ -189,7 +189,7 @@ if (out == NULL) { return int1e_cache_size(&envs);
 } else {
 return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1e);
 }} // int1e_spnuc_spinor
-ALL_CINT(int1e_spnuc)
+ALL_CINT1E(int1e_spnuc)
 //ALL_CINT_FORTRAN_(cint1e_spnuc)
 /* <k SIGMA DOT P i|R12 |j l> : i,j \in electron 1; k,l \in electron 2
  * = (SIGMA DOT P i j|R12 |k l) */

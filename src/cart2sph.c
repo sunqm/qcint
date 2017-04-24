@@ -2795,7 +2795,7 @@ static const double complex g_trans_cart2j[] = {
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 };
 
-#include "cart2sph_inc.c"
+//#include "cart2sph_inc.c"
 
 static int _len_spinor(int kappa, int l)
 {

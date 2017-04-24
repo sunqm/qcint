@@ -123,9 +123,9 @@
  * F_m(t), see the Description section.
  *
  */
-void gamma_inc_like(double *f, double t, FINT m)
+void gamma_inc_like(double *f, double t, int m)
 {
-        FINT i;
+        int i;
         if (t < m + 1.5) {
                 double b = m + 0.5;
                 double x = 1;
@@ -161,9 +161,9 @@ void gamma_inc_like(double *f, double t, FINT m)
         }
 }
 
-void lgamma_inc_like(long double *f, long double t, FINT m)
+void lgamma_inc_like(long double *f, long double t, int m)
 {
-        FINT i;
+        int i;
         if (t < m + 1.5) {
                 long double b = m + 0.5l;
                 long double x = 1;
@@ -200,9 +200,9 @@ void lgamma_inc_like(long double *f, long double t, FINT m)
 }
 
 #ifdef HAVE_QUADMATH_H
-void qgamma_inc_like(__float128 *f, __float128 t, FINT m)
+void qgamma_inc_like(__float128 *f, __float128 t, int m)
 {
-        FINT i;
+        int i;
         if (t < m + 1.5) {
                 __float128 b = m + .5q;
                 __float128 x = 1;

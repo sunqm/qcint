@@ -4,7 +4,7 @@ set(qcint_VERSION "1.8")
 
 set(CMAKE_BUILD_TYPE RELWITHDEBINFO)
 set(CMAKE_VERBOSE_MAKEFILE OFF)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msse3 -O2 -funroll-loops -ftree-vectorize -ffast-math")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -O2 -funroll-loops -ftree-vectorize -ffast-math")
 
 if (${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION} GREATER 2.8)
   include(GNUInstallDirs)

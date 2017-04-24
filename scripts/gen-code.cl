@@ -636,7 +636,7 @@ return 0; }~%")))
       (format fout "return CINT1e_spinor_drv(out, dims, &envs, opt, cache, ~a);
 }} // ~a_spinor~%" (name-c2sor "1e" 'spinor sf ts) intname)))
 ;;; int2e -> cint2e
-  (format fout "ALL_CINT(~a)~%" intname)
+  (format fout "ALL_CINT1E(~a)~%" intname)
   (format fout "//ALL_CINT_FORTRAN_(c~a)~%" intname))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
