@@ -160,6 +160,10 @@ void CINTg2c_index_xyz(int *idx, CINTEnvVars *envs)
                 }
         }
 }
+void CINTg1e_index_xyz(int *idx, CINTEnvVars *envs)
+{
+        CINTg2c_index_xyz(idx, envs);
+}
 
 
 void CINTg1e_ovlp(double *g, CINTEnvVars *envs, int count)
