@@ -18,18 +18,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * This macro define the parameters for cgto bas
- */
-
 // global parameters in env
 
 #define PTR_LIGHT_SPEED         0
 #define PTR_COMMON_ORIG         1
 #define PTR_RINV_ORIG           4
 #define PTR_RINV_ZETA           7
-// omega parameter in range-separated coulomb operator
-#define PTR_RANGE_OMEGA         8
 #define PTR_ENV_START           20
 
 // slots of atm
@@ -101,22 +95,23 @@
 
 // some other boundaries
 #define MXRYSROOTS      16 // > ANG_MAX*2+1 for 4c2e
-#define ANG_MAX         12 // l = 0..7 ..14
-#define CART_MAX        128 // > (ANG_MAX*(ANG_MAX+1)/2)
+#define ANG_MAX         8 // l = 0..7
+#define CART_MAX        64 // > (ANG_MAX*(ANG_MAX+1)/2)
 #define SHLS_MAX        0x7fffffff
-#define NPRIM_MAX       0x7fffffff
-#define NCTR_MAX        0x7fffffff
+#define NPRIM_MAX       64
+#define NCTR_MAX        64
+
+#if !defined STATIC_DOUBLE_SIZE
+#define STATIC_DOUBLE_SIZE    500000
+#endif
 
 #define EXPCUTOFF       100
 // ~ 1e-15
-#define CUTOFF15        36
+#define CUTOFF15        40
 
 #define OF_CMPLX        2
 
 #define PI              3.1415926535897932384626433832795028
-#ifndef M_PI
-#define M_PI            PI
-#endif
 #define SQRTPI          1.7724538509055160272981674833411451
 
 #define POINT_NUC       1

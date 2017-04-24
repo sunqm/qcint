@@ -48,17 +48,14 @@ configure_file(
   "${PROJECT_BINARY_DIR}/include/cint.h")
 
 set(cintSrc 
-  src/c2f.c src/cart2sph.c src/cint1e.c src/cint2e.c src/cint_bas.c
-  src/fblas.c src/g1e.c src/g2e_2d4d.c src/g2e_g02d.c src/g2e_init.c
-  src/g2e_lj4d.c src/g2e_ssss.c src/gout2e_sse3.c src/misc.c
-  src/optimizer.c src/rys_roots.c
-  src/cint2c2e.c src/g2c2e.c src/cint3c2e.c src/g3c2e.c src/optimizer_3c2e.c 
-  src/cint3c1e.c src/g3c1e.c src/breit.c
-  src/autocode/auto_intor1.c src/autocode/auto_intor2.c
-  src/autocode/auto_intor3.c src/autocode/grad1.c
-  src/autocode/grad2.c src/autocode/grad3.c src/autocode/auto_hess.c
-  src/autocode/auto_3c2e.c src/autocode/auto_3c1e.c
-  src/autocode/gaunt1.c src/autocode/breit1.c)
+  src/breit.c src/c2f.c src/cart2sph.c src/cint1e.c src/cint2c2e.c
+  src/cint2e.c src/cint3c1e.c src/cint3c2e.c src/cint_bas.c src/fblas.c
+  src/fmt.c src/g1e.c src/g2e.c src/g2e_simd1.c src/g3c1e.c src/g3c2e.c
+  src/gout2e.c src/misc.c src/optimizer.c src/rys_roots.c
+  src/autocode/breit1.c src/autocode/dkb.c src/autocode/gaunt1.c
+  src/autocode/grad1.c src/autocode/grad2.c src/autocode/hess.c
+  src/autocode/int3c1e.c src/autocode/int3c2e.c src/autocode/intor1.c
+  src/autocode/intor2.c src/autocode/intor3.c src/autocode/intor4.c)
 
 
 option(BUILD_SHARED_LIBS "build shared libraries" 1)

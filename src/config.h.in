@@ -1,12 +1,3 @@
-#cmakedefine I8
-
-#ifdef I8
-#include <stdint.h>
-#define FINT int64_t
-#else
-#define FINT int
-#endif
-
 #cmakedefine HAVE_EXPL
 #cmakedefine HAVE_SQRTL
 #cmakedefine HAVE_FABSL

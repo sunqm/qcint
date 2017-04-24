@@ -32,9 +32,480 @@
 #include "cint2e.h"
 #include "misc.h"
 #include "c2f.h"
-/* <k i|GAUNT |SIGMA DOT P j SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
- * = (i SIGMA DOT P j|GAUNT |k SIGMA DOT P l) */
-static void CINTgout2e_int2e_ssp1ssp2(double *RESTRICT gout,
+/* <SIGMA DOT P i|OVLP |SIGMA DOT P SIGMA DOT P j> */
+static void CINTgout1e_int1e_spspsp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+CINTg1e_ovlp(g, envs, count);
+int nf = envs->nf;
+int ix, iy, iz, n;
+double *RESTRICT g0 = g;
+double *RESTRICT g1 = g0  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g2 = g1  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g3 = g2  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g4 = g3  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g5 = g4  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g6 = g5  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g7 = g6  + envs->g_size * 3 * SIMDD;
+__MD r1;
+__MD rs[27];
+G1E_D_J(g1, g0, envs->i_l+1, envs->j_l+0, 0);
+G1E_D_J(g2, g0, envs->i_l+1, envs->j_l+1, 0);
+G1E_D_J(g3, g2, envs->i_l+1, envs->j_l+0, 0);
+G1E_D_I(g4, g0, envs->i_l+0, envs->j_l, 0);
+G1E_D_I(g5, g1, envs->i_l+0, envs->j_l, 0);
+G1E_D_I(g6, g2, envs->i_l+0, envs->j_l, 0);
+G1E_D_I(g7, g3, envs->i_l+0, envs->j_l, 0);
+for (n = 0; n < nf; n++) {
+ix = idx[0+n*3];
+iy = idx[1+n*3];
+iz = idx[2+n*3];
+rs[0] = MM_LOAD(g7+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[1] = MM_LOAD(g6+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[2] = MM_LOAD(g6+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[3] = MM_LOAD(g5+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[4] = MM_LOAD(g4+ix*SIMDD) * MM_LOAD(g3+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[5] = MM_LOAD(g4+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[6] = MM_LOAD(g5+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
+rs[7] = MM_LOAD(g4+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
+rs[8] = MM_LOAD(g4+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g3+iz*SIMDD);
+rs[9] = MM_LOAD(g3+ix*SIMDD) * MM_LOAD(g4+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[10] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g5+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[11] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g4+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[12] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g6+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[13] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g7+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[14] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g6+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[15] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g4+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
+rs[16] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g5+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
+rs[17] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g4+iy*SIMDD) * MM_LOAD(g3+iz*SIMDD);
+rs[18] = MM_LOAD(g3+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g4+iz*SIMDD);
+rs[19] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g4+iz*SIMDD);
+rs[20] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g5+iz*SIMDD);
+rs[21] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g4+iz*SIMDD);
+rs[22] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g3+iy*SIMDD) * MM_LOAD(g4+iz*SIMDD);
+rs[23] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g5+iz*SIMDD);
+rs[24] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g6+iz*SIMDD);
+rs[25] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g6+iz*SIMDD);
+rs[26] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g7+iz*SIMDD);
+r1 = - rs[0] - rs[12] - rs[24]; MM_STORE(gout+(n*4+0)*SIMDD, r1);
+r1 = - rs[1] - rs[13] - rs[25]; MM_STORE(gout+(n*4+1)*SIMDD, r1);
+r1 = - rs[2] - rs[14] - rs[26]; MM_STORE(gout+(n*4+2)*SIMDD, r1);
+MM_STORE(gout+(n*4+3)*SIMDD, MM_SET1(0.));
+}}
+void int1e_spspsp_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
+int ng[] = {1, 2, 0, 0, 3, 4, 1, 1};
+CINTall_1e_optimizer(opt, ng, atm, natm, bas, nbas, env);
+}
+int int1e_spspsp_cart(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {1, 2, 0, 0, 3, 4, 1, 1};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_spspsp;
+if (out == NULL) { return int1e_cache_size(&envs);
+} else {
+return CINT1e_drv(out, dims, &envs, opt, cache, &c2s_cart_1e);
+}} // int1e_spspsp_cart
+int int1e_spspsp_sph(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {1, 2, 0, 0, 3, 4, 1, 1};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_spspsp;
+if (out == NULL) { return int1e_cache_size(&envs);
+} else {
+return CINT1e_drv(out, dims, &envs, opt, cache, &c2s_sph_1e);
+}} // int1e_spspsp_sph
+int int1e_spspsp_spinor(double complex *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {1, 2, 0, 0, 3, 4, 1, 1};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_spspsp;
+if (out == NULL) { return int1e_cache_size(&envs);
+} else {
+return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1e);
+}} // int1e_spspsp_spinor
+ALL_CINT(int1e_spspsp)
+//ALL_CINT_FORTRAN_(cint1e_spspsp)
+/* <SIGMA DOT P i|NUC |j> */
+static void CINTgout1e_int1e_spnuc(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+int nf = envs->nf;
+int nrys_roots = envs->nrys_roots;
+int nfc = nf * 4;
+int ix, iy, iz, ia, n, i;
+double *RESTRICT g0 = g;
+double *RESTRICT g1 = g0  + envs->g_size * 3 * SIMDD;
+__MD r1;
+__MD rs[3];
+for (n = 0; n < nfc*SIMDD; n++) { gout[n] = 0; }
+for (ia = 0; ia < envs->natm; ia++) {
+CINTg1e_nuc(g, envs, count, ia);
+G2E_D_I(g1, g0, envs->i_l+0, envs->j_l, 0, 0);
+for (n = 0; n < nf; n++) {
+ix = idx[0+n*3];
+iy = idx[1+n*3];
+iz = idx[2+n*3];
+for (i = 0; i < 3; i++) { rs[i] = MM_SET1(0.); }
+for (i = 0; i < nrys_roots; i++) {
+rs[0] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[1] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[2] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+}
+r1 = MM_LOAD(gout+(n*4+0)*SIMDD) + + rs[0]; MM_STORE(gout+(n*4+0)*SIMDD, r1);
+r1 = MM_LOAD(gout+(n*4+1)*SIMDD) + + rs[1]; MM_STORE(gout+(n*4+1)*SIMDD, r1);
+r1 = MM_LOAD(gout+(n*4+2)*SIMDD) + + rs[2]; MM_STORE(gout+(n*4+2)*SIMDD, r1);
+}
+}}
+void int1e_spnuc_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
+int ng[] = {1, 0, 0, 0, 1, 4, 0, 1};
+CINTall_1e_optimizer(opt, ng, atm, natm, bas, nbas, env);
+}
+int int1e_spnuc_cart(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {1, 0, 0, 0, 1, 4, 0, 1};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_spnuc;
+if (out == NULL) { return int1e_cache_size(&envs);
+} else {
+return CINT1e_drv(out, dims, &envs, opt, cache, &c2s_cart_1e);
+}} // int1e_spnuc_cart
+int int1e_spnuc_sph(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {1, 0, 0, 0, 1, 4, 0, 1};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_spnuc;
+if (out == NULL) { return int1e_cache_size(&envs);
+} else {
+return CINT1e_drv(out, dims, &envs, opt, cache, &c2s_sph_1e);
+}} // int1e_spnuc_sph
+int int1e_spnuc_spinor(double complex *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {1, 0, 0, 0, 1, 4, 0, 1};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_spnuc;
+if (out == NULL) { return int1e_cache_size(&envs);
+} else {
+return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1e);
+}} // int1e_spnuc_spinor
+ALL_CINT(int1e_spnuc)
+//ALL_CINT_FORTRAN_(cint1e_spnuc)
+/* <k SIGMA DOT P i|R12 |j l> : i,j \in electron 1; k,l \in electron 2
+ * = (SIGMA DOT P i j|R12 |k l) */
+static void CINTgout2e_int2e_spv1(double *RESTRICT gout,
+double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
+int nf = envs->nf;
+int nrys_roots = envs->nrys_roots;
+int ix, iy, iz, i, n;
+double *RESTRICT g0 = g;
+double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
+G2E_D_I(g1, g0, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
+__MD r1;
+__MD rs[3];
+for (n = 0; n < nf; n++) {
+ix = idx[0+n*3];
+iy = idx[1+n*3];
+iz = idx[2+n*3];
+switch (nrys_roots) {
+case 1:
+rs[0] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[1] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[2] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+break;
+case 2:
+rs[0] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[0]+= MM_LOAD(g1+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
+rs[1] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[1]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g1+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
+rs[2] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[2]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g1+(iz+1)*SIMDD);
+break;
+case 3:
+rs[0] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[0]+= MM_LOAD(g1+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
+rs[0]+= MM_LOAD(g1+(ix+2)*SIMDD) * MM_LOAD(g0+(iy+2)*SIMDD) * MM_LOAD(g0+(iz+2)*SIMDD);
+rs[1] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[1]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g1+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
+rs[1]+= MM_LOAD(g0+(ix+2)*SIMDD) * MM_LOAD(g1+(iy+2)*SIMDD) * MM_LOAD(g0+(iz+2)*SIMDD);
+rs[2] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[2]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g1+(iz+1)*SIMDD);
+rs[2]+= MM_LOAD(g0+(ix+2)*SIMDD) * MM_LOAD(g0+(iy+2)*SIMDD) * MM_LOAD(g1+(iz+2)*SIMDD);
+break;
+case 4:
+rs[0] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[0]+= MM_LOAD(g1+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
+rs[0]+= MM_LOAD(g1+(ix+2)*SIMDD) * MM_LOAD(g0+(iy+2)*SIMDD) * MM_LOAD(g0+(iz+2)*SIMDD);
+rs[0]+= MM_LOAD(g1+(ix+3)*SIMDD) * MM_LOAD(g0+(iy+3)*SIMDD) * MM_LOAD(g0+(iz+3)*SIMDD);
+rs[1] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[1]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g1+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
+rs[1]+= MM_LOAD(g0+(ix+2)*SIMDD) * MM_LOAD(g1+(iy+2)*SIMDD) * MM_LOAD(g0+(iz+2)*SIMDD);
+rs[1]+= MM_LOAD(g0+(ix+3)*SIMDD) * MM_LOAD(g1+(iy+3)*SIMDD) * MM_LOAD(g0+(iz+3)*SIMDD);
+rs[2] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[2]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g1+(iz+1)*SIMDD);
+rs[2]+= MM_LOAD(g0+(ix+2)*SIMDD) * MM_LOAD(g0+(iy+2)*SIMDD) * MM_LOAD(g1+(iz+2)*SIMDD);
+rs[2]+= MM_LOAD(g0+(ix+3)*SIMDD) * MM_LOAD(g0+(iy+3)*SIMDD) * MM_LOAD(g1+(iz+3)*SIMDD);
+break;
+default:
+for (i = 0; i < 3; i++) { rs[i] = MM_SET1(0.); }
+for (i = 0; i < nrys_roots; i++) {
+rs[0] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[1] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[2] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+} break;}
+r1 = + rs[0]; MM_STORE(gout+(n*4+0)*SIMDD, r1);
+r1 = + rs[1]; MM_STORE(gout+(n*4+1)*SIMDD, r1);
+r1 = + rs[2]; MM_STORE(gout+(n*4+2)*SIMDD, r1);
+MM_STORE(gout+(n*4+3)*SIMDD, MM_SET1(0.));
+}}
+static void CINTgout2e_int2e_spv1_simd1(double *RESTRICT gout,
+double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
+int nf = envs->nf;
+int nrys_roots = envs->nrys_roots;
+int ix, iy, iz, i, n;
+double *RESTRICT g0 = g;
+double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
+G2E_D_I_SIMD1(g1, g0, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
+ALIGNMM double s[3];
+for (n = 0; n < nf; n++) {
+ix = idx[0+n*3];
+iy = idx[1+n*3];
+iz = idx[2+n*3];
+switch (nrys_roots) {
+case 1:
+s[0] = + g1[ix+0]*g0[iy+0]*g0[iz+0];
+s[1] = + g0[ix+0]*g1[iy+0]*g0[iz+0];
+s[2] = + g0[ix+0]*g0[iy+0]*g1[iz+0];
+break;
+case 2:
+s[0] = + g1[ix+0]*g0[iy+0]*g0[iz+0]+ g1[ix+1]*g0[iy+1]*g0[iz+1];
+s[1] = + g0[ix+0]*g1[iy+0]*g0[iz+0]+ g0[ix+1]*g1[iy+1]*g0[iz+1];
+s[2] = + g0[ix+0]*g0[iy+0]*g1[iz+0]+ g0[ix+1]*g0[iy+1]*g1[iz+1];
+break;
+case 3:
+s[0] = + g1[ix+0]*g0[iy+0]*g0[iz+0]+ g1[ix+1]*g0[iy+1]*g0[iz+1]+ g1[ix+2]*g0[iy+2]*g0[iz+2];
+s[1] = + g0[ix+0]*g1[iy+0]*g0[iz+0]+ g0[ix+1]*g1[iy+1]*g0[iz+1]+ g0[ix+2]*g1[iy+2]*g0[iz+2];
+s[2] = + g0[ix+0]*g0[iy+0]*g1[iz+0]+ g0[ix+1]*g0[iy+1]*g1[iz+1]+ g0[ix+2]*g0[iy+2]*g1[iz+2];
+break;
+case 4:
+s[0] = + g1[ix+0]*g0[iy+0]*g0[iz+0]+ g1[ix+1]*g0[iy+1]*g0[iz+1]+ g1[ix+2]*g0[iy+2]*g0[iz+2]+ g1[ix+3]*g0[iy+3]*g0[iz+3];
+s[1] = + g0[ix+0]*g1[iy+0]*g0[iz+0]+ g0[ix+1]*g1[iy+1]*g0[iz+1]+ g0[ix+2]*g1[iy+2]*g0[iz+2]+ g0[ix+3]*g1[iy+3]*g0[iz+3];
+s[2] = + g0[ix+0]*g0[iy+0]*g1[iz+0]+ g0[ix+1]*g0[iy+1]*g1[iz+1]+ g0[ix+2]*g0[iy+2]*g1[iz+2]+ g0[ix+3]*g0[iy+3]*g1[iz+3];
+break;
+default:
+for (i = 0; i < 3; i++) { s[i] = 0; }
+for (i = 0; i < nrys_roots; i++) {
+s[0] += g1[ix+i] * g0[iy+i] * g0[iz+i];
+s[1] += g0[ix+i] * g1[iy+i] * g0[iz+i];
+s[2] += g0[ix+i] * g0[iy+i] * g1[iz+i];
+} break;}
+gout[n*4+0] = + s[0];
+gout[n*4+1] = + s[1];
+gout[n*4+2] = + s[2];
+gout[n*4+3] = 0;
+}}
+void int2e_spv1_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
+int ng[] = {1, 0, 0, 0, 1, 4, 1, 1};
+CINTall_2e_optimizer(opt, ng, atm, natm, bas, nbas, env);
+}
+int int2e_spv1_cart(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {1, 0, 0, 0, 1, 4, 1, 1};
+CINTEnvVars envs;
+CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout2e_int2e_spv1;
+envs.f_gout_simd1 = &CINTgout2e_int2e_spv1_simd1;
+if (out == NULL) { return int2e_cache_size(&envs);
+} else {
+return CINT2e_cart_drv(out, dims, &envs, opt, cache);
+}} // int2e_spv1_cart
+int int2e_spv1_sph(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {1, 0, 0, 0, 1, 4, 1, 1};
+CINTEnvVars envs;
+CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout2e_int2e_spv1;
+envs.f_gout_simd1 = &CINTgout2e_int2e_spv1_simd1;
+if (out == NULL) { return int2e_cache_size(&envs) + envs.nf*MAX(0, 3-SIMDD);
+} else {
+return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
+}} // int2e_spv1_sph
+int int2e_spv1_spinor(double complex *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {1, 0, 0, 0, 1, 4, 1, 1};
+CINTEnvVars envs;
+CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout2e_int2e_spv1;
+envs.f_gout_simd1 = &CINTgout2e_int2e_spv1_simd1;
+if (out == NULL) {
+int n0 = int2e_cache_size(&envs);
+int n1 = CINTcgto_spinor(shls[0], bas) * envs.nfk * envs.x_ctr[2]
+* envs.nfl * envs.x_ctr[3] * CINTcgto_spinor(shls[1], bas);
+return MAX(n0, n0/2 + n1*envs.ncomp_e2*OF_CMPLX + envs.nf*32*OF_CMPLX);
+} else {
+return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1, &c2s_sf_2e2);
+}} // int2e_spv1_spinor
+ALL_CINT(int2e_spv1)
+//ALL_CINT_FORTRAN_(cint2e_spv1)
+/* <k i|R12 |SIGMA DOT P j l> : i,j \in electron 1; k,l \in electron 2
+ * = (i SIGMA DOT P j|R12 |k l) */
+static void CINTgout2e_int2e_vsp1(double *RESTRICT gout,
+double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
+int nf = envs->nf;
+int nrys_roots = envs->nrys_roots;
+int ix, iy, iz, i, n;
+double *RESTRICT g0 = g;
+double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
+G2E_D_J(g1, g0, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
+__MD r1;
+__MD rs[3];
+for (n = 0; n < nf; n++) {
+ix = idx[0+n*3];
+iy = idx[1+n*3];
+iz = idx[2+n*3];
+switch (nrys_roots) {
+case 1:
+rs[0] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[1] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[2] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+break;
+case 2:
+rs[0] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[0]+= MM_LOAD(g1+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
+rs[1] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[1]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g1+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
+rs[2] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[2]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g1+(iz+1)*SIMDD);
+break;
+case 3:
+rs[0] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[0]+= MM_LOAD(g1+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
+rs[0]+= MM_LOAD(g1+(ix+2)*SIMDD) * MM_LOAD(g0+(iy+2)*SIMDD) * MM_LOAD(g0+(iz+2)*SIMDD);
+rs[1] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[1]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g1+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
+rs[1]+= MM_LOAD(g0+(ix+2)*SIMDD) * MM_LOAD(g1+(iy+2)*SIMDD) * MM_LOAD(g0+(iz+2)*SIMDD);
+rs[2] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[2]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g1+(iz+1)*SIMDD);
+rs[2]+= MM_LOAD(g0+(ix+2)*SIMDD) * MM_LOAD(g0+(iy+2)*SIMDD) * MM_LOAD(g1+(iz+2)*SIMDD);
+break;
+case 4:
+rs[0] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[0]+= MM_LOAD(g1+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
+rs[0]+= MM_LOAD(g1+(ix+2)*SIMDD) * MM_LOAD(g0+(iy+2)*SIMDD) * MM_LOAD(g0+(iz+2)*SIMDD);
+rs[0]+= MM_LOAD(g1+(ix+3)*SIMDD) * MM_LOAD(g0+(iy+3)*SIMDD) * MM_LOAD(g0+(iz+3)*SIMDD);
+rs[1] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[1]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g1+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
+rs[1]+= MM_LOAD(g0+(ix+2)*SIMDD) * MM_LOAD(g1+(iy+2)*SIMDD) * MM_LOAD(g0+(iz+2)*SIMDD);
+rs[1]+= MM_LOAD(g0+(ix+3)*SIMDD) * MM_LOAD(g1+(iy+3)*SIMDD) * MM_LOAD(g0+(iz+3)*SIMDD);
+rs[2] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[2]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g1+(iz+1)*SIMDD);
+rs[2]+= MM_LOAD(g0+(ix+2)*SIMDD) * MM_LOAD(g0+(iy+2)*SIMDD) * MM_LOAD(g1+(iz+2)*SIMDD);
+rs[2]+= MM_LOAD(g0+(ix+3)*SIMDD) * MM_LOAD(g0+(iy+3)*SIMDD) * MM_LOAD(g1+(iz+3)*SIMDD);
+break;
+default:
+for (i = 0; i < 3; i++) { rs[i] = MM_SET1(0.); }
+for (i = 0; i < nrys_roots; i++) {
+rs[0] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[1] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[2] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+} break;}
+r1 = - rs[0]; MM_STORE(gout+(n*4+0)*SIMDD, r1);
+r1 = - rs[1]; MM_STORE(gout+(n*4+1)*SIMDD, r1);
+r1 = - rs[2]; MM_STORE(gout+(n*4+2)*SIMDD, r1);
+MM_STORE(gout+(n*4+3)*SIMDD, MM_SET1(0.));
+}}
+static void CINTgout2e_int2e_vsp1_simd1(double *RESTRICT gout,
+double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
+int nf = envs->nf;
+int nrys_roots = envs->nrys_roots;
+int ix, iy, iz, i, n;
+double *RESTRICT g0 = g;
+double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
+G2E_D_J_SIMD1(g1, g0, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
+ALIGNMM double s[3];
+for (n = 0; n < nf; n++) {
+ix = idx[0+n*3];
+iy = idx[1+n*3];
+iz = idx[2+n*3];
+switch (nrys_roots) {
+case 1:
+s[0] = + g1[ix+0]*g0[iy+0]*g0[iz+0];
+s[1] = + g0[ix+0]*g1[iy+0]*g0[iz+0];
+s[2] = + g0[ix+0]*g0[iy+0]*g1[iz+0];
+break;
+case 2:
+s[0] = + g1[ix+0]*g0[iy+0]*g0[iz+0]+ g1[ix+1]*g0[iy+1]*g0[iz+1];
+s[1] = + g0[ix+0]*g1[iy+0]*g0[iz+0]+ g0[ix+1]*g1[iy+1]*g0[iz+1];
+s[2] = + g0[ix+0]*g0[iy+0]*g1[iz+0]+ g0[ix+1]*g0[iy+1]*g1[iz+1];
+break;
+case 3:
+s[0] = + g1[ix+0]*g0[iy+0]*g0[iz+0]+ g1[ix+1]*g0[iy+1]*g0[iz+1]+ g1[ix+2]*g0[iy+2]*g0[iz+2];
+s[1] = + g0[ix+0]*g1[iy+0]*g0[iz+0]+ g0[ix+1]*g1[iy+1]*g0[iz+1]+ g0[ix+2]*g1[iy+2]*g0[iz+2];
+s[2] = + g0[ix+0]*g0[iy+0]*g1[iz+0]+ g0[ix+1]*g0[iy+1]*g1[iz+1]+ g0[ix+2]*g0[iy+2]*g1[iz+2];
+break;
+case 4:
+s[0] = + g1[ix+0]*g0[iy+0]*g0[iz+0]+ g1[ix+1]*g0[iy+1]*g0[iz+1]+ g1[ix+2]*g0[iy+2]*g0[iz+2]+ g1[ix+3]*g0[iy+3]*g0[iz+3];
+s[1] = + g0[ix+0]*g1[iy+0]*g0[iz+0]+ g0[ix+1]*g1[iy+1]*g0[iz+1]+ g0[ix+2]*g1[iy+2]*g0[iz+2]+ g0[ix+3]*g1[iy+3]*g0[iz+3];
+s[2] = + g0[ix+0]*g0[iy+0]*g1[iz+0]+ g0[ix+1]*g0[iy+1]*g1[iz+1]+ g0[ix+2]*g0[iy+2]*g1[iz+2]+ g0[ix+3]*g0[iy+3]*g1[iz+3];
+break;
+default:
+for (i = 0; i < 3; i++) { s[i] = 0; }
+for (i = 0; i < nrys_roots; i++) {
+s[0] += g1[ix+i] * g0[iy+i] * g0[iz+i];
+s[1] += g0[ix+i] * g1[iy+i] * g0[iz+i];
+s[2] += g0[ix+i] * g0[iy+i] * g1[iz+i];
+} break;}
+gout[n*4+0] = - s[0];
+gout[n*4+1] = - s[1];
+gout[n*4+2] = - s[2];
+gout[n*4+3] = 0;
+}}
+void int2e_vsp1_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
+int ng[] = {0, 1, 0, 0, 1, 4, 1, 1};
+CINTall_2e_optimizer(opt, ng, atm, natm, bas, nbas, env);
+}
+int int2e_vsp1_cart(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {0, 1, 0, 0, 1, 4, 1, 1};
+CINTEnvVars envs;
+CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout2e_int2e_vsp1;
+envs.f_gout_simd1 = &CINTgout2e_int2e_vsp1_simd1;
+if (out == NULL) { return int2e_cache_size(&envs);
+} else {
+return CINT2e_cart_drv(out, dims, &envs, opt, cache);
+}} // int2e_vsp1_cart
+int int2e_vsp1_sph(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {0, 1, 0, 0, 1, 4, 1, 1};
+CINTEnvVars envs;
+CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout2e_int2e_vsp1;
+envs.f_gout_simd1 = &CINTgout2e_int2e_vsp1_simd1;
+if (out == NULL) { return int2e_cache_size(&envs) + envs.nf*MAX(0, 3-SIMDD);
+} else {
+return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
+}} // int2e_vsp1_sph
+int int2e_vsp1_spinor(double complex *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {0, 1, 0, 0, 1, 4, 1, 1};
+CINTEnvVars envs;
+CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout2e_int2e_vsp1;
+envs.f_gout_simd1 = &CINTgout2e_int2e_vsp1_simd1;
+if (out == NULL) {
+int n0 = int2e_cache_size(&envs);
+int n1 = CINTcgto_spinor(shls[0], bas) * envs.nfk * envs.x_ctr[2]
+* envs.nfl * envs.x_ctr[3] * CINTcgto_spinor(shls[1], bas);
+return MAX(n0, n0/2 + n1*envs.ncomp_e2*OF_CMPLX + envs.nf*32*OF_CMPLX);
+} else {
+return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1, &c2s_sf_2e2);
+}} // int2e_vsp1_spinor
+ALL_CINT(int2e_vsp1)
+//ALL_CINT_FORTRAN_(cint2e_vsp1)
+/* <SIGMA DOT P k i|R12 |j SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
+ * = (i j|R12 |SIGMA DOT P k SIGMA DOT P l) */
+static void CINTgout2e_int2e_spsp2(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
@@ -43,9 +514,9 @@ double *RESTRICT g0 = g;
 double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g3 = g2 + envs->g_size * 3 * SIMDD;
-G2E_D_L(g1, g0, envs->i_l+0, envs->j_l+1, envs->k_l+0, envs->l_l+0);
-G2E_D_J(g2, g0, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
-G2E_D_J(g3, g1, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
+G2E_D_L(g1, g0, envs->i_l+0, envs->j_l+0, envs->k_l+1, envs->l_l+0);
+G2E_D_K(g2, g0, envs->i_l+0, envs->j_l+0, envs->k_l+0, envs->l_l);
+G2E_D_K(g3, g1, envs->i_l+0, envs->j_l+0, envs->k_l+0, envs->l_l);
 __MD r1;
 __MD rs[9];
 for (n = 0; n < nf; n++) {
@@ -164,24 +635,12 @@ rs[6] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)
 rs[7] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
 rs[8] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
 } break;}
-r1 = + rs[8] + rs[4]; MM_STORE(gout+(n*16+0)*SIMDD, r1);
-r1 = - rs[1]; MM_STORE(gout+(n*16+1)*SIMDD, r1);
-r1 = - rs[2]; MM_STORE(gout+(n*16+2)*SIMDD, r1);
-r1 = + rs[5] - rs[7]; MM_STORE(gout+(n*16+3)*SIMDD, r1);
-r1 = - rs[3]; MM_STORE(gout+(n*16+4)*SIMDD, r1);
-r1 = + rs[8] + rs[0]; MM_STORE(gout+(n*16+5)*SIMDD, r1);
-r1 = - rs[5]; MM_STORE(gout+(n*16+6)*SIMDD, r1);
-r1 = - rs[2] + rs[6]; MM_STORE(gout+(n*16+7)*SIMDD, r1);
-r1 = - rs[6]; MM_STORE(gout+(n*16+8)*SIMDD, r1);
-r1 = - rs[7]; MM_STORE(gout+(n*16+9)*SIMDD, r1);
-r1 = + rs[4] + rs[0]; MM_STORE(gout+(n*16+10)*SIMDD, r1);
-r1 = + rs[1] - rs[3]; MM_STORE(gout+(n*16+11)*SIMDD, r1);
-r1 = + rs[7] - rs[5]; MM_STORE(gout+(n*16+12)*SIMDD, r1);
-r1 = - rs[6] + rs[2]; MM_STORE(gout+(n*16+13)*SIMDD, r1);
-r1 = + rs[3] - rs[1]; MM_STORE(gout+(n*16+14)*SIMDD, r1);
-r1 = + rs[0] + rs[4] + rs[8]; MM_STORE(gout+(n*16+15)*SIMDD, r1);
+r1 = + rs[5] - rs[7]; MM_STORE(gout+(n*4+0)*SIMDD, r1);
+r1 = + rs[6] - rs[2]; MM_STORE(gout+(n*4+1)*SIMDD, r1);
+r1 = + rs[1] - rs[3]; MM_STORE(gout+(n*4+2)*SIMDD, r1);
+r1 = + rs[0] + rs[4] + rs[8]; MM_STORE(gout+(n*4+3)*SIMDD, r1);
 }}
-static void CINTgout2e_int2e_ssp1ssp2_simd1(double *RESTRICT gout,
+static void CINTgout2e_int2e_spsp2_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
@@ -190,9 +649,9 @@ double *RESTRICT g0 = g;
 double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g3 = g2 + envs->g_size * 3 * SIMDD;
-G2E_D_L_SIMD1(g1, g0, envs->i_l+0, envs->j_l+1, envs->k_l+0, envs->l_l+0);
-G2E_D_J_SIMD1(g2, g0, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
-G2E_D_J_SIMD1(g3, g1, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
+G2E_D_L_SIMD1(g1, g0, envs->i_l+0, envs->j_l+0, envs->k_l+1, envs->l_l+0);
+G2E_D_K_SIMD1(g2, g0, envs->i_l+0, envs->j_l+0, envs->k_l+0, envs->l_l);
+G2E_D_K_SIMD1(g3, g1, envs->i_l+0, envs->j_l+0, envs->k_l+0, envs->l_l);
 ALIGNMM double s[9];
 for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
@@ -210,545 +669,57 @@ s[6] += g1[ix+i] * g0[iy+i] * g2[iz+i];
 s[7] += g0[ix+i] * g1[iy+i] * g2[iz+i];
 s[8] += g0[ix+i] * g0[iy+i] * g3[iz+i];
 }
-gout[n*16+0] = + s[8] + s[4];
-gout[n*16+1] = - s[1];
-gout[n*16+2] = - s[2];
-gout[n*16+3] = + s[5] - s[7];
-gout[n*16+4] = - s[3];
-gout[n*16+5] = + s[8] + s[0];
-gout[n*16+6] = - s[5];
-gout[n*16+7] = - s[2] + s[6];
-gout[n*16+8] = - s[6];
-gout[n*16+9] = - s[7];
-gout[n*16+10] = + s[4] + s[0];
-gout[n*16+11] = + s[1] - s[3];
-gout[n*16+12] = + s[7] - s[5];
-gout[n*16+13] = - s[6] + s[2];
-gout[n*16+14] = + s[3] - s[1];
-gout[n*16+15] = + s[0] + s[4] + s[8];
+gout[n*4+0] = + s[5] - s[7];
+gout[n*4+1] = + s[6] - s[2];
+gout[n*4+2] = + s[1] - s[3];
+gout[n*4+3] = + s[0] + s[4] + s[8];
 }}
-void int2e_ssp1ssp2_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
-int ng[] = {0, 1, 0, 1, 2, 4, 4, 1};
+void int2e_spsp2_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
+int ng[] = {0, 0, 1, 1, 2, 1, 4, 1};
 CINTall_2e_optimizer(opt, ng, atm, natm, bas, nbas, env);
 }
-int int2e_ssp1ssp2_cart(double *out, int *dims, int *shls,
+int int2e_spsp2_cart(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
-int ng[] = {0, 1, 0, 1, 2, 4, 4, 1};
+int ng[] = {0, 0, 1, 1, 2, 1, 4, 1};
 CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
-envs.f_gout = &CINTgout2e_int2e_ssp1ssp2;
-envs.f_gout_simd1 = &CINTgout2e_int2e_ssp1ssp2_simd1;
+envs.f_gout = &CINTgout2e_int2e_spsp2;
+envs.f_gout_simd1 = &CINTgout2e_int2e_spsp2_simd1;
 if (out == NULL) { return int2e_cache_size(&envs);
 } else {
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
-}} // int2e_ssp1ssp2_cart
-int int2e_ssp1ssp2_sph(double *out, int *dims, int *shls,
+}} // int2e_spsp2_cart
+int int2e_spsp2_sph(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
-int ng[] = {0, 1, 0, 1, 2, 4, 4, 1};
+int ng[] = {0, 0, 1, 1, 2, 1, 4, 1};
 CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
-envs.f_gout = &CINTgout2e_int2e_ssp1ssp2;
-envs.f_gout_simd1 = &CINTgout2e_int2e_ssp1ssp2_simd1;
+envs.f_gout = &CINTgout2e_int2e_spsp2;
+envs.f_gout_simd1 = &CINTgout2e_int2e_spsp2_simd1;
 if (out == NULL) { return int2e_cache_size(&envs) + envs.nf*MAX(0, 3-SIMDD);
 } else {
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
-}} // int2e_ssp1ssp2_sph
-int int2e_ssp1ssp2_spinor(double complex *out, int *dims, int *shls,
+}} // int2e_spsp2_sph
+int int2e_spsp2_spinor(double complex *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
-int ng[] = {0, 1, 0, 1, 2, 4, 4, 1};
+int ng[] = {0, 0, 1, 1, 2, 1, 4, 1};
 CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
-envs.f_gout = &CINTgout2e_int2e_ssp1ssp2;
-envs.f_gout_simd1 = &CINTgout2e_int2e_ssp1ssp2_simd1;
+envs.f_gout = &CINTgout2e_int2e_spsp2;
+envs.f_gout_simd1 = &CINTgout2e_int2e_spsp2_simd1;
 if (out == NULL) {
 int n0 = int2e_cache_size(&envs);
 int n1 = CINTcgto_spinor(shls[0], bas) * envs.nfk * envs.x_ctr[2]
 * envs.nfl * envs.x_ctr[3] * CINTcgto_spinor(shls[1], bas);
-return MAX(n0, n0/2 + n1*envs.ncomp_e2*OF_CMPLX + envs.nf*32*OF_CMPLX);
+return MAX(n0, n0/2 + n1*envs.ncomp_e2*OF_CMPLX + envs.nf*20*OF_CMPLX);
 } else {
-return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1i, &c2s_si_2e2i);
-}} // int2e_ssp1ssp2_spinor
-ALL_CINT(int2e_ssp1ssp2)
-//ALL_CINT_FORTRAN_(cint2e_ssp1ssp2)
-/* <SIGMA DOT P k i|GAUNT |SIGMA DOT P j l> : i,j \in electron 1; k,l \in electron 2
- * = (i SIGMA DOT P j|GAUNT |SIGMA DOT P k l) */
-static void CINTgout2e_int2e_ssp1sps2(double *RESTRICT gout,
-double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
-int nf = envs->nf;
-int nrys_roots = envs->nrys_roots;
-int ix, iy, iz, i, n;
-double *RESTRICT g0 = g;
-double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
-double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
-double *RESTRICT g3 = g2 + envs->g_size * 3 * SIMDD;
-G2E_D_K(g1, g0, envs->i_l+0, envs->j_l+1, envs->k_l+0, envs->l_l);
-G2E_D_J(g2, g0, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
-G2E_D_J(g3, g1, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
-__MD r1;
-__MD rs[9];
-for (n = 0; n < nf; n++) {
-ix = idx[0+n*3];
-iy = idx[1+n*3];
-iz = idx[2+n*3];
-switch (nrys_roots) {
-case 1:
-rs[0] = MM_LOAD(g3+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
-rs[1] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
-rs[2] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
-rs[3] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
-rs[4] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g3+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
-rs[5] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
-rs[6] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
-rs[7] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
-rs[8] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g3+iz*SIMDD);
-break;
-case 2:
-rs[0] = MM_LOAD(g3+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
-rs[0]+= MM_LOAD(g3+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
-rs[1] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
-rs[1]+= MM_LOAD(g2+(ix+1)*SIMDD) * MM_LOAD(g1+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
-rs[2] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
-rs[2]+= MM_LOAD(g2+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g1+(iz+1)*SIMDD);
-rs[3] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
-rs[3]+= MM_LOAD(g1+(ix+1)*SIMDD) * MM_LOAD(g2+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
-rs[4] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g3+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
-rs[4]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g3+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
-rs[5] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
-rs[5]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g2+(iy+1)*SIMDD) * MM_LOAD(g1+(iz+1)*SIMDD);
-rs[6] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
-rs[6]+= MM_LOAD(g1+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g2+(iz+1)*SIMDD);
-rs[7] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
-rs[7]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g1+(iy+1)*SIMDD) * MM_LOAD(g2+(iz+1)*SIMDD);
-rs[8] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g3+iz*SIMDD);
-rs[8]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g3+(iz+1)*SIMDD);
-break;
-case 3:
-rs[0] = MM_LOAD(g3+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
-rs[0]+= MM_LOAD(g3+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
-rs[0]+= MM_LOAD(g3+(ix+2)*SIMDD) * MM_LOAD(g0+(iy+2)*SIMDD) * MM_LOAD(g0+(iz+2)*SIMDD);
-rs[1] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
-rs[1]+= MM_LOAD(g2+(ix+1)*SIMDD) * MM_LOAD(g1+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
-rs[1]+= MM_LOAD(g2+(ix+2)*SIMDD) * MM_LOAD(g1+(iy+2)*SIMDD) * MM_LOAD(g0+(iz+2)*SIMDD);
-rs[2] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
-rs[2]+= MM_LOAD(g2+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g1+(iz+1)*SIMDD);
-rs[2]+= MM_LOAD(g2+(ix+2)*SIMDD) * MM_LOAD(g0+(iy+2)*SIMDD) * MM_LOAD(g1+(iz+2)*SIMDD);
-rs[3] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
-rs[3]+= MM_LOAD(g1+(ix+1)*SIMDD) * MM_LOAD(g2+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
-rs[3]+= MM_LOAD(g1+(ix+2)*SIMDD) * MM_LOAD(g2+(iy+2)*SIMDD) * MM_LOAD(g0+(iz+2)*SIMDD);
-rs[4] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g3+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
-rs[4]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g3+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
-rs[4]+= MM_LOAD(g0+(ix+2)*SIMDD) * MM_LOAD(g3+(iy+2)*SIMDD) * MM_LOAD(g0+(iz+2)*SIMDD);
-rs[5] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
-rs[5]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g2+(iy+1)*SIMDD) * MM_LOAD(g1+(iz+1)*SIMDD);
-rs[5]+= MM_LOAD(g0+(ix+2)*SIMDD) * MM_LOAD(g2+(iy+2)*SIMDD) * MM_LOAD(g1+(iz+2)*SIMDD);
-rs[6] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
-rs[6]+= MM_LOAD(g1+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g2+(iz+1)*SIMDD);
-rs[6]+= MM_LOAD(g1+(ix+2)*SIMDD) * MM_LOAD(g0+(iy+2)*SIMDD) * MM_LOAD(g2+(iz+2)*SIMDD);
-rs[7] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
-rs[7]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g1+(iy+1)*SIMDD) * MM_LOAD(g2+(iz+1)*SIMDD);
-rs[7]+= MM_LOAD(g0+(ix+2)*SIMDD) * MM_LOAD(g1+(iy+2)*SIMDD) * MM_LOAD(g2+(iz+2)*SIMDD);
-rs[8] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g3+iz*SIMDD);
-rs[8]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g3+(iz+1)*SIMDD);
-rs[8]+= MM_LOAD(g0+(ix+2)*SIMDD) * MM_LOAD(g0+(iy+2)*SIMDD) * MM_LOAD(g3+(iz+2)*SIMDD);
-break;
-case 4:
-rs[0] = MM_LOAD(g3+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
-rs[0]+= MM_LOAD(g3+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
-rs[0]+= MM_LOAD(g3+(ix+2)*SIMDD) * MM_LOAD(g0+(iy+2)*SIMDD) * MM_LOAD(g0+(iz+2)*SIMDD);
-rs[0]+= MM_LOAD(g3+(ix+3)*SIMDD) * MM_LOAD(g0+(iy+3)*SIMDD) * MM_LOAD(g0+(iz+3)*SIMDD);
-rs[1] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
-rs[1]+= MM_LOAD(g2+(ix+1)*SIMDD) * MM_LOAD(g1+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
-rs[1]+= MM_LOAD(g2+(ix+2)*SIMDD) * MM_LOAD(g1+(iy+2)*SIMDD) * MM_LOAD(g0+(iz+2)*SIMDD);
-rs[1]+= MM_LOAD(g2+(ix+3)*SIMDD) * MM_LOAD(g1+(iy+3)*SIMDD) * MM_LOAD(g0+(iz+3)*SIMDD);
-rs[2] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
-rs[2]+= MM_LOAD(g2+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g1+(iz+1)*SIMDD);
-rs[2]+= MM_LOAD(g2+(ix+2)*SIMDD) * MM_LOAD(g0+(iy+2)*SIMDD) * MM_LOAD(g1+(iz+2)*SIMDD);
-rs[2]+= MM_LOAD(g2+(ix+3)*SIMDD) * MM_LOAD(g0+(iy+3)*SIMDD) * MM_LOAD(g1+(iz+3)*SIMDD);
-rs[3] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
-rs[3]+= MM_LOAD(g1+(ix+1)*SIMDD) * MM_LOAD(g2+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
-rs[3]+= MM_LOAD(g1+(ix+2)*SIMDD) * MM_LOAD(g2+(iy+2)*SIMDD) * MM_LOAD(g0+(iz+2)*SIMDD);
-rs[3]+= MM_LOAD(g1+(ix+3)*SIMDD) * MM_LOAD(g2+(iy+3)*SIMDD) * MM_LOAD(g0+(iz+3)*SIMDD);
-rs[4] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g3+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
-rs[4]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g3+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
-rs[4]+= MM_LOAD(g0+(ix+2)*SIMDD) * MM_LOAD(g3+(iy+2)*SIMDD) * MM_LOAD(g0+(iz+2)*SIMDD);
-rs[4]+= MM_LOAD(g0+(ix+3)*SIMDD) * MM_LOAD(g3+(iy+3)*SIMDD) * MM_LOAD(g0+(iz+3)*SIMDD);
-rs[5] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
-rs[5]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g2+(iy+1)*SIMDD) * MM_LOAD(g1+(iz+1)*SIMDD);
-rs[5]+= MM_LOAD(g0+(ix+2)*SIMDD) * MM_LOAD(g2+(iy+2)*SIMDD) * MM_LOAD(g1+(iz+2)*SIMDD);
-rs[5]+= MM_LOAD(g0+(ix+3)*SIMDD) * MM_LOAD(g2+(iy+3)*SIMDD) * MM_LOAD(g1+(iz+3)*SIMDD);
-rs[6] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
-rs[6]+= MM_LOAD(g1+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g2+(iz+1)*SIMDD);
-rs[6]+= MM_LOAD(g1+(ix+2)*SIMDD) * MM_LOAD(g0+(iy+2)*SIMDD) * MM_LOAD(g2+(iz+2)*SIMDD);
-rs[6]+= MM_LOAD(g1+(ix+3)*SIMDD) * MM_LOAD(g0+(iy+3)*SIMDD) * MM_LOAD(g2+(iz+3)*SIMDD);
-rs[7] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
-rs[7]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g1+(iy+1)*SIMDD) * MM_LOAD(g2+(iz+1)*SIMDD);
-rs[7]+= MM_LOAD(g0+(ix+2)*SIMDD) * MM_LOAD(g1+(iy+2)*SIMDD) * MM_LOAD(g2+(iz+2)*SIMDD);
-rs[7]+= MM_LOAD(g0+(ix+3)*SIMDD) * MM_LOAD(g1+(iy+3)*SIMDD) * MM_LOAD(g2+(iz+3)*SIMDD);
-rs[8] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g3+iz*SIMDD);
-rs[8]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g3+(iz+1)*SIMDD);
-rs[8]+= MM_LOAD(g0+(ix+2)*SIMDD) * MM_LOAD(g0+(iy+2)*SIMDD) * MM_LOAD(g3+(iz+2)*SIMDD);
-rs[8]+= MM_LOAD(g0+(ix+3)*SIMDD) * MM_LOAD(g0+(iy+3)*SIMDD) * MM_LOAD(g3+(iz+3)*SIMDD);
-break;
-default:
-for (i = 0; i < 9; i++) { rs[i] = MM_SET1(0.); }
-for (i = 0; i < nrys_roots; i++) {
-rs[0] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
-rs[1] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
-rs[2] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
-rs[3] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
-rs[4] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
-rs[5] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
-rs[6] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
-rs[7] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
-rs[8] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
-} break;}
-r1 = + rs[8] + rs[4]; MM_STORE(gout+(n*16+0)*SIMDD, r1);
-r1 = - rs[1]; MM_STORE(gout+(n*16+1)*SIMDD, r1);
-r1 = - rs[2]; MM_STORE(gout+(n*16+2)*SIMDD, r1);
-r1 = + rs[5] - rs[7]; MM_STORE(gout+(n*16+3)*SIMDD, r1);
-r1 = - rs[3]; MM_STORE(gout+(n*16+4)*SIMDD, r1);
-r1 = + rs[8] + rs[0]; MM_STORE(gout+(n*16+5)*SIMDD, r1);
-r1 = - rs[5]; MM_STORE(gout+(n*16+6)*SIMDD, r1);
-r1 = - rs[2] + rs[6]; MM_STORE(gout+(n*16+7)*SIMDD, r1);
-r1 = - rs[6]; MM_STORE(gout+(n*16+8)*SIMDD, r1);
-r1 = - rs[7]; MM_STORE(gout+(n*16+9)*SIMDD, r1);
-r1 = + rs[4] + rs[0]; MM_STORE(gout+(n*16+10)*SIMDD, r1);
-r1 = + rs[1] - rs[3]; MM_STORE(gout+(n*16+11)*SIMDD, r1);
-r1 = - rs[7] + rs[5]; MM_STORE(gout+(n*16+12)*SIMDD, r1);
-r1 = + rs[6] - rs[2]; MM_STORE(gout+(n*16+13)*SIMDD, r1);
-r1 = - rs[3] + rs[1]; MM_STORE(gout+(n*16+14)*SIMDD, r1);
-r1 = - rs[0] - rs[4] - rs[8]; MM_STORE(gout+(n*16+15)*SIMDD, r1);
-}}
-static void CINTgout2e_int2e_ssp1sps2_simd1(double *RESTRICT gout,
-double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
-int nf = envs->nf;
-int nrys_roots = envs->nrys_roots;
-int ix, iy, iz, i, n;
-double *RESTRICT g0 = g;
-double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
-double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
-double *RESTRICT g3 = g2 + envs->g_size * 3 * SIMDD;
-G2E_D_K_SIMD1(g1, g0, envs->i_l+0, envs->j_l+1, envs->k_l+0, envs->l_l);
-G2E_D_J_SIMD1(g2, g0, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
-G2E_D_J_SIMD1(g3, g1, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
-ALIGNMM double s[9];
-for (n = 0; n < nf; n++) {
-ix = idx[0+n*3];
-iy = idx[1+n*3];
-iz = idx[2+n*3];
-for (i = 0; i < 9; i++) { s[i] = 0; }
-for (i = 0; i < nrys_roots; i++) {
-s[0] += g3[ix+i] * g0[iy+i] * g0[iz+i];
-s[1] += g2[ix+i] * g1[iy+i] * g0[iz+i];
-s[2] += g2[ix+i] * g0[iy+i] * g1[iz+i];
-s[3] += g1[ix+i] * g2[iy+i] * g0[iz+i];
-s[4] += g0[ix+i] * g3[iy+i] * g0[iz+i];
-s[5] += g0[ix+i] * g2[iy+i] * g1[iz+i];
-s[6] += g1[ix+i] * g0[iy+i] * g2[iz+i];
-s[7] += g0[ix+i] * g1[iy+i] * g2[iz+i];
-s[8] += g0[ix+i] * g0[iy+i] * g3[iz+i];
-}
-gout[n*16+0] = + s[8] + s[4];
-gout[n*16+1] = - s[1];
-gout[n*16+2] = - s[2];
-gout[n*16+3] = + s[5] - s[7];
-gout[n*16+4] = - s[3];
-gout[n*16+5] = + s[8] + s[0];
-gout[n*16+6] = - s[5];
-gout[n*16+7] = - s[2] + s[6];
-gout[n*16+8] = - s[6];
-gout[n*16+9] = - s[7];
-gout[n*16+10] = + s[4] + s[0];
-gout[n*16+11] = + s[1] - s[3];
-gout[n*16+12] = - s[7] + s[5];
-gout[n*16+13] = + s[6] - s[2];
-gout[n*16+14] = - s[3] + s[1];
-gout[n*16+15] = - s[0] - s[4] - s[8];
-}}
-void int2e_ssp1sps2_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
-int ng[] = {0, 1, 1, 0, 2, 4, 4, 1};
-CINTall_2e_optimizer(opt, ng, atm, natm, bas, nbas, env);
-}
-int int2e_ssp1sps2_cart(double *out, int *dims, int *shls,
-int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
-int ng[] = {0, 1, 1, 0, 2, 4, 4, 1};
-CINTEnvVars envs;
-CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
-envs.f_gout = &CINTgout2e_int2e_ssp1sps2;
-envs.f_gout_simd1 = &CINTgout2e_int2e_ssp1sps2_simd1;
-if (out == NULL) { return int2e_cache_size(&envs);
-} else {
-return CINT2e_cart_drv(out, dims, &envs, opt, cache);
-}} // int2e_ssp1sps2_cart
-int int2e_ssp1sps2_sph(double *out, int *dims, int *shls,
-int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
-int ng[] = {0, 1, 1, 0, 2, 4, 4, 1};
-CINTEnvVars envs;
-CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
-envs.f_gout = &CINTgout2e_int2e_ssp1sps2;
-envs.f_gout_simd1 = &CINTgout2e_int2e_ssp1sps2_simd1;
-if (out == NULL) { return int2e_cache_size(&envs) + envs.nf*MAX(0, 3-SIMDD);
-} else {
-return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
-}} // int2e_ssp1sps2_sph
-int int2e_ssp1sps2_spinor(double complex *out, int *dims, int *shls,
-int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
-int ng[] = {0, 1, 1, 0, 2, 4, 4, 1};
-CINTEnvVars envs;
-CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
-envs.f_gout = &CINTgout2e_int2e_ssp1sps2;
-envs.f_gout_simd1 = &CINTgout2e_int2e_ssp1sps2_simd1;
-if (out == NULL) {
-int n0 = int2e_cache_size(&envs);
-int n1 = CINTcgto_spinor(shls[0], bas) * envs.nfk * envs.x_ctr[2]
-* envs.nfl * envs.x_ctr[3] * CINTcgto_spinor(shls[1], bas);
-return MAX(n0, n0/2 + n1*envs.ncomp_e2*OF_CMPLX + envs.nf*32*OF_CMPLX);
-} else {
-return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1i, &c2s_si_2e2i);
-}} // int2e_ssp1sps2_spinor
-ALL_CINT(int2e_ssp1sps2)
-//ALL_CINT_FORTRAN_(cint2e_ssp1sps2)
-/* <k SIGMA DOT P i|GAUNT |j SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
- * = (SIGMA DOT P i j|GAUNT |k SIGMA DOT P l) */
-static void CINTgout2e_int2e_sps1ssp2(double *RESTRICT gout,
-double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
-int nf = envs->nf;
-int nrys_roots = envs->nrys_roots;
-int ix, iy, iz, i, n;
-double *RESTRICT g0 = g;
-double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
-double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
-double *RESTRICT g3 = g2 + envs->g_size * 3 * SIMDD;
-G2E_D_L(g1, g0, envs->i_l+1, envs->j_l+0, envs->k_l+0, envs->l_l+0);
-G2E_D_I(g2, g0, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
-G2E_D_I(g3, g1, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
-__MD r1;
-__MD rs[9];
-for (n = 0; n < nf; n++) {
-ix = idx[0+n*3];
-iy = idx[1+n*3];
-iz = idx[2+n*3];
-switch (nrys_roots) {
-case 1:
-rs[0] = MM_LOAD(g3+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
-rs[1] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
-rs[2] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
-rs[3] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
-rs[4] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g3+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
-rs[5] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
-rs[6] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
-rs[7] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
-rs[8] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g3+iz*SIMDD);
-break;
-case 2:
-rs[0] = MM_LOAD(g3+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
-rs[0]+= MM_LOAD(g3+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
-rs[1] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
-rs[1]+= MM_LOAD(g2+(ix+1)*SIMDD) * MM_LOAD(g1+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
-rs[2] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
-rs[2]+= MM_LOAD(g2+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g1+(iz+1)*SIMDD);
-rs[3] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
-rs[3]+= MM_LOAD(g1+(ix+1)*SIMDD) * MM_LOAD(g2+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
-rs[4] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g3+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
-rs[4]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g3+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
-rs[5] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
-rs[5]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g2+(iy+1)*SIMDD) * MM_LOAD(g1+(iz+1)*SIMDD);
-rs[6] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
-rs[6]+= MM_LOAD(g1+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g2+(iz+1)*SIMDD);
-rs[7] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
-rs[7]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g1+(iy+1)*SIMDD) * MM_LOAD(g2+(iz+1)*SIMDD);
-rs[8] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g3+iz*SIMDD);
-rs[8]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g3+(iz+1)*SIMDD);
-break;
-case 3:
-rs[0] = MM_LOAD(g3+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
-rs[0]+= MM_LOAD(g3+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
-rs[0]+= MM_LOAD(g3+(ix+2)*SIMDD) * MM_LOAD(g0+(iy+2)*SIMDD) * MM_LOAD(g0+(iz+2)*SIMDD);
-rs[1] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
-rs[1]+= MM_LOAD(g2+(ix+1)*SIMDD) * MM_LOAD(g1+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
-rs[1]+= MM_LOAD(g2+(ix+2)*SIMDD) * MM_LOAD(g1+(iy+2)*SIMDD) * MM_LOAD(g0+(iz+2)*SIMDD);
-rs[2] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
-rs[2]+= MM_LOAD(g2+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g1+(iz+1)*SIMDD);
-rs[2]+= MM_LOAD(g2+(ix+2)*SIMDD) * MM_LOAD(g0+(iy+2)*SIMDD) * MM_LOAD(g1+(iz+2)*SIMDD);
-rs[3] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
-rs[3]+= MM_LOAD(g1+(ix+1)*SIMDD) * MM_LOAD(g2+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
-rs[3]+= MM_LOAD(g1+(ix+2)*SIMDD) * MM_LOAD(g2+(iy+2)*SIMDD) * MM_LOAD(g0+(iz+2)*SIMDD);
-rs[4] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g3+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
-rs[4]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g3+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
-rs[4]+= MM_LOAD(g0+(ix+2)*SIMDD) * MM_LOAD(g3+(iy+2)*SIMDD) * MM_LOAD(g0+(iz+2)*SIMDD);
-rs[5] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
-rs[5]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g2+(iy+1)*SIMDD) * MM_LOAD(g1+(iz+1)*SIMDD);
-rs[5]+= MM_LOAD(g0+(ix+2)*SIMDD) * MM_LOAD(g2+(iy+2)*SIMDD) * MM_LOAD(g1+(iz+2)*SIMDD);
-rs[6] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
-rs[6]+= MM_LOAD(g1+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g2+(iz+1)*SIMDD);
-rs[6]+= MM_LOAD(g1+(ix+2)*SIMDD) * MM_LOAD(g0+(iy+2)*SIMDD) * MM_LOAD(g2+(iz+2)*SIMDD);
-rs[7] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
-rs[7]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g1+(iy+1)*SIMDD) * MM_LOAD(g2+(iz+1)*SIMDD);
-rs[7]+= MM_LOAD(g0+(ix+2)*SIMDD) * MM_LOAD(g1+(iy+2)*SIMDD) * MM_LOAD(g2+(iz+2)*SIMDD);
-rs[8] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g3+iz*SIMDD);
-rs[8]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g3+(iz+1)*SIMDD);
-rs[8]+= MM_LOAD(g0+(ix+2)*SIMDD) * MM_LOAD(g0+(iy+2)*SIMDD) * MM_LOAD(g3+(iz+2)*SIMDD);
-break;
-case 4:
-rs[0] = MM_LOAD(g3+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
-rs[0]+= MM_LOAD(g3+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
-rs[0]+= MM_LOAD(g3+(ix+2)*SIMDD) * MM_LOAD(g0+(iy+2)*SIMDD) * MM_LOAD(g0+(iz+2)*SIMDD);
-rs[0]+= MM_LOAD(g3+(ix+3)*SIMDD) * MM_LOAD(g0+(iy+3)*SIMDD) * MM_LOAD(g0+(iz+3)*SIMDD);
-rs[1] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
-rs[1]+= MM_LOAD(g2+(ix+1)*SIMDD) * MM_LOAD(g1+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
-rs[1]+= MM_LOAD(g2+(ix+2)*SIMDD) * MM_LOAD(g1+(iy+2)*SIMDD) * MM_LOAD(g0+(iz+2)*SIMDD);
-rs[1]+= MM_LOAD(g2+(ix+3)*SIMDD) * MM_LOAD(g1+(iy+3)*SIMDD) * MM_LOAD(g0+(iz+3)*SIMDD);
-rs[2] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
-rs[2]+= MM_LOAD(g2+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g1+(iz+1)*SIMDD);
-rs[2]+= MM_LOAD(g2+(ix+2)*SIMDD) * MM_LOAD(g0+(iy+2)*SIMDD) * MM_LOAD(g1+(iz+2)*SIMDD);
-rs[2]+= MM_LOAD(g2+(ix+3)*SIMDD) * MM_LOAD(g0+(iy+3)*SIMDD) * MM_LOAD(g1+(iz+3)*SIMDD);
-rs[3] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
-rs[3]+= MM_LOAD(g1+(ix+1)*SIMDD) * MM_LOAD(g2+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
-rs[3]+= MM_LOAD(g1+(ix+2)*SIMDD) * MM_LOAD(g2+(iy+2)*SIMDD) * MM_LOAD(g0+(iz+2)*SIMDD);
-rs[3]+= MM_LOAD(g1+(ix+3)*SIMDD) * MM_LOAD(g2+(iy+3)*SIMDD) * MM_LOAD(g0+(iz+3)*SIMDD);
-rs[4] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g3+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
-rs[4]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g3+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
-rs[4]+= MM_LOAD(g0+(ix+2)*SIMDD) * MM_LOAD(g3+(iy+2)*SIMDD) * MM_LOAD(g0+(iz+2)*SIMDD);
-rs[4]+= MM_LOAD(g0+(ix+3)*SIMDD) * MM_LOAD(g3+(iy+3)*SIMDD) * MM_LOAD(g0+(iz+3)*SIMDD);
-rs[5] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
-rs[5]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g2+(iy+1)*SIMDD) * MM_LOAD(g1+(iz+1)*SIMDD);
-rs[5]+= MM_LOAD(g0+(ix+2)*SIMDD) * MM_LOAD(g2+(iy+2)*SIMDD) * MM_LOAD(g1+(iz+2)*SIMDD);
-rs[5]+= MM_LOAD(g0+(ix+3)*SIMDD) * MM_LOAD(g2+(iy+3)*SIMDD) * MM_LOAD(g1+(iz+3)*SIMDD);
-rs[6] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
-rs[6]+= MM_LOAD(g1+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g2+(iz+1)*SIMDD);
-rs[6]+= MM_LOAD(g1+(ix+2)*SIMDD) * MM_LOAD(g0+(iy+2)*SIMDD) * MM_LOAD(g2+(iz+2)*SIMDD);
-rs[6]+= MM_LOAD(g1+(ix+3)*SIMDD) * MM_LOAD(g0+(iy+3)*SIMDD) * MM_LOAD(g2+(iz+3)*SIMDD);
-rs[7] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
-rs[7]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g1+(iy+1)*SIMDD) * MM_LOAD(g2+(iz+1)*SIMDD);
-rs[7]+= MM_LOAD(g0+(ix+2)*SIMDD) * MM_LOAD(g1+(iy+2)*SIMDD) * MM_LOAD(g2+(iz+2)*SIMDD);
-rs[7]+= MM_LOAD(g0+(ix+3)*SIMDD) * MM_LOAD(g1+(iy+3)*SIMDD) * MM_LOAD(g2+(iz+3)*SIMDD);
-rs[8] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g3+iz*SIMDD);
-rs[8]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g3+(iz+1)*SIMDD);
-rs[8]+= MM_LOAD(g0+(ix+2)*SIMDD) * MM_LOAD(g0+(iy+2)*SIMDD) * MM_LOAD(g3+(iz+2)*SIMDD);
-rs[8]+= MM_LOAD(g0+(ix+3)*SIMDD) * MM_LOAD(g0+(iy+3)*SIMDD) * MM_LOAD(g3+(iz+3)*SIMDD);
-break;
-default:
-for (i = 0; i < 9; i++) { rs[i] = MM_SET1(0.); }
-for (i = 0; i < nrys_roots; i++) {
-rs[0] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
-rs[1] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
-rs[2] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
-rs[3] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
-rs[4] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
-rs[5] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
-rs[6] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
-rs[7] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
-rs[8] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
-} break;}
-r1 = + rs[8] + rs[4]; MM_STORE(gout+(n*16+0)*SIMDD, r1);
-r1 = - rs[1]; MM_STORE(gout+(n*16+1)*SIMDD, r1);
-r1 = - rs[2]; MM_STORE(gout+(n*16+2)*SIMDD, r1);
-r1 = - rs[5] + rs[7]; MM_STORE(gout+(n*16+3)*SIMDD, r1);
-r1 = - rs[3]; MM_STORE(gout+(n*16+4)*SIMDD, r1);
-r1 = + rs[8] + rs[0]; MM_STORE(gout+(n*16+5)*SIMDD, r1);
-r1 = - rs[5]; MM_STORE(gout+(n*16+6)*SIMDD, r1);
-r1 = + rs[2] - rs[6]; MM_STORE(gout+(n*16+7)*SIMDD, r1);
-r1 = - rs[6]; MM_STORE(gout+(n*16+8)*SIMDD, r1);
-r1 = - rs[7]; MM_STORE(gout+(n*16+9)*SIMDD, r1);
-r1 = + rs[4] + rs[0]; MM_STORE(gout+(n*16+10)*SIMDD, r1);
-r1 = - rs[1] + rs[3]; MM_STORE(gout+(n*16+11)*SIMDD, r1);
-r1 = + rs[7] - rs[5]; MM_STORE(gout+(n*16+12)*SIMDD, r1);
-r1 = - rs[6] + rs[2]; MM_STORE(gout+(n*16+13)*SIMDD, r1);
-r1 = + rs[3] - rs[1]; MM_STORE(gout+(n*16+14)*SIMDD, r1);
-r1 = - rs[0] - rs[4] - rs[8]; MM_STORE(gout+(n*16+15)*SIMDD, r1);
-}}
-static void CINTgout2e_int2e_sps1ssp2_simd1(double *RESTRICT gout,
-double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
-int nf = envs->nf;
-int nrys_roots = envs->nrys_roots;
-int ix, iy, iz, i, n;
-double *RESTRICT g0 = g;
-double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
-double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
-double *RESTRICT g3 = g2 + envs->g_size * 3 * SIMDD;
-G2E_D_L_SIMD1(g1, g0, envs->i_l+1, envs->j_l+0, envs->k_l+0, envs->l_l+0);
-G2E_D_I_SIMD1(g2, g0, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
-G2E_D_I_SIMD1(g3, g1, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
-ALIGNMM double s[9];
-for (n = 0; n < nf; n++) {
-ix = idx[0+n*3];
-iy = idx[1+n*3];
-iz = idx[2+n*3];
-for (i = 0; i < 9; i++) { s[i] = 0; }
-for (i = 0; i < nrys_roots; i++) {
-s[0] += g3[ix+i] * g0[iy+i] * g0[iz+i];
-s[1] += g2[ix+i] * g1[iy+i] * g0[iz+i];
-s[2] += g2[ix+i] * g0[iy+i] * g1[iz+i];
-s[3] += g1[ix+i] * g2[iy+i] * g0[iz+i];
-s[4] += g0[ix+i] * g3[iy+i] * g0[iz+i];
-s[5] += g0[ix+i] * g2[iy+i] * g1[iz+i];
-s[6] += g1[ix+i] * g0[iy+i] * g2[iz+i];
-s[7] += g0[ix+i] * g1[iy+i] * g2[iz+i];
-s[8] += g0[ix+i] * g0[iy+i] * g3[iz+i];
-}
-gout[n*16+0] = + s[8] + s[4];
-gout[n*16+1] = - s[1];
-gout[n*16+2] = - s[2];
-gout[n*16+3] = - s[5] + s[7];
-gout[n*16+4] = - s[3];
-gout[n*16+5] = + s[8] + s[0];
-gout[n*16+6] = - s[5];
-gout[n*16+7] = + s[2] - s[6];
-gout[n*16+8] = - s[6];
-gout[n*16+9] = - s[7];
-gout[n*16+10] = + s[4] + s[0];
-gout[n*16+11] = - s[1] + s[3];
-gout[n*16+12] = + s[7] - s[5];
-gout[n*16+13] = - s[6] + s[2];
-gout[n*16+14] = + s[3] - s[1];
-gout[n*16+15] = - s[0] - s[4] - s[8];
-}}
-void int2e_sps1ssp2_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
-int ng[] = {1, 0, 0, 1, 2, 4, 4, 1};
-CINTall_2e_optimizer(opt, ng, atm, natm, bas, nbas, env);
-}
-int int2e_sps1ssp2_cart(double *out, int *dims, int *shls,
-int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
-int ng[] = {1, 0, 0, 1, 2, 4, 4, 1};
-CINTEnvVars envs;
-CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
-envs.f_gout = &CINTgout2e_int2e_sps1ssp2;
-envs.f_gout_simd1 = &CINTgout2e_int2e_sps1ssp2_simd1;
-if (out == NULL) { return int2e_cache_size(&envs);
-} else {
-return CINT2e_cart_drv(out, dims, &envs, opt, cache);
-}} // int2e_sps1ssp2_cart
-int int2e_sps1ssp2_sph(double *out, int *dims, int *shls,
-int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
-int ng[] = {1, 0, 0, 1, 2, 4, 4, 1};
-CINTEnvVars envs;
-CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
-envs.f_gout = &CINTgout2e_int2e_sps1ssp2;
-envs.f_gout_simd1 = &CINTgout2e_int2e_sps1ssp2_simd1;
-if (out == NULL) { return int2e_cache_size(&envs) + envs.nf*MAX(0, 3-SIMDD);
-} else {
-return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
-}} // int2e_sps1ssp2_sph
-int int2e_sps1ssp2_spinor(double complex *out, int *dims, int *shls,
-int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
-int ng[] = {1, 0, 0, 1, 2, 4, 4, 1};
-CINTEnvVars envs;
-CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
-envs.f_gout = &CINTgout2e_int2e_sps1ssp2;
-envs.f_gout_simd1 = &CINTgout2e_int2e_sps1ssp2_simd1;
-if (out == NULL) {
-int n0 = int2e_cache_size(&envs);
-int n1 = CINTcgto_spinor(shls[0], bas) * envs.nfk * envs.x_ctr[2]
-* envs.nfl * envs.x_ctr[3] * CINTcgto_spinor(shls[1], bas);
-return MAX(n0, n0/2 + n1*envs.ncomp_e2*OF_CMPLX + envs.nf*32*OF_CMPLX);
-} else {
-return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1i, &c2s_si_2e2i);
-}} // int2e_sps1ssp2_spinor
-ALL_CINT(int2e_sps1ssp2)
-//ALL_CINT_FORTRAN_(cint2e_sps1ssp2)
-/* <SIGMA DOT P k SIGMA DOT P i|GAUNT |j l> : i,j \in electron 1; k,l \in electron 2
- * = (SIGMA DOT P i j|GAUNT |SIGMA DOT P k l) */
-static void CINTgout2e_int2e_sps1sps2(double *RESTRICT gout,
+return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_2e1, &c2s_si_2e2);
+}} // int2e_spsp2_spinor
+ALL_CINT(int2e_spsp2)
+//ALL_CINT_FORTRAN_(cint2e_spsp2)
+/* <SIGMA DOT P k SIGMA DOT P i|R12 |j l> : i,j \in electron 1; k,l \in electron 2
+ * = (SIGMA DOT P i j|R12 |SIGMA DOT P k l) */
+static void CINTgout2e_int2e_spv1spv2(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
@@ -878,24 +849,24 @@ rs[6] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)
 rs[7] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
 rs[8] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
 } break;}
-r1 = + rs[8] + rs[4]; MM_STORE(gout+(n*16+0)*SIMDD, r1);
-r1 = - rs[1]; MM_STORE(gout+(n*16+1)*SIMDD, r1);
-r1 = - rs[2]; MM_STORE(gout+(n*16+2)*SIMDD, r1);
-r1 = - rs[5] + rs[7]; MM_STORE(gout+(n*16+3)*SIMDD, r1);
-r1 = - rs[3]; MM_STORE(gout+(n*16+4)*SIMDD, r1);
-r1 = + rs[8] + rs[0]; MM_STORE(gout+(n*16+5)*SIMDD, r1);
-r1 = - rs[5]; MM_STORE(gout+(n*16+6)*SIMDD, r1);
-r1 = + rs[2] - rs[6]; MM_STORE(gout+(n*16+7)*SIMDD, r1);
-r1 = - rs[6]; MM_STORE(gout+(n*16+8)*SIMDD, r1);
-r1 = - rs[7]; MM_STORE(gout+(n*16+9)*SIMDD, r1);
-r1 = + rs[4] + rs[0]; MM_STORE(gout+(n*16+10)*SIMDD, r1);
-r1 = - rs[1] + rs[3]; MM_STORE(gout+(n*16+11)*SIMDD, r1);
-r1 = - rs[7] + rs[5]; MM_STORE(gout+(n*16+12)*SIMDD, r1);
-r1 = + rs[6] - rs[2]; MM_STORE(gout+(n*16+13)*SIMDD, r1);
-r1 = - rs[3] + rs[1]; MM_STORE(gout+(n*16+14)*SIMDD, r1);
-r1 = + rs[0] + rs[4] + rs[8]; MM_STORE(gout+(n*16+15)*SIMDD, r1);
+r1 = + rs[0]; MM_STORE(gout+(n*16+0)*SIMDD, r1);
+r1 = + rs[3]; MM_STORE(gout+(n*16+1)*SIMDD, r1);
+r1 = + rs[6]; MM_STORE(gout+(n*16+2)*SIMDD, r1);
+MM_STORE(gout+(n*16+3)*SIMDD, MM_SET1(0.));
+r1 = + rs[1]; MM_STORE(gout+(n*16+4)*SIMDD, r1);
+r1 = + rs[4]; MM_STORE(gout+(n*16+5)*SIMDD, r1);
+r1 = + rs[7]; MM_STORE(gout+(n*16+6)*SIMDD, r1);
+MM_STORE(gout+(n*16+7)*SIMDD, MM_SET1(0.));
+r1 = + rs[2]; MM_STORE(gout+(n*16+8)*SIMDD, r1);
+r1 = + rs[5]; MM_STORE(gout+(n*16+9)*SIMDD, r1);
+r1 = + rs[8]; MM_STORE(gout+(n*16+10)*SIMDD, r1);
+MM_STORE(gout+(n*16+11)*SIMDD, MM_SET1(0.));
+MM_STORE(gout+(n*16+12)*SIMDD, MM_SET1(0.));
+MM_STORE(gout+(n*16+13)*SIMDD, MM_SET1(0.));
+MM_STORE(gout+(n*16+14)*SIMDD, MM_SET1(0.));
+MM_STORE(gout+(n*16+15)*SIMDD, MM_SET1(0.));
 }}
-static void CINTgout2e_int2e_sps1sps2_simd1(double *RESTRICT gout,
+static void CINTgout2e_int2e_spv1spv2_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
@@ -924,69 +895,69 @@ s[6] += g1[ix+i] * g0[iy+i] * g2[iz+i];
 s[7] += g0[ix+i] * g1[iy+i] * g2[iz+i];
 s[8] += g0[ix+i] * g0[iy+i] * g3[iz+i];
 }
-gout[n*16+0] = + s[8] + s[4];
-gout[n*16+1] = - s[1];
-gout[n*16+2] = - s[2];
-gout[n*16+3] = - s[5] + s[7];
-gout[n*16+4] = - s[3];
-gout[n*16+5] = + s[8] + s[0];
-gout[n*16+6] = - s[5];
-gout[n*16+7] = + s[2] - s[6];
-gout[n*16+8] = - s[6];
-gout[n*16+9] = - s[7];
-gout[n*16+10] = + s[4] + s[0];
-gout[n*16+11] = - s[1] + s[3];
-gout[n*16+12] = - s[7] + s[5];
-gout[n*16+13] = + s[6] - s[2];
-gout[n*16+14] = - s[3] + s[1];
-gout[n*16+15] = + s[0] + s[4] + s[8];
+gout[n*16+0] = + s[0];
+gout[n*16+1] = + s[3];
+gout[n*16+2] = + s[6];
+gout[n*16+3] = 0;
+gout[n*16+4] = + s[1];
+gout[n*16+5] = + s[4];
+gout[n*16+6] = + s[7];
+gout[n*16+7] = 0;
+gout[n*16+8] = + s[2];
+gout[n*16+9] = + s[5];
+gout[n*16+10] = + s[8];
+gout[n*16+11] = 0;
+gout[n*16+12] = 0;
+gout[n*16+13] = 0;
+gout[n*16+14] = 0;
+gout[n*16+15] = 0;
 }}
-void int2e_sps1sps2_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
+void int2e_spv1spv2_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
 int ng[] = {1, 0, 1, 0, 2, 4, 4, 1};
 CINTall_2e_optimizer(opt, ng, atm, natm, bas, nbas, env);
 }
-int int2e_sps1sps2_cart(double *out, int *dims, int *shls,
+int int2e_spv1spv2_cart(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 0, 1, 0, 2, 4, 4, 1};
 CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
-envs.f_gout = &CINTgout2e_int2e_sps1sps2;
-envs.f_gout_simd1 = &CINTgout2e_int2e_sps1sps2_simd1;
+envs.f_gout = &CINTgout2e_int2e_spv1spv2;
+envs.f_gout_simd1 = &CINTgout2e_int2e_spv1spv2_simd1;
 if (out == NULL) { return int2e_cache_size(&envs);
 } else {
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
-}} // int2e_sps1sps2_cart
-int int2e_sps1sps2_sph(double *out, int *dims, int *shls,
+}} // int2e_spv1spv2_cart
+int int2e_spv1spv2_sph(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 0, 1, 0, 2, 4, 4, 1};
 CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
-envs.f_gout = &CINTgout2e_int2e_sps1sps2;
-envs.f_gout_simd1 = &CINTgout2e_int2e_sps1sps2_simd1;
+envs.f_gout = &CINTgout2e_int2e_spv1spv2;
+envs.f_gout_simd1 = &CINTgout2e_int2e_spv1spv2_simd1;
 if (out == NULL) { return int2e_cache_size(&envs) + envs.nf*MAX(0, 3-SIMDD);
 } else {
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
-}} // int2e_sps1sps2_sph
-int int2e_sps1sps2_spinor(double complex *out, int *dims, int *shls,
+}} // int2e_spv1spv2_sph
+int int2e_spv1spv2_spinor(double complex *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 0, 1, 0, 2, 4, 4, 1};
 CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
-envs.f_gout = &CINTgout2e_int2e_sps1sps2;
-envs.f_gout_simd1 = &CINTgout2e_int2e_sps1sps2_simd1;
+envs.f_gout = &CINTgout2e_int2e_spv1spv2;
+envs.f_gout_simd1 = &CINTgout2e_int2e_spv1spv2_simd1;
 if (out == NULL) {
 int n0 = int2e_cache_size(&envs);
 int n1 = CINTcgto_spinor(shls[0], bas) * envs.nfk * envs.x_ctr[2]
 * envs.nfl * envs.x_ctr[3] * CINTcgto_spinor(shls[1], bas);
 return MAX(n0, n0/2 + n1*envs.ncomp_e2*OF_CMPLX + envs.nf*32*OF_CMPLX);
 } else {
-return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1i, &c2s_si_2e2i);
-}} // int2e_sps1sps2_spinor
-ALL_CINT(int2e_sps1sps2)
-//ALL_CINT_FORTRAN_(cint2e_sps1sps2)
-/* <k RC CROSS SIGMA i|GAUNT |j SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
- * = (RC CROSS SIGMA i j|GAUNT |k SIGMA DOT P l) */
-static void CINTgout2e_int2e_cg_ssa10ssp2(double *RESTRICT gout,
+return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1, &c2s_si_2e2);
+}} // int2e_spv1spv2_spinor
+ALL_CINT(int2e_spv1spv2)
+//ALL_CINT_FORTRAN_(cint2e_spv1spv2)
+/* <SIGMA DOT P k i|R12 |SIGMA DOT P j l> : i,j \in electron 1; k,l \in electron 2
+ * = (i SIGMA DOT P j|R12 |SIGMA DOT P k l) */
+static void CINTgout2e_int2e_vsp1spv2(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
@@ -995,13 +966,9 @@ double *RESTRICT g0 = g;
 double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g3 = g2 + envs->g_size * 3 * SIMDD;
-double dri[3];
-dri[0] = envs->ri[0] - envs->env[PTR_COMMON_ORIG+0];
-dri[1] = envs->ri[1] - envs->env[PTR_COMMON_ORIG+1];
-dri[2] = envs->ri[2] - envs->env[PTR_COMMON_ORIG+2];
-G2E_D_L(g1, g0, envs->i_l+1, envs->j_l+0, envs->k_l+0, envs->l_l+0);
-G2E_RCI(g2, g0, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
-G2E_RCI(g3, g1, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
+G2E_D_K(g1, g0, envs->i_l+0, envs->j_l+1, envs->k_l+0, envs->l_l);
+G2E_D_J(g2, g0, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
+G2E_D_J(g3, g1, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
 __MD r1;
 __MD rs[9];
 for (n = 0; n < nf; n++) {
@@ -1120,56 +1087,24 @@ rs[6] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)
 rs[7] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
 rs[8] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
 } break;}
-r1 = + rs[5] - rs[7]; MM_STORE(gout+(n*48+0)*SIMDD, r1);
-MM_STORE(gout+(n*48+1)*SIMDD, MM_SET1(0.));
-MM_STORE(gout+(n*48+2)*SIMDD, MM_SET1(0.));
-r1 = + rs[8] + rs[4]; MM_STORE(gout+(n*48+3)*SIMDD, r1);
-r1 = + rs[6]; MM_STORE(gout+(n*48+4)*SIMDD, r1);
-r1 = + rs[5]; MM_STORE(gout+(n*48+5)*SIMDD, r1);
-r1 = + rs[8]; MM_STORE(gout+(n*48+6)*SIMDD, r1);
-r1 = - rs[3]; MM_STORE(gout+(n*48+7)*SIMDD, r1);
-r1 = - rs[3]; MM_STORE(gout+(n*48+8)*SIMDD, r1);
-r1 = - rs[4]; MM_STORE(gout+(n*48+9)*SIMDD, r1);
-r1 = - rs[7]; MM_STORE(gout+(n*48+10)*SIMDD, r1);
-r1 = - rs[6]; MM_STORE(gout+(n*48+11)*SIMDD, r1);
-r1 = + rs[4] + rs[8]; MM_STORE(gout+(n*48+12)*SIMDD, r1);
-r1 = - rs[3]; MM_STORE(gout+(n*48+13)*SIMDD, r1);
-r1 = - rs[6]; MM_STORE(gout+(n*48+14)*SIMDD, r1);
-r1 = + rs[7] - rs[5]; MM_STORE(gout+(n*48+15)*SIMDD, r1);
-r1 = - rs[2]; MM_STORE(gout+(n*48+16)*SIMDD, r1);
-r1 = - rs[7]; MM_STORE(gout+(n*48+17)*SIMDD, r1);
-r1 = - rs[8]; MM_STORE(gout+(n*48+18)*SIMDD, r1);
-r1 = - rs[1]; MM_STORE(gout+(n*48+19)*SIMDD, r1);
-MM_STORE(gout+(n*48+20)*SIMDD, MM_SET1(0.));
-r1 = - rs[2] + rs[6]; MM_STORE(gout+(n*48+21)*SIMDD, r1);
-MM_STORE(gout+(n*48+22)*SIMDD, MM_SET1(0.));
-r1 = + rs[8] + rs[0]; MM_STORE(gout+(n*48+23)*SIMDD, r1);
-r1 = + rs[0]; MM_STORE(gout+(n*48+24)*SIMDD, r1);
-r1 = + rs[1]; MM_STORE(gout+(n*48+25)*SIMDD, r1);
-r1 = + rs[6]; MM_STORE(gout+(n*48+26)*SIMDD, r1);
-r1 = - rs[7]; MM_STORE(gout+(n*48+27)*SIMDD, r1);
-r1 = - rs[1]; MM_STORE(gout+(n*48+28)*SIMDD, r1);
-r1 = + rs[0] + rs[8]; MM_STORE(gout+(n*48+29)*SIMDD, r1);
-r1 = - rs[7]; MM_STORE(gout+(n*48+30)*SIMDD, r1);
-r1 = - rs[6] + rs[2]; MM_STORE(gout+(n*48+31)*SIMDD, r1);
-r1 = + rs[1]; MM_STORE(gout+(n*48+32)*SIMDD, r1);
-r1 = + rs[4]; MM_STORE(gout+(n*48+33)*SIMDD, r1);
-r1 = + rs[5]; MM_STORE(gout+(n*48+34)*SIMDD, r1);
-r1 = - rs[2]; MM_STORE(gout+(n*48+35)*SIMDD, r1);
-r1 = - rs[0]; MM_STORE(gout+(n*48+36)*SIMDD, r1);
-r1 = - rs[3]; MM_STORE(gout+(n*48+37)*SIMDD, r1);
-r1 = - rs[2]; MM_STORE(gout+(n*48+38)*SIMDD, r1);
-r1 = - rs[5]; MM_STORE(gout+(n*48+39)*SIMDD, r1);
-MM_STORE(gout+(n*48+40)*SIMDD, MM_SET1(0.));
-MM_STORE(gout+(n*48+41)*SIMDD, MM_SET1(0.));
-r1 = + rs[1] - rs[3]; MM_STORE(gout+(n*48+42)*SIMDD, r1);
-r1 = + rs[4] + rs[0]; MM_STORE(gout+(n*48+43)*SIMDD, r1);
-r1 = - rs[2]; MM_STORE(gout+(n*48+44)*SIMDD, r1);
-r1 = - rs[5]; MM_STORE(gout+(n*48+45)*SIMDD, r1);
-r1 = + rs[0] + rs[4]; MM_STORE(gout+(n*48+46)*SIMDD, r1);
-r1 = + rs[3] - rs[1]; MM_STORE(gout+(n*48+47)*SIMDD, r1);
+r1 = - rs[0]; MM_STORE(gout+(n*16+0)*SIMDD, r1);
+r1 = - rs[3]; MM_STORE(gout+(n*16+1)*SIMDD, r1);
+r1 = - rs[6]; MM_STORE(gout+(n*16+2)*SIMDD, r1);
+MM_STORE(gout+(n*16+3)*SIMDD, MM_SET1(0.));
+r1 = - rs[1]; MM_STORE(gout+(n*16+4)*SIMDD, r1);
+r1 = - rs[4]; MM_STORE(gout+(n*16+5)*SIMDD, r1);
+r1 = - rs[7]; MM_STORE(gout+(n*16+6)*SIMDD, r1);
+MM_STORE(gout+(n*16+7)*SIMDD, MM_SET1(0.));
+r1 = - rs[2]; MM_STORE(gout+(n*16+8)*SIMDD, r1);
+r1 = - rs[5]; MM_STORE(gout+(n*16+9)*SIMDD, r1);
+r1 = - rs[8]; MM_STORE(gout+(n*16+10)*SIMDD, r1);
+MM_STORE(gout+(n*16+11)*SIMDD, MM_SET1(0.));
+MM_STORE(gout+(n*16+12)*SIMDD, MM_SET1(0.));
+MM_STORE(gout+(n*16+13)*SIMDD, MM_SET1(0.));
+MM_STORE(gout+(n*16+14)*SIMDD, MM_SET1(0.));
+MM_STORE(gout+(n*16+15)*SIMDD, MM_SET1(0.));
 }}
-static void CINTgout2e_int2e_cg_ssa10ssp2_simd1(double *RESTRICT gout,
+static void CINTgout2e_int2e_vsp1spv2_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
@@ -1178,13 +1113,9 @@ double *RESTRICT g0 = g;
 double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g3 = g2 + envs->g_size * 3 * SIMDD;
-double dri[3];
-dri[0] = envs->ri[0] - envs->env[PTR_COMMON_ORIG+0];
-dri[1] = envs->ri[1] - envs->env[PTR_COMMON_ORIG+1];
-dri[2] = envs->ri[2] - envs->env[PTR_COMMON_ORIG+2];
-G2E_D_L_SIMD1(g1, g0, envs->i_l+1, envs->j_l+0, envs->k_l+0, envs->l_l+0);
-G2E_RCI_SIMD1(g2, g0, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
-G2E_RCI_SIMD1(g3, g1, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
+G2E_D_K_SIMD1(g1, g0, envs->i_l+0, envs->j_l+1, envs->k_l+0, envs->l_l);
+G2E_D_J_SIMD1(g2, g0, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
+G2E_D_J_SIMD1(g3, g1, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
 ALIGNMM double s[9];
 for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
@@ -1202,101 +1133,69 @@ s[6] += g1[ix+i] * g0[iy+i] * g2[iz+i];
 s[7] += g0[ix+i] * g1[iy+i] * g2[iz+i];
 s[8] += g0[ix+i] * g0[iy+i] * g3[iz+i];
 }
-gout[n*48+0] = + s[5] - s[7];
-gout[n*48+1] = 0;
-gout[n*48+2] = 0;
-gout[n*48+3] = + s[8] + s[4];
-gout[n*48+4] = + s[6];
-gout[n*48+5] = + s[5];
-gout[n*48+6] = + s[8];
-gout[n*48+7] = - s[3];
-gout[n*48+8] = - s[3];
-gout[n*48+9] = - s[4];
-gout[n*48+10] = - s[7];
-gout[n*48+11] = - s[6];
-gout[n*48+12] = + s[4] + s[8];
-gout[n*48+13] = - s[3];
-gout[n*48+14] = - s[6];
-gout[n*48+15] = + s[7] - s[5];
-gout[n*48+16] = - s[2];
-gout[n*48+17] = - s[7];
-gout[n*48+18] = - s[8];
-gout[n*48+19] = - s[1];
-gout[n*48+20] = 0;
-gout[n*48+21] = - s[2] + s[6];
-gout[n*48+22] = 0;
-gout[n*48+23] = + s[8] + s[0];
-gout[n*48+24] = + s[0];
-gout[n*48+25] = + s[1];
-gout[n*48+26] = + s[6];
-gout[n*48+27] = - s[7];
-gout[n*48+28] = - s[1];
-gout[n*48+29] = + s[0] + s[8];
-gout[n*48+30] = - s[7];
-gout[n*48+31] = - s[6] + s[2];
-gout[n*48+32] = + s[1];
-gout[n*48+33] = + s[4];
-gout[n*48+34] = + s[5];
-gout[n*48+35] = - s[2];
-gout[n*48+36] = - s[0];
-gout[n*48+37] = - s[3];
-gout[n*48+38] = - s[2];
-gout[n*48+39] = - s[5];
-gout[n*48+40] = 0;
-gout[n*48+41] = 0;
-gout[n*48+42] = + s[1] - s[3];
-gout[n*48+43] = + s[4] + s[0];
-gout[n*48+44] = - s[2];
-gout[n*48+45] = - s[5];
-gout[n*48+46] = + s[0] + s[4];
-gout[n*48+47] = + s[3] - s[1];
+gout[n*16+0] = - s[0];
+gout[n*16+1] = - s[3];
+gout[n*16+2] = - s[6];
+gout[n*16+3] = 0;
+gout[n*16+4] = - s[1];
+gout[n*16+5] = - s[4];
+gout[n*16+6] = - s[7];
+gout[n*16+7] = 0;
+gout[n*16+8] = - s[2];
+gout[n*16+9] = - s[5];
+gout[n*16+10] = - s[8];
+gout[n*16+11] = 0;
+gout[n*16+12] = 0;
+gout[n*16+13] = 0;
+gout[n*16+14] = 0;
+gout[n*16+15] = 0;
 }}
-void int2e_cg_ssa10ssp2_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
-int ng[] = {1, 0, 0, 1, 2, 4, 4, 3};
+void int2e_vsp1spv2_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
+int ng[] = {0, 1, 1, 0, 2, 4, 4, 1};
 CINTall_2e_optimizer(opt, ng, atm, natm, bas, nbas, env);
 }
-int int2e_cg_ssa10ssp2_cart(double *out, int *dims, int *shls,
+int int2e_vsp1spv2_cart(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
-int ng[] = {1, 0, 0, 1, 2, 4, 4, 3};
+int ng[] = {0, 1, 1, 0, 2, 4, 4, 1};
 CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
-envs.f_gout = &CINTgout2e_int2e_cg_ssa10ssp2;
-envs.f_gout_simd1 = &CINTgout2e_int2e_cg_ssa10ssp2_simd1;
+envs.f_gout = &CINTgout2e_int2e_vsp1spv2;
+envs.f_gout_simd1 = &CINTgout2e_int2e_vsp1spv2_simd1;
 if (out == NULL) { return int2e_cache_size(&envs);
 } else {
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
-}} // int2e_cg_ssa10ssp2_cart
-int int2e_cg_ssa10ssp2_sph(double *out, int *dims, int *shls,
+}} // int2e_vsp1spv2_cart
+int int2e_vsp1spv2_sph(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
-int ng[] = {1, 0, 0, 1, 2, 4, 4, 3};
+int ng[] = {0, 1, 1, 0, 2, 4, 4, 1};
 CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
-envs.f_gout = &CINTgout2e_int2e_cg_ssa10ssp2;
-envs.f_gout_simd1 = &CINTgout2e_int2e_cg_ssa10ssp2_simd1;
+envs.f_gout = &CINTgout2e_int2e_vsp1spv2;
+envs.f_gout_simd1 = &CINTgout2e_int2e_vsp1spv2_simd1;
 if (out == NULL) { return int2e_cache_size(&envs) + envs.nf*MAX(0, 3-SIMDD);
 } else {
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
-}} // int2e_cg_ssa10ssp2_sph
-int int2e_cg_ssa10ssp2_spinor(double complex *out, int *dims, int *shls,
+}} // int2e_vsp1spv2_sph
+int int2e_vsp1spv2_spinor(double complex *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
-int ng[] = {1, 0, 0, 1, 2, 4, 4, 3};
+int ng[] = {0, 1, 1, 0, 2, 4, 4, 1};
 CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
-envs.f_gout = &CINTgout2e_int2e_cg_ssa10ssp2;
-envs.f_gout_simd1 = &CINTgout2e_int2e_cg_ssa10ssp2_simd1;
+envs.f_gout = &CINTgout2e_int2e_vsp1spv2;
+envs.f_gout_simd1 = &CINTgout2e_int2e_vsp1spv2_simd1;
 if (out == NULL) {
 int n0 = int2e_cache_size(&envs);
 int n1 = CINTcgto_spinor(shls[0], bas) * envs.nfk * envs.x_ctr[2]
 * envs.nfl * envs.x_ctr[3] * CINTcgto_spinor(shls[1], bas);
 return MAX(n0, n0/2 + n1*envs.ncomp_e2*OF_CMPLX + envs.nf*32*OF_CMPLX);
 } else {
-return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1, &c2s_si_2e2i);
-}} // int2e_cg_ssa10ssp2_spinor
-ALL_CINT(int2e_cg_ssa10ssp2)
-//ALL_CINT_FORTRAN_(cint2e_cg_ssa10ssp2)
-/* <k R CROSS SIGMA i|GAUNT |j SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
- * = (R CROSS SIGMA i j|GAUNT |k SIGMA DOT P l) */
-static void CINTgout2e_int2e_giao_ssa10ssp2(double *RESTRICT gout,
+return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1, &c2s_si_2e2);
+}} // int2e_vsp1spv2_spinor
+ALL_CINT(int2e_vsp1spv2)
+//ALL_CINT_FORTRAN_(cint2e_vsp1spv2)
+/* <k SIGMA DOT P i|R12 |j SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
+ * = (SIGMA DOT P i j|R12 |k SIGMA DOT P l) */
+static void CINTgout2e_int2e_spv1vsp2(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
@@ -1306,8 +1205,8 @@ double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g3 = g2 + envs->g_size * 3 * SIMDD;
 G2E_D_L(g1, g0, envs->i_l+1, envs->j_l+0, envs->k_l+0, envs->l_l+0);
-G2E_R_I(g2, g0, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
-G2E_R_I(g3, g1, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
+G2E_D_I(g2, g0, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
+G2E_D_I(g3, g1, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
 __MD r1;
 __MD rs[9];
 for (n = 0; n < nf; n++) {
@@ -1426,56 +1325,24 @@ rs[6] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)
 rs[7] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
 rs[8] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
 } break;}
-r1 = + rs[5] - rs[7]; MM_STORE(gout+(n*48+0)*SIMDD, r1);
-MM_STORE(gout+(n*48+1)*SIMDD, MM_SET1(0.));
-MM_STORE(gout+(n*48+2)*SIMDD, MM_SET1(0.));
-r1 = + rs[8] + rs[4]; MM_STORE(gout+(n*48+3)*SIMDD, r1);
-r1 = + rs[6]; MM_STORE(gout+(n*48+4)*SIMDD, r1);
-r1 = + rs[5]; MM_STORE(gout+(n*48+5)*SIMDD, r1);
-r1 = + rs[8]; MM_STORE(gout+(n*48+6)*SIMDD, r1);
-r1 = - rs[3]; MM_STORE(gout+(n*48+7)*SIMDD, r1);
-r1 = - rs[3]; MM_STORE(gout+(n*48+8)*SIMDD, r1);
-r1 = - rs[4]; MM_STORE(gout+(n*48+9)*SIMDD, r1);
-r1 = - rs[7]; MM_STORE(gout+(n*48+10)*SIMDD, r1);
-r1 = - rs[6]; MM_STORE(gout+(n*48+11)*SIMDD, r1);
-r1 = + rs[4] + rs[8]; MM_STORE(gout+(n*48+12)*SIMDD, r1);
-r1 = - rs[3]; MM_STORE(gout+(n*48+13)*SIMDD, r1);
-r1 = - rs[6]; MM_STORE(gout+(n*48+14)*SIMDD, r1);
-r1 = + rs[7] - rs[5]; MM_STORE(gout+(n*48+15)*SIMDD, r1);
-r1 = - rs[2]; MM_STORE(gout+(n*48+16)*SIMDD, r1);
-r1 = - rs[7]; MM_STORE(gout+(n*48+17)*SIMDD, r1);
-r1 = - rs[8]; MM_STORE(gout+(n*48+18)*SIMDD, r1);
-r1 = - rs[1]; MM_STORE(gout+(n*48+19)*SIMDD, r1);
-MM_STORE(gout+(n*48+20)*SIMDD, MM_SET1(0.));
-r1 = - rs[2] + rs[6]; MM_STORE(gout+(n*48+21)*SIMDD, r1);
-MM_STORE(gout+(n*48+22)*SIMDD, MM_SET1(0.));
-r1 = + rs[8] + rs[0]; MM_STORE(gout+(n*48+23)*SIMDD, r1);
-r1 = + rs[0]; MM_STORE(gout+(n*48+24)*SIMDD, r1);
-r1 = + rs[1]; MM_STORE(gout+(n*48+25)*SIMDD, r1);
-r1 = + rs[6]; MM_STORE(gout+(n*48+26)*SIMDD, r1);
-r1 = - rs[7]; MM_STORE(gout+(n*48+27)*SIMDD, r1);
-r1 = - rs[1]; MM_STORE(gout+(n*48+28)*SIMDD, r1);
-r1 = + rs[0] + rs[8]; MM_STORE(gout+(n*48+29)*SIMDD, r1);
-r1 = - rs[7]; MM_STORE(gout+(n*48+30)*SIMDD, r1);
-r1 = - rs[6] + rs[2]; MM_STORE(gout+(n*48+31)*SIMDD, r1);
-r1 = + rs[1]; MM_STORE(gout+(n*48+32)*SIMDD, r1);
-r1 = + rs[4]; MM_STORE(gout+(n*48+33)*SIMDD, r1);
-r1 = + rs[5]; MM_STORE(gout+(n*48+34)*SIMDD, r1);
-r1 = - rs[2]; MM_STORE(gout+(n*48+35)*SIMDD, r1);
-r1 = - rs[0]; MM_STORE(gout+(n*48+36)*SIMDD, r1);
-r1 = - rs[3]; MM_STORE(gout+(n*48+37)*SIMDD, r1);
-r1 = - rs[2]; MM_STORE(gout+(n*48+38)*SIMDD, r1);
-r1 = - rs[5]; MM_STORE(gout+(n*48+39)*SIMDD, r1);
-MM_STORE(gout+(n*48+40)*SIMDD, MM_SET1(0.));
-MM_STORE(gout+(n*48+41)*SIMDD, MM_SET1(0.));
-r1 = + rs[1] - rs[3]; MM_STORE(gout+(n*48+42)*SIMDD, r1);
-r1 = + rs[4] + rs[0]; MM_STORE(gout+(n*48+43)*SIMDD, r1);
-r1 = - rs[2]; MM_STORE(gout+(n*48+44)*SIMDD, r1);
-r1 = - rs[5]; MM_STORE(gout+(n*48+45)*SIMDD, r1);
-r1 = + rs[0] + rs[4]; MM_STORE(gout+(n*48+46)*SIMDD, r1);
-r1 = + rs[3] - rs[1]; MM_STORE(gout+(n*48+47)*SIMDD, r1);
+r1 = - rs[0]; MM_STORE(gout+(n*16+0)*SIMDD, r1);
+r1 = - rs[3]; MM_STORE(gout+(n*16+1)*SIMDD, r1);
+r1 = - rs[6]; MM_STORE(gout+(n*16+2)*SIMDD, r1);
+MM_STORE(gout+(n*16+3)*SIMDD, MM_SET1(0.));
+r1 = - rs[1]; MM_STORE(gout+(n*16+4)*SIMDD, r1);
+r1 = - rs[4]; MM_STORE(gout+(n*16+5)*SIMDD, r1);
+r1 = - rs[7]; MM_STORE(gout+(n*16+6)*SIMDD, r1);
+MM_STORE(gout+(n*16+7)*SIMDD, MM_SET1(0.));
+r1 = - rs[2]; MM_STORE(gout+(n*16+8)*SIMDD, r1);
+r1 = - rs[5]; MM_STORE(gout+(n*16+9)*SIMDD, r1);
+r1 = - rs[8]; MM_STORE(gout+(n*16+10)*SIMDD, r1);
+MM_STORE(gout+(n*16+11)*SIMDD, MM_SET1(0.));
+MM_STORE(gout+(n*16+12)*SIMDD, MM_SET1(0.));
+MM_STORE(gout+(n*16+13)*SIMDD, MM_SET1(0.));
+MM_STORE(gout+(n*16+14)*SIMDD, MM_SET1(0.));
+MM_STORE(gout+(n*16+15)*SIMDD, MM_SET1(0.));
 }}
-static void CINTgout2e_int2e_giao_ssa10ssp2_simd1(double *RESTRICT gout,
+static void CINTgout2e_int2e_spv1vsp2_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
@@ -1485,8 +1352,8 @@ double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g3 = g2 + envs->g_size * 3 * SIMDD;
 G2E_D_L_SIMD1(g1, g0, envs->i_l+1, envs->j_l+0, envs->k_l+0, envs->l_l+0);
-G2E_R_I_SIMD1(g2, g0, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
-G2E_R_I_SIMD1(g3, g1, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
+G2E_D_I_SIMD1(g2, g0, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
+G2E_D_I_SIMD1(g3, g1, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
 ALIGNMM double s[9];
 for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
@@ -1504,101 +1371,307 @@ s[6] += g1[ix+i] * g0[iy+i] * g2[iz+i];
 s[7] += g0[ix+i] * g1[iy+i] * g2[iz+i];
 s[8] += g0[ix+i] * g0[iy+i] * g3[iz+i];
 }
-gout[n*48+0] = + s[5] - s[7];
-gout[n*48+1] = 0;
-gout[n*48+2] = 0;
-gout[n*48+3] = + s[8] + s[4];
-gout[n*48+4] = + s[6];
-gout[n*48+5] = + s[5];
-gout[n*48+6] = + s[8];
-gout[n*48+7] = - s[3];
-gout[n*48+8] = - s[3];
-gout[n*48+9] = - s[4];
-gout[n*48+10] = - s[7];
-gout[n*48+11] = - s[6];
-gout[n*48+12] = + s[4] + s[8];
-gout[n*48+13] = - s[3];
-gout[n*48+14] = - s[6];
-gout[n*48+15] = + s[7] - s[5];
-gout[n*48+16] = - s[2];
-gout[n*48+17] = - s[7];
-gout[n*48+18] = - s[8];
-gout[n*48+19] = - s[1];
-gout[n*48+20] = 0;
-gout[n*48+21] = - s[2] + s[6];
-gout[n*48+22] = 0;
-gout[n*48+23] = + s[8] + s[0];
-gout[n*48+24] = + s[0];
-gout[n*48+25] = + s[1];
-gout[n*48+26] = + s[6];
-gout[n*48+27] = - s[7];
-gout[n*48+28] = - s[1];
-gout[n*48+29] = + s[0] + s[8];
-gout[n*48+30] = - s[7];
-gout[n*48+31] = - s[6] + s[2];
-gout[n*48+32] = + s[1];
-gout[n*48+33] = + s[4];
-gout[n*48+34] = + s[5];
-gout[n*48+35] = - s[2];
-gout[n*48+36] = - s[0];
-gout[n*48+37] = - s[3];
-gout[n*48+38] = - s[2];
-gout[n*48+39] = - s[5];
-gout[n*48+40] = 0;
-gout[n*48+41] = 0;
-gout[n*48+42] = + s[1] - s[3];
-gout[n*48+43] = + s[4] + s[0];
-gout[n*48+44] = - s[2];
-gout[n*48+45] = - s[5];
-gout[n*48+46] = + s[0] + s[4];
-gout[n*48+47] = + s[3] - s[1];
+gout[n*16+0] = - s[0];
+gout[n*16+1] = - s[3];
+gout[n*16+2] = - s[6];
+gout[n*16+3] = 0;
+gout[n*16+4] = - s[1];
+gout[n*16+5] = - s[4];
+gout[n*16+6] = - s[7];
+gout[n*16+7] = 0;
+gout[n*16+8] = - s[2];
+gout[n*16+9] = - s[5];
+gout[n*16+10] = - s[8];
+gout[n*16+11] = 0;
+gout[n*16+12] = 0;
+gout[n*16+13] = 0;
+gout[n*16+14] = 0;
+gout[n*16+15] = 0;
 }}
-void int2e_giao_ssa10ssp2_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
-int ng[] = {1, 0, 0, 1, 2, 4, 4, 3};
+void int2e_spv1vsp2_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
+int ng[] = {1, 0, 0, 1, 2, 4, 4, 1};
 CINTall_2e_optimizer(opt, ng, atm, natm, bas, nbas, env);
 }
-int int2e_giao_ssa10ssp2_cart(double *out, int *dims, int *shls,
+int int2e_spv1vsp2_cart(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
-int ng[] = {1, 0, 0, 1, 2, 4, 4, 3};
+int ng[] = {1, 0, 0, 1, 2, 4, 4, 1};
 CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
-envs.f_gout = &CINTgout2e_int2e_giao_ssa10ssp2;
-envs.f_gout_simd1 = &CINTgout2e_int2e_giao_ssa10ssp2_simd1;
+envs.f_gout = &CINTgout2e_int2e_spv1vsp2;
+envs.f_gout_simd1 = &CINTgout2e_int2e_spv1vsp2_simd1;
 if (out == NULL) { return int2e_cache_size(&envs);
 } else {
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
-}} // int2e_giao_ssa10ssp2_cart
-int int2e_giao_ssa10ssp2_sph(double *out, int *dims, int *shls,
+}} // int2e_spv1vsp2_cart
+int int2e_spv1vsp2_sph(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
-int ng[] = {1, 0, 0, 1, 2, 4, 4, 3};
+int ng[] = {1, 0, 0, 1, 2, 4, 4, 1};
 CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
-envs.f_gout = &CINTgout2e_int2e_giao_ssa10ssp2;
-envs.f_gout_simd1 = &CINTgout2e_int2e_giao_ssa10ssp2_simd1;
+envs.f_gout = &CINTgout2e_int2e_spv1vsp2;
+envs.f_gout_simd1 = &CINTgout2e_int2e_spv1vsp2_simd1;
 if (out == NULL) { return int2e_cache_size(&envs) + envs.nf*MAX(0, 3-SIMDD);
 } else {
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
-}} // int2e_giao_ssa10ssp2_sph
-int int2e_giao_ssa10ssp2_spinor(double complex *out, int *dims, int *shls,
+}} // int2e_spv1vsp2_sph
+int int2e_spv1vsp2_spinor(double complex *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
-int ng[] = {1, 0, 0, 1, 2, 4, 4, 3};
+int ng[] = {1, 0, 0, 1, 2, 4, 4, 1};
 CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
-envs.f_gout = &CINTgout2e_int2e_giao_ssa10ssp2;
-envs.f_gout_simd1 = &CINTgout2e_int2e_giao_ssa10ssp2_simd1;
+envs.f_gout = &CINTgout2e_int2e_spv1vsp2;
+envs.f_gout_simd1 = &CINTgout2e_int2e_spv1vsp2_simd1;
 if (out == NULL) {
 int n0 = int2e_cache_size(&envs);
 int n1 = CINTcgto_spinor(shls[0], bas) * envs.nfk * envs.x_ctr[2]
 * envs.nfl * envs.x_ctr[3] * CINTcgto_spinor(shls[1], bas);
 return MAX(n0, n0/2 + n1*envs.ncomp_e2*OF_CMPLX + envs.nf*32*OF_CMPLX);
 } else {
-return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1, &c2s_si_2e2i);
-}} // int2e_giao_ssa10ssp2_spinor
-ALL_CINT(int2e_giao_ssa10ssp2)
-//ALL_CINT_FORTRAN_(cint2e_giao_ssa10ssp2)
-/* <k G i|GAUNT |SIGMA DOT P j SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
- * = (G i SIGMA DOT P j|GAUNT |k SIGMA DOT P l) */
-static void CINTgout2e_int2e_gssp1ssp2(double *RESTRICT gout,
+return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1, &c2s_si_2e2);
+}} // int2e_spv1vsp2_spinor
+ALL_CINT(int2e_spv1vsp2)
+//ALL_CINT_FORTRAN_(cint2e_spv1vsp2)
+/* <k i|R12 |SIGMA DOT P j SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
+ * = (i SIGMA DOT P j|R12 |k SIGMA DOT P l) */
+static void CINTgout2e_int2e_vsp1vsp2(double *RESTRICT gout,
+double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
+int nf = envs->nf;
+int nrys_roots = envs->nrys_roots;
+int ix, iy, iz, i, n;
+double *RESTRICT g0 = g;
+double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g3 = g2 + envs->g_size * 3 * SIMDD;
+G2E_D_L(g1, g0, envs->i_l+0, envs->j_l+1, envs->k_l+0, envs->l_l+0);
+G2E_D_J(g2, g0, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
+G2E_D_J(g3, g1, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
+__MD r1;
+__MD rs[9];
+for (n = 0; n < nf; n++) {
+ix = idx[0+n*3];
+iy = idx[1+n*3];
+iz = idx[2+n*3];
+switch (nrys_roots) {
+case 1:
+rs[0] = MM_LOAD(g3+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[1] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[2] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[3] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[4] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g3+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[5] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[6] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
+rs[7] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
+rs[8] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g3+iz*SIMDD);
+break;
+case 2:
+rs[0] = MM_LOAD(g3+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[0]+= MM_LOAD(g3+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
+rs[1] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[1]+= MM_LOAD(g2+(ix+1)*SIMDD) * MM_LOAD(g1+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
+rs[2] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[2]+= MM_LOAD(g2+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g1+(iz+1)*SIMDD);
+rs[3] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[3]+= MM_LOAD(g1+(ix+1)*SIMDD) * MM_LOAD(g2+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
+rs[4] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g3+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[4]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g3+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
+rs[5] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[5]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g2+(iy+1)*SIMDD) * MM_LOAD(g1+(iz+1)*SIMDD);
+rs[6] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
+rs[6]+= MM_LOAD(g1+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g2+(iz+1)*SIMDD);
+rs[7] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
+rs[7]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g1+(iy+1)*SIMDD) * MM_LOAD(g2+(iz+1)*SIMDD);
+rs[8] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g3+iz*SIMDD);
+rs[8]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g3+(iz+1)*SIMDD);
+break;
+case 3:
+rs[0] = MM_LOAD(g3+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[0]+= MM_LOAD(g3+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
+rs[0]+= MM_LOAD(g3+(ix+2)*SIMDD) * MM_LOAD(g0+(iy+2)*SIMDD) * MM_LOAD(g0+(iz+2)*SIMDD);
+rs[1] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[1]+= MM_LOAD(g2+(ix+1)*SIMDD) * MM_LOAD(g1+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
+rs[1]+= MM_LOAD(g2+(ix+2)*SIMDD) * MM_LOAD(g1+(iy+2)*SIMDD) * MM_LOAD(g0+(iz+2)*SIMDD);
+rs[2] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[2]+= MM_LOAD(g2+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g1+(iz+1)*SIMDD);
+rs[2]+= MM_LOAD(g2+(ix+2)*SIMDD) * MM_LOAD(g0+(iy+2)*SIMDD) * MM_LOAD(g1+(iz+2)*SIMDD);
+rs[3] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[3]+= MM_LOAD(g1+(ix+1)*SIMDD) * MM_LOAD(g2+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
+rs[3]+= MM_LOAD(g1+(ix+2)*SIMDD) * MM_LOAD(g2+(iy+2)*SIMDD) * MM_LOAD(g0+(iz+2)*SIMDD);
+rs[4] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g3+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[4]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g3+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
+rs[4]+= MM_LOAD(g0+(ix+2)*SIMDD) * MM_LOAD(g3+(iy+2)*SIMDD) * MM_LOAD(g0+(iz+2)*SIMDD);
+rs[5] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[5]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g2+(iy+1)*SIMDD) * MM_LOAD(g1+(iz+1)*SIMDD);
+rs[5]+= MM_LOAD(g0+(ix+2)*SIMDD) * MM_LOAD(g2+(iy+2)*SIMDD) * MM_LOAD(g1+(iz+2)*SIMDD);
+rs[6] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
+rs[6]+= MM_LOAD(g1+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g2+(iz+1)*SIMDD);
+rs[6]+= MM_LOAD(g1+(ix+2)*SIMDD) * MM_LOAD(g0+(iy+2)*SIMDD) * MM_LOAD(g2+(iz+2)*SIMDD);
+rs[7] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
+rs[7]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g1+(iy+1)*SIMDD) * MM_LOAD(g2+(iz+1)*SIMDD);
+rs[7]+= MM_LOAD(g0+(ix+2)*SIMDD) * MM_LOAD(g1+(iy+2)*SIMDD) * MM_LOAD(g2+(iz+2)*SIMDD);
+rs[8] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g3+iz*SIMDD);
+rs[8]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g3+(iz+1)*SIMDD);
+rs[8]+= MM_LOAD(g0+(ix+2)*SIMDD) * MM_LOAD(g0+(iy+2)*SIMDD) * MM_LOAD(g3+(iz+2)*SIMDD);
+break;
+case 4:
+rs[0] = MM_LOAD(g3+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[0]+= MM_LOAD(g3+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
+rs[0]+= MM_LOAD(g3+(ix+2)*SIMDD) * MM_LOAD(g0+(iy+2)*SIMDD) * MM_LOAD(g0+(iz+2)*SIMDD);
+rs[0]+= MM_LOAD(g3+(ix+3)*SIMDD) * MM_LOAD(g0+(iy+3)*SIMDD) * MM_LOAD(g0+(iz+3)*SIMDD);
+rs[1] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[1]+= MM_LOAD(g2+(ix+1)*SIMDD) * MM_LOAD(g1+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
+rs[1]+= MM_LOAD(g2+(ix+2)*SIMDD) * MM_LOAD(g1+(iy+2)*SIMDD) * MM_LOAD(g0+(iz+2)*SIMDD);
+rs[1]+= MM_LOAD(g2+(ix+3)*SIMDD) * MM_LOAD(g1+(iy+3)*SIMDD) * MM_LOAD(g0+(iz+3)*SIMDD);
+rs[2] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[2]+= MM_LOAD(g2+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g1+(iz+1)*SIMDD);
+rs[2]+= MM_LOAD(g2+(ix+2)*SIMDD) * MM_LOAD(g0+(iy+2)*SIMDD) * MM_LOAD(g1+(iz+2)*SIMDD);
+rs[2]+= MM_LOAD(g2+(ix+3)*SIMDD) * MM_LOAD(g0+(iy+3)*SIMDD) * MM_LOAD(g1+(iz+3)*SIMDD);
+rs[3] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[3]+= MM_LOAD(g1+(ix+1)*SIMDD) * MM_LOAD(g2+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
+rs[3]+= MM_LOAD(g1+(ix+2)*SIMDD) * MM_LOAD(g2+(iy+2)*SIMDD) * MM_LOAD(g0+(iz+2)*SIMDD);
+rs[3]+= MM_LOAD(g1+(ix+3)*SIMDD) * MM_LOAD(g2+(iy+3)*SIMDD) * MM_LOAD(g0+(iz+3)*SIMDD);
+rs[4] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g3+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[4]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g3+(iy+1)*SIMDD) * MM_LOAD(g0+(iz+1)*SIMDD);
+rs[4]+= MM_LOAD(g0+(ix+2)*SIMDD) * MM_LOAD(g3+(iy+2)*SIMDD) * MM_LOAD(g0+(iz+2)*SIMDD);
+rs[4]+= MM_LOAD(g0+(ix+3)*SIMDD) * MM_LOAD(g3+(iy+3)*SIMDD) * MM_LOAD(g0+(iz+3)*SIMDD);
+rs[5] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[5]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g2+(iy+1)*SIMDD) * MM_LOAD(g1+(iz+1)*SIMDD);
+rs[5]+= MM_LOAD(g0+(ix+2)*SIMDD) * MM_LOAD(g2+(iy+2)*SIMDD) * MM_LOAD(g1+(iz+2)*SIMDD);
+rs[5]+= MM_LOAD(g0+(ix+3)*SIMDD) * MM_LOAD(g2+(iy+3)*SIMDD) * MM_LOAD(g1+(iz+3)*SIMDD);
+rs[6] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
+rs[6]+= MM_LOAD(g1+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g2+(iz+1)*SIMDD);
+rs[6]+= MM_LOAD(g1+(ix+2)*SIMDD) * MM_LOAD(g0+(iy+2)*SIMDD) * MM_LOAD(g2+(iz+2)*SIMDD);
+rs[6]+= MM_LOAD(g1+(ix+3)*SIMDD) * MM_LOAD(g0+(iy+3)*SIMDD) * MM_LOAD(g2+(iz+3)*SIMDD);
+rs[7] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
+rs[7]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g1+(iy+1)*SIMDD) * MM_LOAD(g2+(iz+1)*SIMDD);
+rs[7]+= MM_LOAD(g0+(ix+2)*SIMDD) * MM_LOAD(g1+(iy+2)*SIMDD) * MM_LOAD(g2+(iz+2)*SIMDD);
+rs[7]+= MM_LOAD(g0+(ix+3)*SIMDD) * MM_LOAD(g1+(iy+3)*SIMDD) * MM_LOAD(g2+(iz+3)*SIMDD);
+rs[8] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g3+iz*SIMDD);
+rs[8]+= MM_LOAD(g0+(ix+1)*SIMDD) * MM_LOAD(g0+(iy+1)*SIMDD) * MM_LOAD(g3+(iz+1)*SIMDD);
+rs[8]+= MM_LOAD(g0+(ix+2)*SIMDD) * MM_LOAD(g0+(iy+2)*SIMDD) * MM_LOAD(g3+(iz+2)*SIMDD);
+rs[8]+= MM_LOAD(g0+(ix+3)*SIMDD) * MM_LOAD(g0+(iy+3)*SIMDD) * MM_LOAD(g3+(iz+3)*SIMDD);
+break;
+default:
+for (i = 0; i < 9; i++) { rs[i] = MM_SET1(0.); }
+for (i = 0; i < nrys_roots; i++) {
+rs[0] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[1] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[2] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[3] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[4] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[5] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[6] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[7] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[8] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+} break;}
+r1 = + rs[0]; MM_STORE(gout+(n*16+0)*SIMDD, r1);
+r1 = + rs[3]; MM_STORE(gout+(n*16+1)*SIMDD, r1);
+r1 = + rs[6]; MM_STORE(gout+(n*16+2)*SIMDD, r1);
+MM_STORE(gout+(n*16+3)*SIMDD, MM_SET1(0.));
+r1 = + rs[1]; MM_STORE(gout+(n*16+4)*SIMDD, r1);
+r1 = + rs[4]; MM_STORE(gout+(n*16+5)*SIMDD, r1);
+r1 = + rs[7]; MM_STORE(gout+(n*16+6)*SIMDD, r1);
+MM_STORE(gout+(n*16+7)*SIMDD, MM_SET1(0.));
+r1 = + rs[2]; MM_STORE(gout+(n*16+8)*SIMDD, r1);
+r1 = + rs[5]; MM_STORE(gout+(n*16+9)*SIMDD, r1);
+r1 = + rs[8]; MM_STORE(gout+(n*16+10)*SIMDD, r1);
+MM_STORE(gout+(n*16+11)*SIMDD, MM_SET1(0.));
+MM_STORE(gout+(n*16+12)*SIMDD, MM_SET1(0.));
+MM_STORE(gout+(n*16+13)*SIMDD, MM_SET1(0.));
+MM_STORE(gout+(n*16+14)*SIMDD, MM_SET1(0.));
+MM_STORE(gout+(n*16+15)*SIMDD, MM_SET1(0.));
+}}
+static void CINTgout2e_int2e_vsp1vsp2_simd1(double *RESTRICT gout,
+double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
+int nf = envs->nf;
+int nrys_roots = envs->nrys_roots;
+int ix, iy, iz, i, n;
+double *RESTRICT g0 = g;
+double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g3 = g2 + envs->g_size * 3 * SIMDD;
+G2E_D_L_SIMD1(g1, g0, envs->i_l+0, envs->j_l+1, envs->k_l+0, envs->l_l+0);
+G2E_D_J_SIMD1(g2, g0, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
+G2E_D_J_SIMD1(g3, g1, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
+ALIGNMM double s[9];
+for (n = 0; n < nf; n++) {
+ix = idx[0+n*3];
+iy = idx[1+n*3];
+iz = idx[2+n*3];
+for (i = 0; i < 9; i++) { s[i] = 0; }
+for (i = 0; i < nrys_roots; i++) {
+s[0] += g3[ix+i] * g0[iy+i] * g0[iz+i];
+s[1] += g2[ix+i] * g1[iy+i] * g0[iz+i];
+s[2] += g2[ix+i] * g0[iy+i] * g1[iz+i];
+s[3] += g1[ix+i] * g2[iy+i] * g0[iz+i];
+s[4] += g0[ix+i] * g3[iy+i] * g0[iz+i];
+s[5] += g0[ix+i] * g2[iy+i] * g1[iz+i];
+s[6] += g1[ix+i] * g0[iy+i] * g2[iz+i];
+s[7] += g0[ix+i] * g1[iy+i] * g2[iz+i];
+s[8] += g0[ix+i] * g0[iy+i] * g3[iz+i];
+}
+gout[n*16+0] = + s[0];
+gout[n*16+1] = + s[3];
+gout[n*16+2] = + s[6];
+gout[n*16+3] = 0;
+gout[n*16+4] = + s[1];
+gout[n*16+5] = + s[4];
+gout[n*16+6] = + s[7];
+gout[n*16+7] = 0;
+gout[n*16+8] = + s[2];
+gout[n*16+9] = + s[5];
+gout[n*16+10] = + s[8];
+gout[n*16+11] = 0;
+gout[n*16+12] = 0;
+gout[n*16+13] = 0;
+gout[n*16+14] = 0;
+gout[n*16+15] = 0;
+}}
+void int2e_vsp1vsp2_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
+int ng[] = {0, 1, 0, 1, 2, 4, 4, 1};
+CINTall_2e_optimizer(opt, ng, atm, natm, bas, nbas, env);
+}
+int int2e_vsp1vsp2_cart(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {0, 1, 0, 1, 2, 4, 4, 1};
+CINTEnvVars envs;
+CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout2e_int2e_vsp1vsp2;
+envs.f_gout_simd1 = &CINTgout2e_int2e_vsp1vsp2_simd1;
+if (out == NULL) { return int2e_cache_size(&envs);
+} else {
+return CINT2e_cart_drv(out, dims, &envs, opt, cache);
+}} // int2e_vsp1vsp2_cart
+int int2e_vsp1vsp2_sph(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {0, 1, 0, 1, 2, 4, 4, 1};
+CINTEnvVars envs;
+CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout2e_int2e_vsp1vsp2;
+envs.f_gout_simd1 = &CINTgout2e_int2e_vsp1vsp2_simd1;
+if (out == NULL) { return int2e_cache_size(&envs) + envs.nf*MAX(0, 3-SIMDD);
+} else {
+return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
+}} // int2e_vsp1vsp2_sph
+int int2e_vsp1vsp2_spinor(double complex *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {0, 1, 0, 1, 2, 4, 4, 1};
+CINTEnvVars envs;
+CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout2e_int2e_vsp1vsp2;
+envs.f_gout_simd1 = &CINTgout2e_int2e_vsp1vsp2_simd1;
+if (out == NULL) {
+int n0 = int2e_cache_size(&envs);
+int n1 = CINTcgto_spinor(shls[0], bas) * envs.nfk * envs.x_ctr[2]
+* envs.nfl * envs.x_ctr[3] * CINTcgto_spinor(shls[1], bas);
+return MAX(n0, n0/2 + n1*envs.ncomp_e2*OF_CMPLX + envs.nf*32*OF_CMPLX);
+} else {
+return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1, &c2s_si_2e2);
+}} // int2e_vsp1vsp2_spinor
+ALL_CINT(int2e_vsp1vsp2)
+//ALL_CINT_FORTRAN_(cint2e_vsp1vsp2)
+/* <SIGMA DOT P k SIGMA DOT P i|R12 |j SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
+ * = (SIGMA DOT P i j|R12 |SIGMA DOT P k SIGMA DOT P l) */
+static void CINTgout2e_int2e_spv1spsp2(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
@@ -1611,21 +1684,13 @@ double *RESTRICT g4 = g3 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g5 = g4 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g6 = g5 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g7 = g6 + envs->g_size * 3 * SIMDD;
-double rirj[3];
-rirj[0] = envs->ri[0] - envs->rj[0];
-rirj[1] = envs->ri[1] - envs->rj[1];
-rirj[2] = envs->ri[2] - envs->rj[2];
-double c[3];
-c[0] = 1 * rirj[0];
-c[1] = 1 * rirj[1];
-c[2] = 1 * rirj[2];
-G2E_D_L(g1, g0, envs->i_l+1, envs->j_l+1, envs->k_l+0, envs->l_l+0);
-G2E_D_J(g2, g0, envs->i_l+1, envs->j_l+0, envs->k_l, envs->l_l);
-G2E_D_J(g3, g1, envs->i_l+1, envs->j_l+0, envs->k_l, envs->l_l);
-G2E_R0I(g4, g0, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
-G2E_R0I(g5, g1, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
-G2E_R0I(g6, g2, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
-G2E_R0I(g7, g3, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
+G2E_D_L(g1, g0, envs->i_l+1, envs->j_l+0, envs->k_l+1, envs->l_l+0);
+G2E_D_K(g2, g0, envs->i_l+1, envs->j_l+0, envs->k_l+0, envs->l_l);
+G2E_D_K(g3, g1, envs->i_l+1, envs->j_l+0, envs->k_l+0, envs->l_l);
+G2E_D_I(g4, g0, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
+G2E_D_I(g5, g1, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
+G2E_D_I(g6, g2, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
+G2E_D_I(g7, g3, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
 __MD r1;
 __MD rs[27];
 for (n = 0; n < nf; n++) {
@@ -1662,56 +1727,24 @@ rs[24] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i
 rs[25] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
 rs[26] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g7+(iz+i)*SIMDD);
 }
-r1 = - MM_SET1(c[1])*rs[26] + MM_SET1(c[2])*rs[17] - MM_SET1(c[1])*rs[22] + MM_SET1(c[2])*rs[13]; MM_STORE(gout+(n*48+0)*SIMDD, r1);
-r1 = + MM_SET1(c[1])*rs[19] - MM_SET1(c[2])*rs[10]; MM_STORE(gout+(n*48+1)*SIMDD, r1);
-r1 = + MM_SET1(c[1])*rs[20] - MM_SET1(c[2])*rs[11]; MM_STORE(gout+(n*48+2)*SIMDD, r1);
-r1 = - MM_SET1(c[1])*rs[23] + MM_SET1(c[2])*rs[14] + MM_SET1(c[1])*rs[25] - MM_SET1(c[2])*rs[16]; MM_STORE(gout+(n*48+3)*SIMDD, r1);
-r1 = + MM_SET1(c[1])*rs[21] - MM_SET1(c[2])*rs[12]; MM_STORE(gout+(n*48+4)*SIMDD, r1);
-r1 = - MM_SET1(c[1])*rs[26] + MM_SET1(c[2])*rs[17] - MM_SET1(c[1])*rs[18] + MM_SET1(c[2])*rs[9]; MM_STORE(gout+(n*48+5)*SIMDD, r1);
-r1 = + MM_SET1(c[1])*rs[23] - MM_SET1(c[2])*rs[14]; MM_STORE(gout+(n*48+6)*SIMDD, r1);
-r1 = + MM_SET1(c[1])*rs[20] - MM_SET1(c[2])*rs[11] - MM_SET1(c[1])*rs[24] + MM_SET1(c[2])*rs[15]; MM_STORE(gout+(n*48+7)*SIMDD, r1);
-r1 = + MM_SET1(c[1])*rs[24] - MM_SET1(c[2])*rs[15]; MM_STORE(gout+(n*48+8)*SIMDD, r1);
-r1 = + MM_SET1(c[1])*rs[25] - MM_SET1(c[2])*rs[16]; MM_STORE(gout+(n*48+9)*SIMDD, r1);
-r1 = - MM_SET1(c[1])*rs[22] + MM_SET1(c[2])*rs[13] - MM_SET1(c[1])*rs[18] + MM_SET1(c[2])*rs[9]; MM_STORE(gout+(n*48+10)*SIMDD, r1);
-r1 = - MM_SET1(c[1])*rs[19] + MM_SET1(c[2])*rs[10] + MM_SET1(c[1])*rs[21] - MM_SET1(c[2])*rs[12]; MM_STORE(gout+(n*48+11)*SIMDD, r1);
-r1 = - MM_SET1(c[1])*rs[25] + MM_SET1(c[2])*rs[16] + MM_SET1(c[1])*rs[23] - MM_SET1(c[2])*rs[14]; MM_STORE(gout+(n*48+12)*SIMDD, r1);
-r1 = + MM_SET1(c[1])*rs[24] - MM_SET1(c[2])*rs[15] - MM_SET1(c[1])*rs[20] + MM_SET1(c[2])*rs[11]; MM_STORE(gout+(n*48+13)*SIMDD, r1);
-r1 = - MM_SET1(c[1])*rs[21] + MM_SET1(c[2])*rs[12] + MM_SET1(c[1])*rs[19] - MM_SET1(c[2])*rs[10]; MM_STORE(gout+(n*48+14)*SIMDD, r1);
-r1 = - MM_SET1(c[1])*rs[18] + MM_SET1(c[2])*rs[9] - MM_SET1(c[1])*rs[22] + MM_SET1(c[2])*rs[13] - MM_SET1(c[1])*rs[26] + MM_SET1(c[2])*rs[17]; MM_STORE(gout+(n*48+15)*SIMDD, r1);
-r1 = - MM_SET1(c[2])*rs[8] + MM_SET1(c[0])*rs[26] - MM_SET1(c[2])*rs[4] + MM_SET1(c[0])*rs[22]; MM_STORE(gout+(n*48+16)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[1] - MM_SET1(c[0])*rs[19]; MM_STORE(gout+(n*48+17)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[2] - MM_SET1(c[0])*rs[20]; MM_STORE(gout+(n*48+18)*SIMDD, r1);
-r1 = - MM_SET1(c[2])*rs[5] + MM_SET1(c[0])*rs[23] + MM_SET1(c[2])*rs[7] - MM_SET1(c[0])*rs[25]; MM_STORE(gout+(n*48+19)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[3] - MM_SET1(c[0])*rs[21]; MM_STORE(gout+(n*48+20)*SIMDD, r1);
-r1 = - MM_SET1(c[2])*rs[8] + MM_SET1(c[0])*rs[26] - MM_SET1(c[2])*rs[0] + MM_SET1(c[0])*rs[18]; MM_STORE(gout+(n*48+21)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[5] - MM_SET1(c[0])*rs[23]; MM_STORE(gout+(n*48+22)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[2] - MM_SET1(c[0])*rs[20] - MM_SET1(c[2])*rs[6] + MM_SET1(c[0])*rs[24]; MM_STORE(gout+(n*48+23)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[6] - MM_SET1(c[0])*rs[24]; MM_STORE(gout+(n*48+24)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[7] - MM_SET1(c[0])*rs[25]; MM_STORE(gout+(n*48+25)*SIMDD, r1);
-r1 = - MM_SET1(c[2])*rs[4] + MM_SET1(c[0])*rs[22] - MM_SET1(c[2])*rs[0] + MM_SET1(c[0])*rs[18]; MM_STORE(gout+(n*48+26)*SIMDD, r1);
-r1 = - MM_SET1(c[2])*rs[1] + MM_SET1(c[0])*rs[19] + MM_SET1(c[2])*rs[3] - MM_SET1(c[0])*rs[21]; MM_STORE(gout+(n*48+27)*SIMDD, r1);
-r1 = - MM_SET1(c[2])*rs[7] + MM_SET1(c[0])*rs[25] + MM_SET1(c[2])*rs[5] - MM_SET1(c[0])*rs[23]; MM_STORE(gout+(n*48+28)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[6] - MM_SET1(c[0])*rs[24] - MM_SET1(c[2])*rs[2] + MM_SET1(c[0])*rs[20]; MM_STORE(gout+(n*48+29)*SIMDD, r1);
-r1 = - MM_SET1(c[2])*rs[3] + MM_SET1(c[0])*rs[21] + MM_SET1(c[2])*rs[1] - MM_SET1(c[0])*rs[19]; MM_STORE(gout+(n*48+30)*SIMDD, r1);
-r1 = - MM_SET1(c[2])*rs[0] + MM_SET1(c[0])*rs[18] - MM_SET1(c[2])*rs[4] + MM_SET1(c[0])*rs[22] - MM_SET1(c[2])*rs[8] + MM_SET1(c[0])*rs[26]; MM_STORE(gout+(n*48+31)*SIMDD, r1);
-r1 = - MM_SET1(c[0])*rs[17] + MM_SET1(c[1])*rs[8] - MM_SET1(c[0])*rs[13] + MM_SET1(c[1])*rs[4]; MM_STORE(gout+(n*48+32)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[10] - MM_SET1(c[1])*rs[1]; MM_STORE(gout+(n*48+33)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[11] - MM_SET1(c[1])*rs[2]; MM_STORE(gout+(n*48+34)*SIMDD, r1);
-r1 = - MM_SET1(c[0])*rs[14] + MM_SET1(c[1])*rs[5] + MM_SET1(c[0])*rs[16] - MM_SET1(c[1])*rs[7]; MM_STORE(gout+(n*48+35)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[12] - MM_SET1(c[1])*rs[3]; MM_STORE(gout+(n*48+36)*SIMDD, r1);
-r1 = - MM_SET1(c[0])*rs[17] + MM_SET1(c[1])*rs[8] - MM_SET1(c[0])*rs[9] + MM_SET1(c[1])*rs[0]; MM_STORE(gout+(n*48+37)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[14] - MM_SET1(c[1])*rs[5]; MM_STORE(gout+(n*48+38)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[11] - MM_SET1(c[1])*rs[2] - MM_SET1(c[0])*rs[15] + MM_SET1(c[1])*rs[6]; MM_STORE(gout+(n*48+39)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[15] - MM_SET1(c[1])*rs[6]; MM_STORE(gout+(n*48+40)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[16] - MM_SET1(c[1])*rs[7]; MM_STORE(gout+(n*48+41)*SIMDD, r1);
-r1 = - MM_SET1(c[0])*rs[13] + MM_SET1(c[1])*rs[4] - MM_SET1(c[0])*rs[9] + MM_SET1(c[1])*rs[0]; MM_STORE(gout+(n*48+42)*SIMDD, r1);
-r1 = - MM_SET1(c[0])*rs[10] + MM_SET1(c[1])*rs[1] + MM_SET1(c[0])*rs[12] - MM_SET1(c[1])*rs[3]; MM_STORE(gout+(n*48+43)*SIMDD, r1);
-r1 = - MM_SET1(c[0])*rs[16] + MM_SET1(c[1])*rs[7] + MM_SET1(c[0])*rs[14] - MM_SET1(c[1])*rs[5]; MM_STORE(gout+(n*48+44)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[15] - MM_SET1(c[1])*rs[6] - MM_SET1(c[0])*rs[11] + MM_SET1(c[1])*rs[2]; MM_STORE(gout+(n*48+45)*SIMDD, r1);
-r1 = - MM_SET1(c[0])*rs[12] + MM_SET1(c[1])*rs[3] + MM_SET1(c[0])*rs[10] - MM_SET1(c[1])*rs[1]; MM_STORE(gout+(n*48+46)*SIMDD, r1);
-r1 = - MM_SET1(c[0])*rs[9] + MM_SET1(c[1])*rs[0] - MM_SET1(c[0])*rs[13] + MM_SET1(c[1])*rs[4] - MM_SET1(c[0])*rs[17] + MM_SET1(c[1])*rs[8]; MM_STORE(gout+(n*48+47)*SIMDD, r1);
+r1 = + rs[5] - rs[7]; MM_STORE(gout+(n*16+0)*SIMDD, r1);
+r1 = + rs[14] - rs[16]; MM_STORE(gout+(n*16+1)*SIMDD, r1);
+r1 = + rs[23] - rs[25]; MM_STORE(gout+(n*16+2)*SIMDD, r1);
+MM_STORE(gout+(n*16+3)*SIMDD, MM_SET1(0.));
+r1 = + rs[6] - rs[2]; MM_STORE(gout+(n*16+4)*SIMDD, r1);
+r1 = + rs[15] - rs[11]; MM_STORE(gout+(n*16+5)*SIMDD, r1);
+r1 = + rs[24] - rs[20]; MM_STORE(gout+(n*16+6)*SIMDD, r1);
+MM_STORE(gout+(n*16+7)*SIMDD, MM_SET1(0.));
+r1 = + rs[1] - rs[3]; MM_STORE(gout+(n*16+8)*SIMDD, r1);
+r1 = + rs[10] - rs[12]; MM_STORE(gout+(n*16+9)*SIMDD, r1);
+r1 = + rs[19] - rs[21]; MM_STORE(gout+(n*16+10)*SIMDD, r1);
+MM_STORE(gout+(n*16+11)*SIMDD, MM_SET1(0.));
+r1 = + rs[0] + rs[4] + rs[8]; MM_STORE(gout+(n*16+12)*SIMDD, r1);
+r1 = + rs[9] + rs[13] + rs[17]; MM_STORE(gout+(n*16+13)*SIMDD, r1);
+r1 = + rs[18] + rs[22] + rs[26]; MM_STORE(gout+(n*16+14)*SIMDD, r1);
+MM_STORE(gout+(n*16+15)*SIMDD, MM_SET1(0.));
 }}
-static void CINTgout2e_int2e_gssp1ssp2_simd1(double *RESTRICT gout,
+static void CINTgout2e_int2e_spv1spsp2_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
@@ -1724,21 +1757,13 @@ double *RESTRICT g4 = g3 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g5 = g4 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g6 = g5 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g7 = g6 + envs->g_size * 3 * SIMDD;
-double rirj[3];
-rirj[0] = envs->ri[0] - envs->rj[0];
-rirj[1] = envs->ri[1] - envs->rj[1];
-rirj[2] = envs->ri[2] - envs->rj[2];
-double c[3];
-c[0] = 1 * rirj[0];
-c[1] = 1 * rirj[1];
-c[2] = 1 * rirj[2];
-G2E_D_L_SIMD1(g1, g0, envs->i_l+1, envs->j_l+1, envs->k_l+0, envs->l_l+0);
-G2E_D_J_SIMD1(g2, g0, envs->i_l+1, envs->j_l+0, envs->k_l, envs->l_l);
-G2E_D_J_SIMD1(g3, g1, envs->i_l+1, envs->j_l+0, envs->k_l, envs->l_l);
-G2E_R0I_SIMD1(g4, g0, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
-G2E_R0I_SIMD1(g5, g1, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
-G2E_R0I_SIMD1(g6, g2, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
-G2E_R0I_SIMD1(g7, g3, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
+G2E_D_L_SIMD1(g1, g0, envs->i_l+1, envs->j_l+0, envs->k_l+1, envs->l_l+0);
+G2E_D_K_SIMD1(g2, g0, envs->i_l+1, envs->j_l+0, envs->k_l+0, envs->l_l);
+G2E_D_K_SIMD1(g3, g1, envs->i_l+1, envs->j_l+0, envs->k_l+0, envs->l_l);
+G2E_D_I_SIMD1(g4, g0, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
+G2E_D_I_SIMD1(g5, g1, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
+G2E_D_I_SIMD1(g6, g2, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
+G2E_D_I_SIMD1(g7, g3, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
 ALIGNMM double s[27];
 for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
@@ -1774,119 +1799,253 @@ s[24] += g1[ix+i] * g0[iy+i] * g6[iz+i];
 s[25] += g0[ix+i] * g1[iy+i] * g6[iz+i];
 s[26] += g0[ix+i] * g0[iy+i] * g7[iz+i];
 }
-gout[n*48+0] = - c[1]*s[26] + c[2]*s[17] - c[1]*s[22] + c[2]*s[13];
-gout[n*48+1] = + c[1]*s[19] - c[2]*s[10];
-gout[n*48+2] = + c[1]*s[20] - c[2]*s[11];
-gout[n*48+3] = - c[1]*s[23] + c[2]*s[14] + c[1]*s[25] - c[2]*s[16];
-gout[n*48+4] = + c[1]*s[21] - c[2]*s[12];
-gout[n*48+5] = - c[1]*s[26] + c[2]*s[17] - c[1]*s[18] + c[2]*s[9];
-gout[n*48+6] = + c[1]*s[23] - c[2]*s[14];
-gout[n*48+7] = + c[1]*s[20] - c[2]*s[11] - c[1]*s[24] + c[2]*s[15];
-gout[n*48+8] = + c[1]*s[24] - c[2]*s[15];
-gout[n*48+9] = + c[1]*s[25] - c[2]*s[16];
-gout[n*48+10] = - c[1]*s[22] + c[2]*s[13] - c[1]*s[18] + c[2]*s[9];
-gout[n*48+11] = - c[1]*s[19] + c[2]*s[10] + c[1]*s[21] - c[2]*s[12];
-gout[n*48+12] = - c[1]*s[25] + c[2]*s[16] + c[1]*s[23] - c[2]*s[14];
-gout[n*48+13] = + c[1]*s[24] - c[2]*s[15] - c[1]*s[20] + c[2]*s[11];
-gout[n*48+14] = - c[1]*s[21] + c[2]*s[12] + c[1]*s[19] - c[2]*s[10];
-gout[n*48+15] = - c[1]*s[18] + c[2]*s[9] - c[1]*s[22] + c[2]*s[13] - c[1]*s[26] + c[2]*s[17];
-gout[n*48+16] = - c[2]*s[8] + c[0]*s[26] - c[2]*s[4] + c[0]*s[22];
-gout[n*48+17] = + c[2]*s[1] - c[0]*s[19];
-gout[n*48+18] = + c[2]*s[2] - c[0]*s[20];
-gout[n*48+19] = - c[2]*s[5] + c[0]*s[23] + c[2]*s[7] - c[0]*s[25];
-gout[n*48+20] = + c[2]*s[3] - c[0]*s[21];
-gout[n*48+21] = - c[2]*s[8] + c[0]*s[26] - c[2]*s[0] + c[0]*s[18];
-gout[n*48+22] = + c[2]*s[5] - c[0]*s[23];
-gout[n*48+23] = + c[2]*s[2] - c[0]*s[20] - c[2]*s[6] + c[0]*s[24];
-gout[n*48+24] = + c[2]*s[6] - c[0]*s[24];
-gout[n*48+25] = + c[2]*s[7] - c[0]*s[25];
-gout[n*48+26] = - c[2]*s[4] + c[0]*s[22] - c[2]*s[0] + c[0]*s[18];
-gout[n*48+27] = - c[2]*s[1] + c[0]*s[19] + c[2]*s[3] - c[0]*s[21];
-gout[n*48+28] = - c[2]*s[7] + c[0]*s[25] + c[2]*s[5] - c[0]*s[23];
-gout[n*48+29] = + c[2]*s[6] - c[0]*s[24] - c[2]*s[2] + c[0]*s[20];
-gout[n*48+30] = - c[2]*s[3] + c[0]*s[21] + c[2]*s[1] - c[0]*s[19];
-gout[n*48+31] = - c[2]*s[0] + c[0]*s[18] - c[2]*s[4] + c[0]*s[22] - c[2]*s[8] + c[0]*s[26];
-gout[n*48+32] = - c[0]*s[17] + c[1]*s[8] - c[0]*s[13] + c[1]*s[4];
-gout[n*48+33] = + c[0]*s[10] - c[1]*s[1];
-gout[n*48+34] = + c[0]*s[11] - c[1]*s[2];
-gout[n*48+35] = - c[0]*s[14] + c[1]*s[5] + c[0]*s[16] - c[1]*s[7];
-gout[n*48+36] = + c[0]*s[12] - c[1]*s[3];
-gout[n*48+37] = - c[0]*s[17] + c[1]*s[8] - c[0]*s[9] + c[1]*s[0];
-gout[n*48+38] = + c[0]*s[14] - c[1]*s[5];
-gout[n*48+39] = + c[0]*s[11] - c[1]*s[2] - c[0]*s[15] + c[1]*s[6];
-gout[n*48+40] = + c[0]*s[15] - c[1]*s[6];
-gout[n*48+41] = + c[0]*s[16] - c[1]*s[7];
-gout[n*48+42] = - c[0]*s[13] + c[1]*s[4] - c[0]*s[9] + c[1]*s[0];
-gout[n*48+43] = - c[0]*s[10] + c[1]*s[1] + c[0]*s[12] - c[1]*s[3];
-gout[n*48+44] = - c[0]*s[16] + c[1]*s[7] + c[0]*s[14] - c[1]*s[5];
-gout[n*48+45] = + c[0]*s[15] - c[1]*s[6] - c[0]*s[11] + c[1]*s[2];
-gout[n*48+46] = - c[0]*s[12] + c[1]*s[3] + c[0]*s[10] - c[1]*s[1];
-gout[n*48+47] = - c[0]*s[9] + c[1]*s[0] - c[0]*s[13] + c[1]*s[4] - c[0]*s[17] + c[1]*s[8];
+gout[n*16+0] = + s[5] - s[7];
+gout[n*16+1] = + s[14] - s[16];
+gout[n*16+2] = + s[23] - s[25];
+gout[n*16+3] = 0;
+gout[n*16+4] = + s[6] - s[2];
+gout[n*16+5] = + s[15] - s[11];
+gout[n*16+6] = + s[24] - s[20];
+gout[n*16+7] = 0;
+gout[n*16+8] = + s[1] - s[3];
+gout[n*16+9] = + s[10] - s[12];
+gout[n*16+10] = + s[19] - s[21];
+gout[n*16+11] = 0;
+gout[n*16+12] = + s[0] + s[4] + s[8];
+gout[n*16+13] = + s[9] + s[13] + s[17];
+gout[n*16+14] = + s[18] + s[22] + s[26];
+gout[n*16+15] = 0;
 }}
-void int2e_gssp1ssp2_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
-int ng[] = {1, 1, 0, 1, 3, 4, 4, 3};
+void int2e_spv1spsp2_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
+int ng[] = {1, 0, 1, 1, 3, 4, 4, 1};
 CINTall_2e_optimizer(opt, ng, atm, natm, bas, nbas, env);
 }
-int int2e_gssp1ssp2_cart(double *out, int *dims, int *shls,
+int int2e_spv1spsp2_cart(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
-int ng[] = {1, 1, 0, 1, 3, 4, 4, 3};
+int ng[] = {1, 0, 1, 1, 3, 4, 4, 1};
 CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
-envs.f_gout = &CINTgout2e_int2e_gssp1ssp2;
-envs.f_gout_simd1 = &CINTgout2e_int2e_gssp1ssp2_simd1;
-envs.common_factor *= 0.5;
+envs.f_gout = &CINTgout2e_int2e_spv1spsp2;
+envs.f_gout_simd1 = &CINTgout2e_int2e_spv1spsp2_simd1;
 if (out == NULL) { return int2e_cache_size(&envs);
 } else {
-int i, nc;
-if (envs.shls[0] == envs.shls[1]) {
-nc = envs.nf * envs.x_ctr[0] * envs.x_ctr[1] * envs.x_ctr[2] * envs.x_ctr[3];
-int n_comp = envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor;
-for (i = 0; i < nc * n_comp; i++) { out[i] = 0; }
-return 0; }
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
-}} // int2e_gssp1ssp2_cart
-int int2e_gssp1ssp2_sph(double *out, int *dims, int *shls,
+}} // int2e_spv1spsp2_cart
+int int2e_spv1spsp2_sph(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
-int ng[] = {1, 1, 0, 1, 3, 4, 4, 3};
+int ng[] = {1, 0, 1, 1, 3, 4, 4, 1};
 CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
-envs.f_gout = &CINTgout2e_int2e_gssp1ssp2;
-envs.f_gout_simd1 = &CINTgout2e_int2e_gssp1ssp2_simd1;
-envs.common_factor *= 0.5;
+envs.f_gout = &CINTgout2e_int2e_spv1spsp2;
+envs.f_gout_simd1 = &CINTgout2e_int2e_spv1spsp2_simd1;
 if (out == NULL) { return int2e_cache_size(&envs) + envs.nf*MAX(0, 3-SIMDD);
 } else {
-int i, nc;
-if (envs.shls[0] == envs.shls[1]) {
-nc = (envs.i_l*2+1) * (envs.j_l*2+1) * (envs.k_l*2+1) * (envs.l_l*2+1) *
-envs.x_ctr[0] * envs.x_ctr[1] * envs.x_ctr[2] * envs.x_ctr[3];
-int n_comp = envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor;
-for (i = 0; i < nc * n_comp; i++) { out[i] = 0; }
-return 0; }
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
-}} // int2e_gssp1ssp2_sph
-int int2e_gssp1ssp2_spinor(double complex *out, int *dims, int *shls,
+}} // int2e_spv1spsp2_sph
+int int2e_spv1spsp2_spinor(double complex *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
-int ng[] = {1, 1, 0, 1, 3, 4, 4, 3};
+int ng[] = {1, 0, 1, 1, 3, 4, 4, 1};
 CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
-envs.f_gout = &CINTgout2e_int2e_gssp1ssp2;
-envs.f_gout_simd1 = &CINTgout2e_int2e_gssp1ssp2_simd1;
-envs.common_factor *= 0.5;
+envs.f_gout = &CINTgout2e_int2e_spv1spsp2;
+envs.f_gout_simd1 = &CINTgout2e_int2e_spv1spsp2_simd1;
 if (out == NULL) {
 int n0 = int2e_cache_size(&envs);
 int n1 = CINTcgto_spinor(shls[0], bas) * envs.nfk * envs.x_ctr[2]
 * envs.nfl * envs.x_ctr[3] * CINTcgto_spinor(shls[1], bas);
 return MAX(n0, n0/2 + n1*envs.ncomp_e2*OF_CMPLX + envs.nf*32*OF_CMPLX);
 } else {
-int i, nc;
-if (envs.shls[0] == envs.shls[1]) {
-nc = CINTcgto_spinor(envs.shls[0], envs.bas)
-* CINTcgto_spinor(envs.shls[1], envs.bas)
-* CINTcgto_spinor(envs.shls[2], envs.bas)
-* CINTcgto_spinor(envs.shls[3], envs.bas);
-for (i = 0; i < nc * envs.ncomp_tensor; i++) { out[i] = 0; }
-return 0; }
-return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1, &c2s_si_2e2i);
-}} // int2e_gssp1ssp2_spinor
-ALL_CINT(int2e_gssp1ssp2)
-//ALL_CINT_FORTRAN_(cint2e_gssp1ssp2)
+return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1, &c2s_si_2e2);
+}} // int2e_spv1spsp2_spinor
+ALL_CINT(int2e_spv1spsp2)
+//ALL_CINT_FORTRAN_(cint2e_spv1spsp2)
+/* <SIGMA DOT P k i|R12 |SIGMA DOT P j SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
+ * = (i SIGMA DOT P j|R12 |SIGMA DOT P k SIGMA DOT P l) */
+static void CINTgout2e_int2e_vsp1spsp2(double *RESTRICT gout,
+double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
+int nf = envs->nf;
+int nrys_roots = envs->nrys_roots;
+int ix, iy, iz, i, n;
+double *RESTRICT g0 = g;
+double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g3 = g2 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g4 = g3 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g5 = g4 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g6 = g5 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g7 = g6 + envs->g_size * 3 * SIMDD;
+G2E_D_L(g1, g0, envs->i_l+0, envs->j_l+1, envs->k_l+1, envs->l_l+0);
+G2E_D_K(g2, g0, envs->i_l+0, envs->j_l+1, envs->k_l+0, envs->l_l);
+G2E_D_K(g3, g1, envs->i_l+0, envs->j_l+1, envs->k_l+0, envs->l_l);
+G2E_D_J(g4, g0, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
+G2E_D_J(g5, g1, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
+G2E_D_J(g6, g2, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
+G2E_D_J(g7, g3, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
+__MD r1;
+__MD rs[27];
+for (n = 0; n < nf; n++) {
+ix = idx[0+n*3];
+iy = idx[1+n*3];
+iz = idx[2+n*3];
+for (i = 0; i < 27; i++) { rs[i] = MM_SET1(0.); }
+for (i = 0; i < nrys_roots; i++) {
+rs[0] += MM_LOAD(g7+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[1] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[2] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[3] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[4] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[5] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[6] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[7] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[8] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[9] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[10] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[11] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[12] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[13] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g7+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[14] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[15] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[16] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[17] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[18] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[19] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[20] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[21] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[22] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[23] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[24] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[25] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[26] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g7+(iz+i)*SIMDD);
+}
+r1 = - rs[5] + rs[7]; MM_STORE(gout+(n*16+0)*SIMDD, r1);
+r1 = - rs[14] + rs[16]; MM_STORE(gout+(n*16+1)*SIMDD, r1);
+r1 = - rs[23] + rs[25]; MM_STORE(gout+(n*16+2)*SIMDD, r1);
+MM_STORE(gout+(n*16+3)*SIMDD, MM_SET1(0.));
+r1 = - rs[6] + rs[2]; MM_STORE(gout+(n*16+4)*SIMDD, r1);
+r1 = - rs[15] + rs[11]; MM_STORE(gout+(n*16+5)*SIMDD, r1);
+r1 = - rs[24] + rs[20]; MM_STORE(gout+(n*16+6)*SIMDD, r1);
+MM_STORE(gout+(n*16+7)*SIMDD, MM_SET1(0.));
+r1 = - rs[1] + rs[3]; MM_STORE(gout+(n*16+8)*SIMDD, r1);
+r1 = - rs[10] + rs[12]; MM_STORE(gout+(n*16+9)*SIMDD, r1);
+r1 = - rs[19] + rs[21]; MM_STORE(gout+(n*16+10)*SIMDD, r1);
+MM_STORE(gout+(n*16+11)*SIMDD, MM_SET1(0.));
+r1 = - rs[0] - rs[4] - rs[8]; MM_STORE(gout+(n*16+12)*SIMDD, r1);
+r1 = - rs[9] - rs[13] - rs[17]; MM_STORE(gout+(n*16+13)*SIMDD, r1);
+r1 = - rs[18] - rs[22] - rs[26]; MM_STORE(gout+(n*16+14)*SIMDD, r1);
+MM_STORE(gout+(n*16+15)*SIMDD, MM_SET1(0.));
+}}
+static void CINTgout2e_int2e_vsp1spsp2_simd1(double *RESTRICT gout,
+double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
+int nf = envs->nf;
+int nrys_roots = envs->nrys_roots;
+int ix, iy, iz, i, n;
+double *RESTRICT g0 = g;
+double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g3 = g2 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g4 = g3 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g5 = g4 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g6 = g5 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g7 = g6 + envs->g_size * 3 * SIMDD;
+G2E_D_L_SIMD1(g1, g0, envs->i_l+0, envs->j_l+1, envs->k_l+1, envs->l_l+0);
+G2E_D_K_SIMD1(g2, g0, envs->i_l+0, envs->j_l+1, envs->k_l+0, envs->l_l);
+G2E_D_K_SIMD1(g3, g1, envs->i_l+0, envs->j_l+1, envs->k_l+0, envs->l_l);
+G2E_D_J_SIMD1(g4, g0, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
+G2E_D_J_SIMD1(g5, g1, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
+G2E_D_J_SIMD1(g6, g2, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
+G2E_D_J_SIMD1(g7, g3, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
+ALIGNMM double s[27];
+for (n = 0; n < nf; n++) {
+ix = idx[0+n*3];
+iy = idx[1+n*3];
+iz = idx[2+n*3];
+for (i = 0; i < 27; i++) { s[i] = 0; }
+for (i = 0; i < nrys_roots; i++) {
+s[0] += g7[ix+i] * g0[iy+i] * g0[iz+i];
+s[1] += g6[ix+i] * g1[iy+i] * g0[iz+i];
+s[2] += g6[ix+i] * g0[iy+i] * g1[iz+i];
+s[3] += g5[ix+i] * g2[iy+i] * g0[iz+i];
+s[4] += g4[ix+i] * g3[iy+i] * g0[iz+i];
+s[5] += g4[ix+i] * g2[iy+i] * g1[iz+i];
+s[6] += g5[ix+i] * g0[iy+i] * g2[iz+i];
+s[7] += g4[ix+i] * g1[iy+i] * g2[iz+i];
+s[8] += g4[ix+i] * g0[iy+i] * g3[iz+i];
+s[9] += g3[ix+i] * g4[iy+i] * g0[iz+i];
+s[10] += g2[ix+i] * g5[iy+i] * g0[iz+i];
+s[11] += g2[ix+i] * g4[iy+i] * g1[iz+i];
+s[12] += g1[ix+i] * g6[iy+i] * g0[iz+i];
+s[13] += g0[ix+i] * g7[iy+i] * g0[iz+i];
+s[14] += g0[ix+i] * g6[iy+i] * g1[iz+i];
+s[15] += g1[ix+i] * g4[iy+i] * g2[iz+i];
+s[16] += g0[ix+i] * g5[iy+i] * g2[iz+i];
+s[17] += g0[ix+i] * g4[iy+i] * g3[iz+i];
+s[18] += g3[ix+i] * g0[iy+i] * g4[iz+i];
+s[19] += g2[ix+i] * g1[iy+i] * g4[iz+i];
+s[20] += g2[ix+i] * g0[iy+i] * g5[iz+i];
+s[21] += g1[ix+i] * g2[iy+i] * g4[iz+i];
+s[22] += g0[ix+i] * g3[iy+i] * g4[iz+i];
+s[23] += g0[ix+i] * g2[iy+i] * g5[iz+i];
+s[24] += g1[ix+i] * g0[iy+i] * g6[iz+i];
+s[25] += g0[ix+i] * g1[iy+i] * g6[iz+i];
+s[26] += g0[ix+i] * g0[iy+i] * g7[iz+i];
+}
+gout[n*16+0] = - s[5] + s[7];
+gout[n*16+1] = - s[14] + s[16];
+gout[n*16+2] = - s[23] + s[25];
+gout[n*16+3] = 0;
+gout[n*16+4] = - s[6] + s[2];
+gout[n*16+5] = - s[15] + s[11];
+gout[n*16+6] = - s[24] + s[20];
+gout[n*16+7] = 0;
+gout[n*16+8] = - s[1] + s[3];
+gout[n*16+9] = - s[10] + s[12];
+gout[n*16+10] = - s[19] + s[21];
+gout[n*16+11] = 0;
+gout[n*16+12] = - s[0] - s[4] - s[8];
+gout[n*16+13] = - s[9] - s[13] - s[17];
+gout[n*16+14] = - s[18] - s[22] - s[26];
+gout[n*16+15] = 0;
+}}
+void int2e_vsp1spsp2_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
+int ng[] = {0, 1, 1, 1, 3, 4, 4, 1};
+CINTall_2e_optimizer(opt, ng, atm, natm, bas, nbas, env);
+}
+int int2e_vsp1spsp2_cart(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {0, 1, 1, 1, 3, 4, 4, 1};
+CINTEnvVars envs;
+CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout2e_int2e_vsp1spsp2;
+envs.f_gout_simd1 = &CINTgout2e_int2e_vsp1spsp2_simd1;
+if (out == NULL) { return int2e_cache_size(&envs);
+} else {
+return CINT2e_cart_drv(out, dims, &envs, opt, cache);
+}} // int2e_vsp1spsp2_cart
+int int2e_vsp1spsp2_sph(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {0, 1, 1, 1, 3, 4, 4, 1};
+CINTEnvVars envs;
+CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout2e_int2e_vsp1spsp2;
+envs.f_gout_simd1 = &CINTgout2e_int2e_vsp1spsp2_simd1;
+if (out == NULL) { return int2e_cache_size(&envs) + envs.nf*MAX(0, 3-SIMDD);
+} else {
+return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
+}} // int2e_vsp1spsp2_sph
+int int2e_vsp1spsp2_spinor(double complex *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {0, 1, 1, 1, 3, 4, 4, 1};
+CINTEnvVars envs;
+CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout2e_int2e_vsp1spsp2;
+envs.f_gout_simd1 = &CINTgout2e_int2e_vsp1spsp2_simd1;
+if (out == NULL) {
+int n0 = int2e_cache_size(&envs);
+int n1 = CINTcgto_spinor(shls[0], bas) * envs.nfk * envs.x_ctr[2]
+* envs.nfl * envs.x_ctr[3] * CINTcgto_spinor(shls[1], bas);
+return MAX(n0, n0/2 + n1*envs.ncomp_e2*OF_CMPLX + envs.nf*32*OF_CMPLX);
+} else {
+return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1, &c2s_si_2e2);
+}} // int2e_vsp1spsp2_spinor
+ALL_CINT(int2e_vsp1spsp2)
+//ALL_CINT_FORTRAN_(cint2e_vsp1spsp2)

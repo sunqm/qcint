@@ -22,14 +22,18 @@
 #include <math.h>
 #include <assert.h>
 #include "cint_bas.h"
+#include "simd.h"
 #include "misc.h"
 #include "g1e.h"
+#include "rys_roots.h"
 
-#define MAX(X,Y) (X)>(Y)?(X):(Y)
+#define DEF_GXYZ(type, G, GX, GY, GZ) \
+        type *GX = G; \
+        type *GY = G + envs->g_size     * SIMDD; \
+        type *GZ = G + envs->g_size * 2 * SIMDD
 
-FINT CINTinit_int3c1e_EnvVars(CINTEnvVars *envs, const FINT *ng, const FINT *shls,
-                             const FINT *atm, const FINT natm,
-                             const FINT *bas, const FINT nbas, const double *env)
+void CINTinit_int3c1e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
+                              int *atm, int natm, int *bas, int nbas, double *env)
 {
         envs->natm = natm;
         envs->nbas = nbas;
@@ -38,364 +42,291 @@ FINT CINTinit_int3c1e_EnvVars(CINTEnvVars *envs, const FINT *ng, const FINT *shl
         envs->env = env;
         envs->shls = shls;
 
-        const FINT i_sh = shls[0];
-        const FINT j_sh = shls[1];
-        const FINT k_sh = shls[2];
+        int i_sh = shls[0];
+        int j_sh = shls[1];
+        int k_sh = shls[2];
         envs->i_l = bas(ANG_OF, i_sh);
         envs->j_l = bas(ANG_OF, j_sh);
         envs->k_l = bas(ANG_OF, k_sh);
-        envs->i_prim = bas(NPRIM_OF, i_sh);
-        envs->j_prim = bas(NPRIM_OF, j_sh);
-        envs->k_prim = bas(NPRIM_OF, k_sh);
-        envs->i_ctr = bas(NCTR_OF, i_sh);
-        envs->j_ctr = bas(NCTR_OF, j_sh);
-        envs->k_ctr = bas(NCTR_OF, k_sh);
+        envs->x_ctr[0] = bas(NCTR_OF, i_sh);
+        envs->x_ctr[1] = bas(NCTR_OF, j_sh);
+        envs->x_ctr[2] = bas(NCTR_OF, k_sh);
+        envs->x_ctr[3] = 1;
         envs->nfi = (envs->i_l+1)*(envs->i_l+2)/2;
         envs->nfj = (envs->j_l+1)*(envs->j_l+2)/2;
         envs->nfk = (envs->k_l+1)*(envs->k_l+2)/2;
-        envs->nf = envs->nfi * envs->nfj * envs->nfk;
-
-        envs->ri = env + atm(PTR_COORD, bas(ATOM_OF, i_sh));
-        envs->rj = env + atm(PTR_COORD, bas(ATOM_OF, j_sh));
-        envs->rk = env + atm(PTR_COORD, bas(ATOM_OF, k_sh));
+        envs->nf = envs->nfi * envs->nfk * envs->nfj;
+        envs->common_factor = 1;
 
         envs->gbits = ng[GSHIFT];
         envs->ncomp_e1 = ng[POS_E1];
+        envs->ncomp_e2 = 0;
         envs->ncomp_tensor = ng[TENSOR];
 
         envs->li_ceil = envs->i_l + ng[IINC];
         envs->lj_ceil = envs->j_l + ng[JINC];
         envs->lk_ceil = envs->k_l + ng[KINC];
 
-        envs->common_factor = SQRTPI * M_PI
-                * CINTcommon_fac_sp(envs->i_l) * CINTcommon_fac_sp(envs->j_l)
-                * CINTcommon_fac_sp(envs->k_l);
+        envs->ri = env + atm(PTR_COORD, bas(ATOM_OF, i_sh));
+        envs->rj = env + atm(PTR_COORD, bas(ATOM_OF, j_sh));
+        envs->rk = env + atm(PTR_COORD, bas(ATOM_OF, k_sh));
 
-        FINT dli = envs->li_ceil + 1;
-        FINT dlj = envs->lj_ceil + envs->lk_ceil + 1;
-        FINT dlk = envs->lk_ceil + 1;
-        envs->g_stride_i = 1;
-        envs->g_stride_j = dli;
-        envs->g_stride_k = dli * dlj;
-        FINT nmax = envs->li_ceil + dlj;
-        envs->g_size     = MAX(dli*dlj*dlk, dli*nmax);
+        if (ng[RYS_ROOTS] == 0) {
+                envs->nrys_roots = (envs->li_ceil + envs->lj_ceil + envs->lk_ceil)/2 + 1;
+        } else {
+                envs->nrys_roots = ng[RYS_ROOTS];
+        }
+        int dli = envs->li_ceil + 1;
+        int dlj = envs->lj_ceil + envs->lk_ceil + 1;
+        int dlk = envs->lk_ceil + 1;
+        int nmax = envs->li_ceil + dlj;
+        envs->g_stride_i = envs->nrys_roots;
+        envs->g_stride_j = dli * envs->nrys_roots;
+        envs->g_stride_k = dli * dlj * envs->nrys_roots;
+        envs->g_size     = MAX(dli*dlj*dlk, dli*nmax) * envs->nrys_roots;
 
         envs->rirj[0] = envs->ri[0] - envs->rj[0];
         envs->rirj[1] = envs->ri[1] - envs->rj[1];
         envs->rirj[2] = envs->ri[2] - envs->rj[2];
-        return 0;
+        envs->rkrl[0] = envs->rj[0] - envs->rk[0];
+        envs->rkrl[1] = envs->rj[1] - envs->rk[1];
+        envs->rkrl[2] = envs->rj[2] - envs->rk[2];
+
+        envs->ll_ceil = 1;
+        envs->g_stride_l = 0;
 }
 
-void CINTg3c1e_index_xyz(FINT *idx, const CINTEnvVars *envs)
+void CINTg3c1e_ovlp(double *g, CINTEnvVars *envs, int count)
 {
-        const FINT i_l = envs->i_l;
-        const FINT j_l = envs->j_l;
-        const FINT k_l = envs->k_l;
-        const FINT nfi = envs->nfi;
-        const FINT nfj = envs->nfj;
-        const FINT nfk = envs->nfk;
-        const FINT dj = envs->g_stride_j;
-        const FINT dk = envs->g_stride_k;
-        FINT i, j, k, n;
-        FINT ofx, ofjx, ofkx;
-        FINT ofy, ofjy, ofky;
-        FINT ofz, ofjz, ofkz;
-        FINT i_nx[CART_MAX], i_ny[CART_MAX], i_nz[CART_MAX];
-        FINT j_nx[CART_MAX], j_ny[CART_MAX], j_nz[CART_MAX];
-        FINT k_nx[CART_MAX], k_ny[CART_MAX], k_nz[CART_MAX];
-
-        CINTcart_comp(i_nx, i_ny, i_nz, i_l);
-        CINTcart_comp(j_nx, j_ny, j_nz, j_l);
-        CINTcart_comp(k_nx, k_ny, k_nz, k_l);
-
-        ofx = 0;
-        ofy = envs->g_size;
-        ofz = envs->g_size * 2;
-        n = 0;
-        for (k = 0; k < nfk; k++) {
-                ofkx = ofx + dk * k_nx[k];
-                ofky = ofy + dk * k_ny[k];
-                ofkz = ofz + dk * k_nz[k];
-                for (j = 0; j < nfj; j++) {
-                        ofjx = ofkx + dj * j_nx[j];
-                        ofjy = ofky + dj * j_ny[j];
-                        ofjz = ofkz + dj * j_nz[j];
-                        for (i = 0; i < nfi; i++) {
-                                idx[n+0] = ofjx + i_nx[i];
-                                idx[n+1] = ofjy + i_ny[i];
-                                idx[n+2] = ofjz + i_nz[i];
-                                n += 3;
-                        }
-                }
-        }
-}
-
-
-void CINTg3c1e_ovlp(double *g, double ai, double aj, double ak,
-                    double fac, const CINTEnvVars *envs)
-{
-        const FINT li = envs->li_ceil;
-        const FINT lj = envs->lj_ceil;
-        const FINT lk = envs->lk_ceil;
-        const FINT nmax = li + lj + lk;
-        const FINT mmax = lj + lk;
+        int li = envs->li_ceil;
+        int lj = envs->lj_ceil;
+        int lk = envs->lk_ceil;
+        int nmax = li + lj + lk;
+        int mmax = lj + lk;
         double *gx = g;
-        double *gy = g + envs->g_size;
-        double *gz = g + envs->g_size * 2;
-        gx[0] = 1;
-        gy[0] = 1;
-        gz[0] = fac;
+        double *gy = g + envs->g_size     * SIMDD;
+        double *gz = g + envs->g_size * 2 * SIMDD;
+
+        __MD aijk;
+        aijk = MM_LOAD(envs->ai) + MM_LOAD(envs->aj) + MM_LOAD(envs->ak);
+        MM_STORE(gx, MM_SET1(1.));
+        MM_STORE(gy, MM_SET1(1.));
+        MM_STORE(gz, MM_LOAD(envs->fac) / (aijk * MM_SQRT(aijk)));
+
         if (nmax == 0) {
                 return;
         }
 
-        FINT dj = li + 1;
-        const FINT dk = envs->g_stride_k;
-        const double aijk = ai + aj + ak;
-        const double aijk1 = .5 / aijk;
-        const double *ri = envs->ri;
-        const double *rj = envs->rj;
-        const double *rk = envs->rk;
-        FINT i, j, k, off;
-        const double *rirj = envs->rirj;
-        double rjrk[3], rjrijk[3];
+        int dj = envs->g_stride_j;
+        int dk = envs->g_stride_k;
+        double *ri = envs->ri;
+        double *rj = envs->rj;
+        double *rk = envs->rk;
+        double *rirj = envs->rirj;
+        double *rjrk = envs->rkrl;
+        __MD r0, r1, r2;
 
-        rjrk[0] = rj[0] - rk[0];
-        rjrk[1] = rj[1] - rk[1];
-        rjrk[2] = rj[2] - rk[2];
+        r0 = MM_SET1(rj[0]);
+        r1 = MM_SET1(rj[1]);
+        r2 = MM_SET1(rj[2]);
+        r0 = (MM_LOAD(envs->ai) * MM_SET1(ri[0]) + MM_LOAD(envs->aj) * r0 + MM_LOAD(envs->ak) * MM_SET1(rk[0])) / aijk - r0;
+        r1 = (MM_LOAD(envs->ai) * MM_SET1(ri[1]) + MM_LOAD(envs->aj) * r1 + MM_LOAD(envs->ak) * MM_SET1(rk[1])) / aijk - r1;
+        r2 = (MM_LOAD(envs->ai) * MM_SET1(ri[2]) + MM_LOAD(envs->aj) * r2 + MM_LOAD(envs->ak) * MM_SET1(rk[2])) / aijk - r2;
 
-        rjrijk[0] = rj[0] - (ai * ri[0] + aj * rj[0] + ak * rk[0]) / aijk;
-        rjrijk[1] = rj[1] - (ai * ri[1] + aj * rj[1] + ak * rk[1]) / aijk;
-        rjrijk[2] = rj[2] - (ai * ri[2] + aj * rj[2] + ak * rk[2]) / aijk;
+        MM_STORE(gx+dj*SIMDD, r0 * MM_LOAD(gx+0));
+        MM_STORE(gy+dj*SIMDD, r1 * MM_LOAD(gy+0));
+        MM_STORE(gz+dj*SIMDD, r2 * MM_LOAD(gz+0));
 
-        gx[dj] = -rjrijk[0] * gx[0];
-        gy[dj] = -rjrijk[1] * gy[0];
-        gz[dj] = -rjrijk[2] * gz[0];
-
+        int i, j, k, off;
+        double *p0x, *p0y, *p0z;
+        double *p1x, *p1y, *p1z;
         double *p2x, *p2y, *p2z;
+        p0x = gx + dj * SIMDD;
+        p0y = gy + dj * SIMDD;
+        p0z = gz + dj * SIMDD;
+        p1x = gx - dj * SIMDD;
+        p1y = gy - dj * SIMDD;
+        p1z = gz - dj * SIMDD;
+
+        aijk = MM_SET1(.5) / aijk;
         for (j = 1; j < nmax; j++) {
-                gx[(j+1)*dj] = aijk1 * j * gx[(j-1)*dj] - rjrijk[0] * gx[j*dj];
-                gy[(j+1)*dj] = aijk1 * j * gy[(j-1)*dj] - rjrijk[1] * gy[j*dj];
-                gz[(j+1)*dj] = aijk1 * j * gz[(j-1)*dj] - rjrijk[2] * gz[j*dj];
+                MM_STORE(p0x+j*dj*SIMDD, aijk * MM_SET1(j) * MM_LOAD(p1x+j*dj*SIMDD) + r0 * MM_LOAD(gx+j*dj*SIMDD));
+                MM_STORE(p0y+j*dj*SIMDD, aijk * MM_SET1(j) * MM_LOAD(p1y+j*dj*SIMDD) + r1 * MM_LOAD(gy+j*dj*SIMDD));
+                MM_STORE(p0z+j*dj*SIMDD, aijk * MM_SET1(j) * MM_LOAD(p1z+j*dj*SIMDD) + r2 * MM_LOAD(gz+j*dj*SIMDD));
         }
+
+        r0 = MM_SET1(rirj[0]);
+        r1 = MM_SET1(rirj[1]);
+        r2 = MM_SET1(rirj[2]);
 
         for (i = 1; i <= li; i++) {
-                for (j = 0; j <= nmax-i; j++) { // upper limit lj+lk
-                        gx[i+j*dj] = gx[i-1+(j+1)*dj] - rirj[0] * gx[i-1+j*dj];
-                        gy[i+j*dj] = gy[i-1+(j+1)*dj] - rirj[1] * gy[i-1+j*dj];
-                        gz[i+j*dj] = gz[i-1+(j+1)*dj] - rirj[2] * gz[i-1+j*dj];
-                }
-        }
+        for (j = 0; j <= nmax-i; j++) { // upper limit lj+lk
+                MM_STORE(gx+(i+j*dj)*SIMDD, MM_LOAD(p0x+(i-1+j*dj)*SIMDD) - r0 * MM_LOAD(gx+(i-1+j*dj)*SIMDD));
+                MM_STORE(gy+(i+j*dj)*SIMDD, MM_LOAD(p0y+(i-1+j*dj)*SIMDD) - r1 * MM_LOAD(gy+(i-1+j*dj)*SIMDD));
+                MM_STORE(gz+(i+j*dj)*SIMDD, MM_LOAD(p0z+(i-1+j*dj)*SIMDD) - r2 * MM_LOAD(gz+(i-1+j*dj)*SIMDD));
+        } }
 
-        dj = envs->g_stride_j;
+        r0 = MM_SET1(rjrk[0]);
+        r1 = MM_SET1(rjrk[1]);
+        r2 = MM_SET1(rjrk[2]);
         for (k = 1; k <= lk; k++) {
-                for (j = 0; j <= mmax-k; j++) {
-                        off = k * dk + j * dj;
-                        for (i = off; i <= off+li; i++) {
-                                gx[i] = gx[i+dj-dk] + rjrk[0] * gx[i-dk];
-                                gy[i] = gy[i+dj-dk] + rjrk[1] * gy[i-dk];
-                                gz[i] = gz[i+dj-dk] + rjrk[2] * gz[i-dk];
-                        }
-                }
-        }
-}
-
-/*
- * ( \nabla i j | k )
- */
-void CINTnabla1i_3c1e(double *f, const double *g,
-                      const FINT li, const FINT lj, const FINT lk,
-                      const CINTEnvVars *envs)
-{
-        const FINT dj = envs->g_stride_j;
-        const FINT dk = envs->g_stride_k;
-        const double ai2 = -2 * envs->ai;
-        FINT i, j, k, ptr;
-        const double *gx = g;
-        const double *gy = g + envs->g_size;
-        const double *gz = g + envs->g_size * 2;
-        double *fx = f;
-        double *fy = f + envs->g_size;
-        double *fz = f + envs->g_size * 2;
-
-        for (k = 0; k <= lk; k++) {
-        for (j = 0; j <= lj; j++) {
-                ptr = dj * j + dk * k;
-                //f(...,0,...) = -2*ai*g(...,1,...)
-                fx[ptr] = ai2 * gx[ptr+1];
-                fy[ptr] = ai2 * gy[ptr+1];
-                fz[ptr] = ai2 * gz[ptr+1];
-                //f(...,i,...) = i*g(...,i-1,...)-2*ai*g(...,i+1,...)
-                for (i = 1; i <= li; i++) {
-                        fx[ptr+i] = i * gx[ptr+i-1] + ai2 * gx[ptr+i+1];
-                        fy[ptr+i] = i * gy[ptr+i-1] + ai2 * gy[ptr+i+1];
-                        fz[ptr+i] = i * gz[ptr+i-1] + ai2 * gz[ptr+i+1];
-                }
-        } }
-}
-
-/*
- * ( i \nabla j | k )
- */
-void CINTnabla1j_3c1e(double *f, const double *g,
-                      const FINT li, const FINT lj, const FINT lk,
-                      const CINTEnvVars *envs)
-{
-        const FINT dj = envs->g_stride_j;
-        const FINT dk = envs->g_stride_k;
-        const double aj2 = -2 * envs->aj;
-        FINT i, j, k, ptr;
-        const double *gx = g;
-        const double *gy = g + envs->g_size;
-        const double *gz = g + envs->g_size * 2;
-        double *fx = f;
-        double *fy = f + envs->g_size;
-        double *fz = f + envs->g_size * 2;
-
-        for (k = 0; k <= lk; k++) {
-                ptr = dk * k;
-                //f(...,0,...) = -2*aj*g(...,1,...)
-                for (i = ptr; i <= ptr+li; i++) {
-                        fx[i] = aj2 * gx[i+dj];
-                        fy[i] = aj2 * gy[i+dj];
-                        fz[i] = aj2 * gz[i+dj];
-                }
-                //f(...,j,...) = j*g(...,j-1,...)-2*aj*g(...,j+1,...)
-                for (j = 1; j <= lj; j++) {
-                        ptr = dj * j + dk * k;
-                        for (i = ptr; i <= ptr+li; i++) {
-                                fx[i] = j * gx[i-dj] + aj2 * gx[i+dj];
-                                fy[i] = j * gy[i-dj] + aj2 * gy[i+dj];
-                                fz[i] = j * gz[i-dj] + aj2 * gz[i+dj];
-                        }
-                }
-        }
-}
-
-/*
- * ( ij | \nabla k )
- */
-void CINTnabla1k_3c1e(double *f, const double *g,
-                      const FINT li, const FINT lj, const FINT lk,
-                      const CINTEnvVars *envs)
-{
-        const FINT dj = envs->g_stride_j;
-        const FINT dk = envs->g_stride_k;
-        const double ak2 = -2 * envs->ak;
-        FINT i, j, k, ptr;
-        const double *gx = g;
-        const double *gy = g + envs->g_size;
-        const double *gz = g + envs->g_size * 2;
-        double *fx = f;
-        double *fy = f + envs->g_size;
-        double *fz = f + envs->g_size * 2;
-
-        for (j = 0; j <= lj; j++) {
-                ptr = dj * j;
-                for (i = ptr; i <= ptr+li; i++) {
-                        fx[i] = ak2 * gx[i+dk];
-                        fy[i] = ak2 * gy[i+dk];
-                        fz[i] = ak2 * gz[i+dk];
-                }
-        }
-        for (k = 1; k <= lk; k++) {
-                for (j = 0; j <= lj; j++) {
-                        ptr = dj * j + dk * k;
-                        for (i = ptr; i <= ptr+li; i++) {
-                                fx[i] = k * gx[i-dk] + ak2 * gx[i+dk];
-                                fy[i] = k * gy[i-dk] + ak2 * gy[i+dk];
-                                fz[i] = k * gz[i-dk] + ak2 * gz[i+dk];
-                        }
-                }
-        }
-}
-
-
-/*
- * ( x^1 i j | k )
- * ri is the shift from the center R_O to the center of |i>
- * r - R_O = (r-R_i) + ri, ri = R_i - R_O
- */
-void CINTx1i_3c1e(double *f, const double *g, const double *ri,
-                  const FINT li, const FINT lj, const FINT lk,
-                  const CINTEnvVars *envs)
-{
-        FINT i, j, k, ptr;
-        const FINT dj = envs->g_stride_j;
-        const FINT dk = envs->g_stride_k;
-        const double *gx = g;
-        const double *gy = g + envs->g_size;
-        const double *gz = g + envs->g_size * 2;
-        double *fx = f;
-        double *fy = f + envs->g_size;
-        double *fz = f + envs->g_size * 2;
-
-        for (k = 0; k <= lk; k++) {
-        for (j = 0; j <= lj; j++) {
-                ptr = dj * j + dk * k;
-                for (i = ptr; i <= ptr+li; i++) {
-                        fx[i] = gx[i+1] + ri[0] * gx[i];
-                        fy[i] = gy[i+1] + ri[1] * gy[i];
-                        fz[i] = gz[i+1] + ri[2] * gz[i];
+        for (j = 0; j <= mmax-k; j++) {
+                off = k * dk + j * dj;
+                p0x = gx + off * SIMDD;
+                p0y = gy + off * SIMDD;
+                p0z = gz + off * SIMDD;
+                p2x = p0x - dk * SIMDD;
+                p2y = p0y - dk * SIMDD;
+                p2z = p0z - dk * SIMDD;
+                p1x = p2x + dj * SIMDD;
+                p1y = p2y + dj * SIMDD;
+                p1z = p2z + dj * SIMDD;
+                for (i = 0; i <= li; i++) {
+                        MM_STORE(p0x+i*SIMDD, MM_LOAD(p1x+i*SIMDD) + r0 * MM_LOAD(p2x+i*SIMDD));
+                        MM_STORE(p0y+i*SIMDD, MM_LOAD(p1y+i*SIMDD) + r1 * MM_LOAD(p2y+i*SIMDD));
+                        MM_STORE(p0z+i*SIMDD, MM_LOAD(p1z+i*SIMDD) + r2 * MM_LOAD(p2z+i*SIMDD));
                 }
         } }
 }
 
 
-/*
- * ( i x^1 j | k )
- */
-void CINTx1j_3c1e(double *f, const double *g, const double *rj,
-                  const FINT li, const FINT lj, const FINT lk,
-                  const CINTEnvVars *envs)
-{
-        FINT i, j, k, ptr;
-        const FINT dj = envs->g_stride_j;
-        const FINT dk = envs->g_stride_k;
-        const double *gx = g;
-        const double *gy = g + envs->g_size;
-        const double *gz = g + envs->g_size * 2;
-        double *fx = f;
-        double *fy = f + envs->g_size;
-        double *fz = f + envs->g_size * 2;
-
-        for (k = 0; k <= lk; k++) {
-        for (j = 0; j <= lj; j++) {
-                ptr = dj * j + dk * k;
-                for (i = ptr; i <= ptr+li; i++) {
-                        fx[i] = gx[i+dj] + rj[0] * gx[i];
-                        fy[i] = gy[i+dj] + rj[1] * gy[i];
-                        fz[i] = gz[i+dj] + rj[2] * gz[i];
-                }
-        } }
-}
-
-
-/*
- * ( ij | x^1 k )
- */
-void CINTx1k_3c1e(double *f, const double *g, const double *rk,
-                  const FINT li, const FINT lj, const FINT lk,
-                  const CINTEnvVars *envs)
-{
-        FINT i, j, k, ptr;
-        const FINT dj = envs->g_stride_j;
-        const FINT dk = envs->g_stride_k;
-        const double *gx = g;
-        const double *gy = g + envs->g_size;
-        const double *gz = g + envs->g_size * 2;
-        double *fx = f;
-        double *fy = f + envs->g_size;
-        double *fz = f + envs->g_size * 2;
-
-        for (k = 0; k <= lk; k++) {
-        for (j = 0; j <= lj; j++) {
-                ptr = dj * j + dk * k;
-                for (i = ptr; i <= ptr+li; i++) {
-                        fx[i] = gx[i+dk] + rk[0] * gx[i];
-                        fy[i] = gy[i+dk] + rk[1] * gy[i];
-                        fz[i] = gz[i+dk] + rk[2] * gz[i];
-                }
-        } }
-}
+//FIXME
+//void CINTg3c1e_nuc(double *g, CINTEnvVars *envs, int count, int nuc_id)
+//{
+//        int nmax = envs->li_ceil + envs->lj_ceil;
+//        int lj = envs->lj_ceil;
+//        int di = envs->g_stride_i;
+//        int dj = envs->g_stride_j;
+//        int nrys_roots = envs->nrys_roots;
+//        int *atm = envs->atm;
+//        double *env = envs->env;
+//        double *RESTRICT ri = envs->ri;
+//        double *RESTRICT rij = envs->rij;
+//        double *RESTRICT rirj = envs->rirj;
+//        ALIGNMM double tau[SIMDD];
+//        ALIGNMM double x[SIMDD];
+//        ALIGNMM double u[MXRYSROOTS*SIMDD];
+//        ALIGNMM double w[MXRYSROOTS*SIMDD];
+//        ALIGNMM double t2[MXRYSROOTS*SIMDD];
+//        ALIGNMM double ri0x[MXRYSROOTS*SIMDD];
+//        ALIGNMM double ri0y[MXRYSROOTS*SIMDD];
+//        ALIGNMM double ri0z[MXRYSROOTS*SIMDD];
+//        double *cr, *p0x, *p0y, *p0z, *p1x, *p1y, *p1z, *p2x, *p2y, *p2z;
+//        int i, j, k, n, ptr, off;
+//        __MD crij[3];
+//        __MD r0, r1, rt2, fac1, aijk;
+//
+//        aijk = MM_LOAD(envs->ai) + MM_LOAD(envs->aj) + MM_LOAD(envs->ak);
+//        MM_STORE(tau, aijk);
+//        for (k = 0; k < count; k++) {
+//                tau[k] = CINTnuc_mod(tau[k], nuc_id, atm, env);
+//        }
+//
+//        if (nuc_id < 0) {
+//                fac1 = 2*M_PI * MM_LOAD(envs->fac) * MM_LOAD(tau) / aijk;
+//                cr = env + PTR_RINV_ORIG;
+//        } else {
+//                fac1 = 2*M_PI * MM_SET1(-fabs(atm[CHARGE_OF+nuc_id*ATM_SLOTS]));
+//                fac1 = fac1 * MM_LOAD(envs->fac) * MM_LOAD(tau) / aijk;
+//                cr = env + atm(PTR_COORD, nuc_id);
+//        }
+//        crij[0] = cr[0] - MM_LOAD(rij+0*SIMDD);
+//        crij[1] = cr[1] - MM_LOAD(rij+1*SIMDD);
+//        crij[2] = cr[2] - MM_LOAD(rij+2*SIMDD);
+//        MM_STORE(x, aijk * MM_LOAD(tau) * MM_LOAD(tau) * SQUARE(crij));
+//        for (i = 0; i < nrys_roots*SIMDD; i++) {
+//                u[i] = 0;
+//                w[i] = 0;
+//        }
+//        CINTrys_roots(nrys_roots, x, u, w, count);
+//
+//        double *gx = g;
+//        double *gy = g + envs->g_size     * SIMDD;
+//        double *gz = g + envs->g_size * 2 * SIMDD;
+//        r1 = MM_SET1(1.);
+//        for (i = 0; i < nrys_roots; i++) {
+//                MM_STORE(gx+i*SIMDD, r1);
+//                MM_STORE(gy+i*SIMDD, r1);
+//                MM_STORE(gz+i*SIMDD, fac1 * MM_LOAD(w+i*SIMDD));
+//        }
+//        if (envs->g_size == 1) {
+//                return;
+//        }
+//
+//        r1 = MM_SET1(1.) * MM_LOAD(tau) * MM_LOAD(tau);
+//        r0 = MM_SET1(0.5);
+//        for (i = 0; i < nrys_roots; i++) {
+//                rt2 = MM_DIV(r1 * MM_LOAD(u+i*SIMDD), r1 + MM_LOAD(u+i*SIMDD));
+//                MM_STORE(ri0x+i*SIMDD, ri[0] - (MM_LOAD(rij+0*SIMDD) + rt2 * crij[0]));
+//                MM_STORE(ri0y+i*SIMDD, ri[1] - (MM_LOAD(rij+1*SIMDD) + rt2 * crij[1]));
+//                MM_STORE(ri0z+i*SIMDD, ri[2] - (MM_LOAD(rij+2*SIMDD) + rt2 * crij[2]));
+//                MM_STORE(t2+i*SIMDD, MM_DIV(r0 - r0 * rt2, aijk));
+//        }
+//
+//        double *p0x, *p0y, *p0z;
+//        double *p1x, *p1y, *p1z;
+//        double *p2x, *p2y, *p2z;
+//        p0x = gx + dj * SIMDD;
+//        p0y = gy + dj * SIMDD;
+//        p0z = gz + dj * SIMDD;
+//        p1x = gx - dj * SIMDD;
+//        p1y = gy - dj * SIMDD;
+//        p1z = gz - dj * SIMDD;
+//
+//        aijk = MM_SET1(.5) / aijk;
+//        for (j = 1; j < nmax; j++) {
+//                ptr = j * dj;
+//                for (n = ptr; n < ptr+nroots; n++) {
+//                        MM_STORE(p0x+n*SIMDD, aijk * MM_SET1(j) * MM_LOAD(p1x+n*SIMDD) + r0 * MM_LOAD(gx+n*SIMDD));
+//                        MM_STORE(p0y+n*SIMDD, aijk * MM_SET1(j) * MM_LOAD(p1y+n*SIMDD) + r1 * MM_LOAD(gy+n*SIMDD));
+//                        MM_STORE(p0z+n*SIMDD, aijk * MM_SET1(j) * MM_LOAD(p1z+n*SIMDD) + r2 * MM_LOAD(gz+n*SIMDD));
+//                }
+//        }
+//
+//        r0 = MM_SET1(rirj[0]);
+//        r1 = MM_SET1(rirj[1]);
+//        r2 = MM_SET1(rirj[2]);
+//
+//        for (i = 1; i <= li; i++) {
+//        for (j = 0; j <= nmax-i; j++) { // upper limit lj+lk
+//                off = i * di + j * dj;
+//                p0x = gx + off * SIMDD;
+//                p0y = gy + off * SIMDD;
+//                p0z = gz + off * SIMDD;
+//                p2x = p0x - di * SIMDD;
+//                p2y = p0y - di * SIMDD;
+//                p2z = p0z - di * SIMDD;
+//                p1x = p2x + dj * SIMDD;
+//                p1y = p2y + dj * SIMDD;
+//                p1z = p2z + dj * SIMDD;
+//                for (n = 0; n < nroots; n++) {
+//                        MM_STORE(p0x+n*SIMDD, MM_LOAD(p1x+n*SIMDD) - r0 * MM_LOAD(p2x+n*SIMDD));
+//                        MM_STORE(p0y+n*SIMDD, MM_LOAD(p1y+n*SIMDD) - r1 * MM_LOAD(p2y+n*SIMDD));
+//                        MM_STORE(p0z+n*SIMDD, MM_LOAD(p1z+n*SIMDD) - r2 * MM_LOAD(p2z+n*SIMDD));
+//                }
+//        } }
+//
+//        r0 = MM_SET1(rjrk[0]);
+//        r1 = MM_SET1(rjrk[1]);
+//        r2 = MM_SET1(rjrk[2]);
+//        for (k = 1; k <= lk; k++) {
+//        for (j = 0; j <= mmax-k; j++) {
+//                off = k * dk + j * dj;
+//                p0x = gx + off * SIMDD;
+//                p0y = gy + off * SIMDD;
+//                p0z = gz + off * SIMDD;
+//                p2x = p0x - dk * SIMDD;
+//                p2y = p0y - dk * SIMDD;
+//                p2z = p0z - dk * SIMDD;
+//                p1x = p2x + dj * SIMDD;
+//                p1y = p2y + dj * SIMDD;
+//                p1z = p2z + dj * SIMDD;
+//                for (i = 0; i <= li; i++) {
+//                for (n = i*di; n < i*di+nroots; n++) {
+//                        MM_STORE(p0x+n*SIMDD, MM_LOAD(p1x+n*SIMDD) + r0 * MM_LOAD(p2x+n*SIMDD));
+//                        MM_STORE(p0y+n*SIMDD, MM_LOAD(p1y+n*SIMDD) + r1 * MM_LOAD(p2y+n*SIMDD));
+//                        MM_STORE(p0z+n*SIMDD, MM_LOAD(p1z+n*SIMDD) + r2 * MM_LOAD(p2z+n*SIMDD));
+//                } }
+//        } }
+//}
 

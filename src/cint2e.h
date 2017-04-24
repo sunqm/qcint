@@ -18,29 +18,34 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
+#include <complex.h>
 
 void CINT2e_core(double *gout, double *g, double fac1i,
-                 CINTEnvVars *envs, FINT empty);
+                 CINTEnvVars *envs, int empty);
 
-void CINTgout2e(double *g, double *gout, const FINT *idx,
-                const CINTEnvVars *envs, FINT gout_empty);
+void CINTgout2e      (double *gout, double *g, int *idx, CINTEnvVars *envs);
+void CINTgout2e_simd1(double *gout, double *g, int *idx, CINTEnvVars *envs);
 
-FINT CINT2e_loop(double *gctr, CINTEnvVars *envs, const CINTOpt *opt);
+int CINT2e_loop(double *gctr, CINTEnvVars *envs, CINTOpt *opt, double *cache);
 
-FINT CINT2e_drv(double *opijkl, CINTEnvVars *envs, const CINTOpt *opt,
-               void (*const f_e1_c2s)(), void (*const f_e2_c2s)());
+int CINT2e_cart_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
+                    double *cache);
+int CINT2e_spheric_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
+                       double *cache);
+int CINT2e_spinor_drv(double complex *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
+                      double *cache, void (*f_e1_c2s)(), void (*f_e2_c2s)());
 
-FINT CINT2e_cart_drv(double *opijkl, CINTEnvVars *envs, const CINTOpt *opt);
-FINT CINT2e_spheric_drv(double *opijkl, CINTEnvVars *envs, const CINTOpt *opt);
-FINT CINT2e_spinor_drv(double *opijkl, CINTEnvVars *envs, const CINTOpt *opt,
-                      void (*const f_e1_c2s)(), void (*const f_e2_c2s)());
-
-FINT CINT3c2e_cart_drv(double *opijk, CINTEnvVars *envs, const CINTOpt *opt);
-FINT CINT3c2e_spheric_drv(double *opijk, CINTEnvVars *envs, const CINTOpt *opt,
-                         void (*const f_e1_c2s)(), FINT is_ssc);
-FINT CINT3c2e_spinor_drv(double *opijk, CINTEnvVars *envs, const CINTOpt *opt,
-                        void (*const f_e1_c2s)(), FINT is_ssc);
-FINT CINT2c2e_cart_drv(double *opij, CINTEnvVars *envs, const CINTOpt *opt);
-FINT CINT2c2e_spheric_drv(double *opij, CINTEnvVars *envs, const CINTOpt *opt);
+int int2e_cache_size(CINTEnvVars *envs);
+int CINT3c2e_cart_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
+                      double *cache);
+int CINT3c2e_spheric_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
+                         double *cache);
+int CINT3c2e_spinor_drv(double complex *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
+                        double *cache, void (*f_e1_c2s)());
+int CINT2c2e_cart_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
+                      double *cache);
+int CINT2c2e_spheric_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
+                         double *cache);
+int CINT2c2e_spinor_drv(double complex *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
+                        double *cache, void (*f_e1_c2s)());
 

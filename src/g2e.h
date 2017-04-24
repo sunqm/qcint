@@ -18,64 +18,75 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
-#include "cint_const.h"
 #include "g1e.h"
 
-#ifndef HAVE_BC
-#define HAVE_BC
-struct _BC {
-        double c00[MXRYSROOTS*3];
-        double c0p[MXRYSROOTS*3];
-        double b01[MXRYSROOTS];
-        double b00[MXRYSROOTS];
-        double b10[MXRYSROOTS];
-};
+#ifndef HAVE_RYS2E
+#define HAVE_RYS2E
+typedef struct {
+        ALIGNMM double c00x[SIMDD*MXRYSROOTS];
+        ALIGNMM double c00y[SIMDD*MXRYSROOTS];
+        ALIGNMM double c00z[SIMDD*MXRYSROOTS];
+        ALIGNMM double c0px[SIMDD*MXRYSROOTS];
+        ALIGNMM double c0py[SIMDD*MXRYSROOTS];
+        ALIGNMM double c0pz[SIMDD*MXRYSROOTS];
+        ALIGNMM double b01[SIMDD*MXRYSROOTS];
+        ALIGNMM double b00[SIMDD*MXRYSROOTS];
+        ALIGNMM double b10[SIMDD*MXRYSROOTS];
+        ALIGNMM double u[MXRYSROOTS*SIMDD];
+        ALIGNMM double w[MXRYSROOTS*SIMDD];
+} Rys2eT;
 #endif
 
-void CINTg2e_index_xyz(FINT *idx, const CINTEnvVars *envs);
 
-FINT CINTinit_int2e_EnvVars(CINTEnvVars *envs, const FINT ng[],
-                           const FINT *shls,
-                           const FINT *atm, const FINT natm,
-                           const FINT *bas, const FINT nbas, const double *env);
+void CINTg4c_index_xyz(int *idx, CINTEnvVars *envs);
+void CINTg3c_index_xyz(int *idx, CINTEnvVars *envs);
+void CINTinit_int2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
+                            int *atm, int natm, int *bas, int nbas, double *env);
+void CINTinit_int3c2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
+                              int *atm, int natm, int *bas, int nbas, double *env);
+void CINTinit_int2c2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
+                              int *atm, int natm, int *bas, int nbas, double *env);
 
-void CINTg0_2e(double *g, const double fac, const CINTEnvVars *envs);
-void CINTg0_2e_2d(double *g, struct _BC *bc, const CINTEnvVars *envs);
+void CINTg0_2e_2d(double *g, Rys2eT *bc, CINTEnvVars *envs);
+void CINTg0_2e_2d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs);
+void CINTg0_2e(double *g, Rys2eT *bc, CINTEnvVars *envs, int count);
+void CINTg0_2e_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd);
 
-double CINTg0_2e_ssss(const double fac, const CINTEnvVars *envs);
+void CINTnabla1i_2e(double *f, double *g,
+                    int li, int lj, int lk, int ll, CINTEnvVars *envs);
+void CINTnabla1j_2e(double *f, double *g,
+                    int li, int lj, int lk, int ll, CINTEnvVars *envs);
+void CINTnabla1k_2e(double *f, double *g,
+                    int li, int lj, int lk, int ll, CINTEnvVars *envs);
+void CINTnabla1l_2e(double *f, double *g,
+                    int li, int lj, int lk, int ll, CINTEnvVars *envs);
 
-void CINTnabla1i_2e(double *f, const double *g,
-                    const FINT li, const FINT lj, const FINT lk, const FINT ll,
-                    const CINTEnvVars *envs);
+void CINTx1i_2e(double *f, double *g, double *ri,
+                int li, int lj, int lk, int ll, CINTEnvVars *envs);
+void CINTx1j_2e(double *f, double *g, double *rj,
+                int li, int lj, int lk, int ll, CINTEnvVars *envs);
+void CINTx1k_2e(double *f, double *g, double *rk,
+                int li, int lj, int lk, int ll, CINTEnvVars *envs);
+void CINTx1l_2e(double *f, double *g, double *rl,
+                int li, int lj, int lk, int ll, CINTEnvVars *envs);
 
-void CINTnabla1j_2e(double *f, const double *g,
-                    const FINT li, const FINT lj, const FINT lk, const FINT ll,
-                    const CINTEnvVars *envs);
+void CINTnabla1i_2e_simd1(double *f, double *g,
+                          int li, int lj, int lk, int ll, CINTEnvVars *envs);
+void CINTnabla1j_2e_simd1(double *f, double *g,
+                          int li, int lj, int lk, int ll, CINTEnvVars *envs);
+void CINTnabla1k_2e_simd1(double *f, double *g,
+                          int li, int lj, int lk, int ll, CINTEnvVars *envs);
+void CINTnabla1l_2e_simd1(double *f, double *g,
+                          int li, int lj, int lk, int ll, CINTEnvVars *envs);
 
-void CINTnabla1k_2e(double *f, const double *g,
-                    const FINT li, const FINT lj, const FINT lk, const FINT ll,
-                    const CINTEnvVars *envs);
-
-void CINTnabla1l_2e(double *f, const double *g,
-                    const FINT li, const FINT lj, const FINT lk, const FINT ll,
-                    const CINTEnvVars *envs);
-
-void CINTx1i_2e(double *f, const double *g, const double *ri,
-                const FINT li, const FINT lj, const FINT lk, const FINT ll,
-                const CINTEnvVars *envs);
-
-void CINTx1j_2e(double *f, const double *g, const double *rj,
-                const FINT li, const FINT lj, const FINT lk, const FINT ll,
-                const CINTEnvVars *envs);
-
-void CINTx1k_2e(double *f, const double *g, const double *rk,
-                const FINT li, const FINT lj, const FINT lk, const FINT ll,
-                const CINTEnvVars *envs);
-
-void CINTx1l_2e(double *f, const double *g, const double *rl,
-                const FINT li, const FINT lj, const FINT lk, const FINT ll,
-                const CINTEnvVars *envs);
+void CINTx1i_2e_simd1(double *f, double *g, double *ri,
+                      int li, int lj, int lk, int ll, CINTEnvVars *envs);
+void CINTx1j_2e_simd1(double *f, double *g, double *rj,
+                      int li, int lj, int lk, int ll, CINTEnvVars *envs);
+void CINTx1k_2e_simd1(double *f, double *g, double *rk,
+                      int li, int lj, int lk, int ll, CINTEnvVars *envs);
+void CINTx1l_2e_simd1(double *f, double *g, double *rl,
+                      int li, int lj, int lk, int ll, CINTEnvVars *envs);
 
 
 #define G2E_D_I(f, g, li, lj, lk, ll)   CINTnabla1i_2e(f, g, li, lj, lk, ll, envs)
@@ -83,10 +94,10 @@ void CINTx1l_2e(double *f, const double *g, const double *rl,
 #define G2E_D_K(f, g, li, lj, lk, ll)   CINTnabla1k_2e(f, g, li, lj, lk, ll, envs)
 #define G2E_D_L(f, g, li, lj, lk, ll)   CINTnabla1l_2e(f, g, li, lj, lk, ll, envs)
 /* r-R_0, R_0 is (0,0,0) */
-#define G2E_R0I(f, g, li, lj, lk, ll)   CINTx1i_2e(f, g, ri, li, lj, lk, ll, envs)
-#define G2E_R0J(f, g, li, lj, lk, ll)   CINTx1j_2e(f, g, rj, li, lj, lk, ll, envs)
-#define G2E_R0K(f, g, li, lj, lk, ll)   CINTx1k_2e(f, g, rk, li, lj, lk, ll, envs)
-#define G2E_R0L(f, g, li, lj, lk, ll)   CINTx1l_2e(f, g, rl, li, lj, lk, ll, envs)
+#define G2E_R0I(f, g, li, lj, lk, ll)   CINTx1i_2e(f, g, envs->ri, li, lj, lk, ll, envs)
+#define G2E_R0J(f, g, li, lj, lk, ll)   CINTx1j_2e(f, g, envs->rj, li, lj, lk, ll, envs)
+#define G2E_R0K(f, g, li, lj, lk, ll)   CINTx1k_2e(f, g, envs->rk, li, lj, lk, ll, envs)
+#define G2E_R0L(f, g, li, lj, lk, ll)   CINTx1l_2e(f, g, envs->rl, li, lj, lk, ll, envs)
 /* r-R_C, R_C is common origin */
 #define G2E_RCI(f, g, li, lj, lk, ll)   CINTx1i_2e(f, g, dri, li, lj, lk, ll, envs)
 #define G2E_RCJ(f, g, li, lj, lk, ll)   CINTx1j_2e(f, g, drj, li, lj, lk, ll, envs)
@@ -94,7 +105,29 @@ void CINTx1l_2e(double *f, const double *g, const double *rl,
 #define G2E_RCL(f, g, li, lj, lk, ll)   CINTx1l_2e(f, g, drl, li, lj, lk, ll, envs)
 /* origin from center of each basis
  * x1[ijkl]_2e(f, g, ng, li, lj, lk, ll, 0d0) */
-#define G2E_R_I(f, g, li, lj, lk, ll)   f = g + envs->g_stride_i
-#define G2E_R_K(f, g, li, lj, lk, ll)   f = g + envs->g_stride_k
-#define G2E_R_L(f, g, li, lj, lk, ll)   f = g + envs->g_stride_l
-#define G2E_R_J(f, g, li, lj, lk, ll)   f = g + envs->g_stride_j
+#define G2E_R_I(f, g, li, lj, lk, ll)   f = g + envs->g_stride_i * SIMDD
+#define G2E_R_K(f, g, li, lj, lk, ll)   f = g + envs->g_stride_k * SIMDD
+#define G2E_R_L(f, g, li, lj, lk, ll)   f = g + envs->g_stride_l * SIMDD
+#define G2E_R_J(f, g, li, lj, lk, ll)   f = g + envs->g_stride_j * SIMDD
+
+
+#define G2E_D_I_SIMD1(f, g, li, lj, lk, ll)   CINTnabla1i_2e_simd1(f, g, li, lj, lk, ll, envs)
+#define G2E_D_J_SIMD1(f, g, li, lj, lk, ll)   CINTnabla1j_2e_simd1(f, g, li, lj, lk, ll, envs)
+#define G2E_D_K_SIMD1(f, g, li, lj, lk, ll)   CINTnabla1k_2e_simd1(f, g, li, lj, lk, ll, envs)
+#define G2E_D_L_SIMD1(f, g, li, lj, lk, ll)   CINTnabla1l_2e_simd1(f, g, li, lj, lk, ll, envs)
+/* r-R_0, R_0 is (0,0,0) */
+#define G2E_R0I_SIMD1(f, g, li, lj, lk, ll)   CINTx1i_2e_simd1(f, g, envs->ri, li, lj, lk, ll, envs)
+#define G2E_R0J_SIMD1(f, g, li, lj, lk, ll)   CINTx1j_2e_simd1(f, g, envs->rj, li, lj, lk, ll, envs)
+#define G2E_R0K_SIMD1(f, g, li, lj, lk, ll)   CINTx1k_2e_simd1(f, g, envs->rk, li, lj, lk, ll, envs)
+#define G2E_R0L_SIMD1(f, g, li, lj, lk, ll)   CINTx1l_2e_simd1(f, g, envs->rl, li, lj, lk, ll, envs)
+/* r-R_C, R_C is common origin */
+#define G2E_RCI_SIMD1(f, g, li, lj, lk, ll)   CINTx1i_2e_simd1(f, g, dri, li, lj, lk, ll, envs)
+#define G2E_RCJ_SIMD1(f, g, li, lj, lk, ll)   CINTx1j_2e_simd1(f, g, drj, li, lj, lk, ll, envs)
+#define G2E_RCK_SIMD1(f, g, li, lj, lk, ll)   CINTx1k_2e_simd1(f, g, drk, li, lj, lk, ll, envs)
+#define G2E_RCL_SIMD1(f, g, li, lj, lk, ll)   CINTx1l_2e_simd1(f, g, drl, li, lj, lk, ll, envs)
+/* origin from center of each basis
+ * x1[ijkl]_2e(f, g, ng, li, lj, lk, ll, 0d0) */
+#define G2E_R_I_SIMD1(f, g, li, lj, lk, ll)   f = g + envs->g_stride_i
+#define G2E_R_K_SIMD1(f, g, li, lj, lk, ll)   f = g + envs->g_stride_k
+#define G2E_R_L_SIMD1(f, g, li, lj, lk, ll)   f = g + envs->g_stride_l
+#define G2E_R_J_SIMD1(f, g, li, lj, lk, ll)   f = g + envs->g_stride_j

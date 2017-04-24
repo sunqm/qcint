@@ -18,16 +18,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
-
 #define __CVAR_CALL__   atm, *natm, bas, *nbas, env
-#define __FVAR_FUNC__   const FINT *atm, const FINT *natm, \
-                        const FINT *bas, const FINT *nbas, const double *env
-#define C2F_(NAME)      FINT NAME##_(double *op, const FINT *shls, \
+#define __FVAR_FUNC__   int *atm, int *natm, \
+                        int *bas, int *nbas, double *env
+#define C2F_(NAME)      int NAME##_(double *op, int *shls, \
                                     __FVAR_FUNC__) \
                         { return NAME(op, shls, __CVAR_CALL__); }
 // C2Fo for 2e integrals with optimizer
-#define C2Fo_(NAME)     FINT NAME##_(double *op, const FINT *shls, \
+#define C2Fo_(NAME)     int NAME##_(double *op, int *shls, \
                                     __FVAR_FUNC__, unsigned long *optptr) \
                         { CINTOpt *opt = (CINTOpt *)*optptr; \
                             return NAME(op, shls, __CVAR_CALL__, opt); }
@@ -37,3 +35,12 @@ typedef long CINTOptPtrAsInteger8;
     void NAME##_(CINTOptPtrAsInteger8 *optptr, __FVAR_FUNC__) { \
         CINTOpt **opt = (CINTOpt **)optptr; \
         NAME(opt, __CVAR_CALL__); }
+
+#define ALL_CINT_FORTRAN_(NAME) \
+    C2Fo_(NAME##_cart); \
+    C2Fo_(NAME##_sph); \
+    C2Fo_(NAME); \
+    OPTIMIZER2F_(NAME##_cart_optimizer); \
+    OPTIMIZER2F_(NAME##_sph_optimizer); \
+    OPTIMIZER2F_(NAME##_optimizer);
+

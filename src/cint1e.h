@@ -18,18 +18,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
+#include <complex.h>
 
-FINT CINT1e_loop(double *gctr, CINTEnvVars *envs, double fac);
+int CINT1e_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
+               double *cache, void (*f_c2s)());
+int CINT1e_spinor_drv(double complex *out, int *dims, CINTEnvVars *envs,
+                      CINTOpt *opt, double *cache, void (*f_c2s)());
+int int1e_cache_size(CINTEnvVars *envs);
 
-FINT CINT1e_nuc_loop(double *gctr, CINTEnvVars *envs, double fac, FINT nuc_id);
-
-FINT CINT1e_drv(double *opij, CINTEnvVars *envs, double fac,
-               void (*const f_c2s)());
-
-FINT CINT1e_rinv_drv(double *opij, CINTEnvVars *envs, double fac,
-                    void (*const f_c2s)());
-
-FINT CINT1e_nuc_drv(double *opij, CINTEnvVars *envs, double fac,
-                    void (*const f_c2s)());
-
+int CINT3c1e_cart_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
+                      double *cache);
+int CINT3c1e_spheric_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
+                         double *cache);
+int CINT3c1e_spinor_drv(double complex *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
+                        double *cache, void (*f_e1_c2s)());
+int int3c1e_cache_size(CINTEnvVars *envs);

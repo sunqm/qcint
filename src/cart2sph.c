@@ -28,16 +28,13 @@
  */
 
 #include <stdlib.h>
-#include <string.h>
 #include <pmmintrin.h>
 #include <complex.h>
-#include "config.h"
 #include "cint_const.h"
 #include "cint_bas.h"
 #include "cart2sph.h"
-#include "g1e.h"
 #include "misc.h"
-
+#include "simd.h"
 
 
 static const double g_trans_cart2sph[] = {
@@ -2798,8 +2795,9 @@ static const double complex g_trans_cart2j[] = {
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 };
 
+#include "cart2sph_inc.c"
 
-static FINT _len_spinor(FINT l, FINT kappa)
+static int _len_spinor(int kappa, int l)
 {
         if (0 == kappa) {
                 return 4 * l + 2;
@@ -2809,6 +2807,10 @@ static FINT _len_spinor(FINT l, FINT kappa)
                 return 2 * l;
         }
 }
+
+static int _len_cart[] = {
+        1, 3, 6, 10, 15, 21, 28, 36, 45, 55, 66, 78, 91, 105, 120
+};
 
 struct cart2sp_t {
         const double *cart2sph;
@@ -2849,152 +2851,59 @@ const double complex *CINTaddress_cart2j_gt_l(int l)
 }
 
 
-static void c2s_dgemm(const char transa, const char transb,
-                      const FINT m, const FINT n, const FINT k,
-                      const double alpha, const double *a, const FINT lda,
-                      const double *b, const FINT ldb,
-                      const double beta, double *c, const FINT ldc)
-{
-#if defined I8
-        FINT i, j, kp;
-        const double *pa, *pb;
-        double btmp[k];
-        for (j = 0; j < n; j++) {
-                if (beta == 0) {
-                        memset(c, 0, sizeof(double)*m);
-                } else {
-                        for (i = 0; i < m; i++) {
-                                c[i] *= beta;
-                        }
-                }
-                if (transa == 'T') {
-                        pb = b + ldb * j;
-                        for (kp = 0; kp < k; kp++) {
-                                btmp[kp] = alpha * pb[kp];
-                        }
-                        for (i = 0; i < m; i++) {
-                                pa = a + lda * i;
-                                for (kp = 0; kp < k; kp++) {
-                                        c[i] += pa[kp] * btmp[kp];
-                                }
-                        }
-                } else {
-                        pb = b + ldb * j;
-                        for (kp = 0; kp < k; kp++) {
-                                btmp[0] = alpha * pb[kp];
-                                pa = a + lda * kp;
-                                for (i = 0; i < m; i++) {
-                                        c[i] += pa[i] * btmp[0];
-                                }
-                        }
-                }
-                c += ldc;
-        }
-#else
-        dgemm_(&transa, &transb, &m, &n, &k,
-               &alpha, a, &lda, b, &ldb, &beta, c, &ldc);
-#endif
-}
-
-static void c2s_zgemm(const char transa, const char transb,
-                      const FINT m, const FINT n, const FINT k,
-                      const double complex alpha, const double complex *a, const FINT lda,
-                      const double complex *b, const FINT ldb,
-                      const double complex beta, double complex *c, const FINT ldc)
-{
-#if defined I8
-        FINT i, j, kp;
-        const double complex *pa, *pb;
-        double complex btmp[k];
-        for (j = 0; j < n; j++) {
-                if (beta == 0) {
-                        memset(c, 0, sizeof(double complex)*m);
-                } else {
-                        for (i = 0; i < m; i++) {
-                                c[i] *= beta;
-                        }
-                }
-                if (transa == 'C') {
-                        pb = b + ldb * j;
-                        for (kp = 0; kp < k; kp++) {
-                                btmp[kp] = alpha * pb[kp];
-                        }
-                        for (i = 0; i < m; i++) {
-                                pa = a + lda * i;
-                                for (kp = 0; kp < k; kp++) {
-                                        c[i] += conj(pa[kp]) * btmp[kp];
-                                }
-                        }
-                } else {
-                        pb = b + ldb * j;
-                        for (kp = 0; kp < k; kp++) {
-                                btmp[0] = alpha * pb[kp];
-                                pa = a + lda * kp;
-                                for (i = 0; i < m; i++) {
-                                        c[i] += pa[i] * btmp[0];
-                                }
-                        }
-                }
-                c += ldc;
-        }
-#else
-        zgemm_(&transa, &transb, &m, &n, &k,
-               &alpha, a, &lda, b, &ldb, &beta, c, &ldc);
-#endif
-}
-
 // transform integrals from cartesian to spheric
-static double *a_bra_cart2spheric(double *gsph, FINT nket, double *gcart, FINT l)
+static double *a_bra_cart2spheric(double *gsph, int nket, double *gcart, int l)
 {
-        const FINT nf = (l+1)*(l+2)/2;
-        const FINT nd = l * 2 + 1;
-        c2s_dgemm('T', 'N', nd, nket, nf,
-                  1, g_c2s[l].cart2sph, nf, gcart, nf, 0, gsph, nd);
+        double D0 = 0;
+        double D1 = 1;
+        char TRANS_T = 'T';
+        char TRANS_N = 'N';
+        int nf = _len_cart[l];
+        int nd = l * 2 + 1;
+        dgemm_(&TRANS_T, &TRANS_N, &nd, &nket, &nf,
+               &D1, g_c2s[l].cart2sph, &nf, gcart, &nf,
+               &D0, gsph, &nd);
         return gsph;
 }
 
-static double *a_ket_cart2spheric(double *gsph, FINT nbra, double *gcart, FINT l)
+static double *a_ket_cart2spheric(double *gsph, double *gcart,
+                                  int lds, int nbra, int l)
 {
-        const FINT nf = (l+1)*(l+2)/2;
-        const FINT nd = l * 2 + 1;
-        c2s_dgemm('N', 'N', nbra, nd, nf,
-                  1, gcart, nbra, g_c2s[l].cart2sph, nf, 0, gsph, nbra);
-        return gsph;
-}
-
-static double *a_ket_cart2spheric1(double *gsph, double *gcart,
-                                   FINT lds, FINT nbra, FINT l)
-{
-        const FINT nf = (l+1)*(l+2)/2;
-        const FINT nd = l * 2 + 1;
-        c2s_dgemm('N', 'N', nbra, nd, nf,
-                  1, gcart, nbra, g_c2s[l].cart2sph, nf, 0, gsph, lds);
+        double D0 = 0;
+        double D1 = 1;
+        char TRANS_N = 'N';
+        int nf = _len_cart[l];
+        int nd = l * 2 + 1;
+        dgemm_(&TRANS_N, &TRANS_N, &nbra, &nd, &nf,
+               &D1, gcart, &nbra, g_c2s[l].cart2sph, &nf,
+               &D0, gsph, &lds);
         return gsph;
 }
 
 // transform s function from cartesian to spheric
-static double *s_bra_cart2spheric(double *gsph, FINT nket, double *gcart, FINT l)
+static double *s_bra_cart2spheric(double *gsph, int nket, double *gcart, int l)
 {
         /*
-        FINT i;
+        int i;
         for (i = 0; i < nket; i++) {
                 *gsph = gcart[i];
         }*/
         return gcart;
 }
-static double *s_ket_cart2spheric(double *gsph, FINT nbra, double *gcart, FINT l)
+static double *s_ket_cart2spheric(double *gsph, double *gcart,
+                                  int lds, int nbra, int l)
 {
         /*
-        FINT i;
+        int i;
         for (i = 0; i < nbra; i++) {
                 gsph[i] = gcart[i];
         }*/
         return gcart;
 }
 static double *s_ket_cart2spheric1(double *gsph, double *gcart,
-                                   FINT lds, FINT nbra, FINT l)
+                                   int lds, int nbra, int l)
 {
-        FINT i;
+        int i;
         for (i = 0; i < nbra; i++) {
                 gsph[i] = gcart[i];
         }
@@ -3002,11 +2911,11 @@ static double *s_ket_cart2spheric1(double *gsph, double *gcart,
 }
 
 // transform p function from cartesian to spheric
-static double *p_bra_cart2spheric(double *gsph, FINT nket, double *gcart, FINT l)
+static double *p_bra_cart2spheric(double *gsph, int nket, double *gcart, int l)
 {
         /*
         double *pgcart = gcart;
-        FINT i;
+        int i;
         for (i = 0; i < nket; i++) {
                 gsph[0] = gcart[0];
                 gsph[1] = gcart[1];
@@ -3017,10 +2926,11 @@ static double *p_bra_cart2spheric(double *gsph, FINT nket, double *gcart, FINT l
         return pgcart;*/
         return gcart;
 }
-static double *p_ket_cart2spheric(double *gsph, FINT nbra, double *gcart, FINT l)
+static double *p_ket_cart2spheric(double *gsph, double *gcart,
+                                  int lds, int nbra, int l)
 {
         /*
-        FINT i;
+        int i;
         for (i = 0; i < nbra; i++) {
                 gsph[0*nbra+i] = gcart[0*nbra+i];
                 gsph[1*nbra+i] = gcart[1*nbra+i];
@@ -3029,9 +2939,9 @@ static double *p_ket_cart2spheric(double *gsph, FINT nbra, double *gcart, FINT l
         return gcart;
 }
 static double *p_ket_cart2spheric1(double *gsph, double *gcart,
-                                   FINT lds, FINT nbra, FINT l)
+                                   int lds, int nbra, int l)
 {
-        FINT i;
+        int i;
         for (i = 0; i < nbra; i++) {
                 gsph[0*lds+i] = gcart[0*nbra+i];
                 gsph[1*lds+i] = gcart[1*nbra+i];
@@ -3041,11 +2951,11 @@ static double *p_ket_cart2spheric1(double *gsph, double *gcart,
 }
 
 // transform d function from cartesian to spheric
-static double *d_bra_cart2spheric(double *gsph, FINT nket, double *gcart, FINT l)
+static double *d_bra_cart2spheric(double *gsph, int nket, double *gcart, int l)
 {
         const double *coeff_c2s = g_c2s[2].cart2sph;
-        double *const pgsph = gsph;
-        FINT i;
+        double *pgsph = gsph;
+        int i;
         for (i = 0; i < nket; i++) {
                 gsph[0] = coeff_c2s[ 1] * gcart[1];
                 gsph[1] = coeff_c2s[10] * gcart[4];
@@ -3060,116 +2970,66 @@ static double *d_bra_cart2spheric(double *gsph, FINT nket, double *gcart, FINT l
         }
         return pgsph;
 }
-static double *d_ket_cart2spheric(double *gsph, FINT nbra, double *gcart, FINT l)
+static double *d_ket_cart2spheric(double *gsph, double *gcart,
+                                  int lds, int nbra, int l)
 {
         const double *coeff_c2s = g_c2s[2].cart2sph;
-        double *const pgsph = gsph;
-        FINT i;
-        __m128d r0, r1, r2, r3, r4, r5;
-        __m128d s0, s1, s2, s3, s4, s5, s6, s7;
-        __m128d c0 = _mm_load1_pd(&coeff_c2s[ 1]);
-        __m128d c1 = _mm_load1_pd(&coeff_c2s[10]);
-        __m128d c2 = _mm_load1_pd(&coeff_c2s[12]);
-        __m128d c3 = _mm_load1_pd(&coeff_c2s[15]);
-        __m128d c4 = _mm_load1_pd(&coeff_c2s[17]);
-        __m128d c5 = _mm_load1_pd(&coeff_c2s[20]);
-        __m128d c6 = _mm_load1_pd(&coeff_c2s[24]);
-        __m128d c7 = _mm_load1_pd(&coeff_c2s[27]);
-        for (i = 0; i < nbra-1; i+=2) {
-                r0 = _mm_loadu_pd(&gcart[0*nbra+i]);
-                r1 = _mm_loadu_pd(&gcart[1*nbra+i]);
-                r2 = _mm_loadu_pd(&gcart[2*nbra+i]);
-                r3 = _mm_loadu_pd(&gcart[3*nbra+i]);
-                r4 = _mm_loadu_pd(&gcart[4*nbra+i]);
-                r5 = _mm_loadu_pd(&gcart[5*nbra+i]);
-                s0 = _mm_mul_pd(c0, r1);
-                _mm_storeu_pd(&gsph[0*nbra+i], s0);
-                s1 = _mm_mul_pd(c1, r4);
-                _mm_storeu_pd(&gsph[1*nbra+i], s1);
-                s2 = _mm_mul_pd(c2, r0);
-                s3 = _mm_mul_pd(c3, r3);
-                s2 = _mm_add_pd(s2, s3);
-                s4 = _mm_mul_pd(c4, r5);
-                s2 = _mm_add_pd(s2, s4);
-                _mm_storeu_pd(&gsph[2*nbra+i], s2);
-                s5 = _mm_mul_pd(c5, r2);
-                _mm_storeu_pd(&gsph[3*nbra+i], s5);
-                s6 = _mm_mul_pd(c6, r0);
-                s7 = _mm_mul_pd(c7, r3);
-                s6 = _mm_add_pd(s6, s7);
-                _mm_storeu_pd(&gsph[4*nbra+i], s6);
+        double *pgsph = gsph;
+        int i;
+        __MD r0, r1, r2, r3, r4, r5;
+        __MD c0 = MM_SET1(coeff_c2s[ 1]);
+        __MD c1 = MM_SET1(coeff_c2s[10]);
+        __MD c2 = MM_SET1(coeff_c2s[12]);
+        __MD c3 = MM_SET1(coeff_c2s[15]);
+        __MD c4 = MM_SET1(coeff_c2s[17]);
+        __MD c5 = MM_SET1(coeff_c2s[20]);
+        __MD c6 = MM_SET1(coeff_c2s[24]);
+        __MD c7 = MM_SET1(coeff_c2s[27]);
+        for (i = 0; i < nbra/SIMDD; i++) {
+                r0 = MM_LOADU(&gcart[0*nbra+i*SIMDD]);
+                r1 = MM_LOADU(&gcart[1*nbra+i*SIMDD]);
+                r2 = MM_LOADU(&gcart[2*nbra+i*SIMDD]);
+                r3 = MM_LOADU(&gcart[3*nbra+i*SIMDD]);
+                r4 = MM_LOADU(&gcart[4*nbra+i*SIMDD]);
+                r5 = MM_LOADU(&gcart[5*nbra+i*SIMDD]);
+                MM_STOREU(&gsph[0*lds+i*SIMDD], c0 * r1);
+                MM_STOREU(&gsph[1*lds+i*SIMDD], c1 * r4);
+                MM_STOREU(&gsph[2*lds+i*SIMDD], c2 * r0 + c3 * r3 + c4 * r5);
+                MM_STOREU(&gsph[3*lds+i*SIMDD], c5 * r2);
+                MM_STOREU(&gsph[4*lds+i*SIMDD], c6 * r0 + c7 * r3);
         }
+        i *= SIMDD;
         if (i < nbra) {
-                gsph[0*nbra+i] = coeff_c2s[ 1] * gcart[1*nbra+i];
-                gsph[1*nbra+i] = coeff_c2s[10] * gcart[4*nbra+i];
-                gsph[2*nbra+i] = coeff_c2s[12] * gcart[0*nbra+i]
-                               + coeff_c2s[15] * gcart[3*nbra+i]
-                               + coeff_c2s[17] * gcart[5*nbra+i];
-                gsph[3*nbra+i] = coeff_c2s[20] * gcart[2*nbra+i];
-                gsph[4*nbra+i] = coeff_c2s[24] * gcart[0*nbra+i]
-                               + coeff_c2s[27] * gcart[3*nbra+i];
-        }
-        return pgsph;
-}
-static double *d_ket_cart2spheric1(double *gsph, double *gcart,
-                                   FINT lds, FINT nbra, FINT l)
-{
-        const double *coeff_c2s = g_c2s[2].cart2sph;
-        double *const pgsph = gsph;
-        FINT i;
-        __m128d r0, r1, r2, r3, r4, r5;
-        __m128d s0, s1, s2, s3, s4, s5, s6, s7;
-        __m128d c0 = _mm_load1_pd(&coeff_c2s[ 1]);
-        __m128d c1 = _mm_load1_pd(&coeff_c2s[10]);
-        __m128d c2 = _mm_load1_pd(&coeff_c2s[12]);
-        __m128d c3 = _mm_load1_pd(&coeff_c2s[15]);
-        __m128d c4 = _mm_load1_pd(&coeff_c2s[17]);
-        __m128d c5 = _mm_load1_pd(&coeff_c2s[20]);
-        __m128d c6 = _mm_load1_pd(&coeff_c2s[24]);
-        __m128d c7 = _mm_load1_pd(&coeff_c2s[27]);
-        for (i = 0; i < nbra-1; i+=2) {
-                r0 = _mm_loadu_pd(&gcart[0*nbra+i]);
-                r1 = _mm_loadu_pd(&gcart[1*nbra+i]);
-                r2 = _mm_loadu_pd(&gcart[2*nbra+i]);
-                r3 = _mm_loadu_pd(&gcart[3*nbra+i]);
-                r4 = _mm_loadu_pd(&gcart[4*nbra+i]);
-                r5 = _mm_loadu_pd(&gcart[5*nbra+i]);
-                s0 = _mm_mul_pd(c0, r1);
-                _mm_storeu_pd(&gsph[0*lds+i], s0);
-                s1 = _mm_mul_pd(c1, r4);
-                _mm_storeu_pd(&gsph[1*lds+i], s1);
-                s2 = _mm_mul_pd(c2, r0);
-                s3 = _mm_mul_pd(c3, r3);
-                s2 = _mm_add_pd(s2, s3);
-                s4 = _mm_mul_pd(c4, r5);
-                s2 = _mm_add_pd(s2, s4);
-                _mm_storeu_pd(&gsph[2*lds+i], s2);
-                s5 = _mm_mul_pd(c5, r2);
-                _mm_storeu_pd(&gsph[3*lds+i], s5);
-                s6 = _mm_mul_pd(c6, r0);
-                s7 = _mm_mul_pd(c7, r3);
-                s6 = _mm_add_pd(s6, s7);
-                _mm_storeu_pd(&gsph[4*lds+i], s6);
-        }
-        if (i < nbra) {
-                gsph[0*lds+i] = coeff_c2s[ 1] * gcart[1*nbra+i];
-                gsph[1*lds+i] = coeff_c2s[10] * gcart[4*nbra+i];
-                gsph[2*lds+i] = coeff_c2s[12] * gcart[0*nbra+i]
-                              + coeff_c2s[15] * gcart[3*nbra+i]
-                              + coeff_c2s[17] * gcart[5*nbra+i];
-                gsph[3*lds+i] = coeff_c2s[20] * gcart[2*nbra+i];
-                gsph[4*lds+i] = coeff_c2s[24] * gcart[0*nbra+i]
-                              + coeff_c2s[27] * gcart[3*nbra+i];
+                int j;
+                ALIGNMM double tmp[SIMDD*5];
+                r0 = MM_LOADU(&gcart[0*nbra+i]);
+                r1 = MM_LOADU(&gcart[1*nbra+i]);
+                r2 = MM_LOADU(&gcart[2*nbra+i]);
+                r3 = MM_LOADU(&gcart[3*nbra+i]);
+                r4 = MM_LOADU(&gcart[4*nbra+i]);
+                r5 = MM_LOADU(&gcart[5*nbra+i]);
+                MM_STORE(&tmp[0*SIMDD], c0 * r1);
+                MM_STORE(&tmp[1*SIMDD], c1 * r4);
+                MM_STORE(&tmp[2*SIMDD], c2 * r0 + c3 * r3 + c4 * r5);
+                MM_STORE(&tmp[3*SIMDD], c5 * r2);
+                MM_STORE(&tmp[4*SIMDD], c6 * r0 + c7 * r3);
+                for (j = 0; i < nbra; i++, j++) {
+                        gsph[0*lds+i] = tmp[0*SIMDD+j];
+                        gsph[1*lds+i] = tmp[1*SIMDD+j];
+                        gsph[2*lds+i] = tmp[2*SIMDD+j];
+                        gsph[3*lds+i] = tmp[3*SIMDD+j];
+                        gsph[4*lds+i] = tmp[4*SIMDD+j];
+                }
         }
         return pgsph;
 }
 
 // transform f function from cartesian to spheric
-static double *f_bra_cart2spheric(double *gsph, FINT nket, double *gcart, FINT l)
+static double *f_bra_cart2spheric(double *gsph, int nket, double *gcart, int l)
 {
         const double *coeff_c2s = g_c2s[3].cart2sph;
-        double *const pgsph = gsph;
-        FINT i;
+        double *pgsph = gsph;
+        int i;
         for (i = 0; i < nket; i++) {
                 gsph[0] = coeff_c2s[ 1] * gcart[1]
                         + coeff_c2s[ 6] * gcart[6];
@@ -3192,189 +3052,88 @@ static double *f_bra_cart2spheric(double *gsph, FINT nket, double *gcart, FINT l
         }
         return pgsph;
 }
-static double *f_ket_cart2spheric(double *gsph, FINT nbra, double *gcart, FINT l)
+static double *f_ket_cart2spheric(double *gsph, double *gcart,
+                                  int lds, int nbra, int l)
 {
         const double *coeff_c2s = g_c2s[3].cart2sph;
-        double *const pgsph = gsph;
-        FINT i;
-        __m128d r0, r1, r2, r3, r4, r5, r6, r7, r8, r9;
-        __m128d s0 , s1 , s2 , s3 , s4 , s5 , s6 , s7 ,
-                s8 , s9 , s10, s11, s12, s13, s14, s15;
-        __m128d c0  = _mm_load1_pd(&coeff_c2s[ 1]);
-        __m128d c1  = _mm_load1_pd(&coeff_c2s[ 6]);
-        __m128d c2  = _mm_load1_pd(&coeff_c2s[14]);
-        __m128d c3  = _mm_load1_pd(&coeff_c2s[21]);
-        __m128d c4  = _mm_load1_pd(&coeff_c2s[26]);
-        __m128d c5  = _mm_load1_pd(&coeff_c2s[28]);
-        __m128d c6  = _mm_load1_pd(&coeff_c2s[32]);
-        __m128d c7  = _mm_load1_pd(&coeff_c2s[37]);
-        __m128d c8  = _mm_load1_pd(&coeff_c2s[39]);
-        __m128d c9  = _mm_load1_pd(&coeff_c2s[40]);
-        __m128d c10 = _mm_load1_pd(&coeff_c2s[43]);
-        __m128d c11 = _mm_load1_pd(&coeff_c2s[45]);
-        __m128d c12 = _mm_load1_pd(&coeff_c2s[52]);
-        __m128d c13 = _mm_load1_pd(&coeff_c2s[57]);
-        __m128d c14 = _mm_load1_pd(&coeff_c2s[60]);
-        __m128d c15 = _mm_load1_pd(&coeff_c2s[63]);
-        for (i = 0; i < nbra-1; i+=2) {
-                r0 = _mm_loadu_pd(&gcart[0*nbra+i]);
-                r1 = _mm_loadu_pd(&gcart[1*nbra+i]);
-                r2 = _mm_loadu_pd(&gcart[2*nbra+i]);
-                r3 = _mm_loadu_pd(&gcart[3*nbra+i]);
-                r4 = _mm_loadu_pd(&gcart[4*nbra+i]);
-                r5 = _mm_loadu_pd(&gcart[5*nbra+i]);
-                r6 = _mm_loadu_pd(&gcart[6*nbra+i]);
-                r7 = _mm_loadu_pd(&gcart[7*nbra+i]);
-                r8 = _mm_loadu_pd(&gcart[8*nbra+i]);
-                r9 = _mm_loadu_pd(&gcart[9*nbra+i]);
-                s0  = _mm_mul_pd(c0 , r1);
-                s1  = _mm_mul_pd(c1 , r6);
-                s0  = _mm_add_pd(s0 , s1);
-                _mm_storeu_pd(&gsph[0*nbra+i], s0);
-                s2  = _mm_mul_pd(c2 , r4);
-                _mm_storeu_pd(&gsph[1*nbra+i], s2);
-                s3  = _mm_mul_pd(c3 , r1);
-                s4  = _mm_mul_pd(c4 , r6);
-                s3  = _mm_add_pd(s3 , s4);
-                s5  = _mm_mul_pd(c5 , r8);
-                s3  = _mm_add_pd(s3 , s5);
-                _mm_storeu_pd(&gsph[2*nbra+i], s3);
-                s6  = _mm_mul_pd(c6 , r2);
-                s7  = _mm_mul_pd(c7 , r7);
-                s6  = _mm_add_pd(s6 , s7);
-                s8  = _mm_mul_pd(c8 , r9);
-                s6  = _mm_add_pd(s6 , s8);
-                _mm_storeu_pd(&gsph[3*nbra+i], s6);
-                s9  = _mm_mul_pd(c9 , r0);
-                s10 = _mm_mul_pd(c10, r3);
-                s9  = _mm_add_pd(s9 , s10);
-                s11 = _mm_mul_pd(c11, r5);
-                s9  = _mm_add_pd(s9 , s11);
-                _mm_storeu_pd(&gsph[4*nbra+i], s9);
-                s12 = _mm_mul_pd(c12, r2);
-                s13 = _mm_mul_pd(c13, r7);
-                s12 = _mm_add_pd(s12, s13);
-                _mm_storeu_pd(&gsph[5*nbra+i], s12);
-                s14 = _mm_mul_pd(c14, r0);
-                s15 = _mm_mul_pd(c15, r3);
-                s14 = _mm_add_pd(s14, s15);
-                _mm_storeu_pd(&gsph[6*nbra+i], s14);
+        double *pgsph = gsph;
+        int i;
+        __MD r0, r1, r2, r3, r4, r5, r6, r7, r8, r9;
+        __MD c0  = MM_SET1(coeff_c2s[ 1]);
+        __MD c1  = MM_SET1(coeff_c2s[ 6]);
+        __MD c2  = MM_SET1(coeff_c2s[14]);
+        __MD c3  = MM_SET1(coeff_c2s[21]);
+        __MD c4  = MM_SET1(coeff_c2s[26]);
+        __MD c5  = MM_SET1(coeff_c2s[28]);
+        __MD c6  = MM_SET1(coeff_c2s[32]);
+        __MD c7  = MM_SET1(coeff_c2s[37]);
+        __MD c8  = MM_SET1(coeff_c2s[39]);
+        __MD c9  = MM_SET1(coeff_c2s[40]);
+        __MD c10 = MM_SET1(coeff_c2s[43]);
+        __MD c11 = MM_SET1(coeff_c2s[45]);
+        __MD c12 = MM_SET1(coeff_c2s[52]);
+        __MD c13 = MM_SET1(coeff_c2s[57]);
+        __MD c14 = MM_SET1(coeff_c2s[60]);
+        __MD c15 = MM_SET1(coeff_c2s[63]);
+        for (i = 0; i < nbra/SIMDD; i++) {
+                r0 = MM_LOADU(&gcart[0*nbra+i*SIMDD]);
+                r1 = MM_LOADU(&gcart[1*nbra+i*SIMDD]);
+                r2 = MM_LOADU(&gcart[2*nbra+i*SIMDD]);
+                r3 = MM_LOADU(&gcart[3*nbra+i*SIMDD]);
+                r4 = MM_LOADU(&gcart[4*nbra+i*SIMDD]);
+                r5 = MM_LOADU(&gcart[5*nbra+i*SIMDD]);
+                r6 = MM_LOADU(&gcart[6*nbra+i*SIMDD]);
+                r7 = MM_LOADU(&gcart[7*nbra+i*SIMDD]);
+                r8 = MM_LOADU(&gcart[8*nbra+i*SIMDD]);
+                r9 = MM_LOADU(&gcart[9*nbra+i*SIMDD]);
+                MM_STOREU(&gsph[0*lds+i*SIMDD], c0 * r1 + c1 * r6);
+                MM_STOREU(&gsph[1*lds+i*SIMDD], c2 * r4);
+                MM_STOREU(&gsph[2*lds+i*SIMDD], c3 * r1 + c4 * r6 + c5 * r8);
+                MM_STOREU(&gsph[3*lds+i*SIMDD], c6 * r2 + c7 * r7 + c8 * r9);
+                MM_STOREU(&gsph[4*lds+i*SIMDD], c9 * r0 + c10* r3 + c11* r5);
+                MM_STOREU(&gsph[5*lds+i*SIMDD], c12* r2 + c13* r7);
+                MM_STOREU(&gsph[6*lds+i*SIMDD], c14* r0 + c15* r3);
         }
+        i *= SIMDD;
         if (i < nbra) {
-                gsph[0*nbra+i] = coeff_c2s[ 1] * gcart[1*nbra+i]
-                               + coeff_c2s[ 6] * gcart[6*nbra+i];
-                gsph[1*nbra+i] = coeff_c2s[14] * gcart[4*nbra+i];
-                gsph[2*nbra+i] = coeff_c2s[21] * gcart[1*nbra+i]
-                               + coeff_c2s[26] * gcart[6*nbra+i]
-                               + coeff_c2s[28] * gcart[8*nbra+i];
-                gsph[3*nbra+i] = coeff_c2s[32] * gcart[2*nbra+i]
-                               + coeff_c2s[37] * gcart[7*nbra+i]
-                               + coeff_c2s[39] * gcart[9*nbra+i];
-                gsph[4*nbra+i] = coeff_c2s[40] * gcart[0*nbra+i]
-                               + coeff_c2s[43] * gcart[3*nbra+i]
-                               + coeff_c2s[45] * gcart[5*nbra+i];
-                gsph[5*nbra+i] = coeff_c2s[52] * gcart[2*nbra+i]
-                               + coeff_c2s[57] * gcart[7*nbra+i];
-                gsph[6*nbra+i] = coeff_c2s[60] * gcart[0*nbra+i]
-                               + coeff_c2s[63] * gcart[3*nbra+i];
-        }
-        return pgsph;
-}
-static double *f_ket_cart2spheric1(double *gsph, double *gcart,
-                                   FINT lds, FINT nbra, FINT l)
-{
-        const double *coeff_c2s = g_c2s[3].cart2sph;
-        double *const pgsph = gsph;
-        FINT i;
-        __m128d r0, r1, r2, r3, r4, r5, r6, r7, r8, r9;
-        __m128d s0 , s1 , s2 , s3 , s4 , s5 , s6 , s7 ,
-                s8 , s9 , s10, s11, s12, s13, s14, s15;
-        __m128d c0  = _mm_load1_pd(&coeff_c2s[ 1]);
-        __m128d c1  = _mm_load1_pd(&coeff_c2s[ 6]);
-        __m128d c2  = _mm_load1_pd(&coeff_c2s[14]);
-        __m128d c3  = _mm_load1_pd(&coeff_c2s[21]);
-        __m128d c4  = _mm_load1_pd(&coeff_c2s[26]);
-        __m128d c5  = _mm_load1_pd(&coeff_c2s[28]);
-        __m128d c6  = _mm_load1_pd(&coeff_c2s[32]);
-        __m128d c7  = _mm_load1_pd(&coeff_c2s[37]);
-        __m128d c8  = _mm_load1_pd(&coeff_c2s[39]);
-        __m128d c9  = _mm_load1_pd(&coeff_c2s[40]);
-        __m128d c10 = _mm_load1_pd(&coeff_c2s[43]);
-        __m128d c11 = _mm_load1_pd(&coeff_c2s[45]);
-        __m128d c12 = _mm_load1_pd(&coeff_c2s[52]);
-        __m128d c13 = _mm_load1_pd(&coeff_c2s[57]);
-        __m128d c14 = _mm_load1_pd(&coeff_c2s[60]);
-        __m128d c15 = _mm_load1_pd(&coeff_c2s[63]);
-        for (i = 0; i < nbra-1; i+=2) {
-                r0 = _mm_loadu_pd(&gcart[0*nbra+i]);
-                r1 = _mm_loadu_pd(&gcart[1*nbra+i]);
-                r2 = _mm_loadu_pd(&gcart[2*nbra+i]);
-                r3 = _mm_loadu_pd(&gcart[3*nbra+i]);
-                r4 = _mm_loadu_pd(&gcart[4*nbra+i]);
-                r5 = _mm_loadu_pd(&gcart[5*nbra+i]);
-                r6 = _mm_loadu_pd(&gcart[6*nbra+i]);
-                r7 = _mm_loadu_pd(&gcart[7*nbra+i]);
-                r8 = _mm_loadu_pd(&gcart[8*nbra+i]);
-                r9 = _mm_loadu_pd(&gcart[9*nbra+i]);
-                s0  = _mm_mul_pd(c0 , r1);
-                s1  = _mm_mul_pd(c1 , r6);
-                s0  = _mm_add_pd(s0 , s1);
-                _mm_storeu_pd(&gsph[0*lds+i], s0);
-                s2  = _mm_mul_pd(c2 , r4);
-                _mm_storeu_pd(&gsph[1*lds+i], s2);
-                s3  = _mm_mul_pd(c3 , r1);
-                s4  = _mm_mul_pd(c4 , r6);
-                s3  = _mm_add_pd(s3 , s4);
-                s5  = _mm_mul_pd(c5 , r8);
-                s3  = _mm_add_pd(s3 , s5);
-                _mm_storeu_pd(&gsph[2*lds+i], s3);
-                s6  = _mm_mul_pd(c6 , r2);
-                s7  = _mm_mul_pd(c7 , r7);
-                s6  = _mm_add_pd(s6 , s7);
-                s8  = _mm_mul_pd(c8 , r9);
-                s6  = _mm_add_pd(s6 , s8);
-                _mm_storeu_pd(&gsph[3*lds+i], s6);
-                s9  = _mm_mul_pd(c9 , r0);
-                s10 = _mm_mul_pd(c10, r3);
-                s9  = _mm_add_pd(s9 , s10);
-                s11 = _mm_mul_pd(c11, r5);
-                s9  = _mm_add_pd(s9 , s11);
-                _mm_storeu_pd(&gsph[4*lds+i], s9);
-                s12 = _mm_mul_pd(c12, r2);
-                s13 = _mm_mul_pd(c13, r7);
-                s12 = _mm_add_pd(s12, s13);
-                _mm_storeu_pd(&gsph[5*lds+i], s12);
-                s14 = _mm_mul_pd(c14, r0);
-                s15 = _mm_mul_pd(c15, r3);
-                s14 = _mm_add_pd(s14, s15);
-                _mm_storeu_pd(&gsph[6*lds+i], s14);
-        }
-        if (i < nbra) {
-                gsph[0*lds+i] = coeff_c2s[ 1] * gcart[1*nbra+i]
-                              + coeff_c2s[ 6] * gcart[6*nbra+i];
-                gsph[1*lds+i] = coeff_c2s[14] * gcart[4*nbra+i];
-                gsph[2*lds+i] = coeff_c2s[21] * gcart[1*nbra+i]
-                              + coeff_c2s[26] * gcart[6*nbra+i]
-                              + coeff_c2s[28] * gcart[8*nbra+i];
-                gsph[3*lds+i] = coeff_c2s[32] * gcart[2*nbra+i]
-                              + coeff_c2s[37] * gcart[7*nbra+i]
-                              + coeff_c2s[39] * gcart[9*nbra+i];
-                gsph[4*lds+i] = coeff_c2s[40] * gcart[0*nbra+i]
-                              + coeff_c2s[43] * gcart[3*nbra+i]
-                              + coeff_c2s[45] * gcart[5*nbra+i];
-                gsph[5*lds+i] = coeff_c2s[52] * gcart[2*nbra+i]
-                              + coeff_c2s[57] * gcart[7*nbra+i];
-                gsph[6*lds+i] = coeff_c2s[60] * gcart[0*nbra+i]
-                              + coeff_c2s[63] * gcart[3*nbra+i];
+                int j;
+                ALIGNMM double tmp[SIMDD*7];
+                r0 = MM_LOADU(&gcart[0*nbra+i]);
+                r1 = MM_LOADU(&gcart[1*nbra+i]);
+                r2 = MM_LOADU(&gcart[2*nbra+i]);
+                r3 = MM_LOADU(&gcart[3*nbra+i]);
+                r4 = MM_LOADU(&gcart[4*nbra+i]);
+                r5 = MM_LOADU(&gcart[5*nbra+i]);
+                r6 = MM_LOADU(&gcart[6*nbra+i]);
+                r7 = MM_LOADU(&gcart[7*nbra+i]);
+                r8 = MM_LOADU(&gcart[8*nbra+i]);
+                r9 = MM_LOADU(&gcart[9*nbra+i]);
+                MM_STORE(&tmp[0*SIMDD], c0 * r1 + c1 * r6);
+                MM_STORE(&tmp[1*SIMDD], c2 * r4);
+                MM_STORE(&tmp[2*SIMDD], c3 * r1 + c4 * r6 + c5 * r8);
+                MM_STORE(&tmp[3*SIMDD], c6 * r2 + c7 * r7 + c8 * r9);
+                MM_STORE(&tmp[4*SIMDD], c9 * r0 + c10* r3 + c11* r5);
+                MM_STORE(&tmp[5*SIMDD], c12* r2 + c13* r7);
+                MM_STORE(&tmp[6*SIMDD], c14* r0 + c15* r3);
+                for (j = 0; i < nbra; i++, j++) {
+                        gsph[0*lds+i] = tmp[0*SIMDD+j];
+                        gsph[1*lds+i] = tmp[1*SIMDD+j];
+                        gsph[2*lds+i] = tmp[2*SIMDD+j];
+                        gsph[3*lds+i] = tmp[3*SIMDD+j];
+                        gsph[4*lds+i] = tmp[4*SIMDD+j];
+                        gsph[5*lds+i] = tmp[5*SIMDD+j];
+                        gsph[6*lds+i] = tmp[6*SIMDD+j];
+                }
         }
         return pgsph;
 }
 
-static double *g_bra_cart2spheric(double *gsph, FINT nket, double *gcart, FINT l)
+// transform g function from cartesian to spheric
+static double *g_bra_cart2spheric(double *gsph, int nket, double *gcart, int l)
 {
         const double *coeff_c2s = g_c2s[4].cart2sph;
-        double *const pgsph = gsph;
-        FINT i;
+        double *pgsph = gsph;
+        int i;
         for (i = 0; i < nket; i++) {
                 gsph[0] = coeff_c2s[  1] * gcart[ 1]
                         + coeff_c2s[  6] * gcart[ 6];
@@ -3409,292 +3168,107 @@ static double *g_bra_cart2spheric(double *gsph, FINT nket, double *gcart, FINT l
         }
         return pgsph;
 }
-static double *g_ket_cart2spheric(double *gsph, FINT nbra, double *gcart, FINT l)
+static double *g_ket_cart2spheric(double *gsph, double *gcart,
+                                  int lds, int nbra, int l)
 {
         const double *coeff_c2s = g_c2s[4].cart2sph;
-        double *const pgsph = gsph;
-        FINT i;
-        __m128d r0, r1, r2, r3, r4, r5, r6, r7,
-                r8, r9, r10, r11, r12, r13, r14;
-        __m128d s0 , s1 , s2 , s3 , s4 , s5 , s6 , s7 ,
-                s8 , s9 , s10, s11, s12, s13, s14, s15,
-                s16, s17, s18, s19, s20, s21, s22, s23,
-                s24, s25, s26, s27;
-        __m128d c0  = _mm_load1_pd(&coeff_c2s[  1]);
-        __m128d c1  = _mm_load1_pd(&coeff_c2s[  6]);
-        __m128d c2  = _mm_load1_pd(&coeff_c2s[ 19]);
-        __m128d c3  = _mm_load1_pd(&coeff_c2s[ 26]);
-        __m128d c4  = _mm_load1_pd(&coeff_c2s[ 31]);
-        __m128d c5  = _mm_load1_pd(&coeff_c2s[ 36]);
-        __m128d c6  = _mm_load1_pd(&coeff_c2s[ 38]);
-        __m128d c7  = _mm_load1_pd(&coeff_c2s[ 49]);
-        __m128d c8  = _mm_load1_pd(&coeff_c2s[ 56]);
-        __m128d c9  = _mm_load1_pd(&coeff_c2s[ 58]);
-        __m128d c10 = _mm_load1_pd(&coeff_c2s[ 60]);
-        __m128d c11 = _mm_load1_pd(&coeff_c2s[ 63]);
-        __m128d c12 = _mm_load1_pd(&coeff_c2s[ 65]);
-        __m128d c13 = _mm_load1_pd(&coeff_c2s[ 70]);
-        __m128d c14 = _mm_load1_pd(&coeff_c2s[ 72]);
-        __m128d c15 = _mm_load1_pd(&coeff_c2s[ 74]);
-        __m128d c16 = _mm_load1_pd(&coeff_c2s[ 77]);
-        __m128d c17 = _mm_load1_pd(&coeff_c2s[ 82]);
-        __m128d c18 = _mm_load1_pd(&coeff_c2s[ 84]);
-        __m128d c19 = _mm_load1_pd(&coeff_c2s[ 90]);
-        __m128d c20 = _mm_load1_pd(&coeff_c2s[ 95]);
-        __m128d c21 = _mm_load1_pd(&coeff_c2s[100]);
-        __m128d c22 = _mm_load1_pd(&coeff_c2s[102]);
-        __m128d c23 = _mm_load1_pd(&coeff_c2s[107]);
-        __m128d c24 = _mm_load1_pd(&coeff_c2s[112]);
-        __m128d c25 = _mm_load1_pd(&coeff_c2s[120]);
-        __m128d c26 = _mm_load1_pd(&coeff_c2s[123]);
-        __m128d c27 = _mm_load1_pd(&coeff_c2s[130]);
-        for (i = 0; i < nbra-1; i+=2) {
-                r0  = _mm_loadu_pd(&gcart[0 *nbra+i]);
-                r1  = _mm_loadu_pd(&gcart[1 *nbra+i]);
-                r2  = _mm_loadu_pd(&gcart[2 *nbra+i]);
-                r3  = _mm_loadu_pd(&gcart[3 *nbra+i]);
-                r4  = _mm_loadu_pd(&gcart[4 *nbra+i]);
-                r5  = _mm_loadu_pd(&gcart[5 *nbra+i]);
-                r6  = _mm_loadu_pd(&gcart[6 *nbra+i]);
-                r7  = _mm_loadu_pd(&gcart[7 *nbra+i]);
-                r8  = _mm_loadu_pd(&gcart[8 *nbra+i]);
-                r9  = _mm_loadu_pd(&gcart[9 *nbra+i]);
-                r10 = _mm_loadu_pd(&gcart[10*nbra+i]);
-                r11 = _mm_loadu_pd(&gcart[11*nbra+i]);
-                r12 = _mm_loadu_pd(&gcart[12*nbra+i]);
-                r13 = _mm_loadu_pd(&gcart[13*nbra+i]);
-                r14 = _mm_loadu_pd(&gcart[14*nbra+i]);
-                s0  = _mm_mul_pd(c0 , r1 );
-                s1  = _mm_mul_pd(c1 , r6 );
-                s0  = _mm_add_pd(s0 , s1 );
-                _mm_storeu_pd(&gsph[0*nbra+i], s0 );
-                s2  = _mm_mul_pd(c2 , r4 );
-                s3  = _mm_mul_pd(c3 , r11);
-                s2  = _mm_add_pd(s2 , s3 );
-                _mm_storeu_pd(&gsph[1*nbra+i], s2 );
-                s4  = _mm_mul_pd(c4 , r1 );
-                s5  = _mm_mul_pd(c5 , r6 );
-                s4  = _mm_add_pd(s4 , s5 );
-                s6  = _mm_mul_pd(c6 , r8 );
-                s4  = _mm_add_pd(s4 , s6 );
-                _mm_storeu_pd(&gsph[2*nbra+i], s4 );
-                s7  = _mm_mul_pd(c7 , r4 );
-                s8  = _mm_mul_pd(c8 , r11);
-                s7  = _mm_add_pd(s7 , s8 );
-                s9  = _mm_mul_pd(c9 , r13);
-                s7  = _mm_add_pd(s7 , s9 );
-                _mm_storeu_pd(&gsph[3*nbra+i], s7 );
-                s10 = _mm_mul_pd(c10, r0 );
-                s11 = _mm_mul_pd(c11, r3 );
-                s10 = _mm_add_pd(s10, s11);
-                s12 = _mm_mul_pd(c12, r5 );
-                s10 = _mm_add_pd(s10, s12);
-                s13 = _mm_mul_pd(c13, r10);
-                s10 = _mm_add_pd(s10, s13);
-                s14 = _mm_mul_pd(c14, r12);
-                s10 = _mm_add_pd(s10, s14);
-                s15 = _mm_mul_pd(c15, r14);
-                s10 = _mm_add_pd(s10, s15);
-                _mm_storeu_pd(&gsph[4*nbra+i], s10);
-                s16 = _mm_mul_pd(c16, r2 );
-                s17 = _mm_mul_pd(c17, r7 );
-                s16 = _mm_add_pd(s16, s17);
-                s18 = _mm_mul_pd(c18, r9 );
-                s16 = _mm_add_pd(s16, s18);
-                _mm_storeu_pd(&gsph[5*nbra+i], s16);
-                s19 = _mm_mul_pd(c19, r0 );
-                s20 = _mm_mul_pd(c20, r5 );
-                s19 = _mm_add_pd(s19, s20);
-                s21 = _mm_mul_pd(c21, r10);
-                s19 = _mm_add_pd(s19, s21);
-                s22 = _mm_mul_pd(c22, r12);
-                s19 = _mm_add_pd(s19, s22);
-                _mm_storeu_pd(&gsph[6*nbra+i], s19);
-                s23 = _mm_mul_pd(c23, r2 );
-                s24 = _mm_mul_pd(c24, r7 );
-                s23 = _mm_add_pd(s23, s24);
-                _mm_storeu_pd(&gsph[7*nbra+i], s23);
-                s25 = _mm_mul_pd(c25, r0 );
-                s26 = _mm_mul_pd(c26, r3 );
-                s25 = _mm_add_pd(s25, s26);
-                s27 = _mm_mul_pd(c27, r10);
-                s25 = _mm_add_pd(s25, s27);
-                _mm_storeu_pd(&gsph[8*nbra+i], s25);
+        double *pgsph = gsph;
+        __MD r0, r1, r2, r3, r4, r5, r6, r7,
+             r8, r9, r10, r11, r12, r13, r14;
+        __MD c0  = MM_SET1(coeff_c2s[  1]);
+        __MD c1  = MM_SET1(coeff_c2s[  6]);
+        __MD c2  = MM_SET1(coeff_c2s[ 19]);
+        __MD c3  = MM_SET1(coeff_c2s[ 26]);
+        __MD c4  = MM_SET1(coeff_c2s[ 31]);
+        __MD c5  = MM_SET1(coeff_c2s[ 36]);
+        __MD c6  = MM_SET1(coeff_c2s[ 38]);
+        __MD c7  = MM_SET1(coeff_c2s[ 49]);
+        __MD c8  = MM_SET1(coeff_c2s[ 56]);
+        __MD c9  = MM_SET1(coeff_c2s[ 58]);
+        __MD c10 = MM_SET1(coeff_c2s[ 60]);
+        __MD c11 = MM_SET1(coeff_c2s[ 63]);
+        __MD c12 = MM_SET1(coeff_c2s[ 65]);
+        __MD c13 = MM_SET1(coeff_c2s[ 70]);
+        __MD c14 = MM_SET1(coeff_c2s[ 72]);
+        __MD c15 = MM_SET1(coeff_c2s[ 74]);
+        __MD c16 = MM_SET1(coeff_c2s[ 77]);
+        __MD c17 = MM_SET1(coeff_c2s[ 82]);
+        __MD c18 = MM_SET1(coeff_c2s[ 84]);
+        __MD c19 = MM_SET1(coeff_c2s[ 90]);
+        __MD c20 = MM_SET1(coeff_c2s[ 95]);
+        __MD c21 = MM_SET1(coeff_c2s[100]);
+        __MD c22 = MM_SET1(coeff_c2s[102]);
+        __MD c23 = MM_SET1(coeff_c2s[107]);
+        __MD c24 = MM_SET1(coeff_c2s[112]);
+        __MD c25 = MM_SET1(coeff_c2s[120]);
+        __MD c26 = MM_SET1(coeff_c2s[123]);
+        __MD c27 = MM_SET1(coeff_c2s[130]);
+        int i;
+        for (i = 0; i < nbra/SIMDD; i++) {
+                r0  = MM_LOADU(&gcart[0 *nbra+i*SIMDD]);
+                r1  = MM_LOADU(&gcart[1 *nbra+i*SIMDD]);
+                r2  = MM_LOADU(&gcart[2 *nbra+i*SIMDD]);
+                r3  = MM_LOADU(&gcart[3 *nbra+i*SIMDD]);
+                r4  = MM_LOADU(&gcart[4 *nbra+i*SIMDD]);
+                r5  = MM_LOADU(&gcart[5 *nbra+i*SIMDD]);
+                r6  = MM_LOADU(&gcart[6 *nbra+i*SIMDD]);
+                r7  = MM_LOADU(&gcart[7 *nbra+i*SIMDD]);
+                r8  = MM_LOADU(&gcart[8 *nbra+i*SIMDD]);
+                r9  = MM_LOADU(&gcart[9 *nbra+i*SIMDD]);
+                r10 = MM_LOADU(&gcart[10*nbra+i*SIMDD]);
+                r11 = MM_LOADU(&gcart[11*nbra+i*SIMDD]);
+                r12 = MM_LOADU(&gcart[12*nbra+i*SIMDD]);
+                r13 = MM_LOADU(&gcart[13*nbra+i*SIMDD]);
+                r14 = MM_LOADU(&gcart[14*nbra+i*SIMDD]);
+                MM_STOREU(&gsph[0*lds+i*SIMDD], c0 * r1 + c1 * r6);
+                MM_STOREU(&gsph[1*lds+i*SIMDD], c2 * r4 + c3 * r11);
+                MM_STOREU(&gsph[2*lds+i*SIMDD], c4 * r1 + c5 * r6 + c6 * r8);
+                MM_STOREU(&gsph[3*lds+i*SIMDD], c7 * r4 + c8 * r11 + c9 * r13);
+                MM_STOREU(&gsph[4*lds+i*SIMDD], c10* r0 + c11* r3 + c12* r5 + c13* r10 + c14* r12 + c15* r14);
+                MM_STOREU(&gsph[5*lds+i*SIMDD], c16* r2 + c17* r7 + c18* r9);
+                MM_STOREU(&gsph[6*lds+i*SIMDD], c19* r0 + c20* r5 + c21* r10 + c22* r12);
+                MM_STOREU(&gsph[7*lds+i*SIMDD], c23* r2 + c24* r7);
+                MM_STOREU(&gsph[8*lds+i*SIMDD], c25* r0 + c26* r3 + c27* r10);
         }
+        i *= SIMDD;
         if (i < nbra) {
-                gsph[0*nbra+i] = coeff_c2s[  1] * gcart[ 1*nbra+i]
-                               + coeff_c2s[  6] * gcart[ 6*nbra+i];
-                gsph[1*nbra+i] = coeff_c2s[ 19] * gcart[ 4*nbra+i]
-                               + coeff_c2s[ 26] * gcart[11*nbra+i];
-                gsph[2*nbra+i] = coeff_c2s[ 31] * gcart[ 1*nbra+i]
-                               + coeff_c2s[ 36] * gcart[ 6*nbra+i]
-                               + coeff_c2s[ 38] * gcart[ 8*nbra+i];
-                gsph[3*nbra+i] = coeff_c2s[ 49] * gcart[ 4*nbra+i]
-                               + coeff_c2s[ 56] * gcart[11*nbra+i]
-                               + coeff_c2s[ 58] * gcart[13*nbra+i];
-                gsph[4*nbra+i] = coeff_c2s[ 60] * gcart[ 0*nbra+i]
-                               + coeff_c2s[ 63] * gcart[ 3*nbra+i]
-                               + coeff_c2s[ 65] * gcart[ 5*nbra+i]
-                               + coeff_c2s[ 70] * gcart[10*nbra+i]
-                               + coeff_c2s[ 72] * gcart[12*nbra+i]
-                               + coeff_c2s[ 74] * gcart[14*nbra+i];
-                gsph[5*nbra+i] = coeff_c2s[ 77] * gcart[ 2*nbra+i]
-                               + coeff_c2s[ 82] * gcart[ 7*nbra+i]
-                               + coeff_c2s[ 84] * gcart[ 9*nbra+i];
-                gsph[6*nbra+i] = coeff_c2s[ 90] * gcart[ 0*nbra+i]
-                               + coeff_c2s[ 95] * gcart[ 5*nbra+i]
-                               + coeff_c2s[100] * gcart[10*nbra+i]
-                               + coeff_c2s[102] * gcart[12*nbra+i];
-                gsph[7*nbra+i] = coeff_c2s[107] * gcart[ 2*nbra+i]
-                               + coeff_c2s[112] * gcart[ 7*nbra+i];
-                gsph[8*nbra+i] = coeff_c2s[120] * gcart[ 0*nbra+i]
-                               + coeff_c2s[123] * gcart[ 3*nbra+i]
-                               + coeff_c2s[130] * gcart[10*nbra+i];
-        }
-        return pgsph;
-}
-static double *g_ket_cart2spheric1(double *gsph, double *gcart,
-                                   FINT lds, FINT nbra, FINT l)
-{
-        const double *coeff_c2s = g_c2s[4].cart2sph;
-        double *const pgsph = gsph;
-        FINT i;
-        __m128d r0, r1, r2, r3, r4, r5, r6, r7,
-                r8, r9, r10, r11, r12, r13, r14;
-        __m128d s0 , s1 , s2 , s3 , s4 , s5 , s6 , s7 ,
-                s8 , s9 , s10, s11, s12, s13, s14, s15,
-                s16, s17, s18, s19, s20, s21, s22, s23,
-                s24, s25, s26, s27;
-        __m128d c0  = _mm_load1_pd(&coeff_c2s[  1]);
-        __m128d c1  = _mm_load1_pd(&coeff_c2s[  6]);
-        __m128d c2  = _mm_load1_pd(&coeff_c2s[ 19]);
-        __m128d c3  = _mm_load1_pd(&coeff_c2s[ 26]);
-        __m128d c4  = _mm_load1_pd(&coeff_c2s[ 31]);
-        __m128d c5  = _mm_load1_pd(&coeff_c2s[ 36]);
-        __m128d c6  = _mm_load1_pd(&coeff_c2s[ 38]);
-        __m128d c7  = _mm_load1_pd(&coeff_c2s[ 49]);
-        __m128d c8  = _mm_load1_pd(&coeff_c2s[ 56]);
-        __m128d c9  = _mm_load1_pd(&coeff_c2s[ 58]);
-        __m128d c10 = _mm_load1_pd(&coeff_c2s[ 60]);
-        __m128d c11 = _mm_load1_pd(&coeff_c2s[ 63]);
-        __m128d c12 = _mm_load1_pd(&coeff_c2s[ 65]);
-        __m128d c13 = _mm_load1_pd(&coeff_c2s[ 70]);
-        __m128d c14 = _mm_load1_pd(&coeff_c2s[ 72]);
-        __m128d c15 = _mm_load1_pd(&coeff_c2s[ 74]);
-        __m128d c16 = _mm_load1_pd(&coeff_c2s[ 77]);
-        __m128d c17 = _mm_load1_pd(&coeff_c2s[ 82]);
-        __m128d c18 = _mm_load1_pd(&coeff_c2s[ 84]);
-        __m128d c19 = _mm_load1_pd(&coeff_c2s[ 90]);
-        __m128d c20 = _mm_load1_pd(&coeff_c2s[ 95]);
-        __m128d c21 = _mm_load1_pd(&coeff_c2s[100]);
-        __m128d c22 = _mm_load1_pd(&coeff_c2s[102]);
-        __m128d c23 = _mm_load1_pd(&coeff_c2s[107]);
-        __m128d c24 = _mm_load1_pd(&coeff_c2s[112]);
-        __m128d c25 = _mm_load1_pd(&coeff_c2s[120]);
-        __m128d c26 = _mm_load1_pd(&coeff_c2s[123]);
-        __m128d c27 = _mm_load1_pd(&coeff_c2s[130]);
-        for (i = 0; i < nbra-1; i+=2) {
-                r0  = _mm_loadu_pd(&gcart[0 *nbra+i]);
-                r1  = _mm_loadu_pd(&gcart[1 *nbra+i]);
-                r2  = _mm_loadu_pd(&gcart[2 *nbra+i]);
-                r3  = _mm_loadu_pd(&gcart[3 *nbra+i]);
-                r4  = _mm_loadu_pd(&gcart[4 *nbra+i]);
-                r5  = _mm_loadu_pd(&gcart[5 *nbra+i]);
-                r6  = _mm_loadu_pd(&gcart[6 *nbra+i]);
-                r7  = _mm_loadu_pd(&gcart[7 *nbra+i]);
-                r8  = _mm_loadu_pd(&gcart[8 *nbra+i]);
-                r9  = _mm_loadu_pd(&gcart[9 *nbra+i]);
-                r10 = _mm_loadu_pd(&gcart[10*nbra+i]);
-                r11 = _mm_loadu_pd(&gcart[11*nbra+i]);
-                r12 = _mm_loadu_pd(&gcart[12*nbra+i]);
-                r13 = _mm_loadu_pd(&gcart[13*nbra+i]);
-                r14 = _mm_loadu_pd(&gcart[14*nbra+i]);
-                s0  = _mm_mul_pd(c0 , r1 );
-                s1  = _mm_mul_pd(c1 , r6 );
-                s0  = _mm_add_pd(s0 , s1 );
-                _mm_storeu_pd(&gsph[0*lds+i], s0 );
-                s2  = _mm_mul_pd(c2 , r4 );
-                s3  = _mm_mul_pd(c3 , r11);
-                s2  = _mm_add_pd(s2 , s3 );
-                _mm_storeu_pd(&gsph[1*lds+i], s2 );
-                s4  = _mm_mul_pd(c4 , r1 );
-                s5  = _mm_mul_pd(c5 , r6 );
-                s4  = _mm_add_pd(s4 , s5 );
-                s6  = _mm_mul_pd(c6 , r8 );
-                s4  = _mm_add_pd(s4 , s6 );
-                _mm_storeu_pd(&gsph[2*lds+i], s4 );
-                s7  = _mm_mul_pd(c7 , r4 );
-                s8  = _mm_mul_pd(c8 , r11);
-                s7  = _mm_add_pd(s7 , s8 );
-                s9  = _mm_mul_pd(c9 , r13);
-                s7  = _mm_add_pd(s7 , s9 );
-                _mm_storeu_pd(&gsph[3*lds+i], s7 );
-                s10 = _mm_mul_pd(c10, r0 );
-                s11 = _mm_mul_pd(c11, r3 );
-                s10 = _mm_add_pd(s10, s11);
-                s12 = _mm_mul_pd(c12, r5 );
-                s10 = _mm_add_pd(s10, s12);
-                s13 = _mm_mul_pd(c13, r10);
-                s10 = _mm_add_pd(s10, s13);
-                s14 = _mm_mul_pd(c14, r12);
-                s10 = _mm_add_pd(s10, s14);
-                s15 = _mm_mul_pd(c15, r14);
-                s10 = _mm_add_pd(s10, s15);
-                _mm_storeu_pd(&gsph[4*lds+i], s10);
-                s16 = _mm_mul_pd(c16, r2 );
-                s17 = _mm_mul_pd(c17, r7 );
-                s16 = _mm_add_pd(s16, s17);
-                s18 = _mm_mul_pd(c18, r9 );
-                s16 = _mm_add_pd(s16, s18);
-                _mm_storeu_pd(&gsph[5*lds+i], s16);
-                s19 = _mm_mul_pd(c19, r0 );
-                s20 = _mm_mul_pd(c20, r5 );
-                s19 = _mm_add_pd(s19, s20);
-                s21 = _mm_mul_pd(c21, r10);
-                s19 = _mm_add_pd(s19, s21);
-                s22 = _mm_mul_pd(c22, r12);
-                s19 = _mm_add_pd(s19, s22);
-                _mm_storeu_pd(&gsph[6*lds+i], s19);
-                s23 = _mm_mul_pd(c23, r2 );
-                s24 = _mm_mul_pd(c24, r7 );
-                s23 = _mm_add_pd(s23, s24);
-                _mm_storeu_pd(&gsph[7*lds+i], s23);
-                s25 = _mm_mul_pd(c25, r0 );
-                s26 = _mm_mul_pd(c26, r3 );
-                s25 = _mm_add_pd(s25, s26);
-                s27 = _mm_mul_pd(c27, r10);
-                s25 = _mm_add_pd(s25, s27);
-                _mm_storeu_pd(&gsph[8*lds+i], s25);
-        }
-        if (i < nbra) {
-                gsph[0*lds+i] = coeff_c2s[  1] * gcart[ 1*nbra+i]
-                              + coeff_c2s[  6] * gcart[ 6*nbra+i];
-                gsph[1*lds+i] = coeff_c2s[ 19] * gcart[ 4*nbra+i]
-                              + coeff_c2s[ 26] * gcart[11*nbra+i];
-                gsph[2*lds+i] = coeff_c2s[ 31] * gcart[ 1*nbra+i]
-                              + coeff_c2s[ 36] * gcart[ 6*nbra+i]
-                              + coeff_c2s[ 38] * gcart[ 8*nbra+i];
-                gsph[3*lds+i] = coeff_c2s[ 49] * gcart[ 4*nbra+i]
-                              + coeff_c2s[ 56] * gcart[11*nbra+i]
-                              + coeff_c2s[ 58] * gcart[13*nbra+i];
-                gsph[4*lds+i] = coeff_c2s[ 60] * gcart[ 0*nbra+i]
-                              + coeff_c2s[ 63] * gcart[ 3*nbra+i]
-                              + coeff_c2s[ 65] * gcart[ 5*nbra+i]
-                              + coeff_c2s[ 70] * gcart[10*nbra+i]
-                              + coeff_c2s[ 72] * gcart[12*nbra+i]
-                              + coeff_c2s[ 74] * gcart[14*nbra+i];
-                gsph[5*lds+i] = coeff_c2s[ 77] * gcart[ 2*nbra+i]
-                              + coeff_c2s[ 82] * gcart[ 7*nbra+i]
-                              + coeff_c2s[ 84] * gcart[ 9*nbra+i];
-                gsph[6*lds+i] = coeff_c2s[ 90] * gcart[ 0*nbra+i]
-                              + coeff_c2s[ 95] * gcart[ 5*nbra+i]
-                              + coeff_c2s[100] * gcart[10*nbra+i]
-                              + coeff_c2s[102] * gcart[12*nbra+i];
-                gsph[7*lds+i] = coeff_c2s[107] * gcart[ 2*nbra+i]
-                              + coeff_c2s[112] * gcart[ 7*nbra+i];
-                gsph[8*lds+i] = coeff_c2s[120] * gcart[ 0*nbra+i]
-                              + coeff_c2s[123] * gcart[ 3*nbra+i]
-                              + coeff_c2s[130] * gcart[10*nbra+i];
+                int j;
+                ALIGNMM double tmp[SIMDD*9];
+                r0  = MM_LOADU(&gcart[0 *nbra+i]);
+                r1  = MM_LOADU(&gcart[1 *nbra+i]);
+                r2  = MM_LOADU(&gcart[2 *nbra+i]);
+                r3  = MM_LOADU(&gcart[3 *nbra+i]);
+                r4  = MM_LOADU(&gcart[4 *nbra+i]);
+                r5  = MM_LOADU(&gcart[5 *nbra+i]);
+                r6  = MM_LOADU(&gcart[6 *nbra+i]);
+                r7  = MM_LOADU(&gcart[7 *nbra+i]);
+                r8  = MM_LOADU(&gcart[8 *nbra+i]);
+                r9  = MM_LOADU(&gcart[9 *nbra+i]);
+                r10 = MM_LOADU(&gcart[10*nbra+i]);
+                r11 = MM_LOADU(&gcart[11*nbra+i]);
+                r12 = MM_LOADU(&gcart[12*nbra+i]);
+                r13 = MM_LOADU(&gcart[13*nbra+i]);
+                r14 = MM_LOADU(&gcart[14*nbra+i]);
+                MM_STORE(&tmp[0*SIMDD], c0 * r1 + c1 * r6);
+                MM_STORE(&tmp[1*SIMDD], c2 * r4 + c3 * r11);
+                MM_STORE(&tmp[2*SIMDD], c4 * r1 + c5 * r6 + c6 * r8);
+                MM_STORE(&tmp[3*SIMDD], c7 * r4 + c8 * r11 + c9 * r13);
+                MM_STORE(&tmp[4*SIMDD], c10* r0 + c11* r3 + c12* r5 + c13* r10 + c14* r12 + c15* r14);
+                MM_STORE(&tmp[5*SIMDD], c16* r2 + c17* r7 + c18* r9);
+                MM_STORE(&tmp[6*SIMDD], c19* r0 + c20* r5 + c21* r10 + c22* r12);
+                MM_STORE(&tmp[7*SIMDD], c23* r2 + c24* r7);
+                MM_STORE(&tmp[8*SIMDD], c25* r0 + c26* r3 + c27* r10);
+                for (j = 0; i < nbra; i++, j++) {
+                        gsph[0*lds+i] = tmp[0*SIMDD+j];
+                        gsph[1*lds+i] = tmp[1*SIMDD+j];
+                        gsph[2*lds+i] = tmp[2*SIMDD+j];
+                        gsph[3*lds+i] = tmp[3*SIMDD+j];
+                        gsph[4*lds+i] = tmp[4*SIMDD+j];
+                        gsph[5*lds+i] = tmp[5*SIMDD+j];
+                        gsph[6*lds+i] = tmp[6*SIMDD+j];
+                        gsph[7*lds+i] = tmp[7*SIMDD+j];
+                        gsph[8*lds+i] = tmp[8*SIMDD+j];
+                }
         }
         return pgsph;
 }
@@ -3719,7 +3293,8 @@ double *(*c2s_bra_sph[])() = {
         a_bra_cart2spheric,
 };
 
-double *(*c2s_ket_sph[])() = {
+double *(*c2s_ket_sph[])(double *gsph, double *gcart,
+                         int lds, int nbra, int l) = {
         s_ket_cart2spheric,
         p_ket_cart2spheric,
         d_ket_cart2spheric,
@@ -3735,29 +3310,39 @@ double *(*c2s_ket_sph[])() = {
         a_ket_cart2spheric,
 };
 
-double *(*c2s_ket_sph1[])() = {
+double *(*c2s_ket_sph1[])(double *gsph, double *gcart,
+                          int lds, int nbra, int l) = {
         s_ket_cart2spheric1,
         p_ket_cart2spheric1,
-        d_ket_cart2spheric1,
-        f_ket_cart2spheric1,
-        g_ket_cart2spheric1,
-        a_ket_cart2spheric1,
-        a_ket_cart2spheric1,
-        a_ket_cart2spheric1,
-        a_ket_cart2spheric1,
-        a_ket_cart2spheric1,
-        a_ket_cart2spheric1,
-        a_ket_cart2spheric1,
-        a_ket_cart2spheric1,
+        d_ket_cart2spheric,
+        f_ket_cart2spheric,
+        g_ket_cart2spheric,
+        a_ket_cart2spheric,
+        a_ket_cart2spheric,
+        a_ket_cart2spheric,
+        a_ket_cart2spheric,
+        a_ket_cart2spheric,
+        a_ket_cart2spheric,
+        a_ket_cart2spheric,
+        a_ket_cart2spheric,
 };
 
 
-// transform spin free integrals from cartesian to spinor
-static void a_bra_cart2spinor_sf(double complex *gsp, FINT nket,
-                                 double complex *gcart, FINT l, FINT kappa)
+/* transform spin free integrals from cartesian to spinor
+ * In the return vector gsp, the first nd*nket elements stores the upper
+ * components of the two-component vector, the lower component vector
+ * are next to the upper component.
+ */
+static void a_bra_cart2spinor_sf(double complex *gsp, int nket,
+                                 double complex *gcart, int kappa, int l)
 {
-        const FINT nf = (l+1)*(l+2)/2;
-        const FINT nd = _len_spinor(l, kappa);
+        const double complex Z0 = 0;
+        const double complex Z1 = 1;
+        const char TRANS_C = 'C';
+        char TRANS_N = 'N';
+        int nf = _len_cart[l];
+        int nf2 = nf * 2;
+        int nd = _len_spinor(kappa, l);
         const double complex *coeff_c2s;
 
         if (kappa < 0) { // j = l + 1/2
@@ -3765,27 +3350,33 @@ static void a_bra_cart2spinor_sf(double complex *gsp, FINT nket,
         } else {
                 coeff_c2s = g_c2s[l].cart2j_lt_l;
         }
-        c2s_zgemm('C', 'N', nd, nket, nf,
-                  1, coeff_c2s, nf*2, gcart, nf, 0, gsp, nd);
-        c2s_zgemm('C', 'N', nd, nket, nf,
-                  1, coeff_c2s+nf, nf*2, gcart, nf, 0, gsp+nd*nket, nd);
+        zgemm_(&TRANS_C, &TRANS_N, &nd, &nket, &nf,
+               &Z1, coeff_c2s, &nf2, gcart, &nf, &Z0, gsp, &nd);
+        zgemm_(&TRANS_C, &TRANS_N, &nd, &nket, &nf,
+               &Z1, coeff_c2s+nf, &nf2, gcart, &nf,
+               &Z0, gsp+nd*nket, &nd);
 }
-static void a_bra_cart2spinor_e1sf(double complex *gsp, FINT nket,
-                                   double *gcart, FINT l, FINT kappa)
+static void a_bra_cart2spinor_e1sf(double complex *gsp, int nket,
+                                   double *gcart, int kappa, int l)
 {
-        const FINT nf = (l+1)*(l+2)/2;
+        int nf = _len_cart[l];
         double complex *tmp1 = malloc(sizeof(double complex)*nf*nket);
 
         CINTdcmplx_re(nf*nket, tmp1, gcart);
-        a_bra_cart2spinor_sf(gsp, nket, tmp1, l, kappa);
+        a_bra_cart2spinor_sf(gsp, nket, tmp1, kappa, l);
         free(tmp1);
 }
 
-static void a_bra_cart2spinor_si(double complex *gsp, FINT nket,
-                                 double complex *gcart, FINT l, FINT kappa)
+static void a_bra_cart2spinor_si(double complex *gsp, int nket,
+                                 double complex *gcart, int kappa, int l)
 {
-        const FINT nf = (l+1)*(l+2)/2;
-        const FINT nd = _len_spinor(l, kappa);
+        const double complex Z0 = 0;
+        const double complex Z1 = 1;
+        const char TRANS_C = 'C';
+        const char TRANS_N = 'N';
+        int nf = _len_cart[l];
+        int nf2 = nf * 2;
+        int nd = _len_spinor(kappa, l);
         const double complex *coeff_c2s;
 
         if (kappa < 0) { // j = l + 1/2
@@ -3793,44 +3384,13 @@ static void a_bra_cart2spinor_si(double complex *gsp, FINT nket,
         } else {
                 coeff_c2s = g_c2s[l].cart2j_lt_l;
         }
-        c2s_zgemm('C', 'N', nd, nket, nf,
-                  1, coeff_c2s, nf*2, gcart, nf, 0, gsp, nd);
-        c2s_zgemm('C', 'N', nd, nket, nf,
-                  1, coeff_c2s+nf, nf*2, gcart+nf*nket, nf, 1, gsp, nd);
+        zgemm_(&TRANS_C, &TRANS_N, &nd, &nket, &nf,
+               &Z1, coeff_c2s, &nf2, gcart, &nf, &Z0, gsp, &nd);
+        zgemm_(&TRANS_C, &TRANS_N, &nd, &nket, &nf,
+               &Z1, coeff_c2s+nf, &nf2,
+               gcart+nf*nket, &nf, &Z1, gsp, &nd);
 }
 
-static void a_ket_cart2spinor(double complex *gsp, FINT nbra,
-                              double complex *gcart, FINT l, FINT kappa)
-{
-        const FINT nf = (l+1)*(l+2)/2;
-        const FINT nd = _len_spinor(l, kappa);
-        const double complex *coeff_c2s;
-
-        if (kappa < 0) { // j = l + 1/2
-                coeff_c2s = g_c2s[l].cart2j_gt_l;
-        } else {
-                coeff_c2s = g_c2s[l].cart2j_lt_l;
-        }
-        c2s_zgemm('N', 'N', nbra, nd, nf*2,
-                  1, gcart, nbra, coeff_c2s, nf*2, 0, gsp, nbra);
-}
-// with phase "i"
-static void a_iket_cart2spinor(double complex *gsp, FINT nbra,
-                               double complex *gcart, FINT l, FINT kappa)
-{
-        const double complex ZI = 0 + 1 * _Complex_I;
-        const FINT nf = (l+1)*(l+2)/2;
-        const FINT nd = _len_spinor(l, kappa);
-        const double complex *coeff_c2s;
-
-        if (kappa < 0) { // j = l + 1/2
-                coeff_c2s = g_c2s[l].cart2j_gt_l;
-        } else {
-                coeff_c2s = g_c2s[l].cart2j_lt_l;
-        }
-        c2s_zgemm('N', 'N', nbra, nd, nf*2,
-                  ZI, gcart, nbra, coeff_c2s, nf*2, 0, gsp, nbra);
-}
 
 // Zcoeff_c2s(X,Y) * Zgcart(Z)
 #define CRE(X,Y,L) creal(coeff_c2s[(X)+(Y)*(L+1)*(L+2)])
@@ -3840,12 +3400,12 @@ static void a_iket_cart2spinor(double complex *gsp, FINT nbra,
 #define Gre(X,Y)   gcart##X[(Y)]
 #define Gim(X,Y)   gcart##X[(Y)]*_Complex_I
 
-static void s_bra_cart2spinor_sf(double complex *gsp, FINT nket,
-                                 double complex *gcart, FINT l, FINT kappa)
+static void s_bra_cart2spinor_sf(double complex *gsp, int nket,
+                                 double complex *gcart, int kappa, int l)
 {
-        //const double *coeff_c2s = g_c2s[0].cart2j_lt_l;
+        //double *coeff_c2s = g_c2s[0].cart2j_lt_l;
         double complex *gsp1 = gsp + nket * 2;
-        FINT i;
+        int i;
         for (i = 0; i < nket; i++) {
                 gsp [i*2+0] = 0;
                 gsp [i*2+1] = gcart[i];
@@ -3853,12 +3413,12 @@ static void s_bra_cart2spinor_sf(double complex *gsp, FINT nket,
                 gsp1[i*2+1] = 0;
         }
 }
-static void s_bra_cart2spinor_e1sf(double complex *gsp, FINT nket,
-                                   double *gcart, FINT l, FINT kappa)
+static void s_bra_cart2spinor_e1sf(double complex *gsp, int nket,
+                                   double *gcart, int kappa, int l)
 {
-        //const double *coeff_c2s = g_c2s[0].cart2j_lt_l;;
+        //double *coeff_c2s = g_c2s[0].cart2j_lt_l;;
         double complex *gsp1 = gsp + nket * 2;
-        FINT i;
+        int i;
         for (i = 0; i < nket; i++) {
                 gsp [i*2+0] = 0;
                 gsp [i*2+1] = gcart[i];
@@ -3866,49 +3426,25 @@ static void s_bra_cart2spinor_e1sf(double complex *gsp, FINT nket,
                 gsp1[i*2+1] = 0;
         }
 }
-static void s_bra_cart2spinor_si(double complex *gsp, FINT nket,
-                                 double complex *gcart, FINT l, FINT kappa)
+static void s_bra_cart2spinor_si(double complex *gsp, int nket,
+                                 double complex *gcart, int kappa, int l)
 {
-        //const double *coeff_c2s = g_c2s[0].cart2j_lt_l;;
+        //double *coeff_c2s = g_c2s[0].cart2j_lt_l;;
         double complex *gcart1 = gcart + nket;
-        FINT i;
+        int i;
         for (i = 0; i < nket; i++) {
                 gsp[i*2+0] = gcart1[i];
                 gsp[i*2+1] = gcart [i];
         }
 }
-static void s_ket_cart2spinor(double complex *gsp, FINT nbra,
-                              double complex *gcart, FINT l, FINT kappa)
-{
-        //const double *coeff_c2s = g_c2s[0].cart2j_lt_l;;
-        double complex *gsp1 = gsp + nbra;
-        double complex *gcart1 = gcart + nbra;
-        FINT i;
-        for (i = 0; i < nbra; i++) {
-                gsp [i] = gcart1[i];
-                gsp1[i] = gcart [i];
-        }
-}
-static void s_iket_cart2spinor(double complex *gsp, FINT nbra,
-                               double complex *gcart, FINT l, FINT kappa)
-{
-        //const double *coeff_c2s = g_c2s[0].cart2j_lt_l;;
-        double complex *gsp1 = gsp + nbra;
-        double complex *gcart1 = gcart + nbra;
-        FINT i;
-        for (i = 0; i < nbra; i++) {
-                gsp [i] = gcart1[i] * _Complex_I;
-                gsp1[i] = gcart [i] * _Complex_I;
-        }
-}
 
-static void p_bra_cart2spinor_sf(double complex *gsp, FINT nket,
-                                 double complex *gcart, FINT l, FINT kappa)
+static void p_bra_cart2spinor_sf(double complex *gsp, int nket,
+                                 double complex *gcart, int kappa, int l)
 {
         const double complex *coeff_c2s;
-        const FINT nd = _len_spinor(l, kappa);
+        int nd = _len_spinor(kappa, l);
         double complex *gsp1 = gsp + nket * nd;
-        FINT i;
+        int i;
 
         if (kappa >= 0) {
                 coeff_c2s = g_c2s[1].cart2j_lt_l;
@@ -3943,13 +3479,13 @@ static void p_bra_cart2spinor_sf(double complex *gsp, FINT nket,
                 }
         }
 }
-static void p_bra_cart2spinor_e1sf(double complex *gsp, FINT nket,
-                                   double *gcart, FINT l, FINT kappa)
+static void p_bra_cart2spinor_e1sf(double complex *gsp, int nket,
+                                   double *gcart, int kappa, int l)
 {
         const double complex *coeff_c2s;
-        const FINT nd = _len_spinor(l, kappa);
+        int nd = _len_spinor(kappa, l);
         double complex *gsp1 = gsp + nket * nd;
-        FINT i;
+        int i;
 
         if (kappa >= 0) {
                 coeff_c2s = g_c2s[1].cart2j_lt_l;
@@ -3984,13 +3520,13 @@ static void p_bra_cart2spinor_e1sf(double complex *gsp, FINT nket,
                 }
         }
 }
-static void p_bra_cart2spinor_si(double complex *gsp, FINT nket,
-                                 double complex *gcart, FINT l, FINT kappa)
+static void p_bra_cart2spinor_si(double complex *gsp, int nket,
+                                 double complex *gcart, int kappa, int l)
 {
         double complex *gcart1 = gcart + nket * 3;
         const complex double *coeff_c2s;
-        const FINT nd = _len_spinor(l, kappa);
-        FINT i;
+        int nd = _len_spinor(kappa, l);
+        int i;
 
         if (kappa >= 0) {
                 coeff_c2s = g_c2s[1].cart2j_lt_l;
@@ -4025,82 +3561,14 @@ static void p_bra_cart2spinor_si(double complex *gsp, FINT nket,
                 }
         }
 }
-static void p_ket_cart2spinor(double complex *gsp, FINT nbra,
-                              double complex *gcart, FINT l, FINT kappa)
+
+static void d_bra_cart2spinor_sf(double complex *gsp, int nket,
+                                 double complex *gcart, int kappa, int l)
 {
         const double complex *coeff_c2s;
-        FINT i;
-
-        if (kappa >= 0) {
-                coeff_c2s = g_c2s[1].cart2j_lt_l;
-                for (i = 0; i < nbra; i++) {
-                        gsp[     i] = CRE(0,0,1)*GRE(nbra*0+i)
-                                    + CIM(1,0,1)*GIM(nbra*1+i)
-                                    + CRE(5,0,1)*GRE(nbra*5+i);
-                        gsp[nbra+i] = CRE(2,1,1)*GRE(nbra*2+i)
-                                    + CRE(3,1,1)*GRE(nbra*3+i)
-                                    + CIM(4,1,1)*GIM(nbra*4+i);
-                }
-                gsp += nbra * 2;
-        }
-        if (kappa <= 0) {
-                coeff_c2s = g_c2s[1].cart2j_gt_l;
-                for (i = 0; i < nbra; i++) {
-                        gsp[0*nbra+i] = CRE(3,0,1)*GRE(nbra*3+i)
-                                      + CIM(4,0,1)*GIM(nbra*4+i);
-                        gsp[1*nbra+i] = CRE(0,1,1)*GRE(nbra*0+i)
-                                      + CIM(1,1,1)*GIM(nbra*1+i)
-                                      + CRE(5,1,1)*GRE(nbra*5+i);
-                        gsp[2*nbra+i] = CRE(2,2,1)*GRE(nbra*2+i)
-                                      + CRE(3,2,1)*GRE(nbra*3+i)
-                                      + CIM(4,2,1)*GIM(nbra*4+i);
-                        gsp[3*nbra+i] = CRE(0,3,1)*GRE(nbra*0+i)
-                                      + CIM(1,3,1)*GIM(nbra*1+i);
-                }
-        }
-}
-static void p_iket_cart2spinor(double complex *gsp, FINT nbra,
-                               double complex *gcart, FINT l, FINT kappa)
-{
-        const double complex *coeff_c2s;
-        FINT i;
-
-        if (kappa >= 0) {
-                coeff_c2s = g_c2s[1].cart2j_lt_l;
-                for (i = 0; i < nbra; i++) {
-                        gsp[     i] = CRE(0,0,1)*GIM(nbra*0+i)
-                                    - CIM(1,0,1)*GRE(nbra*1+i)
-                                    + CRE(5,0,1)*GIM(nbra*5+i);
-                        gsp[nbra+i] = CRE(2,1,1)*GIM(nbra*2+i)
-                                    + CRE(3,1,1)*GIM(nbra*3+i)
-                                    - CIM(4,1,1)*GRE(nbra*4+i);
-                }
-                gsp += nbra * 2;
-        }
-        if (kappa <= 0) {
-                coeff_c2s = g_c2s[1].cart2j_gt_l;
-                for (i = 0; i < nbra; i++) {
-                        gsp[0*nbra+i] = CRE(3,0,1)*GIM(nbra*3+i)
-                                      - CIM(4,0,1)*GRE(nbra*4+i);
-                        gsp[1*nbra+i] = CRE(0,1,1)*GIM(nbra*0+i)
-                                      - CIM(1,1,1)*GRE(nbra*1+i)
-                                      + CRE(5,1,1)*GIM(nbra*5+i);
-                        gsp[2*nbra+i] = CRE(2,2,1)*GIM(nbra*2+i)
-                                      + CRE(3,2,1)*GIM(nbra*3+i)
-                                      - CIM(4,2,1)*GRE(nbra*4+i);
-                        gsp[3*nbra+i] = CRE(0,3,1)*GIM(nbra*0+i)
-                                      - CIM(1,3,1)*GRE(nbra*1+i);
-                }
-        }
-}
-
-static void d_bra_cart2spinor_sf(double complex *gsp, FINT nket,
-                                 double complex *gcart, FINT l, FINT kappa)
-{
-        const double complex *coeff_c2s;
-        const FINT nd = _len_spinor(l, kappa);
+        int nd = _len_spinor(kappa, l);
         double complex *gsp1 = gsp + nket * nd;
-        FINT i;
+        int i;
 
         if (kappa >= 0) {
                 coeff_c2s = g_c2s[2].cart2j_lt_l;
@@ -4166,13 +3634,13 @@ static void d_bra_cart2spinor_sf(double complex *gsp, FINT nket,
                 }
         }
 }
-static void d_bra_cart2spinor_e1sf(double complex *gsp, FINT nket,
-                                   double *gcart, FINT l, FINT kappa)
+static void d_bra_cart2spinor_e1sf(double complex *gsp, int nket,
+                                   double *gcart, int kappa, int l)
 {
         const double complex *coeff_c2s;
-        const FINT nd = _len_spinor(l, kappa);
+        int nd = _len_spinor(kappa, l);
         double complex *gsp1 = gsp + nket * nd;
-        FINT i;
+        int i;
 
         if (kappa >= 0) {
                 coeff_c2s = g_c2s[2].cart2j_lt_l;
@@ -4238,13 +3706,13 @@ static void d_bra_cart2spinor_e1sf(double complex *gsp, FINT nket,
                 }
         }
 }
-static void d_bra_cart2spinor_si(double complex *gsp, FINT nket,
-                                 double complex *gcart, FINT l, FINT kappa)
+static void d_bra_cart2spinor_si(double complex *gsp, int nket,
+                                 double complex *gcart, int kappa, int l)
 {
         const double complex *coeff_c2s;
-        const FINT nd = _len_spinor(l, kappa);
+        int nd = _len_spinor(kappa, l);
         double complex *gcart1 = gcart + nket * 6;
-        FINT i;
+        int i;
 
         if (kappa >= 0) {
                 coeff_c2s = g_c2s[2].cart2j_lt_l;
@@ -4309,142 +3777,14 @@ static void d_bra_cart2spinor_si(double complex *gsp, FINT nket,
                 }
         }
 }
-static void d_ket_cart2spinor(double complex *gsp, FINT nbra,
-                              double complex *gcart, FINT l, FINT kappa)
+
+static void f_bra_cart2spinor_sf(double complex *gsp, int nket,
+                                 double complex *gcart, int kappa, int l)
 {
         const double complex *coeff_c2s;
-        FINT i;
-
-        if (kappa >= 0) {
-                coeff_c2s = g_c2s[2].cart2j_lt_l;
-                for (i = 0; i < nbra; i++) {
-                        gsp[0*nbra+i] = CRE( 0,0,2)*GRE(nbra* 0+i)
-                                      + CRE( 3,0,2)*GRE(nbra* 3+i)
-                                      + CIM( 1,0,2)*GIM(nbra* 1+i)
-                                      + CRE( 8,0,2)*GRE(nbra* 8+i)
-                                      + CIM(10,0,2)*GIM(nbra*10+i);
-                        gsp[1*nbra+i] = CRE( 2,1,2)*GRE(nbra* 2+i)
-                                      + CIM( 4,1,2)*GIM(nbra* 4+i)
-                                      + CRE( 6,1,2)*GRE(nbra* 6+i)
-                                      + CRE( 9,1,2)*GRE(nbra* 9+i)
-                                      + CRE(11,1,2)*GRE(nbra*11+i);
-                        gsp[2*nbra+i] = CRE( 0,2,2)*GRE(nbra* 0+i)
-                                      + CRE( 3,2,2)*GRE(nbra* 3+i)
-                                      + CRE( 5,2,2)*GRE(nbra* 5+i)
-                                      + CRE( 8,2,2)*GRE(nbra* 8+i)
-                                      + CIM(10,2,2)*GIM(nbra*10+i);
-                        gsp[3*nbra+i] = CRE( 2,3,2)*GRE(nbra* 2+i)
-                                      + CIM( 4,3,2)*GIM(nbra* 4+i)
-                                      + CRE( 6,3,2)*GRE(nbra* 6+i)
-                                      + CRE( 9,3,2)*GRE(nbra* 9+i)
-                                      + CIM( 7,3,2)*GIM(nbra* 7+i);
-                }
-                gsp += nbra * 4;
-        }
-        if (kappa <= 0) {
-                coeff_c2s = g_c2s[2].cart2j_gt_l;
-                for (i = 0; i < nbra; i++) {
-                        gsp[0*nbra+i] = CRE( 6,0,2)*GRE(nbra* 6+i)
-                                      + CRE( 9,0,2)*GRE(nbra* 9+i)
-                                      + CIM( 7,0,2)*GIM(nbra* 7+i);
-                        gsp[1*nbra+i] = CRE( 0,1,2)*GRE(nbra* 0+i)
-                                      + CRE( 3,1,2)*GRE(nbra* 3+i)
-                                      + CIM( 1,1,2)*GIM(nbra* 1+i)
-                                      + CRE( 8,1,2)*GRE(nbra* 8+i)
-                                      + CIM(10,1,2)*GIM(nbra*10+i);
-                        gsp[2*nbra+i] = CRE( 2,2,2)*GRE(nbra* 2+i)
-                                      + CIM( 4,2,2)*GIM(nbra* 4+i)
-                                      + CRE( 6,2,2)*GRE(nbra* 6+i)
-                                      + CRE( 9,2,2)*GRE(nbra* 9+i)
-                                      + CRE(11,2,2)*GRE(nbra*11+i);
-                        gsp[3*nbra+i] = CRE( 0,3,2)*GRE(nbra* 0+i)
-                                      + CRE( 3,3,2)*GRE(nbra* 3+i)
-                                      + CRE( 5,3,2)*GRE(nbra* 5+i)
-                                      + CRE( 8,3,2)*GRE(nbra* 8+i)
-                                      + CIM(10,3,2)*GIM(nbra*10+i);
-                        gsp[4*nbra+i] = CRE( 2,4,2)*GRE(nbra* 2+i)
-                                      + CIM( 4,4,2)*GIM(nbra* 4+i)
-                                      + CRE( 6,4,2)*GRE(nbra* 6+i)
-                                      + CRE( 9,4,2)*GRE(nbra* 9+i)
-                                      + CIM( 7,4,2)*GIM(nbra* 7+i);
-                        gsp[5*nbra+i] = CRE( 0,5,2)*GRE(nbra* 0+i)
-                                      + CRE( 3,5,2)*GRE(nbra* 3+i)
-                                      + CIM( 1,5,2)*GIM(nbra* 1+i);
-                }
-        }
-}
-static void d_iket_cart2spinor(double complex *gsp, FINT nbra,
-                               double complex *gcart, FINT l, FINT kappa)
-{
-        const double complex *coeff_c2s;
-        FINT i;
-
-        if (kappa >= 0) {
-                coeff_c2s = g_c2s[2].cart2j_lt_l;
-                for (i = 0; i < nbra; i++) {
-                        gsp[0*nbra+i] = CRE( 0,0,2)*GIM(nbra* 0+i)
-                                      + CRE( 3,0,2)*GIM(nbra* 3+i)
-                                      - CIM( 1,0,2)*GRE(nbra* 1+i)
-                                      + CRE( 8,0,2)*GIM(nbra* 8+i)
-                                      - CIM(10,0,2)*GRE(nbra*10+i);
-                        gsp[1*nbra+i] = CRE( 2,1,2)*GIM(nbra* 2+i)
-                                      - CIM( 4,1,2)*GRE(nbra* 4+i)
-                                      + CRE( 6,1,2)*GIM(nbra* 6+i)
-                                      + CRE( 9,1,2)*GIM(nbra* 9+i)
-                                      + CRE(11,1,2)*GIM(nbra*11+i);
-                        gsp[2*nbra+i] = CRE( 0,2,2)*GIM(nbra* 0+i)
-                                      + CRE( 3,2,2)*GIM(nbra* 3+i)
-                                      + CRE( 5,2,2)*GIM(nbra* 5+i)
-                                      + CRE( 8,2,2)*GIM(nbra* 8+i)
-                                      - CIM(10,2,2)*GRE(nbra*10+i);
-                        gsp[3*nbra+i] = CRE( 2,3,2)*GIM(nbra* 2+i)
-                                      - CIM( 4,3,2)*GRE(nbra* 4+i)
-                                      + CRE( 6,3,2)*GIM(nbra* 6+i)
-                                      + CRE( 9,3,2)*GIM(nbra* 9+i)
-                                      - CIM( 7,3,2)*GRE(nbra* 7+i);
-                }
-                gsp += nbra * 4;
-        }
-        if (kappa <= 0) {
-                coeff_c2s = g_c2s[2].cart2j_gt_l;
-                for (i = 0; i < nbra; i++) {
-                        gsp[0*nbra+i] = CRE( 6,0,2)*GIM(nbra* 6+i)
-                                      + CRE( 9,0,2)*GIM(nbra* 9+i)
-                                      - CIM( 7,0,2)*GRE(nbra* 7+i);
-                        gsp[1*nbra+i] = CRE( 0,1,2)*GIM(nbra* 0+i)
-                                      + CRE( 3,1,2)*GIM(nbra* 3+i)
-                                      - CIM( 1,1,2)*GRE(nbra* 1+i)
-                                      + CRE( 8,1,2)*GIM(nbra* 8+i)
-                                      - CIM(10,1,2)*GRE(nbra*10+i);
-                        gsp[2*nbra+i] = CRE( 2,2,2)*GIM(nbra* 2+i)
-                                      - CIM( 4,2,2)*GRE(nbra* 4+i)
-                                      + CRE( 6,2,2)*GIM(nbra* 6+i)
-                                      + CRE( 9,2,2)*GIM(nbra* 9+i)
-                                      + CRE(11,2,2)*GIM(nbra*11+i);
-                        gsp[3*nbra+i] = CRE( 0,3,2)*GIM(nbra* 0+i)
-                                      + CRE( 3,3,2)*GIM(nbra* 3+i)
-                                      + CRE( 5,3,2)*GIM(nbra* 5+i)
-                                      + CRE( 8,3,2)*GIM(nbra* 8+i)
-                                      - CIM(10,3,2)*GRE(nbra*10+i);
-                        gsp[4*nbra+i] = CRE( 2,4,2)*GIM(nbra* 2+i)
-                                      - CIM( 4,4,2)*GRE(nbra* 4+i)
-                                      + CRE( 6,4,2)*GIM(nbra* 6+i)
-                                      + CRE( 9,4,2)*GIM(nbra* 9+i)
-                                      - CIM( 7,4,2)*GRE(nbra* 7+i);
-                        gsp[5*nbra+i] = CRE( 0,5,2)*GIM(nbra* 0+i)
-                                      + CRE( 3,5,2)*GIM(nbra* 3+i)
-                                      - CIM( 1,5,2)*GRE(nbra* 1+i);
-                }
-        }
-}
-
-static void f_bra_cart2spinor_sf(double complex *gsp, FINT nket,
-                                 double complex *gcart, FINT l, FINT kappa)
-{
-        const double complex *coeff_c2s;
-        const FINT nd = _len_spinor(l, kappa);
+        int nd = _len_spinor(kappa, l);
         double complex *gsp1 = gsp + nket * nd;
-        FINT i;
+        int i;
 
         if (kappa >= 0) {
                 coeff_c2s = g_c2s[3].cart2j_lt_l;
@@ -4571,13 +3911,13 @@ static void f_bra_cart2spinor_sf(double complex *gsp, FINT nket,
                 }
         }
 }
-static void f_bra_cart2spinor_e1sf(double complex *gsp, FINT nket,
-                                   double *gcart, FINT l, FINT kappa)
+static void f_bra_cart2spinor_e1sf(double complex *gsp, int nket,
+                                   double *gcart, int kappa, int l)
 {
         const double complex *coeff_c2s;
-        const FINT nd = _len_spinor(l, kappa);
+        int nd = _len_spinor(kappa, l);
         double complex *gsp1 = gsp + nket * nd;
-        FINT i;
+        int i;
 
         if (kappa >= 0) {
                 coeff_c2s = g_c2s[3].cart2j_lt_l;
@@ -4704,13 +4044,13 @@ static void f_bra_cart2spinor_e1sf(double complex *gsp, FINT nket,
                 }
         }
 }
-static void f_bra_cart2spinor_si(double complex *gsp, FINT nket,
-                                 double complex *gcart, FINT l, FINT kappa)
+static void f_bra_cart2spinor_si(double complex *gsp, int nket,
+                                 double complex *gcart, int kappa, int l)
 {
         const double complex *coeff_c2s;
-        const FINT nd = _len_spinor(l, kappa);
+        int nd = _len_spinor(kappa, l);
         double complex *gcart1 = gcart + nket * 10;
-        FINT i;
+        int i;
 
         if (kappa >= 0) {
                 coeff_c2s = g_c2s[3].cart2j_lt_l;
@@ -4838,266 +4178,14 @@ static void f_bra_cart2spinor_si(double complex *gsp, FINT nket,
                 }
         }
 }
-static void f_ket_cart2spinor(double complex *gsp, FINT nbra,
-                              double complex *gcart, FINT l, FINT kappa)
+
+static void g_bra_cart2spinor_sf(double complex *gsp, int nket,
+                                 double complex *gcart, int kappa, int l)
 {
         const double complex *coeff_c2s;
-        FINT i;
-
-        if (kappa >= 0) {
-                coeff_c2s = g_c2s[3].cart2j_lt_l;
-                for (i = 0; i < nbra; i++) {
-                        gsp[0*nbra+i] = CRE( 0,0,3)*GRE(nbra* 0+i)
-                                      + CIM( 1,0,3)*GIM(nbra* 1+i)
-                                      + CRE( 3,0,3)*GRE(nbra* 3+i)
-                                      + CIM( 6,0,3)*GIM(nbra* 6+i)
-                                      + CRE(12,0,3)*GRE(nbra*12+i)
-                                      + CIM(14,0,3)*GIM(nbra*14+i)
-                                      + CRE(17,0,3)*GRE(nbra*17+i);
-                        gsp[1*nbra+i] = CRE( 2,1,3)*GRE(nbra* 2+i)
-                                      + CIM( 4,1,3)*GIM(nbra* 4+i)
-                                      + CRE( 7,1,3)*GRE(nbra* 7+i)
-                                      + CRE(10,1,3)*GRE(nbra*10+i)
-                                      + CIM(11,1,3)*GIM(nbra*11+i)
-                                      + CRE(13,1,3)*GRE(nbra*13+i)
-                                      + CRE(15,1,3)*GRE(nbra*15+i)
-                                      + CIM(16,1,3)*GIM(nbra*16+i)
-                                      + CIM(18,1,3)*GIM(nbra*18+i);
-                        gsp[2*nbra+i] = CRE( 0,2,3)*GRE(nbra* 0+i)
-                                      + CIM( 1,2,3)*GIM(nbra* 1+i)
-                                      + CRE( 3,2,3)*GRE(nbra* 3+i)
-                                      + CRE( 5,2,3)*GRE(nbra* 5+i)
-                                      + CIM( 6,2,3)*GIM(nbra* 6+i)
-                                      + CIM( 8,2,3)*GIM(nbra* 8+i)
-                                      + CRE(12,2,3)*GRE(nbra*12+i)
-                                      + CRE(17,2,3)*GRE(nbra*17+i)
-                                      + CRE(19,2,3)*GRE(nbra*19+i);
-                        gsp[3*nbra+i] = CRE( 2,3,3)*GRE(nbra* 2+i)
-                                      + CRE( 7,3,3)*GRE(nbra* 7+i)
-                                      + CRE( 9,3,3)*GRE(nbra* 9+i)
-                                      + CRE(10,3,3)*GRE(nbra*10+i)
-                                      + CIM(11,3,3)*GIM(nbra*11+i)
-                                      + CRE(13,3,3)*GRE(nbra*13+i)
-                                      + CRE(15,3,3)*GRE(nbra*15+i)
-                                      + CIM(16,3,3)*GIM(nbra*16+i)
-                                      + CIM(18,3,3)*GIM(nbra*18+i);
-                        gsp[4*nbra+i] = CRE( 0,4,3)*GRE(nbra* 0+i)
-                                      + CIM( 1,4,3)*GIM(nbra* 1+i)
-                                      + CRE( 3,4,3)*GRE(nbra* 3+i)
-                                      + CRE( 5,4,3)*GRE(nbra* 5+i)
-                                      + CIM( 6,4,3)*GIM(nbra* 6+i)
-                                      + CIM( 8,4,3)*GIM(nbra* 8+i)
-                                      + CRE(12,4,3)*GRE(nbra*12+i)
-                                      + CIM(14,4,3)*GIM(nbra*14+i)
-                                      + CRE(17,4,3)*GRE(nbra*17+i);
-                        gsp[5*nbra+i] = CRE( 2,5,3)*GRE(nbra* 2+i)
-                                      + CIM( 4,5,3)*GIM(nbra* 4+i)
-                                      + CRE( 7,5,3)*GRE(nbra* 7+i)
-                                      + CRE(10,5,3)*GRE(nbra*10+i)
-                                      + CIM(11,5,3)*GIM(nbra*11+i)
-                                      + CRE(13,5,3)*GRE(nbra*13+i)
-                                      + CIM(16,5,3)*GIM(nbra*16+i);
-                }
-                gsp += nbra * 6;
-        }
-        if (kappa <= 0) {
-                coeff_c2s = g_c2s[3].cart2j_gt_l;
-                for (i = 0; i < nbra; i++) {
-                        gsp[0*nbra+i] = CRE(10,0,3)*GRE(nbra*10+i)
-                                      + CIM(11,0,3)*GIM(nbra*11+i)
-                                      + CRE(13,0,3)*GRE(nbra*13+i)
-                                      + CIM(16,0,3)*GIM(nbra*16+i);
-                        gsp[1*nbra+i] = CRE( 0,1,3)*GRE(nbra* 0+i)
-                                      + CIM( 1,1,3)*GIM(nbra* 1+i)
-                                      + CRE( 3,1,3)*GRE(nbra* 3+i)
-                                      + CIM( 6,1,3)*GIM(nbra* 6+i)
-                                      + CRE(12,1,3)*GRE(nbra*12+i)
-                                      + CIM(14,1,3)*GIM(nbra*14+i)
-                                      + CRE(17,1,3)*GRE(nbra*17+i);
-                        gsp[2*nbra+i] = CRE( 2,2,3)*GRE(nbra* 2+i)
-                                      + CIM( 4,2,3)*GIM(nbra* 4+i)
-                                      + CRE( 7,2,3)*GRE(nbra* 7+i)
-                                      + CRE(10,2,3)*GRE(nbra*10+i)
-                                      + CIM(11,2,3)*GIM(nbra*11+i)
-                                      + CRE(13,2,3)*GRE(nbra*13+i)
-                                      + CRE(15,2,3)*GRE(nbra*15+i)
-                                      + CIM(16,2,3)*GIM(nbra*16+i)
-                                      + CIM(18,2,3)*GIM(nbra*18+i);
-                        gsp[3*nbra+i] = CRE( 0,3,3)*GRE(nbra* 0+i)
-                                      + CIM( 1,3,3)*GIM(nbra* 1+i)
-                                      + CRE( 3,3,3)*GRE(nbra* 3+i)
-                                      + CRE( 5,3,3)*GRE(nbra* 5+i)
-                                      + CIM( 6,3,3)*GIM(nbra* 6+i)
-                                      + CIM( 8,3,3)*GIM(nbra* 8+i)
-                                      + CRE(12,3,3)*GRE(nbra*12+i)
-                                      + CRE(17,3,3)*GRE(nbra*17+i)
-                                      + CRE(19,3,3)*GRE(nbra*19+i);
-                        gsp[4*nbra+i] = CRE( 2,4,3)*GRE(nbra* 2+i)
-                                      + CRE( 7,4,3)*GRE(nbra* 7+i)
-                                      + CRE( 9,4,3)*GRE(nbra* 9+i)
-                                      + CRE(10,4,3)*GRE(nbra*10+i)
-                                      + CIM(11,4,3)*GIM(nbra*11+i)
-                                      + CRE(13,4,3)*GRE(nbra*13+i)
-                                      + CRE(15,4,3)*GRE(nbra*15+i)
-                                      + CIM(16,4,3)*GIM(nbra*16+i)
-                                      + CIM(18,4,3)*GIM(nbra*18+i);
-                        gsp[5*nbra+i] = CRE( 0,5,3)*GRE(nbra* 0+i)
-                                      + CIM( 1,5,3)*GIM(nbra* 1+i)
-                                      + CRE( 3,5,3)*GRE(nbra* 3+i)
-                                      + CRE( 5,5,3)*GRE(nbra* 5+i)
-                                      + CIM( 6,5,3)*GIM(nbra* 6+i)
-                                      + CIM( 8,5,3)*GIM(nbra* 8+i)
-                                      + CRE(12,5,3)*GRE(nbra*12+i)
-                                      + CIM(14,5,3)*GIM(nbra*14+i)
-                                      + CRE(17,5,3)*GRE(nbra*17+i);
-                        gsp[6*nbra+i] = CRE( 2,6,3)*GRE(nbra* 2+i)
-                                      + CIM( 4,6,3)*GIM(nbra* 4+i)
-                                      + CRE( 7,6,3)*GRE(nbra* 7+i)
-                                      + CRE(10,6,3)*GRE(nbra*10+i)
-                                      + CIM(11,6,3)*GIM(nbra*11+i)
-                                      + CRE(13,6,3)*GRE(nbra*13+i)
-                                      + CIM(16,6,3)*GIM(nbra*16+i);
-                        gsp[7*nbra+i] = CRE( 0,7,3)*GRE(nbra* 0+i)
-                                      + CIM( 1,7,3)*GIM(nbra* 1+i)
-                                      + CRE( 3,7,3)*GRE(nbra* 3+i)
-                                      + CIM( 6,7,3)*GIM(nbra* 6+i);
-                }
-        }
-}
-static void f_iket_cart2spinor(double complex *gsp, FINT nbra,
-                               double complex *gcart, FINT l, FINT kappa)
-{
-        const double complex *coeff_c2s;
-        FINT i;
-
-        if (kappa >= 0) {
-                coeff_c2s = g_c2s[3].cart2j_lt_l;
-                for (i = 0; i < nbra; i++) {
-                        gsp[0*nbra+i] = CRE( 0,0,3)*GIM(nbra* 0+i)
-                                      - CIM( 1,0,3)*GRE(nbra* 1+i)
-                                      + CRE( 3,0,3)*GIM(nbra* 3+i)
-                                      - CIM( 6,0,3)*GRE(nbra* 6+i)
-                                      + CRE(12,0,3)*GIM(nbra*12+i)
-                                      - CIM(14,0,3)*GRE(nbra*14+i)
-                                      + CRE(17,0,3)*GIM(nbra*17+i);
-                        gsp[1*nbra+i] = CRE( 2,1,3)*GIM(nbra* 2+i)
-                                      - CIM( 4,1,3)*GRE(nbra* 4+i)
-                                      + CRE( 7,1,3)*GIM(nbra* 7+i)
-                                      + CRE(10,1,3)*GIM(nbra*10+i)
-                                      - CIM(11,1,3)*GRE(nbra*11+i)
-                                      + CRE(13,1,3)*GIM(nbra*13+i)
-                                      + CRE(15,1,3)*GIM(nbra*15+i)
-                                      - CIM(16,1,3)*GRE(nbra*16+i)
-                                      - CIM(18,1,3)*GRE(nbra*18+i);
-                        gsp[2*nbra+i] = CRE( 0,2,3)*GIM(nbra* 0+i)
-                                      - CIM( 1,2,3)*GRE(nbra* 1+i)
-                                      + CRE( 3,2,3)*GIM(nbra* 3+i)
-                                      + CRE( 5,2,3)*GIM(nbra* 5+i)
-                                      - CIM( 6,2,3)*GRE(nbra* 6+i)
-                                      - CIM( 8,2,3)*GRE(nbra* 8+i)
-                                      + CRE(12,2,3)*GIM(nbra*12+i)
-                                      + CRE(17,2,3)*GIM(nbra*17+i)
-                                      + CRE(19,2,3)*GIM(nbra*19+i);
-                        gsp[3*nbra+i] = CRE( 2,3,3)*GIM(nbra* 2+i)
-                                      + CRE( 7,3,3)*GIM(nbra* 7+i)
-                                      + CRE( 9,3,3)*GIM(nbra* 9+i)
-                                      + CRE(10,3,3)*GIM(nbra*10+i)
-                                      - CIM(11,3,3)*GRE(nbra*11+i)
-                                      + CRE(13,3,3)*GIM(nbra*13+i)
-                                      + CRE(15,3,3)*GIM(nbra*15+i)
-                                      - CIM(16,3,3)*GRE(nbra*16+i)
-                                      - CIM(18,3,3)*GRE(nbra*18+i);
-                        gsp[4*nbra+i] = CRE( 0,4,3)*GIM(nbra* 0+i)
-                                      - CIM( 1,4,3)*GRE(nbra* 1+i)
-                                      + CRE( 3,4,3)*GIM(nbra* 3+i)
-                                      + CRE( 5,4,3)*GIM(nbra* 5+i)
-                                      - CIM( 6,4,3)*GRE(nbra* 6+i)
-                                      - CIM( 8,4,3)*GRE(nbra* 8+i)
-                                      + CRE(12,4,3)*GIM(nbra*12+i)
-                                      - CIM(14,4,3)*GRE(nbra*14+i)
-                                      + CRE(17,4,3)*GIM(nbra*17+i);
-                        gsp[5*nbra+i] = CRE( 2,5,3)*GIM(nbra* 2+i)
-                                      - CIM( 4,5,3)*GRE(nbra* 4+i)
-                                      + CRE( 7,5,3)*GIM(nbra* 7+i)
-                                      + CRE(10,5,3)*GIM(nbra*10+i)
-                                      - CIM(11,5,3)*GRE(nbra*11+i)
-                                      + CRE(13,5,3)*GIM(nbra*13+i)
-                                      - CIM(16,5,3)*GRE(nbra*16+i);
-                }
-                gsp += nbra * 6;
-        }
-        if (kappa <= 0) {
-                coeff_c2s = g_c2s[3].cart2j_gt_l;
-                for (i = 0; i < nbra; i++) {
-                        gsp[0*nbra+i] = CRE(10,0,3)*GIM(nbra*10+i)
-                                      - CIM(11,0,3)*GRE(nbra*11+i)
-                                      + CRE(13,0,3)*GIM(nbra*13+i)
-                                      - CIM(16,0,3)*GRE(nbra*16+i);
-                        gsp[1*nbra+i] = CRE( 0,1,3)*GIM(nbra* 0+i)
-                                      - CIM( 1,1,3)*GRE(nbra* 1+i)
-                                      + CRE( 3,1,3)*GIM(nbra* 3+i)
-                                      - CIM( 6,1,3)*GRE(nbra* 6+i)
-                                      + CRE(12,1,3)*GIM(nbra*12+i)
-                                      - CIM(14,1,3)*GRE(nbra*14+i)
-                                      + CRE(17,1,3)*GIM(nbra*17+i);
-                        gsp[2*nbra+i] = CRE( 2,2,3)*GIM(nbra* 2+i)
-                                      - CIM( 4,2,3)*GRE(nbra* 4+i)
-                                      + CRE( 7,2,3)*GIM(nbra* 7+i)
-                                      + CRE(10,2,3)*GIM(nbra*10+i)
-                                      - CIM(11,2,3)*GRE(nbra*11+i)
-                                      + CRE(13,2,3)*GIM(nbra*13+i)
-                                      + CRE(15,2,3)*GIM(nbra*15+i)
-                                      - CIM(16,2,3)*GRE(nbra*16+i)
-                                      - CIM(18,2,3)*GRE(nbra*18+i);
-                        gsp[3*nbra+i] = CRE( 0,3,3)*GIM(nbra* 0+i)
-                                      - CIM( 1,3,3)*GRE(nbra* 1+i)
-                                      + CRE( 3,3,3)*GIM(nbra* 3+i)
-                                      + CRE( 5,3,3)*GIM(nbra* 5+i)
-                                      - CIM( 6,3,3)*GRE(nbra* 6+i)
-                                      - CIM( 8,3,3)*GRE(nbra* 8+i)
-                                      + CRE(12,3,3)*GIM(nbra*12+i)
-                                      + CRE(17,3,3)*GIM(nbra*17+i)
-                                      + CRE(19,3,3)*GIM(nbra*19+i);
-                        gsp[4*nbra+i] = CRE( 2,4,3)*GIM(nbra* 2+i)
-                                      + CRE( 7,4,3)*GIM(nbra* 7+i)
-                                      + CRE( 9,4,3)*GIM(nbra* 9+i)
-                                      + CRE(10,4,3)*GIM(nbra*10+i)
-                                      - CIM(11,4,3)*GRE(nbra*11+i)
-                                      + CRE(13,4,3)*GIM(nbra*13+i)
-                                      + CRE(15,4,3)*GIM(nbra*15+i)
-                                      - CIM(16,4,3)*GRE(nbra*16+i)
-                                      - CIM(18,4,3)*GRE(nbra*18+i);
-                        gsp[5*nbra+i] = CRE( 0,5,3)*GIM(nbra* 0+i)
-                                      - CIM( 1,5,3)*GRE(nbra* 1+i)
-                                      + CRE( 3,5,3)*GIM(nbra* 3+i)
-                                      + CRE( 5,5,3)*GIM(nbra* 5+i)
-                                      - CIM( 6,5,3)*GRE(nbra* 6+i)
-                                      - CIM( 8,5,3)*GRE(nbra* 8+i)
-                                      + CRE(12,5,3)*GIM(nbra*12+i)
-                                      - CIM(14,5,3)*GRE(nbra*14+i)
-                                      + CRE(17,5,3)*GIM(nbra*17+i);
-                        gsp[6*nbra+i] = CRE( 2,6,3)*GIM(nbra* 2+i)
-                                      - CIM( 4,6,3)*GRE(nbra* 4+i)
-                                      + CRE( 7,6,3)*GIM(nbra* 7+i)
-                                      + CRE(10,6,3)*GIM(nbra*10+i)
-                                      - CIM(11,6,3)*GRE(nbra*11+i)
-                                      + CRE(13,6,3)*GIM(nbra*13+i)
-                                      - CIM(16,6,3)*GRE(nbra*16+i);
-                        gsp[7*nbra+i] = CRE( 0,7,3)*GIM(nbra* 0+i)
-                                      - CIM( 1,7,3)*GRE(nbra* 1+i)
-                                      + CRE( 3,7,3)*GIM(nbra* 3+i)
-                                      - CIM( 6,7,3)*GRE(nbra* 6+i);
-                }
-        }
-}
-
-static void g_bra_cart2spinor_sf(double complex *gsp, FINT nket,
-                                 double complex *gcart, FINT l, FINT kappa)
-{
-        const double complex *coeff_c2s;
-        const FINT nd = _len_spinor(l, kappa);
+        int nd = _len_spinor(kappa, l);
         double complex *gsp1 = gsp + nket * nd;
-        FINT i;
+        int i;
 
         if (kappa >= 0) {
                 coeff_c2s = g_c2s[4].cart2j_lt_l;
@@ -5307,13 +4395,13 @@ static void g_bra_cart2spinor_sf(double complex *gsp, FINT nket,
                 }
         }
 }
-static void g_bra_cart2spinor_e1sf(double complex *gsp, FINT nket,
-                                   double *gcart, FINT l, FINT kappa)
+static void g_bra_cart2spinor_e1sf(double complex *gsp, int nket,
+                                   double *gcart, int kappa, int l)
 {
         const double complex *coeff_c2s;
-        const FINT nd = _len_spinor(l, kappa);
+        int nd = _len_spinor(kappa, l);
         double complex *gsp1 = gsp + nket * nd;
-        FINT i;
+        int i;
 
         if (kappa >= 0) {
                 coeff_c2s = g_c2s[4].cart2j_lt_l;
@@ -5523,13 +4611,13 @@ static void g_bra_cart2spinor_e1sf(double complex *gsp, FINT nket,
                 }
         }
 }
-static void g_bra_cart2spinor_si(double complex *gsp, FINT nket,
-                                 double complex *gcart, FINT l, FINT kappa)
+static void g_bra_cart2spinor_si(double complex *gsp, int nket,
+                                 double complex *gcart, int kappa, int l)
 {
         const double complex *coeff_c2s;
-        const FINT nd = _len_spinor(l, kappa);
+        int nd = _len_spinor(kappa, l);
         double complex *gcart1 = gcart + nket * 15;
-        FINT i;
+        int i;
 
         if (kappa >= 0) {
                 coeff_c2s = g_c2s[4].cart2j_lt_l;
@@ -5740,423 +4828,6 @@ static void g_bra_cart2spinor_si(double complex *gsp, FINT nket,
                 }
         }
 }
-static void g_ket_cart2spinor(double complex *gsp, FINT nbra,
-                              double complex *gcart, FINT l, FINT kappa)
-{
-        const double complex *coeff_c2s;
-        FINT i;
-
-        if (kappa >= 0) {
-                coeff_c2s = g_c2s[4].cart2j_lt_l;
-                for (i = 0; i < nbra; i++) {
-                        gsp[0*nbra+i] = CRE( 0,0,4) * GRE(nbra* 0+i)
-                                      + CIM( 1,0,4) * GIM(nbra* 1+i)
-                                      + CRE( 3,0,4) * GRE(nbra* 3+i)
-                                      + CIM( 6,0,4) * GIM(nbra* 6+i)
-                                      + CRE(10,0,4) * GRE(nbra*10+i)
-                                      + CRE(17,0,4) * GRE(nbra*17+i)
-                                      + CIM(19,0,4) * GIM(nbra*19+i)
-                                      + CRE(22,0,4) * GRE(nbra*22+i)
-                                      + CIM(26,0,4) * GIM(nbra*26+i);
-                        gsp[1*nbra+i] = CRE( 2,1,4) * GRE(nbra* 2+i)
-                                      + CIM( 4,1,4) * GIM(nbra* 4+i)
-                                      + CRE( 7,1,4) * GRE(nbra* 7+i)
-                                      + CIM(11,1,4) * GIM(nbra*11+i)
-                                      + CRE(15,1,4) * GRE(nbra*15+i)
-                                      + CIM(16,1,4) * GIM(nbra*16+i)
-                                      + CRE(20,1,4) * GRE(nbra*20+i)
-                                      + CIM(21,1,4) * GIM(nbra*21+i)
-                                      + CIM(23,1,4) * GIM(nbra*23+i)
-                                      + CRE(25,1,4) * GRE(nbra*25+i)
-                                      + CRE(27,1,4) * GRE(nbra*27+i);
-                        gsp[2*nbra+i] = CRE( 0,2,4) * GRE(nbra* 0+i)
-                                      + CIM( 1,2,4) * GIM(nbra* 1+i)
-                                      + CRE( 5,2,4) * GRE(nbra* 5+i)
-                                      + CIM( 6,2,4) * GIM(nbra* 6+i)
-                                      + CIM( 8,2,4) * GIM(nbra* 8+i)
-                                      + CRE(10,2,4) * GRE(nbra*10+i)
-                                      + CRE(12,2,4) * GRE(nbra*12+i)
-                                      + CRE(17,2,4) * GRE(nbra*17+i)
-                                      + CIM(19,2,4) * GIM(nbra*19+i)
-                                      + CRE(22,2,4) * GRE(nbra*22+i)
-                                      + CRE(24,2,4) * GRE(nbra*24+i)
-                                      + CIM(26,2,4) * GIM(nbra*26+i)
-                                      + CIM(28,2,4) * GIM(nbra*28+i);
-                        gsp[3*nbra+i] = CRE( 2,3,4) * GRE(nbra* 2+i)
-                                      + CIM( 4,3,4) * GIM(nbra* 4+i)
-                                      + CRE( 7,3,4) * GRE(nbra* 7+i)
-                                      + CRE( 9,3,4) * GRE(nbra* 9+i)
-                                      + CIM(11,3,4) * GIM(nbra*11+i)
-                                      + CIM(13,3,4) * GIM(nbra*13+i)
-                                      + CRE(15,3,4) * GRE(nbra*15+i)
-                                      + CRE(18,3,4) * GRE(nbra*18+i)
-                                      + CRE(20,3,4) * GRE(nbra*20+i)
-                                      + CRE(25,3,4) * GRE(nbra*25+i)
-                                      + CRE(27,3,4) * GRE(nbra*27+i)
-                                      + CRE(29,3,4) * GRE(nbra*29+i);
-                        gsp[4*nbra+i] = CRE( 0,4,4) * GRE(nbra* 0+i)
-                                      + CRE( 3,4,4) * GRE(nbra* 3+i)
-                                      + CRE( 5,4,4) * GRE(nbra* 5+i)
-                                      + CRE(10,4,4) * GRE(nbra*10+i)
-                                      + CRE(12,4,4) * GRE(nbra*12+i)
-                                      + CRE(14,4,4) * GRE(nbra*14+i)
-                                      + CRE(17,4,4) * GRE(nbra*17+i)
-                                      + CIM(19,4,4) * GIM(nbra*19+i)
-                                      + CRE(22,4,4) * GRE(nbra*22+i)
-                                      + CRE(24,4,4) * GRE(nbra*24+i)
-                                      + CIM(26,4,4) * GIM(nbra*26+i)
-                                      + CIM(28,4,4) * GIM(nbra*28+i);
-                        gsp[5*nbra+i] = CRE( 2,5,4) * GRE(nbra* 2+i)
-                                      + CIM( 4,5,4) * GIM(nbra* 4+i)
-                                      + CRE( 7,5,4) * GRE(nbra* 7+i)
-                                      + CRE( 9,5,4) * GRE(nbra* 9+i)
-                                      + CIM(11,5,4) * GIM(nbra*11+i)
-                                      + CIM(13,5,4) * GIM(nbra*13+i)
-                                      + CRE(15,5,4) * GRE(nbra*15+i)
-                                      + CIM(16,5,4) * GIM(nbra*16+i)
-                                      + CRE(20,5,4) * GRE(nbra*20+i)
-                                      + CIM(21,5,4) * GIM(nbra*21+i)
-                                      + CIM(23,5,4) * GIM(nbra*23+i)
-                                      + CRE(25,5,4) * GRE(nbra*25+i)
-                                      + CRE(27,5,4) * GRE(nbra*27+i);
-                        gsp[6*nbra+i] = CRE( 0,6,4) * GRE(nbra* 0+i)
-                                      + CIM( 1,6,4) * GIM(nbra* 1+i)
-                                      + CRE( 5,6,4) * GRE(nbra* 5+i)
-                                      + CIM( 6,6,4) * GIM(nbra* 6+i)
-                                      + CIM( 8,6,4) * GIM(nbra* 8+i)
-                                      + CRE(10,6,4) * GRE(nbra*10+i)
-                                      + CRE(12,6,4) * GRE(nbra*12+i)
-                                      + CRE(17,6,4) * GRE(nbra*17+i)
-                                      + CIM(19,6,4) * GIM(nbra*19+i)
-                                      + CRE(22,6,4) * GRE(nbra*22+i)
-                                      + CIM(26,6,4) * GIM(nbra*26+i);
-                        gsp[7*nbra+i] = CRE( 2,7,4) * GRE(nbra* 2+i)
-                                      + CIM( 4,7,4) * GIM(nbra* 4+i)
-                                      + CRE( 7,7,4) * GRE(nbra* 7+i)
-                                      + CIM(11,7,4) * GIM(nbra*11+i)
-                                      + CRE(15,7,4) * GRE(nbra*15+i)
-                                      + CIM(16,7,4) * GIM(nbra*16+i)
-                                      + CRE(18,7,4) * GRE(nbra*18+i)
-                                      + CIM(21,7,4) * GIM(nbra*21+i)
-                                      + CRE(25,7,4) * GRE(nbra*25+i);
-                };
-                gsp += nbra * 8;
-        }
-        if (kappa <= 0) {
-                coeff_c2s = g_c2s[4].cart2j_gt_l;
-                for (i = 0; i < nbra; i++) {
-                        gsp[0*nbra+i] = CRE(15,0,4) * GRE(nbra*15+i)
-                                      + CIM(16,0,4) * GIM(nbra*16+i)
-                                      + CRE(18,0,4) * GRE(nbra*18+i)
-                                      + CIM(21,0,4) * GIM(nbra*21+i)
-                                      + CRE(25,0,4) * GRE(nbra*25+i);
-                        gsp[1*nbra+i] = CRE( 0,1,4) * GRE(nbra* 0+i)
-                                      + CIM( 1,1,4) * GIM(nbra* 1+i)
-                                      + CRE( 3,1,4) * GRE(nbra* 3+i)
-                                      + CIM( 6,1,4) * GIM(nbra* 6+i)
-                                      + CRE(10,1,4) * GRE(nbra*10+i)
-                                      + CRE(17,1,4) * GRE(nbra*17+i)
-                                      + CIM(19,1,4) * GIM(nbra*19+i)
-                                      + CRE(22,1,4) * GRE(nbra*22+i)
-                                      + CIM(26,1,4) * GIM(nbra*26+i);
-                        gsp[2*nbra+i] = CRE( 2,2,4) * GRE(nbra* 2+i)
-                                      + CIM( 4,2,4) * GIM(nbra* 4+i)
-                                      + CRE( 7,2,4) * GRE(nbra* 7+i)
-                                      + CIM(11,2,4) * GIM(nbra*11+i)
-                                      + CRE(15,2,4) * GRE(nbra*15+i)
-                                      + CIM(16,2,4) * GIM(nbra*16+i)
-                                      + CRE(20,2,4) * GRE(nbra*20+i)
-                                      + CIM(21,2,4) * GIM(nbra*21+i)
-                                      + CIM(23,2,4) * GIM(nbra*23+i)
-                                      + CRE(25,2,4) * GRE(nbra*25+i)
-                                      + CRE(27,2,4) * GRE(nbra*27+i);
-                        gsp[3*nbra+i] = CRE( 0,3,4) * GRE(nbra* 0+i)
-                                      + CIM( 1,3,4) * GIM(nbra* 1+i)
-                                      + CRE( 5,3,4) * GRE(nbra* 5+i)
-                                      + CIM( 6,3,4) * GIM(nbra* 6+i)
-                                      + CIM( 8,3,4) * GIM(nbra* 8+i)
-                                      + CRE(10,3,4) * GRE(nbra*10+i)
-                                      + CRE(12,3,4) * GRE(nbra*12+i)
-                                      + CRE(17,3,4) * GRE(nbra*17+i)
-                                      + CIM(19,3,4) * GIM(nbra*19+i)
-                                      + CRE(22,3,4) * GRE(nbra*22+i)
-                                      + CRE(24,3,4) * GRE(nbra*24+i)
-                                      + CIM(26,3,4) * GIM(nbra*26+i)
-                                      + CIM(28,3,4) * GIM(nbra*28+i);
-                        gsp[4*nbra+i] = CRE( 2,4,4) * GRE(nbra* 2+i)
-                                      + CIM( 4,4,4) * GIM(nbra* 4+i)
-                                      + CRE( 7,4,4) * GRE(nbra* 7+i)
-                                      + CRE( 9,4,4) * GRE(nbra* 9+i)
-                                      + CIM(11,4,4) * GIM(nbra*11+i)
-                                      + CIM(13,4,4) * GIM(nbra*13+i)
-                                      + CRE(15,4,4) * GRE(nbra*15+i)
-                                      + CRE(18,4,4) * GRE(nbra*18+i)
-                                      + CRE(20,4,4) * GRE(nbra*20+i)
-                                      + CRE(25,4,4) * GRE(nbra*25+i)
-                                      + CRE(27,4,4) * GRE(nbra*27+i)
-                                      + CRE(29,4,4) * GRE(nbra*29+i);
-                        gsp[5*nbra+i] = CRE( 0,5,4) * GRE(nbra* 0+i)
-                                      + CRE( 3,5,4) * GRE(nbra* 3+i)
-                                      + CRE( 5,5,4) * GRE(nbra* 5+i)
-                                      + CRE(10,5,4) * GRE(nbra*10+i)
-                                      + CRE(12,5,4) * GRE(nbra*12+i)
-                                      + CRE(14,5,4) * GRE(nbra*14+i)
-                                      + CRE(17,5,4) * GRE(nbra*17+i)
-                                      + CIM(19,5,4) * GIM(nbra*19+i)
-                                      + CRE(22,5,4) * GRE(nbra*22+i)
-                                      + CRE(24,5,4) * GRE(nbra*24+i)
-                                      + CIM(26,5,4) * GIM(nbra*26+i)
-                                      + CIM(28,5,4) * GIM(nbra*28+i);
-                        gsp[6*nbra+i] = CRE( 2,6,4) * GRE(nbra* 2+i)
-                                      + CIM( 4,6,4) * GIM(nbra* 4+i)
-                                      + CRE( 7,6,4) * GRE(nbra* 7+i)
-                                      + CRE( 9,6,4) * GRE(nbra* 9+i)
-                                      + CIM(11,6,4) * GIM(nbra*11+i)
-                                      + CIM(13,6,4) * GIM(nbra*13+i)
-                                      + CRE(15,6,4) * GRE(nbra*15+i)
-                                      + CIM(16,6,4) * GIM(nbra*16+i)
-                                      + CRE(20,6,4) * GRE(nbra*20+i)
-                                      + CIM(21,6,4) * GIM(nbra*21+i)
-                                      + CIM(23,6,4) * GIM(nbra*23+i)
-                                      + CRE(25,6,4) * GRE(nbra*25+i)
-                                      + CRE(27,6,4) * GRE(nbra*27+i);
-                        gsp[7*nbra+i] = CRE( 0,7,4) * GRE(nbra* 0+i)
-                                      + CIM( 1,7,4) * GIM(nbra* 1+i)
-                                      + CRE( 5,7,4) * GRE(nbra* 5+i)
-                                      + CIM( 6,7,4) * GIM(nbra* 6+i)
-                                      + CIM( 8,7,4) * GIM(nbra* 8+i)
-                                      + CRE(10,7,4) * GRE(nbra*10+i)
-                                      + CRE(12,7,4) * GRE(nbra*12+i)
-                                      + CRE(17,7,4) * GRE(nbra*17+i)
-                                      + CIM(19,7,4) * GIM(nbra*19+i)
-                                      + CRE(22,7,4) * GRE(nbra*22+i)
-                                      + CIM(26,7,4) * GIM(nbra*26+i);
-                        gsp[8*nbra+i] = CRE( 2,8,4) * GRE(nbra* 2+i)
-                                      + CIM( 4,8,4) * GIM(nbra* 4+i)
-                                      + CRE( 7,8,4) * GRE(nbra* 7+i)
-                                      + CIM(11,8,4) * GIM(nbra*11+i)
-                                      + CRE(15,8,4) * GRE(nbra*15+i)
-                                      + CIM(16,8,4) * GIM(nbra*16+i)
-                                      + CRE(18,8,4) * GRE(nbra*18+i)
-                                      + CIM(21,8,4) * GIM(nbra*21+i)
-                                      + CRE(25,8,4) * GRE(nbra*25+i);
-                        gsp[9*nbra+i] = CRE( 0,9,4) * GRE(nbra* 0+i)
-                                      + CIM( 1,9,4) * GIM(nbra* 1+i)
-                                      + CRE( 3,9,4) * GRE(nbra* 3+i)
-                                      + CIM( 6,9,4) * GIM(nbra* 6+i)
-                                      + CRE(10,9,4) * GRE(nbra*10+i);
-                }
-        }
-}
-
-static void g_iket_cart2spinor(double complex *gsp, FINT nbra,
-                               double complex *gcart, FINT l, FINT kappa)
-{
-        const double complex *coeff_c2s;
-        FINT i;
-
-        if (kappa >= 0) {
-                coeff_c2s = g_c2s[4].cart2j_lt_l;
-                for (i = 0; i < nbra; i++) {
-                        gsp[0*nbra+i] = CRE( 0,0,4) * GIM(nbra* 0+i)
-                                      - CIM( 1,0,4) * GRE(nbra* 1+i)
-                                      + CRE( 3,0,4) * GIM(nbra* 3+i)
-                                      - CIM( 6,0,4) * GRE(nbra* 6+i)
-                                      + CRE(10,0,4) * GIM(nbra*10+i)
-                                      + CRE(17,0,4) * GIM(nbra*17+i)
-                                      - CIM(19,0,4) * GRE(nbra*19+i)
-                                      + CRE(22,0,4) * GIM(nbra*22+i)
-                                      - CIM(26,0,4) * GRE(nbra*26+i);
-                        gsp[1*nbra+i] = CRE( 2,1,4) * GIM(nbra* 2+i)
-                                      - CIM( 4,1,4) * GRE(nbra* 4+i)
-                                      + CRE( 7,1,4) * GIM(nbra* 7+i)
-                                      - CIM(11,1,4) * GRE(nbra*11+i)
-                                      + CRE(15,1,4) * GIM(nbra*15+i)
-                                      - CIM(16,1,4) * GRE(nbra*16+i)
-                                      + CRE(20,1,4) * GIM(nbra*20+i)
-                                      - CIM(21,1,4) * GRE(nbra*21+i)
-                                      - CIM(23,1,4) * GRE(nbra*23+i)
-                                      + CRE(25,1,4) * GIM(nbra*25+i)
-                                      + CRE(27,1,4) * GIM(nbra*27+i);
-                        gsp[2*nbra+i] = CRE( 0,2,4) * GIM(nbra* 0+i)
-                                      - CIM( 1,2,4) * GRE(nbra* 1+i)
-                                      + CRE( 5,2,4) * GIM(nbra* 5+i)
-                                      - CIM( 6,2,4) * GRE(nbra* 6+i)
-                                      - CIM( 8,2,4) * GRE(nbra* 8+i)
-                                      + CRE(10,2,4) * GIM(nbra*10+i)
-                                      + CRE(12,2,4) * GIM(nbra*12+i)
-                                      + CRE(17,2,4) * GIM(nbra*17+i)
-                                      - CIM(19,2,4) * GRE(nbra*19+i)
-                                      + CRE(22,2,4) * GIM(nbra*22+i)
-                                      + CRE(24,2,4) * GIM(nbra*24+i)
-                                      - CIM(26,2,4) * GRE(nbra*26+i)
-                                      - CIM(28,2,4) * GRE(nbra*28+i);
-                        gsp[3*nbra+i] = CRE( 2,3,4) * GIM(nbra* 2+i)
-                                      - CIM( 4,3,4) * GRE(nbra* 4+i)
-                                      + CRE( 7,3,4) * GIM(nbra* 7+i)
-                                      + CRE( 9,3,4) * GIM(nbra* 9+i)
-                                      - CIM(11,3,4) * GRE(nbra*11+i)
-                                      - CIM(13,3,4) * GRE(nbra*13+i)
-                                      + CRE(15,3,4) * GIM(nbra*15+i)
-                                      + CRE(18,3,4) * GIM(nbra*18+i)
-                                      + CRE(20,3,4) * GIM(nbra*20+i)
-                                      + CRE(25,3,4) * GIM(nbra*25+i)
-                                      + CRE(27,3,4) * GIM(nbra*27+i)
-                                      + CRE(29,3,4) * GIM(nbra*29+i);
-                        gsp[4*nbra+i] = CRE( 0,4,4) * GIM(nbra* 0+i)
-                                      + CRE( 3,4,4) * GIM(nbra* 3+i)
-                                      + CRE( 5,4,4) * GIM(nbra* 5+i)
-                                      + CRE(10,4,4) * GIM(nbra*10+i)
-                                      + CRE(12,4,4) * GIM(nbra*12+i)
-                                      + CRE(14,4,4) * GIM(nbra*14+i)
-                                      + CRE(17,4,4) * GIM(nbra*17+i)
-                                      - CIM(19,4,4) * GRE(nbra*19+i)
-                                      + CRE(22,4,4) * GIM(nbra*22+i)
-                                      + CRE(24,4,4) * GIM(nbra*24+i)
-                                      - CIM(26,4,4) * GRE(nbra*26+i)
-                                      - CIM(28,4,4) * GRE(nbra*28+i);
-                        gsp[5*nbra+i] = CRE( 2,5,4) * GIM(nbra* 2+i)
-                                      - CIM( 4,5,4) * GRE(nbra* 4+i)
-                                      + CRE( 7,5,4) * GIM(nbra* 7+i)
-                                      + CRE( 9,5,4) * GIM(nbra* 9+i)
-                                      - CIM(11,5,4) * GRE(nbra*11+i)
-                                      - CIM(13,5,4) * GRE(nbra*13+i)
-                                      + CRE(15,5,4) * GIM(nbra*15+i)
-                                      - CIM(16,5,4) * GRE(nbra*16+i)
-                                      + CRE(20,5,4) * GIM(nbra*20+i)
-                                      - CIM(21,5,4) * GRE(nbra*21+i)
-                                      - CIM(23,5,4) * GRE(nbra*23+i)
-                                      + CRE(25,5,4) * GIM(nbra*25+i)
-                                      + CRE(27,5,4) * GIM(nbra*27+i);
-                        gsp[6*nbra+i] = CRE( 0,6,4) * GIM(nbra* 0+i)
-                                      - CIM( 1,6,4) * GRE(nbra* 1+i)
-                                      + CRE( 5,6,4) * GIM(nbra* 5+i)
-                                      - CIM( 6,6,4) * GRE(nbra* 6+i)
-                                      - CIM( 8,6,4) * GRE(nbra* 8+i)
-                                      + CRE(10,6,4) * GIM(nbra*10+i)
-                                      + CRE(12,6,4) * GIM(nbra*12+i)
-                                      + CRE(17,6,4) * GIM(nbra*17+i)
-                                      - CIM(19,6,4) * GRE(nbra*19+i)
-                                      + CRE(22,6,4) * GIM(nbra*22+i)
-                                      - CIM(26,6,4) * GRE(nbra*26+i);
-                        gsp[7*nbra+i] = CRE( 2,7,4) * GIM(nbra* 2+i)
-                                      - CIM( 4,7,4) * GRE(nbra* 4+i)
-                                      + CRE( 7,7,4) * GIM(nbra* 7+i)
-                                      - CIM(11,7,4) * GRE(nbra*11+i)
-                                      + CRE(15,7,4) * GIM(nbra*15+i)
-                                      - CIM(16,7,4) * GRE(nbra*16+i)
-                                      + CRE(18,7,4) * GIM(nbra*18+i)
-                                      - CIM(21,7,4) * GRE(nbra*21+i)
-                                      + CRE(25,7,4) * GIM(nbra*25+i);
-                };
-                gsp += nbra * 8;
-        }
-        if (kappa <= 0) {
-                coeff_c2s = g_c2s[4].cart2j_gt_l;
-                for (i = 0; i < nbra; i++) {
-                        gsp[0*nbra+i] = CRE(15,0,4) * GIM(nbra*15+i)
-                                      - CIM(16,0,4) * GRE(nbra*16+i)
-                                      + CRE(18,0,4) * GIM(nbra*18+i)
-                                      - CIM(21,0,4) * GRE(nbra*21+i)
-                                      + CRE(25,0,4) * GIM(nbra*25+i);
-                        gsp[1*nbra+i] = CRE( 0,1,4) * GIM(nbra* 0+i)
-                                      - CIM( 1,1,4) * GRE(nbra* 1+i)
-                                      + CRE( 3,1,4) * GIM(nbra* 3+i)
-                                      - CIM( 6,1,4) * GRE(nbra* 6+i)
-                                      + CRE(10,1,4) * GIM(nbra*10+i)
-                                      + CRE(17,1,4) * GIM(nbra*17+i)
-                                      - CIM(19,1,4) * GRE(nbra*19+i)
-                                      + CRE(22,1,4) * GIM(nbra*22+i)
-                                      - CIM(26,1,4) * GRE(nbra*26+i);
-                        gsp[2*nbra+i] = CRE( 2,2,4) * GIM(nbra* 2+i)
-                                      - CIM( 4,2,4) * GRE(nbra* 4+i)
-                                      + CRE( 7,2,4) * GIM(nbra* 7+i)
-                                      - CIM(11,2,4) * GRE(nbra*11+i)
-                                      + CRE(15,2,4) * GIM(nbra*15+i)
-                                      - CIM(16,2,4) * GRE(nbra*16+i)
-                                      + CRE(20,2,4) * GIM(nbra*20+i)
-                                      - CIM(21,2,4) * GRE(nbra*21+i)
-                                      - CIM(23,2,4) * GRE(nbra*23+i)
-                                      + CRE(25,2,4) * GIM(nbra*25+i)
-                                      + CRE(27,2,4) * GIM(nbra*27+i);
-                        gsp[3*nbra+i] = CRE( 0,3,4) * GIM(nbra* 0+i)
-                                      - CIM( 1,3,4) * GRE(nbra* 1+i)
-                                      + CRE( 5,3,4) * GIM(nbra* 5+i)
-                                      - CIM( 6,3,4) * GRE(nbra* 6+i)
-                                      - CIM( 8,3,4) * GRE(nbra* 8+i)
-                                      + CRE(10,3,4) * GIM(nbra*10+i)
-                                      + CRE(12,3,4) * GIM(nbra*12+i)
-                                      + CRE(17,3,4) * GIM(nbra*17+i)
-                                      - CIM(19,3,4) * GRE(nbra*19+i)
-                                      + CRE(22,3,4) * GIM(nbra*22+i)
-                                      + CRE(24,3,4) * GIM(nbra*24+i)
-                                      - CIM(26,3,4) * GRE(nbra*26+i)
-                                      - CIM(28,3,4) * GRE(nbra*28+i);
-                        gsp[4*nbra+i] = CRE( 2,4,4) * GIM(nbra* 2+i)
-                                      - CIM( 4,4,4) * GRE(nbra* 4+i)
-                                      + CRE( 7,4,4) * GIM(nbra* 7+i)
-                                      + CRE( 9,4,4) * GIM(nbra* 9+i)
-                                      - CIM(11,4,4) * GRE(nbra*11+i)
-                                      - CIM(13,4,4) * GRE(nbra*13+i)
-                                      + CRE(15,4,4) * GIM(nbra*15+i)
-                                      + CRE(18,4,4) * GIM(nbra*18+i)
-                                      + CRE(20,4,4) * GIM(nbra*20+i)
-                                      + CRE(25,4,4) * GIM(nbra*25+i)
-                                      + CRE(27,4,4) * GIM(nbra*27+i)
-                                      + CRE(29,4,4) * GIM(nbra*29+i);
-                        gsp[5*nbra+i] = CRE( 0,5,4) * GIM(nbra* 0+i)
-                                      + CRE( 3,5,4) * GIM(nbra* 3+i)
-                                      + CRE( 5,5,4) * GIM(nbra* 5+i)
-                                      + CRE(10,5,4) * GIM(nbra*10+i)
-                                      + CRE(12,5,4) * GIM(nbra*12+i)
-                                      + CRE(14,5,4) * GIM(nbra*14+i)
-                                      + CRE(17,5,4) * GIM(nbra*17+i)
-                                      - CIM(19,5,4) * GRE(nbra*19+i)
-                                      + CRE(22,5,4) * GIM(nbra*22+i)
-                                      + CRE(24,5,4) * GIM(nbra*24+i)
-                                      - CIM(26,5,4) * GRE(nbra*26+i)
-                                      - CIM(28,5,4) * GRE(nbra*28+i);
-                        gsp[6*nbra+i] = CRE( 2,6,4) * GIM(nbra* 2+i)
-                                      - CIM( 4,6,4) * GRE(nbra* 4+i)
-                                      + CRE( 7,6,4) * GIM(nbra* 7+i)
-                                      + CRE( 9,6,4) * GIM(nbra* 9+i)
-                                      - CIM(11,6,4) * GRE(nbra*11+i)
-                                      - CIM(13,6,4) * GRE(nbra*13+i)
-                                      + CRE(15,6,4) * GIM(nbra*15+i)
-                                      - CIM(16,6,4) * GRE(nbra*16+i)
-                                      + CRE(20,6,4) * GIM(nbra*20+i)
-                                      - CIM(21,6,4) * GRE(nbra*21+i)
-                                      - CIM(23,6,4) * GRE(nbra*23+i)
-                                      + CRE(25,6,4) * GIM(nbra*25+i)
-                                      + CRE(27,6,4) * GIM(nbra*27+i);
-                        gsp[7*nbra+i] = CRE( 0,7,4) * GIM(nbra* 0+i)
-                                      - CIM( 1,7,4) * GRE(nbra* 1+i)
-                                      + CRE( 5,7,4) * GIM(nbra* 5+i)
-                                      - CIM( 6,7,4) * GRE(nbra* 6+i)
-                                      - CIM( 8,7,4) * GRE(nbra* 8+i)
-                                      + CRE(10,7,4) * GIM(nbra*10+i)
-                                      + CRE(12,7,4) * GIM(nbra*12+i)
-                                      + CRE(17,7,4) * GIM(nbra*17+i)
-                                      - CIM(19,7,4) * GRE(nbra*19+i)
-                                      + CRE(22,7,4) * GIM(nbra*22+i)
-                                      - CIM(26,7,4) * GRE(nbra*26+i);
-                        gsp[8*nbra+i] = CRE( 2,8,4) * GIM(nbra* 2+i)
-                                      - CIM( 4,8,4) * GRE(nbra* 4+i)
-                                      + CRE( 7,8,4) * GIM(nbra* 7+i)
-                                      - CIM(11,8,4) * GRE(nbra*11+i)
-                                      + CRE(15,8,4) * GIM(nbra*15+i)
-                                      - CIM(16,8,4) * GRE(nbra*16+i)
-                                      + CRE(18,8,4) * GIM(nbra*18+i)
-                                      - CIM(21,8,4) * GRE(nbra*21+i)
-                                      + CRE(25,8,4) * GIM(nbra*25+i);
-                        gsp[9*nbra+i] = CRE( 0,9,4) * GIM(nbra* 0+i)
-                                      - CIM( 1,9,4) * GRE(nbra* 1+i)
-                                      + CRE( 3,9,4) * GIM(nbra* 3+i)
-                                      - CIM( 6,9,4) * GRE(nbra* 6+i)
-                                      + CRE(10,9,4) * GIM(nbra*10+i);
-                }
-        }
-}
 
 void (*c2s_bra_spinor_e1sf[])() = {
         s_bra_cart2spinor_e1sf,
@@ -6180,28 +4851,6 @@ void (*c2s_bra_spinor_sf[])() = {
         a_bra_cart2spinor_sf,
 };
 
-void (*c2s_ket_spinor[])() = {
-        s_ket_cart2spinor,
-        p_ket_cart2spinor,
-        d_ket_cart2spinor,
-        f_ket_cart2spinor,
-        g_ket_cart2spinor,
-        a_ket_cart2spinor,
-        a_ket_cart2spinor,
-        a_ket_cart2spinor,
-};
-
-void (*c2s_iket_spinor[])() = {
-        s_iket_cart2spinor,
-        p_iket_cart2spinor,
-        d_iket_cart2spinor,
-        f_iket_cart2spinor,
-        g_iket_cart2spinor,
-        a_iket_cart2spinor,
-        a_iket_cart2spinor,
-        a_iket_cart2spinor,
-};
-
 void (*c2s_bra_spinor_si[])() = {
         s_bra_cart2spinor_si,
         p_bra_cart2spinor_si,
@@ -6213,1867 +4862,71 @@ void (*c2s_bra_spinor_si[])() = {
         a_bra_cart2spinor_si,
 };
 
-/*************************************************
- *
- * transform matrices
- *
- *************************************************/
-
 /*
- * (i,k,l,j) -> (k,i,j,l)
+ * gspa and gspb for upper and lower components of two component vector
  */
-static void zswap_ik_jl(double complex *new, const double complex *old,
-                        const FINT ni, const FINT nj, const FINT nk, const FINT nl)
+static void a_ket_cart2spinor_e1sf(double complex *gspa, double complex *gspb,
+                                   double *gcart,
+                                   int lds, int nbra, int kappa, int l)
 {
-        FINT j, l;
-        FINT dlo = ni * nk; // stride of (i,k,l++,j)
-        FINT djo = ni * nk * nl; // stride of (i,k,l,j++)
-        FINT djn = nk * ni; // stride of (k,i,j++,l)
-        const double complex *pold;
-
-        for (l = 0; l < nl; l++) {
-                pold = old + l * dlo;
-                for (j = 0; j < nj; j++) {
-                        CINTzmat_transpose(new, pold, nk, ni);
-                        new += djn;
-                        pold += djo;
-                }
-        }
-}
-
-
-static void dcopy_ij(double *opij, const double *gctr, 
-                     const FINT ni, const FINT nj, const FINT mi, const FINT mj)
-{
-        FINT i, j;
-
-        for (j = 0; j < mj; j++) {
-                for (i = 0; i < mi; i++) {
-                        opij[i] = gctr[i];
-                }
-                opij += ni;
-                gctr += mi;
-        }
-}
-static void zcopy_ij(double complex *opij, const double complex *gctr, 
-                     const FINT ni, const FINT nj, const FINT mi, const FINT mj)
-{
-        FINT i, j;
-
-        for (j = 0; j < mj; j++) {
-                for (i = 0; i < mi; i++) {
-                        opij[j*ni+i] = gctr[j*mi+i];
-                }
-        }
-}
-
-/*
- * gctr(i,k,l,j) -> fijkl(i,j,k,l)
- * fijkl(ic:ic-1+di,jc:jc-1+dj,kc:kc-1+dk,lc:lc-1+dl)
- * fijkl(ni,nj,nk,nl), gctr(mi,mk,ml,mj)
- */
-static void dcopy_iklj(double *fijkl, const double *gctr, 
-                       const FINT ni, const FINT nj, const FINT nk, const FINT nl,
-                       const FINT mi, const FINT mj, const FINT mk, const FINT ml)
-{
-        const FINT nij = ni * nj;
-        const FINT nijk = nij * nk;
-        const FINT mik = mi * mk;
-        const FINT mikl = mik * ml;
-        FINT i, j, k, l;
-        double *pijkl;
-        const double *pgctr;
-
-        switch (mi) {
-        case 1:
-                for (l = 0; l < ml; l++) {
-                        for (k = 0; k < mk; k++) {
-                                pijkl = fijkl + k * nij;
-                                pgctr = gctr + k * mi;
-                                for (j = 0; j < mj; j++) {
-                                        pijkl[0] = pgctr[0];
-                                        pijkl += ni;
-                                        pgctr += mikl;
-                                }
-                        }
-                        fijkl += nijk;
-                        gctr += mik;
-                }
-                break;
-        case 3:
-                for (l = 0; l < ml; l++) {
-                        for (k = 0; k < mk; k++) {
-                                pijkl = fijkl + k * nij;
-                                pgctr = gctr + k * mi;
-                                for (j = 0; j < mj; j++) {
-                                        pijkl[0] = pgctr[0];
-                                        pijkl[1] = pgctr[1];
-                                        pijkl[2] = pgctr[2];
-                                        pijkl += ni;
-                                        pgctr += mikl;
-                                }
-                        }
-                        fijkl += nijk;
-                        gctr += mik;
-                }
-                break;
-        case 5:
-                for (l = 0; l < ml; l++) {
-                        for (k = 0; k < mk; k++) {
-                                pijkl = fijkl + k * nij;
-                                pgctr = gctr + k * mi;
-                                for (j = 0; j < mj; j++) {
-                                        pijkl[0] = pgctr[0];
-                                        pijkl[1] = pgctr[1];
-                                        pijkl[2] = pgctr[2];
-                                        pijkl[3] = pgctr[3];
-                                        pijkl[4] = pgctr[4];
-                                        pijkl += ni;
-                                        pgctr += mikl;
-                                }
-                        }
-                        fijkl += nijk;
-                        gctr += mik;
-                }
-                break;
-        case 7:
-                for (l = 0; l < ml; l++) {
-                        for (k = 0; k < mk; k++) {
-                                pijkl = fijkl + k * nij;
-                                pgctr = gctr + k * mi;
-                                for (j = 0; j < mj; j++) {
-                                        pijkl[0] = pgctr[0];
-                                        pijkl[1] = pgctr[1];
-                                        pijkl[2] = pgctr[2];
-                                        pijkl[3] = pgctr[3];
-                                        pijkl[4] = pgctr[4];
-                                        pijkl[5] = pgctr[5];
-                                        pijkl[6] = pgctr[6];
-                                        pijkl += ni;
-                                        pgctr += mikl;
-                                }
-                        }
-                        fijkl += nijk;
-                        gctr += mik;
-                }
-                break;
-        default:
-                for (l = 0; l < ml; l++) {
-                        for (k = 0; k < mk; k++) {
-                                pijkl = fijkl + k * nij;
-                                pgctr = gctr + k * mi;
-                                for (j = 0; j < mj; j++) {
-                                        for (i = 0; i < mi; i++) {
-                                                pijkl[i] = pgctr[i];
-                                        }
-                                        pijkl += ni;
-                                        pgctr += mikl;
-                                }
-                        }
-                        fijkl += nijk;
-                        gctr += mik;
-                }
-        }
-}
-
-static void zcopy_kijl(double complex *fijkl, const double complex *gctr,
-                       const FINT ni, const FINT nj, const FINT nk, const FINT nl,
-                       const FINT mi, const FINT mj, const FINT mk, const FINT ml)
-{
-        FINT i, j, k, l;
-        double complex *pl, *pk, *pj;
-        const double complex *pgctr;
-
-        for (l = 0; l < ml; l++) {
-                pl = fijkl + l * nk * ni * nj;
-                for (k = 0; k < mk; k++) {
-                        pk = pl + k * ni * nj;
-                        pgctr = gctr + (l * mk * mi * mj + k);
-                        for (j = 0; j < mj; j++) {
-                                pj = pk + j * ni;
-                                for (i = 0; i < mi; i++) {
-                                        pj[i] = pgctr[i*mk];
-                                }
-                                pgctr += mk * mi;
-                        }
-                }
-        }
-}
-static void zcopy_iklj(double complex *fijkl, const double complex *gctr, 
-                       const FINT ni, const FINT nj, const FINT nk, const FINT nl,
-                       const FINT mi, const FINT mj, const FINT mk, const FINT ml)
-{
-        const FINT nij = ni * nj;
-        const FINT nijk = nij * nk;
-        const FINT mik = mi * mk;
-        const FINT mikl = mik * ml;
-        FINT i, j, k, l;
-        double complex *pijkl;
-        const double complex *pgctr;
-
-        for (l = 0; l < ml; l++) {
-                for (k = 0; k < mk; k++) {
-                        pijkl = fijkl + k * nij;
-                        pgctr = gctr + k * mi;
-                        for (j = 0; j < mj; j++) {
-                                for (i = 0; i < mi; i++) {
-                                        pijkl[i] = pgctr[i];
-                                }
-                                pijkl += ni;
-                                pgctr += mikl;
-                        }
-                }
-                fijkl += nijk;
-                gctr += mik;
-        }
-}
-
-
-/*
- * 1e integrals, cartesian to real spheric.
- */
-void c2s_sph_1e(double *opij, const double *gctr, CINTEnvVars *envs)
-{
-        const FINT i_l = envs->i_l;
-        const FINT j_l = envs->j_l;
-        const FINT i_ctr = envs->i_ctr;
-        const FINT j_ctr = envs->j_ctr;
-        const FINT di = i_l * 2 + 1;
-        const FINT dj = j_l * 2 + 1;
-        const FINT ni = di * i_ctr;
-        const FINT nj = dj * j_ctr;
-        const FINT nfi = envs->nfi;
-        const FINT nf = envs->nf;
-        FINT ic, jc;
-        const FINT buflen = nfi*dj;
-        double *buf1 = malloc(sizeof(double) * buflen*2);
-        double *buf2 = buf1 + buflen;
-        double *pij;
-        double *tmp1;
-
-        for (jc = 0; jc < nj; jc += dj) {
-                for (ic = 0; ic < ni; ic += di) {
-        pij = opij + ni * jc + ic;
-        tmp1 = (c2s_ket_sph[j_l])(buf1, nfi , gctr, j_l);
-        tmp1 = (c2s_bra_sph[i_l])(buf2, dj, tmp1, i_l);
-
-        dcopy_ij(pij, tmp1, ni, nj, di, dj);
-        gctr += nf;
-                } }
-        free(buf1);
-}
-
-
-/*
- * 1e integrals, cartesian to spin free spinor.
- */
-void c2s_sf_1e(double complex *opij, const double *gctr, CINTEnvVars *envs)
-{
-        const FINT *shls = envs->shls;
-        const FINT *bas = envs->bas;
-        const FINT i_sh = shls[0];
-        const FINT j_sh = shls[1];
-        const FINT i_l = envs->i_l;
-        const FINT j_l = envs->j_l;
-        const FINT i_kp = bas(KAPPA_OF, i_sh);
-        const FINT j_kp = bas(KAPPA_OF, j_sh);
-        const FINT i_ctr = envs->i_ctr;
-        const FINT j_ctr = envs->j_ctr;
-        const FINT di = _len_spinor(i_l, i_kp);
-        const FINT dj = _len_spinor(j_l, j_kp);
-        const FINT ni = di * i_ctr;
-        const FINT nj = dj * j_ctr;
-        const FINT nfj = envs->nfj;
-        const FINT nf2j = nfj + nfj;
-        const FINT nf = envs->nf;
-        FINT ic, jc;
-        double complex *tmp1 = malloc(sizeof(double complex) * di*nf2j * 2);
-        double complex *tmp2 = tmp1 + di*nf2j;
-
-        for (jc = 0; jc < nj; jc += dj)
-                for (ic = 0; ic < ni; ic += di) {
-                        (c2s_bra_spinor_e1sf[i_l])(tmp1, nfj, gctr, i_l, i_kp);
-                        (c2s_ket_spinor[j_l])(tmp2, di, tmp1, j_l, j_kp);
-                        zcopy_ij(opij+ni*jc+ic, tmp2, ni, nj, di, dj);
-                        gctr += nf;
-                }
-
-        free(tmp1);
-}
-void c2s_sf_1ei(double complex *opij, const double *gctr, CINTEnvVars *envs)
-{
-        const FINT *shls = envs->shls;
-        const FINT *bas = envs->bas;
-        const FINT i_sh = shls[0];
-        const FINT j_sh = shls[1];
-        const FINT i_l = envs->i_l;
-        const FINT j_l = envs->j_l;
-        const FINT i_kp = bas(KAPPA_OF, i_sh);
-        const FINT j_kp = bas(KAPPA_OF, j_sh);
-        const FINT i_ctr = envs->i_ctr;
-        const FINT j_ctr = envs->j_ctr;
-        const FINT di = _len_spinor(i_l, i_kp);
-        const FINT dj = _len_spinor(j_l, j_kp);
-        const FINT ni = di * i_ctr;
-        const FINT nj = dj * j_ctr;
-        const FINT nfj = (j_l+1)*(j_l+2)/2;
-        const FINT nf2j = nfj + nfj;
-        const FINT nf = envs->nf;
-        FINT ic, jc;
-        double complex *tmp1 = malloc(sizeof(double complex) * di*nf2j * 2);
-        double complex *tmp2 = tmp1 + di*nf2j;
-
-        for (jc = 0; jc < nj; jc += dj)
-                for (ic = 0; ic < ni; ic += di) {
-                        (c2s_bra_spinor_e1sf[i_l])(tmp1, nfj, gctr, i_l, i_kp);
-                        (c2s_iket_spinor[j_l])(tmp2, di, tmp1, j_l, j_kp);
-                        zcopy_ij(opij+ni*jc+ic, tmp2, ni, nj, di, dj);
-                        gctr += nf;
-                }
-
-        free(tmp1);
-}
-
-
-/*
- * 1e integrals, cartesian to spinor.
- */
-void c2s_si_1e(double complex *opij, const double *gctr, CINTEnvVars *envs)
-{
-        const FINT *shls = envs->shls;
-        const FINT *bas = envs->bas;
-        const FINT i_sh = shls[0];
-        const FINT j_sh = shls[1];
-        const FINT i_l = envs->i_l;
-        const FINT j_l = envs->j_l;
-        const FINT i_kp = bas(KAPPA_OF, i_sh);
-        const FINT j_kp = bas(KAPPA_OF, j_sh);
-        const FINT i_ctr = envs->i_ctr;
-        const FINT j_ctr = envs->j_ctr;
-        const FINT di = _len_spinor(i_l, i_kp);
-        const FINT dj = _len_spinor(j_l, j_kp);
-        const FINT ni = di * i_ctr;
-        const FINT nj = dj * j_ctr;
-        const FINT nfi = envs->nfi;
-        const FINT nfj = envs->nfj;
-        const FINT nf2i = nfi + nfi;
-        const FINT nf2j = nfj + nfj;
-        const FINT nf = envs->nf;
-        FINT ic, jc;
-        const double *gc_x = gctr;
-        const double *gc_y = gc_x + nf * i_ctr * j_ctr;
-        const double *gc_z = gc_y + nf * i_ctr * j_ctr;
-        const double *gc_1 = gc_z + nf * i_ctr * j_ctr;
-        double complex *tmp1 = malloc(sizeof(double complex)*nf2i*nf2j
-                                      +sizeof(double complex)*di*nf2j);
-        double complex *tmp2 = tmp1 + nf2i*nf2j;
-
-        for (jc = 0; jc < nj; jc += dj)
-                for (ic = 0; ic < ni; ic += di) {
-                        //cmplx( gctr.POS_1, gctr.POS_Z)
-                        //cmplx( gctr.POS_Y, gctr.POS_X)
-                        CINTdcmplx_pp(nf, tmp1, gc_1, gc_z);
-                        CINTdcmplx_pp(nf, tmp1+nf, gc_y, gc_x);
-                        //cmplx(-gctr.POS_Y, gctr.POS_X)
-                        //cmplx( gctr.POS_1,-gctr.POS_Z)
-                        CINTdcmplx_np(nf, tmp1+nfi*nf2j, gc_y, gc_x);
-                        CINTdcmplx_pn(nf, tmp1+nfi*nf2j+nf, gc_1, gc_z);
-                        (c2s_bra_spinor_si[i_l])(tmp2, nf2j, tmp1, i_l, i_kp);
-                        (c2s_ket_spinor[j_l])(tmp1, di, tmp2, j_l, j_kp);
-                        zcopy_ij(opij+ni*jc+ic, tmp1, ni, nj, di, dj);
-
-                        gc_x += nf;
-                        gc_y += nf;
-                        gc_z += nf;
-                        gc_1 += nf;
-                }
-        free(tmp1);
-}
-void c2s_si_1ei(double complex *opij, const double *gctr, CINTEnvVars *envs)
-{
-        const FINT *shls = envs->shls;
-        const FINT *bas = envs->bas;
-        const FINT i_sh = shls[0];
-        const FINT j_sh = shls[1];
-        const FINT i_l = envs->i_l;
-        const FINT j_l = envs->j_l;
-        const FINT i_kp = bas(KAPPA_OF, i_sh);
-        const FINT j_kp = bas(KAPPA_OF, j_sh);
-        const FINT i_ctr = envs->i_ctr;
-        const FINT j_ctr = envs->j_ctr;
-        const FINT di = _len_spinor(i_l, i_kp);
-        const FINT dj = _len_spinor(j_l, j_kp);
-        const FINT ni = di * i_ctr;
-        const FINT nj = dj * j_ctr;
-        const FINT nfi = envs->nfi;
-        const FINT nfj = envs->nfj;
-        const FINT nf2i = nfi + nfi;
-        const FINT nf2j = nfj + nfj;
-        const FINT nf = envs->nf;
-        FINT ic, jc;
-        const double *gc_x = gctr;
-        const double *gc_y = gc_x + nf * i_ctr * j_ctr;
-        const double *gc_z = gc_y + nf * i_ctr * j_ctr;
-        const double *gc_1 = gc_z + nf * i_ctr * j_ctr;
-        double complex *tmp1 = malloc(sizeof(double complex)*nf2i*nf2j
-                                      +sizeof(double complex)*di*nf2j);
-        double complex *tmp2 = tmp1 + nf2i*nf2j;
-
-        for (jc = 0; jc < nj; jc += dj)
-                for (ic = 0; ic < ni; ic += di) {
-                        //cmplx( gctr.POS_1, gctr.POS_Z)
-                        //cmplx( gctr.POS_Y, gctr.POS_X)
-                        CINTdcmplx_pp(nf, tmp1, gc_1, gc_z);
-                        CINTdcmplx_pp(nf, tmp1+nf, gc_y, gc_x);
-                        //cmplx(-gctr.POS_Y, gctr.POS_X)
-                        //cmplx( gctr.POS_1,-gctr.POS_Z)
-                        CINTdcmplx_np(nf, tmp1+nfi*nf2j, gc_y, gc_x);
-                        CINTdcmplx_pn(nf, tmp1+nfi*nf2j+nf, gc_1, gc_z);
-                        (c2s_bra_spinor_si[i_l])(tmp2, nf2j, tmp1, i_l, i_kp);
-                        (c2s_iket_spinor[j_l])(tmp1, di, tmp2, j_l, j_kp);
-                        zcopy_ij(opij+ni*jc+ic, tmp1, ni, nj, di, dj);
-
-                        gc_x += nf;
-                        gc_y += nf;
-                        gc_z += nf;
-                        gc_1 += nf;
-                }
-        free(tmp1);
-}
-
-
-/*
- * 2e integrals, cartesian to real spheric.
- *
- * gctr: Cartesian GTO integrals, ordered as <ik|lj>
- */
-static double *sph2e_inner(double *gsph, double *gcart,
-                           FINT l, FINT nbra, FINT ncall, FINT sizsph, FINT sizcart);
-void c2s_sph_2e1(double *fijkl, const double *gctr, CINTEnvVars *envs)
-{
-        const FINT i_l = envs->i_l;
-        const FINT j_l = envs->j_l;
-        const FINT k_l = envs->k_l;
-        const FINT l_l = envs->l_l;
-        const FINT i_ctr = envs->i_ctr;
-        const FINT j_ctr = envs->j_ctr;
-        const FINT k_ctr = envs->k_ctr;
-        const FINT l_ctr = envs->l_ctr;
-        const FINT di = i_l * 2 + 1;
-        const FINT dj = j_l * 2 + 1;
-        const FINT dk = k_l * 2 + 1;
-        const FINT dl = l_l * 2 + 1;
-        const FINT ni = di * i_ctr;
-        const FINT nj = dj * j_ctr;
-        const FINT nk = dk * k_ctr;
-        const FINT nl = dl * l_ctr;
-        const FINT nfi = envs->nfi;
-        const FINT nfk = envs->nfk;
-        const FINT nfl = envs->nfl;
-        const FINT nfik = nfi * nfk;
-        const FINT nfikl = nfik * nfl;
-        const FINT dlj = dl * dj;
-        const FINT nf = envs->nf;
-        FINT ofj = ni;
-        FINT ofk = ni * nj;
-        FINT ofl = nk * ni * nj;
-        FINT ic, jc, kc, lc;
-        const FINT buflen = nfikl*dj;
-        double *buf1 = malloc(sizeof(double)*buflen*4);
-        double *buf2 = buf1 + buflen;
-        double *buf3 = buf2 + buflen;
-        double *buf4 = buf3 + buflen;
-        double *pfijkl, *tmp1;
-
-        for (lc = 0; lc < nl; lc += dl) {
-                for (kc = 0; kc < nk; kc += dk) {
-                        for (jc = 0; jc < nj; jc += dj) {
-                                for (ic = 0; ic < ni; ic += di) {
-        tmp1 = (c2s_ket_sph[j_l])(buf1, nfikl, gctr, j_l);
-        tmp1 = sph2e_inner(buf2, tmp1, l_l, nfik, dj, nfik*dl, nfikl);
-        tmp1 = sph2e_inner(buf3, tmp1, k_l, nfi, dlj, nfi*dk, nfik);
-
-        tmp1 = (c2s_bra_sph[i_l])(buf4, dk*dlj, tmp1, i_l);
-
-        pfijkl = fijkl + ofl * lc + ofk * kc + ofj * jc + ic;
-        dcopy_iklj(pfijkl, tmp1, ni, nj, nk, nl, di, dj, dk, dl);
-        gctr += nf;
-                                } } } }
-
-        free(buf1);
-}
-void c2s_sph_2e2() {};
-/*
- * use f_ket to transform k,l for gctr(i,j,k,l), where
- * sizsph = nbra * (2*l+1)
- * sizcart = nbra * (l*(l+1)/2)
- * and return the pointer to the buffer which holds the transformed gctr
- */
-static double *sph2e_inner(double *gsph, double *gcart,
-                           FINT l, FINT nbra, FINT ncall, FINT sizsph, FINT sizcart)
-{
-        double *(*fket)() = c2s_ket_sph[l];
-        double *ptr0 = (*fket)(gsph, nbra, gcart, l);
-        FINT n;
-        for (n = 1; n < ncall; n++) {
-                (*fket)(gsph+n*sizsph, nbra, gcart+n*sizcart, l);
-        }
-        return ptr0;
-}
-
-
-/*
- * 2e integrals, cartesian to spin free spinor for electron 1.
- *
- * gctr: Cartesian GTO integrals, ordered as <ik|lj>
- * opij: partial transformed GTO integrals, ordered as <ik|lj>
- */
-void c2s_sf_2e1(double complex *opij, const double *gctr, CINTEnvVars *envs)
-{
-        const FINT *shls = envs->shls;
-        const FINT *bas = envs->bas;
-        const FINT i_sh = shls[0];
-        const FINT j_sh = shls[1];
-        const FINT i_l = envs->i_l;
-        const FINT j_l = envs->j_l;
-        const FINT i_kp = bas(KAPPA_OF, i_sh);
-        const FINT j_kp = bas(KAPPA_OF, j_sh);
-        const FINT i_ctr = envs->i_ctr;
-        const FINT j_ctr = envs->j_ctr;
-        const FINT k_ctr = envs->k_ctr;
-        const FINT l_ctr = envs->l_ctr;
-        const FINT di = _len_spinor(i_l, i_kp);
-        const FINT dj = _len_spinor(j_l, j_kp);
-        const FINT nfj = envs->nfj;
-        const FINT nfk = envs->nfk;
-        const FINT nfl = envs->nfl;
-        const FINT nf2j = nfj + nfj;
-        const FINT nf = envs->nf;
-        const FINT no = di * nfk * nfl * dj;
-        const FINT d_i = di * nfk * nfl;
-        const FINT d_j = nfk * nfl * nfj;
-        FINT i;
-        double complex *tmp1 = malloc(sizeof(double complex) * di*nfk*nfl*nf2j);
-
-        for (i = 0; i < i_ctr * j_ctr * k_ctr * l_ctr; i++) {
-                (c2s_bra_spinor_e1sf[i_l])(tmp1, d_j, gctr, i_l, i_kp);
-                (c2s_ket_spinor[j_l])(opij, d_i, tmp1, j_l, j_kp);
-                gctr += nf;
-                opij += no;
-        }
-
-        free(tmp1);
-}
-void c2s_sf_2e1i(double complex *opij, const double *gctr, CINTEnvVars *envs)
-{
-        const FINT *shls = envs->shls;
-        const FINT *bas = envs->bas;
-        const FINT i_sh = shls[0];
-        const FINT j_sh = shls[1];
-        const FINT i_l = envs->i_l;
-        const FINT j_l = envs->j_l;
-        const FINT i_kp = bas(KAPPA_OF, i_sh);
-        const FINT j_kp = bas(KAPPA_OF, j_sh);
-        const FINT i_ctr = envs->i_ctr;
-        const FINT j_ctr = envs->j_ctr;
-        const FINT k_ctr = envs->k_ctr;
-        const FINT l_ctr = envs->l_ctr;
-        const FINT di = _len_spinor(i_l, i_kp);
-        const FINT dj = _len_spinor(j_l, j_kp);
-        const FINT nfj = envs->nfj;
-        const FINT nfk = envs->nfk;
-        const FINT nfl = envs->nfl;
-        const FINT nf2j = nfj + nfj;
-        const FINT nf = envs->nf;
-        const FINT no = di * nfk * nfl * dj;
-        const FINT d_i = di * nfk * nfl;
-        const FINT d_j = nfk * nfl * nfj;
-        FINT i;
-        double complex *tmp1 = malloc(sizeof(double complex) * di*nfk*nfl*nf2j);
-
-        for (i = 0; i < i_ctr * j_ctr * k_ctr * l_ctr; i++) {
-                (c2s_bra_spinor_e1sf[i_l])(tmp1, d_j, gctr, i_l, i_kp);
-                (c2s_iket_spinor[j_l])(opij, d_i, tmp1, j_l, j_kp);
-                gctr += nf;
-                opij += no;
-        }
-
-        free(tmp1);
-}
-
-
-/*
- * 2e integrals, cartesian to spin free spinor for electron 2.
- *
- * opij: partial transformed GTO integrals, ordered as <ik|lj>
- */
-void c2s_sf_2e2(double complex *fijkl, const double complex *opij, CINTEnvVars *envs)
-{
-        const FINT *shls = envs->shls;
-        const FINT *bas = envs->bas;
-        const FINT i_sh = shls[0];
-        const FINT j_sh = shls[1];
-        const FINT k_sh = shls[2];
-        const FINT l_sh = shls[3];
-        const FINT i_l = envs->i_l;
-        const FINT j_l = envs->j_l;
-        const FINT k_l = envs->k_l;
-        const FINT l_l = envs->l_l;
-        const FINT i_kp = bas(KAPPA_OF, i_sh);
-        const FINT j_kp = bas(KAPPA_OF, j_sh);
-        const FINT k_kp = bas(KAPPA_OF, k_sh);
-        const FINT l_kp = bas(KAPPA_OF, l_sh);
-        const FINT i_ctr = envs->i_ctr;
-        const FINT j_ctr = envs->j_ctr;
-        const FINT k_ctr = envs->k_ctr;
-        const FINT l_ctr = envs->l_ctr;
-        const FINT di = _len_spinor(i_l, i_kp);
-        const FINT dj = _len_spinor(j_l, j_kp);
-        const FINT dk = _len_spinor(k_l, k_kp);
-        const FINT dl = _len_spinor(l_l, l_kp);
-        const FINT ni = di * i_ctr;
-        const FINT nj = dj * j_ctr;
-        const FINT nk = dk * k_ctr;
-        const FINT nl = dl * l_ctr;
-        const FINT nfk = envs->nfk;
-        const FINT nfl = envs->nfl;
-        const FINT nf2k = nfk + nfk;
-        const FINT nf2l = nfl + nfl;
-        const FINT d_k = dk * di * dj;
-        const FINT d_l = di * dj * nfl;
-        const FINT nop = nfk * di * dj * nfl;
-        FINT ofj = ni;
-        FINT ofk = ni * nj;
-        FINT ofl = nk * ni * nj;
-        FINT ic, jc, kc, lc;
-        double complex *pfijkl;
-        const FINT len1 = nf2k*di*dj*nf2l;
-        const FINT len2 = dk*di*dj*nf2l;
-        double complex *tmp1 = malloc(sizeof(double complex) * (len1+len2));
-        double complex *tmp2 = tmp1 + len1;
-
-        for (lc = 0; lc < nl; lc += dl) {
-                for (kc = 0; kc < nk; kc += dk) {
-                        for (jc = 0; jc < nj; jc += dj) {
-                                for (ic = 0; ic < ni; ic += di) {
-        zswap_ik_jl(tmp1, opij, di, dj, nfk, nfl);
-        (c2s_bra_spinor_sf[k_l])(tmp2, d_l, tmp1, k_l, k_kp);
-        (c2s_ket_spinor[l_l])(tmp1, d_k, tmp2, l_l, l_kp);
-        pfijkl = fijkl + (ofl * lc + ofk * kc + ofj * jc + ic);
-
-        zcopy_kijl(pfijkl, tmp1, ni, nj, nk, nl, di, dj, dk, dl);
-        opij += nop;
-                                } } } }
-
-        free(tmp1);
-}
-void c2s_sf_2e2i(double complex *fijkl, const double complex *opij, CINTEnvVars *envs)
-{
-        const FINT *shls = envs->shls;
-        const FINT *bas = envs->bas;
-        const FINT i_sh = shls[0];
-        const FINT j_sh = shls[1];
-        const FINT k_sh = shls[2];
-        const FINT l_sh = shls[3];
-        const FINT i_l = envs->i_l;
-        const FINT j_l = envs->j_l;
-        const FINT k_l = envs->k_l;
-        const FINT l_l = envs->l_l;
-        const FINT i_kp = bas(KAPPA_OF, i_sh);
-        const FINT j_kp = bas(KAPPA_OF, j_sh);
-        const FINT k_kp = bas(KAPPA_OF, k_sh);
-        const FINT l_kp = bas(KAPPA_OF, l_sh);
-        const FINT i_ctr = envs->i_ctr;
-        const FINT j_ctr = envs->j_ctr;
-        const FINT k_ctr = envs->k_ctr;
-        const FINT l_ctr = envs->l_ctr;
-        const FINT di = _len_spinor(i_l, i_kp);
-        const FINT dj = _len_spinor(j_l, j_kp);
-        const FINT dk = _len_spinor(k_l, k_kp);
-        const FINT dl = _len_spinor(l_l, l_kp);
-        const FINT ni = di * i_ctr;
-        const FINT nj = dj * j_ctr;
-        const FINT nk = dk * k_ctr;
-        const FINT nl = dl * l_ctr;
-        const FINT nfk = envs->nfk;
-        const FINT nfl = envs->nfl;
-        const FINT nf2k = nfk + nfk;
-        const FINT nf2l = nfl + nfl;
-        const FINT d_k = dk * di * dj;
-        const FINT d_l = di * dj * nfl;
-        const FINT nop = nfk * di * dj * nfl;
-        FINT ofj = ni;
-        FINT ofk = ni * nj;
-        FINT ofl = nk * ni * nj;
-        FINT ic, jc, kc, lc;
-        double complex *pfijkl;
-        const FINT len1 = nf2k*di*dj*nf2l;
-        const FINT len2 = dk*di*dj*nf2l;
-        double complex *tmp1 = malloc(sizeof(double complex) * (len1+len2));
-        double complex *tmp2 = tmp1 + len1;
-
-        for (lc = 0; lc < nl; lc += dl) {
-                for (kc = 0; kc < nk; kc += dk) {
-                        for (jc = 0; jc < nj; jc += dj) {
-                                for (ic = 0; ic < ni; ic += di) {
-        zswap_ik_jl(tmp1, opij, di, dj, nfk, nfl);
-        (c2s_bra_spinor_sf[k_l])(tmp2, d_l, tmp1, k_l, k_kp);
-        (c2s_iket_spinor[l_l])(tmp1, d_k, tmp2, l_l, l_kp);
-        pfijkl = fijkl + (ofl * lc + ofk * kc + ofj * jc + ic);
-
-        zcopy_kijl(pfijkl, tmp1, ni, nj, nk, nl, di, dj, dk, dl);
-        opij += nop;
-                                } } } }
-
-        free(tmp1);
-}
-
-/*
- * 2e integrals, cartesian to spinor for electron 1.
- *
- * gctr: Cartesian GTO integrals, ordered as <ik|lj>
- * opij: partial transformed GTO integrals, ordered as <ik|lj>
- */
-void c2s_si_2e1(double complex *opij, const double *gctr, CINTEnvVars *envs)
-{
-        const FINT *shls = envs->shls;
-        const FINT *bas = envs->bas;
-        const FINT i_sh = shls[0];
-        const FINT j_sh = shls[1];
-        const FINT i_l = envs->i_l;
-        const FINT j_l = envs->j_l;
-        const FINT i_kp = bas(KAPPA_OF, i_sh);
-        const FINT j_kp = bas(KAPPA_OF, j_sh);
-        const FINT i_ctr = envs->i_ctr;
-        const FINT j_ctr = envs->j_ctr;
-        const FINT k_ctr = envs->k_ctr;
-        const FINT l_ctr = envs->l_ctr;
-        const FINT di = _len_spinor(i_l, i_kp);
-        const FINT dj = _len_spinor(j_l, j_kp);
-        const FINT nfi = envs->nfi;
-        const FINT nfj = envs->nfj;
-        const FINT nfk = envs->nfk;
-        const FINT nfl = envs->nfl;
-        const FINT nf2i = nfi + nfi;
-        const FINT nf2j = nfj + nfj;
-        const FINT nf = envs->nf;
-        const FINT no = di * nfk * nfl * dj;
-        const FINT d_i = di * nfk * nfl;
-        const FINT d_j = nfk * nfl * nf2j;
-        FINT i;
-        const double *gc_x = gctr;
-        const double *gc_y = gc_x + nf * i_ctr * j_ctr * k_ctr * l_ctr;
-        const double *gc_z = gc_y + nf * i_ctr * j_ctr * k_ctr * l_ctr;
-        const double *gc_1 = gc_z + nf * i_ctr * j_ctr * k_ctr * l_ctr;
-        const FINT len1 = nf2i*nfk*nfl*nf2j;
-        const FINT len2 = di*nfk*nfl*nf2j;
-        double complex *tmp1 = malloc(sizeof(double complex) * (len1+len2));
-        double complex *tmp2 = tmp1 + len1;
-
-        for (i = 0; i < i_ctr * j_ctr * k_ctr * l_ctr; i++) {
-                //cmplx( gctr.POS_1, gctr.POS_Z)
-                //cmplx( gctr.POS_Y, gctr.POS_X)
-                CINTdcmplx_pp(nf, tmp1, gc_1, gc_z);
-                CINTdcmplx_pp(nf, tmp1+nf, gc_y, gc_x);
-                //cmplx(-gctr.POS_Y, gctr.POS_X)
-                //cmplx( gctr.POS_1,-gctr.POS_Z)
-                CINTdcmplx_np(nf, tmp1+nfi*d_j, gc_y, gc_x);
-                CINTdcmplx_pn(nf, tmp1+nfi*d_j+nf, gc_1, gc_z);
-                (c2s_bra_spinor_si[i_l])(tmp2, d_j, tmp1, i_l, i_kp);
-                (c2s_ket_spinor[j_l])(opij, d_i, tmp2, j_l, j_kp);
-                gc_x += nf;
-                gc_y += nf;
-                gc_z += nf;
-                gc_1 += nf;
-                opij += no;
-        }
-
-        free(tmp1);
-}
-void c2s_si_2e1i(double complex *opij, const double *gctr, CINTEnvVars *envs)
-{
-        const FINT *shls = envs->shls;
-        const FINT *bas = envs->bas;
-        const FINT i_sh = shls[0];
-        const FINT j_sh = shls[1];
-        const FINT i_l = envs->i_l;
-        const FINT j_l = envs->j_l;
-        const FINT i_kp = bas(KAPPA_OF, i_sh);
-        const FINT j_kp = bas(KAPPA_OF, j_sh);
-        const FINT i_ctr = envs->i_ctr;
-        const FINT j_ctr = envs->j_ctr;
-        const FINT k_ctr = envs->k_ctr;
-        const FINT l_ctr = envs->l_ctr;
-        const FINT di = _len_spinor(i_l, i_kp);
-        const FINT dj = _len_spinor(j_l, j_kp);
-        const FINT nfi = envs->nfi;
-        const FINT nfj = envs->nfj;
-        const FINT nfk = envs->nfk;
-        const FINT nfl = envs->nfl;
-        const FINT nf2i = nfi + nfi;
-        const FINT nf2j = nfj + nfj;
-        const FINT nf = envs->nf;
-        const FINT no = di * nfk * nfl * dj;
-        const FINT d_i = di * nfk * nfl;
-        const FINT d_j = nfk * nfl * nf2j;
-        FINT i;
-        const double *gc_x = gctr;
-        const double *gc_y = gc_x + nf * i_ctr * j_ctr * k_ctr * l_ctr;
-        const double *gc_z = gc_y + nf * i_ctr * j_ctr * k_ctr * l_ctr;
-        const double *gc_1 = gc_z + nf * i_ctr * j_ctr * k_ctr * l_ctr;
-        const FINT len1 = nf2i*nfk*nfl*nf2j;
-        const FINT len2 = di*nfk*nfl*nf2j;
-        double complex *tmp1 = malloc(sizeof(double complex)*(len1+len2));
-        double complex *tmp2 = tmp1 + len1;
-
-        for (i = 0; i < i_ctr * j_ctr * k_ctr * l_ctr; i++) {
-                //cmplx( gctr.POS_1, gctr.POS_Z)
-                //cmplx( gctr.POS_Y, gctr.POS_X)
-                CINTdcmplx_pp(nf, tmp1, gc_1, gc_z);
-                CINTdcmplx_pp(nf, tmp1+nf, gc_y, gc_x);
-                //cmplx(-gctr.POS_Y, gctr.POS_X)
-                //cmplx( gctr.POS_1,-gctr.POS_Z)
-                CINTdcmplx_np(nf, tmp1+nfi*d_j, gc_y, gc_x);
-                CINTdcmplx_pn(nf, tmp1+nfi*d_j+nf, gc_1, gc_z);
-                (c2s_bra_spinor_si[i_l])(tmp2, d_j, tmp1, i_l, i_kp);
-                (c2s_iket_spinor[j_l])(opij, d_i, tmp2, j_l, j_kp);
-                gc_x += nf;
-                gc_y += nf;
-                gc_z += nf;
-                gc_1 += nf;
-                opij += no;
-        }
-        free(tmp1);
-}
-
-/*
- * 2e integrals, cartesian to spinor for electron 2.
- *
- * opij: partial transformed GTO integrals, ordered as <ik|lj>
- */
-static void si2e_swap(double complex *new,
-                      const double complex *oldx, const double complex *oldy,
-                      const double complex *oldz, const double complex *old1,
-                      const FINT ni, const FINT nj, const FINT nk, const FINT nl)
-{
-        FINT i, j, k, l;
-        FINT dlo = ni * nk; // stride of (i,k,l++,j)
-        FINT djo = ni * nk * nl; // stride of (i,k,l,j++)
-        FINT djn = nk * ni; // stride of (k,i,j++,l)
-        FINT dln = nk * ni * nj; // stride of (k,i,j,l++)
-        double complex *new11 = new;
-        double complex *new12 = new11 + nk * ni * nj * nl;
-        double complex *new21 = new12 + nk * ni * nj * nl;
-        double complex *new22 = new21 + nk * ni * nj * nl;
-        double complex *pn11, *pn12, *pn21, *pn22;
-        const double complex *ox, *oy, *oz, *o1;
-        const double complex *pox, *poy, *poz, *po1;
-
-        //tmp1(k    ,i,j,l    ) = opij(m,n,POS_1) + IZ1*opij(m,n,POS_Z)
-        //tmp1(k    ,i,j,l+nfl) = opij(m,n,POS_Y) + IZ1*opij(m,n,POS_X)
-        //tmp1(k+nfk,i,j,l    ) =-opij(m,n,POS_Y) + IZ1*opij(m,n,POS_X)
-        //tmp1(k+nfk,i,j,l+nfl) = opij(m,n,POS_1) - IZ1*opij(m,n,POS_Z)
-        for (l = 0; l < nl; l++)
-                for (j = 0; j < nj; j++) {
-                        pn11 = new11 + l * dln + j * djn;
-                        pn12 = new12 + l * dln + j * djn;
-                        pn21 = new21 + l * dln + j * djn;
-                        pn22 = new22 + l * dln + j * djn;
-                        ox = oldx + l * dlo + j * djo;
-                        oy = oldy + l * dlo + j * djo;
-                        oz = oldz + l * dlo + j * djo;
-                        o1 = old1 + l * dlo + j * djo;
-                        for (i = 0; i < ni; i++) {
-                                pox = ox + i;
-                                poy = oy + i;
-                                poz = oz + i;
-                                po1 = o1 + i;
-                                for (k = 0; k < nk; k++) {
-                                        pn11[k] = po1[0] + poz[0]*_Complex_I;
-                                        pn12[k] = poy[0] + pox[0]*_Complex_I;
-                                        pn21[k] =-poy[0] + pox[0]*_Complex_I;
-                                        pn22[k] = po1[0] - poz[0]*_Complex_I;
-                                        pox += ni;
-                                        poy += ni;
-                                        poz += ni;
-                                        po1 += ni;
-                                }
-                                pn11 += nk;
-                                pn12 += nk;
-                                pn21 += nk;
-                                pn22 += nk;
-                        }
-                }
-}
-void c2s_si_2e2(double complex *fijkl, const double complex *opij, CINTEnvVars *envs)
-{
-        const FINT *shls = envs->shls;
-        const FINT *bas = envs->bas;
-        const FINT i_sh = shls[0];
-        const FINT j_sh = shls[1];
-        const FINT k_sh = shls[2];
-        const FINT l_sh = shls[3];
-        const FINT i_l = envs->i_l;
-        const FINT j_l = envs->j_l;
-        const FINT k_l = envs->k_l;
-        const FINT l_l = envs->l_l;
-        const FINT i_kp = bas(KAPPA_OF, i_sh);
-        const FINT j_kp = bas(KAPPA_OF, j_sh);
-        const FINT k_kp = bas(KAPPA_OF, k_sh);
-        const FINT l_kp = bas(KAPPA_OF, l_sh);
-        const FINT i_ctr = envs->i_ctr;
-        const FINT j_ctr = envs->j_ctr;
-        const FINT k_ctr = envs->k_ctr;
-        const FINT l_ctr = envs->l_ctr;
-        const FINT di = _len_spinor(i_l, i_kp);
-        const FINT dj = _len_spinor(j_l, j_kp);
-        const FINT dk = _len_spinor(k_l, k_kp);
-        const FINT dl = _len_spinor(l_l, l_kp);
-        const FINT ni = di * i_ctr;
-        const FINT nj = dj * j_ctr;
-        const FINT nk = dk * k_ctr;
-        const FINT nl = dl * l_ctr;
-        const FINT nfk = envs->nfk;
-        const FINT nfl = envs->nfl;
-        const FINT nf2k = nfk + nfk;
-        const FINT nf2l = nfl + nfl;
-        const FINT d_k = dk * di * dj;
-        const FINT d_l = di * dj * nf2l;
-        const FINT nop = nfk * di * dj * nfl;
-        FINT ofj = ni;
-        FINT ofk = ni * nj;
-        FINT ofl = nk * ni * nj;
-        FINT ic, jc, kc, lc;
-        double complex *pfijkl;
-        const double complex *ox = opij;
-        const double complex *oy = ox + nop * i_ctr * j_ctr * k_ctr * l_ctr;
-        const double complex *oz = oy + nop * i_ctr * j_ctr * k_ctr * l_ctr;
-        const double complex *o1 = oz + nop * i_ctr * j_ctr * k_ctr * l_ctr;
-        const FINT len1 = (nf2k*di*dj*nf2l + 16) & 0xfffffff0;
-        const FINT len2 = dk*di*dj*nf2l;
-        double complex *tmp1 = malloc(sizeof(double complex) * (len1+len2));
-        double complex *tmp2 = tmp1 + len1;
-
-        for (lc = 0; lc < nl; lc += dl) {
-                for (kc = 0; kc < nk; kc += dk) {
-                        for (jc = 0; jc < nj; jc += dj) {
-                                for (ic = 0; ic < ni; ic += di) {
-        si2e_swap(tmp1, ox, oy, oz, o1, di, dj, nfk, nfl);
-        (c2s_bra_spinor_si[k_l])(tmp2, d_l, tmp1, k_l, k_kp);
-        (c2s_ket_spinor[l_l])(tmp1, d_k, tmp2, l_l, l_kp);
-        pfijkl = fijkl + (ofl * lc + ofk * kc + ofj * jc + ic);
-
-        zcopy_kijl(pfijkl, tmp1, ni, nj, nk, nl, di, dj, dk, dl);
-
-        ox += nop;
-        oy += nop;
-        oz += nop;
-        o1 += nop;
-                                } } } }
-
-        free(tmp1);
-}
-void c2s_si_2e2i(double complex *fijkl, const double complex *opij, CINTEnvVars *envs)
-{
-        const FINT *shls = envs->shls;
-        const FINT *bas = envs->bas;
-        const FINT i_sh = shls[0];
-        const FINT j_sh = shls[1];
-        const FINT k_sh = shls[2];
-        const FINT l_sh = shls[3];
-        const FINT i_l = envs->i_l;
-        const FINT j_l = envs->j_l;
-        const FINT k_l = envs->k_l;
-        const FINT l_l = envs->l_l;
-        const FINT i_kp = bas(KAPPA_OF, i_sh);
-        const FINT j_kp = bas(KAPPA_OF, j_sh);
-        const FINT k_kp = bas(KAPPA_OF, k_sh);
-        const FINT l_kp = bas(KAPPA_OF, l_sh);
-        const FINT i_ctr = envs->i_ctr;
-        const FINT j_ctr = envs->j_ctr;
-        const FINT k_ctr = envs->k_ctr;
-        const FINT l_ctr = envs->l_ctr;
-        const FINT di = _len_spinor(i_l, i_kp);
-        const FINT dj = _len_spinor(j_l, j_kp);
-        const FINT dk = _len_spinor(k_l, k_kp);
-        const FINT dl = _len_spinor(l_l, l_kp);
-        const FINT ni = di * i_ctr;
-        const FINT nj = dj * j_ctr;
-        const FINT nk = dk * k_ctr;
-        const FINT nl = dl * l_ctr;
-        const FINT nfk = envs->nfk;
-        const FINT nfl = envs->nfl;
-        const FINT nf2k = nfk + nfk;
-        const FINT nf2l = nfl + nfl;
-        const FINT d_k = dk * di * dj;
-        const FINT d_l = di * dj * nf2l;
-        const FINT nop = nfk * di * dj * nfl;
-        FINT ofj = ni;
-        FINT ofk = ni * nj;
-        FINT ofl = nk * ni * nj;
-        FINT ic, jc, kc, lc;
-        double complex *pfijkl;
-        const double complex *ox = opij;
-        const double complex *oy = ox + nop * i_ctr * j_ctr * k_ctr * l_ctr;
-        const double complex *oz = oy + nop * i_ctr * j_ctr * k_ctr * l_ctr;
-        const double complex *o1 = oz + nop * i_ctr * j_ctr * k_ctr * l_ctr;
-        const FINT len1 = (nf2k*di*dj*nf2l + 16) & 0xfffffff0;
-        const FINT len2 = dk*di*dj*nf2l;
-        double complex *tmp1 = malloc(sizeof(double complex) * (len1+len2));
-        double complex *tmp2 = tmp1 + len1;
-
-        for (lc = 0; lc < nl; lc += dl) {
-                for (kc = 0; kc < nk; kc += dk) {
-                        for (jc = 0; jc < nj; jc += dj) {
-                                for (ic = 0; ic < ni; ic += di) {
-        si2e_swap(tmp1, ox, oy, oz, o1, di, dj, nfk, nfl);
-        (c2s_bra_spinor_si[k_l])(tmp2, d_l, tmp1, k_l, k_kp);
-        (c2s_iket_spinor[l_l])(tmp1, d_k, tmp2, l_l, l_kp);
-        pfijkl = fijkl + (ofl * lc + ofk * kc + ofj * jc + ic);
-
-        zcopy_kijl(pfijkl, tmp1, ni, nj, nk, nl, di, dj, dk, dl);
-
-        ox += nop;
-        oy += nop;
-        oz += nop;
-        o1 += nop;
-                                } } } }
-
-        free(tmp1);
-}
-
-/*
- * 1e integrals, reorder cartesian integrals.
- */
-void c2s_cart_1e(double *opij, const double *gctr, CINTEnvVars *envs)
-{
-        const FINT i_ctr = envs->i_ctr;
-        const FINT j_ctr = envs->j_ctr;
-        const FINT nfi = envs->nfi;
-        const FINT nfj = envs->nfj;
-        const FINT nf = envs->nf;
-        const FINT ni = nfi * i_ctr;
-        const FINT nj = nfj * j_ctr;
-        FINT ic, jc;
-        double *popij;
-
-        for (jc = 0; jc < nj; jc += nfj)
-                for (ic = 0; ic < ni; ic += nfi) {
-                        popij = opij + ni * jc + ic;
-                        dcopy_ij(popij, gctr, ni, nj, nfi, nfj);
-                        gctr += nf;
-                }
-}
-
-/*
- * 2e integrals, reorder cartesian integrals.
- */
-void c2s_cart_2e1(double *fijkl, const double *gctr, CINTEnvVars *envs)
-{
-        const FINT i_ctr = envs->i_ctr;
-        const FINT j_ctr = envs->j_ctr;
-        const FINT k_ctr = envs->k_ctr;
-        const FINT l_ctr = envs->l_ctr;
-        const FINT nfi = envs->nfi;
-        const FINT nfj = envs->nfj;
-        const FINT nfk = envs->nfk;
-        const FINT nfl = envs->nfl;
-        const FINT ni = nfi * i_ctr;
-        const FINT nj = nfj * j_ctr;
-        const FINT nk = nfk * k_ctr;
-        const FINT nl = nfl * l_ctr;
-        const FINT nf = envs->nf;
-        FINT ofj = ni;
-        FINT ofk = ni * nj;
-        FINT ofl = ni * nj * nk;
-        FINT ic, jc, kc, lc;
-        double *pfijkl;
-
-        for (lc = 0; lc < nl; lc += nfl)
-                for (kc = 0; kc < nk; kc += nfk)
-                        for (jc = 0; jc < nj; jc += nfj)
-                                for (ic = 0; ic < ni; ic += nfi) {
-        pfijkl = fijkl + ofl * lc + ofk * kc + ofj * jc + ic;
-        dcopy_iklj(pfijkl, gctr, ni, nj, nk, nl, nfi, nfj, nfk, nfl);
-        gctr += nf;
-                                }
-}
-void c2s_cart_2e2() {};
-
-
-/*************************************************
- *
- * 3-center 2-electron integral transformation
- *
- *************************************************/
-void c2s_sph_3c2e1(double *bufijk, const double *gctr, CINTEnvVars *envs)
-{
-        const FINT i_l = envs->i_l;
-        const FINT j_l = envs->j_l;
-        const FINT k_l = envs->k_l;
-        const FINT i_ctr = envs->i_ctr;
-        const FINT j_ctr = envs->j_ctr;
-        const FINT k_ctr = envs->k_ctr;
-        const FINT di = i_l * 2 + 1;
-        const FINT dj = j_l * 2 + 1;
-        const FINT dk = k_l * 2 + 1;
-        const FINT ni = di * i_ctr;
-        const FINT nj = dj * j_ctr;
-        const FINT nk = dk * k_ctr;
-        const FINT nfi = envs->nfi;
-        const FINT nfk = envs->nfk;
-        const FINT nf = envs->nf;
-        const FINT nfik = nfi * nfk;
-        FINT ofj = ni;
-        FINT ofk = ni * nj;
-        FINT ic, jc, kc;
-        const FINT buflen = (nfi*nfk*dj + 16) & 0xfffffff0;
-        double *buf1 = malloc(sizeof(double) * buflen*3);
-        double *buf2 = buf1 + buflen;
-        double *buf3 = buf2 + buflen;
-        double *pijk;
-        double *tmp1;
-
-        for (kc = 0; kc < nk; kc += dk) {
-                for (jc = 0; jc < nj; jc += dj) {
-                        for (ic = 0; ic < ni; ic += di) {
-        tmp1 = (c2s_ket_sph[j_l])(buf1, nfik, gctr, j_l);
-        tmp1 = sph2e_inner(buf2, tmp1, k_l, nfi, dj, nfi*dk, nfik);
-        tmp1 = (c2s_bra_sph[i_l])(buf3, dk*dj, tmp1, i_l);
-        pijk = bufijk + ofk * kc + ofj * jc + ic;
-        dcopy_iklj(pijk, tmp1, ni, nj, nk, 1, di, dj, dk, 1);
-        gctr += nf;
-                        } } }
-        free(buf1);
-
-}
-
-void c2s_cart_3c2e1(double *bufijk, const double *gctr, CINTEnvVars *envs)
-{
-        const FINT i_ctr = envs->i_ctr;
-        const FINT j_ctr = envs->j_ctr;
-        const FINT k_ctr = envs->k_ctr;
-        const FINT nfi = envs->nfi;
-        const FINT nfj = envs->nfj;
-        const FINT nfk = envs->nfk;
-        const FINT ni = nfi * i_ctr;
-        const FINT nj = nfj * j_ctr;
-        const FINT nk = nfk * k_ctr;
-        const FINT nf = envs->nf;
-        FINT ofj = ni;
-        FINT ofk = ni * nj;
-        FINT ic, jc, kc;
-        double *pijk;
-
-        for (kc = 0; kc < nk; kc += nfk) {
-                for (jc = 0; jc < nj; jc += nfj) {
-                        for (ic = 0; ic < ni; ic += nfi) {
-        pijk = bufijk + ofk * kc + ofj * jc + ic;
-        dcopy_iklj(pijk, gctr, ni, nj, nk, 1, nfi, nfj, nfk, 1);
-        gctr += nf;
-                        } } }
-
-}
-
-/*
- * ssc ~ (spheric,spheric|cartesian)
- */
-void c2s_sph_3c2e1_ssc(double *bufijk, const double *gctr, CINTEnvVars *envs)
-{
-        const FINT i_l = envs->i_l;
-        const FINT j_l = envs->j_l;
-        const FINT i_ctr = envs->i_ctr;
-        const FINT j_ctr = envs->j_ctr;
-        const FINT k_ctr = envs->k_ctr;
-        const FINT di = i_l * 2 + 1;
-        const FINT dj = j_l * 2 + 1;
-        const FINT nfi = envs->nfi;
-        const FINT nfk = envs->nfk;
-        const FINT ni = di * i_ctr;
-        const FINT nj = dj * j_ctr;
-        const FINT nk = nfk * k_ctr;
-        const FINT nf = envs->nf;
-        const FINT nfik = nfi * nfk;
-        FINT ofj = ni;
-        FINT ofk = ni * nj;
-        FINT ic, jc, kc;
-        const FINT buflen = nfi*nfk*dj;
-        double *buf1 = malloc(sizeof(double) * buflen*2);
-        double *buf2 = buf1 + buflen;
-        double *pijk;
-        double *tmp1;
-
-        for (kc = 0; kc < nk; kc += nfk) {
-                for (jc = 0; jc < nj; jc += dj) {
-                        for (ic = 0; ic < ni; ic += di) {
-        tmp1 = (c2s_ket_sph[j_l])(buf1, nfik, gctr, j_l);
-        tmp1 = (c2s_bra_sph[i_l])(buf2, nfk*dj, tmp1, i_l);
-        pijk = bufijk + ofk * kc + ofj * jc + ic;
-        dcopy_iklj(pijk, tmp1, ni, nj, nk, 1, di, dj, nfk, 1);
-        gctr += nf;
-                        } } }
-        free(buf1);
-
-}
-
-/*
- * 3c2e spinor integrals, cartesian to spin free spinor for electron 1.
- */
-void c2s_sf_3c2e1(double complex *opijk, double *gctr, CINTEnvVars *envs)
-{
-        const FINT *shls = envs->shls;
-        const FINT *bas = envs->bas;
-        const FINT i_sh = shls[0];
-        const FINT j_sh = shls[1];
-        const FINT i_l = envs->i_l;
-        const FINT j_l = envs->j_l;
-        const FINT k_l = envs->k_l;
-        const FINT i_kp = bas(KAPPA_OF, i_sh);
-        const FINT j_kp = bas(KAPPA_OF, j_sh);
-        const FINT i_ctr = envs->i_ctr;
-        const FINT j_ctr = envs->j_ctr;
-        const FINT k_ctr = envs->k_ctr;
-        const FINT di = _len_spinor(i_l, i_kp);
-        const FINT dj = _len_spinor(j_l, j_kp);
-        const FINT dk = k_l * 2 + 1;
-        const FINT nfi = envs->nfi;
-        const FINT nfj = envs->nfj;
-        const FINT nfk = envs->nfk;
-        const FINT nf2j = nfj + nfj;
-        const FINT nf = envs->nf;
-        const FINT nfik = nfi * nfk;
-        const FINT ni = di * i_ctr;
-        const FINT nj = dj * j_ctr;
-        const FINT nk = dk * k_ctr;
-        FINT ofj = ni;
-        FINT ofk = ni * nj;
-        const FINT d_i = di * dk;
-        const FINT d_j = dk * nfj;
-        FINT ic, jc, kc;
-        const FINT buflen = (nfi*dk*nfj+16) & 0xfffffff0;
-        double *buf = malloc(sizeof(double) * buflen);
-        double *pbuf;
-        FINT len1 = (di*dk*nf2j + 16) & 0xfffffff0;
-        FINT len2 = di*dk*dj;
-        double complex *tmp1 = malloc(sizeof(double complex) * (len1+len2));
-        double complex *tmp2 = tmp1 + len1;
-        double complex *pijk;
-
-        for (kc = 0; kc < nk; kc += dk) {
-                for (jc = 0; jc < nj; jc += dj) {
-                        for (ic = 0; ic < ni; ic += di) {
-        pbuf = sph2e_inner(buf, gctr, k_l, nfi, nfj, nfi*dk, nfik);
-        (c2s_bra_spinor_e1sf[i_l])(tmp1, d_j, pbuf, i_l, i_kp);
-        (c2s_ket_spinor[j_l])(tmp2, d_i, tmp1, j_l, j_kp);
-        pijk = opijk + ofk * kc + ofj * jc + ic;
-        zcopy_iklj(pijk, tmp2, ni, nj, nk, 1, di, dj, dk, 1);
-        gctr += nf;
-                        } } }
-        free(buf);
-        free(tmp1);
-}
-void c2s_sf_3c2e1i(double complex *opijk, double *gctr, CINTEnvVars *envs)
-{
-        const FINT *shls = envs->shls;
-        const FINT *bas = envs->bas;
-        const FINT i_sh = shls[0];
-        const FINT j_sh = shls[1];
-        const FINT i_l = envs->i_l;
-        const FINT j_l = envs->j_l;
-        const FINT k_l = envs->k_l;
-        const FINT i_kp = bas(KAPPA_OF, i_sh);
-        const FINT j_kp = bas(KAPPA_OF, j_sh);
-        const FINT i_ctr = envs->i_ctr;
-        const FINT j_ctr = envs->j_ctr;
-        const FINT k_ctr = envs->k_ctr;
-        const FINT di = _len_spinor(i_l, i_kp);
-        const FINT dj = _len_spinor(j_l, j_kp);
-        const FINT dk = k_l * 2 + 1;
-        const FINT nfi = envs->nfi;
-        const FINT nfj = envs->nfj;
-        const FINT nfk = envs->nfk;
-        const FINT nf2j = nfj + nfj;
-        const FINT nf = envs->nf;
-        const FINT nfik = nfi * nfk;
-        const FINT ni = di * i_ctr;
-        const FINT nj = dj * j_ctr;
-        const FINT nk = dk * k_ctr;
-        FINT ofj = ni;
-        FINT ofk = ni * nj;
-        const FINT d_i = di * dk;
-        const FINT d_j = dk * nfj;
-        FINT ic, jc, kc;
-        const FINT buflen = (nfi*dk*nfj + 16) & 0xfffffff0;
-        double *buf = malloc(sizeof(double) * buflen);
-        double *pbuf;
-        FINT len1 = (di*dk*nf2j + 16) & 0xfffffff0;
-        FINT len2 = di*dk*dj;
-        double complex *tmp1 = malloc(sizeof(double complex) * (len1+len2));
-        double complex *tmp2 = tmp1 + len1;
-        double complex *pijk;
-
-        for (kc = 0; kc < nk; kc += dk) {
-                for (jc = 0; jc < nj; jc += dj) {
-                        for (ic = 0; ic < ni; ic += di) {
-        pbuf = sph2e_inner(buf, gctr, k_l, nfi, nfj, nfi*dk, nfik);
-        (c2s_bra_spinor_e1sf[i_l])(tmp1, d_j, pbuf, i_l, i_kp);
-        (c2s_iket_spinor[j_l])(tmp2, d_i, tmp1, j_l, j_kp);
-        pijk = opijk + ofk * kc + ofj * jc + ic;
-        zcopy_iklj(pijk, tmp2, ni, nj, nk, 1, di, dj, dk, 1);
-        gctr += nf;
-                        } } }
-        free(buf);
-        free(tmp1);
-}
-/*
- * 3c2e integrals, cartesian to spinor for electron 1.
- */
-void c2s_si_3c2e1(double complex *opijk, double *gctr, CINTEnvVars *envs)
-{
-        const FINT *shls = envs->shls;
-        const FINT *bas = envs->bas;
-        const FINT i_sh = shls[0];
-        const FINT j_sh = shls[1];
-        const FINT i_l = envs->i_l;
-        const FINT j_l = envs->j_l;
-        const FINT k_l = envs->k_l;
-        const FINT i_kp = bas(KAPPA_OF, i_sh);
-        const FINT j_kp = bas(KAPPA_OF, j_sh);
-        const FINT i_ctr = envs->i_ctr;
-        const FINT j_ctr = envs->j_ctr;
-        const FINT k_ctr = envs->k_ctr;
-        const FINT di = _len_spinor(i_l, i_kp);
-        const FINT dj = _len_spinor(j_l, j_kp);
-        const FINT dk = k_l * 2 + 1;
-        const FINT nfi = envs->nfi;
-        const FINT nfj = envs->nfj;
-        const FINT nfk = envs->nfk;
-        const FINT nf2i = nfi + nfi;
-        const FINT nf2j = nfj + nfj;
-        const FINT nf = envs->nf;
-        const FINT nfik = nfi * nfk;
-        const FINT nfijdk = nfi * nfj * dk;
-        const FINT ni = di * i_ctr;
-        const FINT nj = dj * j_ctr;
-        const FINT nk = dk * k_ctr;
-        FINT ofj = ni;
-        FINT ofk = ni * nj;
-        const FINT d_i = di * dk;
-        const FINT d_j = dk * nf2j;
-        FINT ic, jc, kc;
-        double *gc_x = gctr;
-        double *gc_y = gc_x + nf * i_ctr * j_ctr * k_ctr;
-        double *gc_z = gc_y + nf * i_ctr * j_ctr * k_ctr;
-        double *gc_1 = gc_z + nf * i_ctr * j_ctr * k_ctr;
-        const FINT buflen = (nfi*dk*nfj + 16) & 0xfffffff0;
-        double *bufx = malloc(sizeof(double)*buflen*4);
-        double *bufy = bufx + buflen;
-        double *bufz = bufy + buflen;
-        double *buf1 = bufz + buflen;
-        double *pbufx, *pbufy, *pbufz, *pbuf1;
-        const FINT len1 = (nf2i*dk*nf2j + 16) & 0xfffffff0;
-        const FINT len2 = (di*dk*nf2j + 16) & 0xfffffff0;
-        const FINT len3 = di*dk*dj;
-        double complex *tmp1 = malloc(sizeof(double complex)
-                                          * (len1+len2+len3));
-        double complex *tmp2 = tmp1 + len1;
-        double complex *tmp3 = tmp2 + len2;
-        double complex *pijk;
-
-        for (kc = 0; kc < nk; kc += dk) {
-                for (jc = 0; jc < nj; jc += dj) {
-                        for (ic = 0; ic < ni; ic += di) {
-        pbufx = sph2e_inner(bufx, gc_x, k_l, nfi, nfj, nfi*dk, nfik);
-        pbufy = sph2e_inner(bufy, gc_y, k_l, nfi, nfj, nfi*dk, nfik);
-        pbufz = sph2e_inner(bufz, gc_z, k_l, nfi, nfj, nfi*dk, nfik);
-        pbuf1 = sph2e_inner(buf1, gc_1, k_l, nfi, nfj, nfi*dk, nfik);
-        //cmplx( gctr.POS_1, gctr.POS_Z)
-        //cmplx( gctr.POS_Y, gctr.POS_X)
-        CINTdcmplx_pp(nfijdk, tmp1, pbuf1, pbufz);
-        CINTdcmplx_pp(nfijdk, tmp1+nfijdk, pbufy, pbufx);
-        //cmplx(-gctr.POS_Y, gctr.POS_X)
-        //cmplx( gctr.POS_1,-gctr.POS_Z)
-        CINTdcmplx_np(nfijdk, tmp1+nfi*d_j, pbufy, pbufx);
-        CINTdcmplx_pn(nfijdk, tmp1+nfi*d_j+nfijdk, pbuf1, pbufz);
-        (c2s_bra_spinor_si[i_l])(tmp2, d_j, tmp1, i_l, i_kp);
-        (c2s_ket_spinor[j_l])(tmp3, d_i, tmp2, j_l, j_kp);
-        pijk = opijk + ofk * kc + ofj * jc + ic;
-        zcopy_iklj(pijk, tmp3, ni, nj, nk, 1, di, dj, dk, 1);
-        gc_x += nf;
-        gc_y += nf;
-        gc_z += nf;
-        gc_1 += nf;
-                        } } }
-
-        free(bufx);
-        free(tmp1);
-}
-void c2s_si_3c2e1i(double complex *opijk, double *gctr, CINTEnvVars *envs)
-{
-        const FINT *shls = envs->shls;
-        const FINT *bas = envs->bas;
-        const FINT i_sh = shls[0];
-        const FINT j_sh = shls[1];
-        const FINT i_l = envs->i_l;
-        const FINT j_l = envs->j_l;
-        const FINT k_l = envs->k_l;
-        const FINT i_kp = bas(KAPPA_OF, i_sh);
-        const FINT j_kp = bas(KAPPA_OF, j_sh);
-        const FINT i_ctr = envs->i_ctr;
-        const FINT j_ctr = envs->j_ctr;
-        const FINT k_ctr = envs->k_ctr;
-        const FINT di = _len_spinor(i_l, i_kp);
-        const FINT dj = _len_spinor(j_l, j_kp);
-        const FINT dk = k_l * 2 + 1;
-        const FINT nfi = envs->nfi;
-        const FINT nfj = envs->nfj;
-        const FINT nfk = envs->nfk;
-        const FINT nf2i = nfi + nfi;
-        const FINT nf2j = nfj + nfj;
-        const FINT nf = envs->nf;
-        const FINT nfik = nfi * nfk;
-        const FINT nfijdk = nfi * nfj * dk;
-        const FINT ni = di * i_ctr;
-        const FINT nj = dj * j_ctr;
-        const FINT nk = dk * k_ctr;
-        FINT ofj = ni;
-        FINT ofk = ni * nj;
-        const FINT d_i = di * dk;
-        const FINT d_j = dk * nf2j;
-        FINT ic, jc, kc;
-        double *gc_x = gctr;
-        double *gc_y = gc_x + nf * i_ctr * j_ctr * k_ctr;
-        double *gc_z = gc_y + nf * i_ctr * j_ctr * k_ctr;
-        double *gc_1 = gc_z + nf * i_ctr * j_ctr * k_ctr;
-        const FINT buflen = (nfi*dk*nfj + 16) & 0xfffffff0;
-        double *bufx = malloc(sizeof(double)*buflen*4);
-        double *bufy = bufx + buflen;
-        double *bufz = bufy + buflen;
-        double *buf1 = bufz + buflen;
-        double *pbufx, *pbufy, *pbufz, *pbuf1;
-        const FINT len1 = (nf2i*dk*nf2j + 16) & 0xfffffff0;
-        const FINT len2 = (di*dk*nf2j + 16) & 0xfffffff0;
-        const FINT len3 = di*dk*dj;
-        double complex *tmp1 = malloc(sizeof(double complex)
-                                          * (len1+len2+len3));
-        double complex *tmp2 = tmp1 + len1;
-        double complex *tmp3 = tmp2 + len2;
-        double complex *pijk;
-
-        for (kc = 0; kc < nk; kc += dk) {
-                for (jc = 0; jc < nj; jc += dj) {
-                        for (ic = 0; ic < ni; ic += di) {
-        pbufx = sph2e_inner(bufx, gc_x, k_l, nfi, nfj, nfi*dk, nfik);
-        pbufy = sph2e_inner(bufy, gc_y, k_l, nfi, nfj, nfi*dk, nfik);
-        pbufz = sph2e_inner(bufz, gc_z, k_l, nfi, nfj, nfi*dk, nfik);
-        pbuf1 = sph2e_inner(buf1, gc_1, k_l, nfi, nfj, nfi*dk, nfik);
-        //cmplx( gctr.POS_1, gctr.POS_Z)
-        //cmplx( gctr.POS_Y, gctr.POS_X)
-        CINTdcmplx_pp(nfijdk, tmp1, pbuf1, pbufz);
-        CINTdcmplx_pp(nfijdk, tmp1+nfijdk, pbufy, pbufx);
-        //cmplx(-gctr.POS_Y, gctr.POS_X)
-        //cmplx( gctr.POS_1,-gctr.POS_Z)
-        CINTdcmplx_np(nfijdk, tmp1+nfi*d_j, pbufy, pbufx);
-        CINTdcmplx_pn(nfijdk, tmp1+nfi*d_j+nfijdk, pbuf1, pbufz);
-        (c2s_bra_spinor_si[i_l])(tmp2, d_j, tmp1, i_l, i_kp);
-        (c2s_iket_spinor[j_l])(tmp3, d_i, tmp2, j_l, j_kp);
-        pijk = opijk + ofk * kc + ofj * jc + ic;
-        zcopy_iklj(pijk, tmp3, ni, nj, nk, 1, di, dj, dk, 1);
-        gc_x += nf;
-        gc_y += nf;
-        gc_z += nf;
-        gc_1 += nf;
-                        } } }
-
-        free(bufx);
-        free(tmp1);
-}
-
-void c2s_sf_3c2e1_ssc(double complex *opijk, double *gctr, CINTEnvVars *envs)
-{
-        const FINT *shls = envs->shls;
-        const FINT *bas = envs->bas;
-        const FINT i_sh = shls[0];
-        const FINT j_sh = shls[1];
-        const FINT i_l = envs->i_l;
-        const FINT j_l = envs->j_l;
-        const FINT i_kp = bas(KAPPA_OF, i_sh);
-        const FINT j_kp = bas(KAPPA_OF, j_sh);
-        const FINT i_ctr = envs->i_ctr;
-        const FINT j_ctr = envs->j_ctr;
-        const FINT k_ctr = envs->k_ctr;
-        const FINT di = _len_spinor(i_l, i_kp);
-        const FINT dj = _len_spinor(j_l, j_kp);
-        const FINT nfj = envs->nfj;
-        const FINT nfk = envs->nfk;
-        const FINT nf2j = nfj + nfj;
-        const FINT nf = envs->nf;
-        const FINT ni = di * i_ctr;
-        const FINT nj = dj * j_ctr;
-        const FINT nk = nfk * k_ctr;
-        FINT ofj = ni;
-        FINT ofk = ni * nj;
-        const FINT d_i = di * nfk;
-        const FINT d_j = nfk * nfj;
-        FINT ic, jc, kc;
-        FINT len1 = di*nfk*nf2j;
-        FINT len2 = di*nfk*dj;
-        double complex *tmp1 = malloc(sizeof(double complex) * (len1+len2));
-        double complex *tmp2 = tmp1 + len1;
-        double complex *pijk;
-
-        for (kc = 0; kc < nk; kc += nfk) {
-                for (jc = 0; jc < nj; jc += dj) {
-                        for (ic = 0; ic < ni; ic += di) {
-        (c2s_bra_spinor_e1sf[i_l])(tmp1, d_j, gctr, i_l, i_kp);
-        (c2s_ket_spinor[j_l])(tmp2, d_i, tmp1, j_l, j_kp);
-        pijk = opijk + ofk * kc + ofj * jc + ic;
-        zcopy_iklj(pijk, tmp2, ni, nj, nk, 1, di, dj, nfk, 1);
-        gctr += nf;
-                        } } }
-        free(tmp1);
-}
-void c2s_sf_3c2e1i_ssc(double complex *opijk, double *gctr, CINTEnvVars *envs)
-{
-        const FINT *shls = envs->shls;
-        const FINT *bas = envs->bas;
-        const FINT i_sh = shls[0];
-        const FINT j_sh = shls[1];
-        const FINT i_l = envs->i_l;
-        const FINT j_l = envs->j_l;
-        const FINT i_kp = bas(KAPPA_OF, i_sh);
-        const FINT j_kp = bas(KAPPA_OF, j_sh);
-        const FINT i_ctr = envs->i_ctr;
-        const FINT j_ctr = envs->j_ctr;
-        const FINT k_ctr = envs->k_ctr;
-        const FINT di = _len_spinor(i_l, i_kp);
-        const FINT dj = _len_spinor(j_l, j_kp);
-        const FINT nfj = envs->nfj;
-        const FINT nfk = envs->nfk;
-        const FINT nf2j = nfj + nfj;
-        const FINT nf = envs->nf;
-        const FINT ni = di * i_ctr;
-        const FINT nj = dj * j_ctr;
-        const FINT nk = nfk * k_ctr;
-        FINT ofj = ni;
-        FINT ofk = ni * nj;
-        const FINT d_i = di * nfk;
-        const FINT d_j = nfk * nfj;
-        FINT ic, jc, kc;
-        FINT len1 = di*nfk*nf2j;
-        FINT len2 = di*nfk*dj;
-        double complex *tmp1 = malloc(sizeof(double complex) * (len1+len2));
-        double complex *tmp2 = tmp1 + len1;
-        double complex *pijk;
-
-        for (kc = 0; kc < nk; kc += nfk) {
-                for (jc = 0; jc < nj; jc += dj) {
-                        for (ic = 0; ic < ni; ic += di) {
-        (c2s_bra_spinor_e1sf[i_l])(tmp1, d_j, gctr, i_l, i_kp);
-        (c2s_iket_spinor[j_l])(tmp2, d_i, tmp1, j_l, j_kp);
-        pijk = opijk + ofk * kc + ofj * jc + ic;
-        zcopy_iklj(pijk, tmp2, ni, nj, nk, 1, di, dj, nfk, 1);
-        gctr += nf;
-                        } } }
-        free(tmp1);
-}
-void c2s_si_3c2e1_ssc(double complex *opijk, double *gctr, CINTEnvVars *envs)
-{
-        const FINT *shls = envs->shls;
-        const FINT *bas = envs->bas;
-        const FINT i_sh = shls[0];
-        const FINT j_sh = shls[1];
-        const FINT i_l = envs->i_l;
-        const FINT j_l = envs->j_l;
-        const FINT i_kp = bas(KAPPA_OF, i_sh);
-        const FINT j_kp = bas(KAPPA_OF, j_sh);
-        const FINT i_ctr = envs->i_ctr;
-        const FINT j_ctr = envs->j_ctr;
-        const FINT k_ctr = envs->k_ctr;
-        const FINT di = _len_spinor(i_l, i_kp);
-        const FINT dj = _len_spinor(j_l, j_kp);
-        const FINT nfi = envs->nfi;
-        const FINT nfj = envs->nfj;
-        const FINT nfk = envs->nfk;
-        const FINT nf2i = nfi + nfi;
-        const FINT nf2j = nfj + nfj;
-        const FINT nf = envs->nf;
-        const FINT nfijdk = nfi * nfj * nfk;
-        const FINT ni = di * i_ctr;
-        const FINT nj = dj * j_ctr;
-        const FINT nk = nfk * k_ctr;
-        FINT ofj = ni;
-        FINT ofk = ni * nj;
-        const FINT d_i = di * nfk;
-        const FINT d_j = nfk * nf2j;
-        FINT ic, jc, kc;
-        double *gc_x = gctr;
-        double *gc_y = gc_x + nf * i_ctr * j_ctr * k_ctr;
-        double *gc_z = gc_y + nf * i_ctr * j_ctr * k_ctr;
-        double *gc_1 = gc_z + nf * i_ctr * j_ctr * k_ctr;
-        const FINT len1 = nf2i*nfk*nf2j;
-        const FINT len2 = di*nfk*nf2j;
-        const FINT len3 = di*nfk*dj;
-        double complex *tmp1 = malloc(sizeof(double complex)
-                                          * (len1+len2+len3));
-        double complex *tmp2 = tmp1 + len1;
-        double complex *tmp3 = tmp2 + len2;
-        double complex *pijk;
-
-        for (kc = 0; kc < nk; kc += nfk) {
-                for (jc = 0; jc < nj; jc += dj) {
-                        for (ic = 0; ic < ni; ic += di) {
-        //cmplx( gctr.POS_1, gctr.POS_Z)
-        //cmplx( gctr.POS_Y, gctr.POS_X)
-        CINTdcmplx_pp(nfijdk, tmp1, gc_1, gc_z);
-        CINTdcmplx_pp(nfijdk, tmp1+nfijdk, gc_y, gc_x);
-        //cmplx(-gctr.POS_Y, gctr.POS_X)
-        //cmplx( gctr.POS_1,-gctr.POS_Z)
-        CINTdcmplx_np(nfijdk, tmp1+nfi*d_j, gc_y, gc_x);
-        CINTdcmplx_pn(nfijdk, tmp1+nfi*d_j+nfijdk, gc_1, gc_z);
-        (c2s_bra_spinor_si[i_l])(tmp2, d_j, tmp1, i_l, i_kp);
-        (c2s_ket_spinor[j_l])(tmp3, d_i, tmp2, j_l, j_kp);
-        pijk = opijk + ofk * kc + ofj * jc + ic;
-        zcopy_iklj(pijk, tmp3, ni, nj, nk, 1, di, dj, nfk, 1);
-        gc_x += nf;
-        gc_y += nf;
-        gc_z += nf;
-        gc_1 += nf;
-                        } } }
-
-        free(tmp1);
-}
-void c2s_si_3c2e1i_ssc(double complex *opijk, double *gctr, CINTEnvVars *envs)
-{
-        const FINT *shls = envs->shls;
-        const FINT *bas = envs->bas;
-        const FINT i_sh = shls[0];
-        const FINT j_sh = shls[1];
-        const FINT i_l = envs->i_l;
-        const FINT j_l = envs->j_l;
-        const FINT i_kp = bas(KAPPA_OF, i_sh);
-        const FINT j_kp = bas(KAPPA_OF, j_sh);
-        const FINT i_ctr = envs->i_ctr;
-        const FINT j_ctr = envs->j_ctr;
-        const FINT k_ctr = envs->k_ctr;
-        const FINT di = _len_spinor(i_l, i_kp);
-        const FINT dj = _len_spinor(j_l, j_kp);
-        const FINT nfi = envs->nfi;
-        const FINT nfj = envs->nfj;
-        const FINT nfk = envs->nfk;
-        const FINT nf2i = nfi + nfi;
-        const FINT nf2j = nfj + nfj;
-        const FINT nf = envs->nf;
-        const FINT nfijdk = nfi * nfj * nfk;
-        const FINT ni = di * i_ctr;
-        const FINT nj = dj * j_ctr;
-        const FINT nk = nfk * k_ctr;
-        FINT ofj = ni;
-        FINT ofk = ni * nj;
-        const FINT d_i = di * nfk;
-        const FINT d_j = nfk * nf2j;
-        FINT ic, jc, kc;
-        double *gc_x = gctr;
-        double *gc_y = gc_x + nf * i_ctr * j_ctr * k_ctr;
-        double *gc_z = gc_y + nf * i_ctr * j_ctr * k_ctr;
-        double *gc_1 = gc_z + nf * i_ctr * j_ctr * k_ctr;
-        const FINT len1 = nf2i*nfk*nf2j;
-        const FINT len2 = di*nfk*nf2j;
-        const FINT len3 = di*nfk*dj;
-        double complex *tmp1 = malloc(sizeof(double complex)
-                                      * (len1+len2+len3));
-        double complex *tmp2 = tmp1 + len1;
-        double complex *tmp3 = tmp2 + len2;
-        double complex *pijk;
-
-        for (kc = 0; kc < nk; kc += nfk) {
-                for (jc = 0; jc < nj; jc += dj) {
-                        for (ic = 0; ic < ni; ic += di) {
-        //cmplx( gctr.POS_1, gctr.POS_Z)
-        //cmplx( gctr.POS_Y, gctr.POS_X)
-        CINTdcmplx_pp(nfijdk, tmp1, gc_1, gc_z);
-        CINTdcmplx_pp(nfijdk, tmp1+nfijdk, gc_y, gc_x);
-        //cmplx(-gctr.POS_Y, gctr.POS_X)
-        //cmplx( gctr.POS_1,-gctr.POS_Z)
-        CINTdcmplx_np(nfijdk, tmp1+nfi*d_j, gc_y, gc_x);
-        CINTdcmplx_pn(nfijdk, tmp1+nfi*d_j+nfijdk, gc_1, gc_z);
-        (c2s_bra_spinor_si[i_l])(tmp2, d_j, tmp1, i_l, i_kp);
-        (c2s_iket_spinor[j_l])(tmp3, d_i, tmp2, j_l, j_kp);
-        pijk = opijk + ofk * kc + ofj * jc + ic;
-        zcopy_iklj(pijk, tmp3, ni, nj, nk, 1, di, dj, nfk, 1);
-        gc_x += nf;
-        gc_y += nf;
-        gc_z += nf;
-        gc_1 += nf;
-                        } } }
-
-        free(tmp1);
-}
-
-
-/*************************************************
- *
- * 3-center 1-electron integral transformation
- *
- *************************************************/
-static void dcopy_ijk(double *opijk, const double *gctr, 
-                      const FINT ni, const FINT nj, const FINT nk,
-                      const FINT mi, const FINT mj, const FINT mk)
-{
-        FINT i, j, k;
-
-        for (k = 0; k < mk; k++) {
-                for (j = 0; j < mj; j++) {
-                        for (i = 0; i < mi; i++) {
-                                opijk[ni*j+i] = gctr[mi*j+i];
-                        }
-                }
-                opijk += ni * nj;
-                gctr  += mi * mj;
-        }
-}
-void c2s_sph_3c1e(double *bufijk, const double *gctr, CINTEnvVars *envs)
-{
-        const FINT i_l = envs->i_l;
-        const FINT j_l = envs->j_l;
-        const FINT k_l = envs->k_l;
-        const FINT i_ctr = envs->i_ctr;
-        const FINT j_ctr = envs->j_ctr;
-        const FINT k_ctr = envs->k_ctr;
-        const FINT di = i_l * 2 + 1;
-        const FINT dj = j_l * 2 + 1;
-        const FINT dk = k_l * 2 + 1;
-        const FINT ni = di * i_ctr;
-        const FINT nj = dj * j_ctr;
-        const FINT nk = dk * k_ctr;
-        const FINT nfi = envs->nfi;
-        const FINT nfj = envs->nfj;
-        const FINT nf = envs->nf;
-        const FINT nfij = nfi * nfj;
-        FINT ofj = ni;
-        FINT ofk = ni * nj;
-        FINT ic, jc, kc;
-        const FINT buflen = nfij*dk;
-        double *buf1 = malloc(sizeof(double) * buflen*3);
-        double *buf2 = buf1 + buflen;
-        double *buf3 = buf2 + buflen;
-        double *pijk;
-        double *tmp1;
-
-        for (kc = 0; kc < nk; kc += dk) {
-                for (jc = 0; jc < nj; jc += dj) {
-                        for (ic = 0; ic < ni; ic += di) {
-        tmp1 = (c2s_ket_sph[k_l])(buf1, nfij, gctr, k_l);
-        tmp1 = sph2e_inner(buf2, tmp1, j_l, nfi, dk, nfi*dj, nfij);
-        tmp1 = (c2s_bra_sph[i_l])(buf3, dj*dk, tmp1, i_l);
-        pijk = bufijk + ofk * kc + ofj * jc + ic;
-        dcopy_ijk(pijk, tmp1, ni, nj, nk, di, dj, dk);
-        gctr += nf;
-                        } } }
-        free(buf1);
-
-}
-
-void c2s_cart_3c1e(double *bufijk, const double *gctr, CINTEnvVars *envs)
-{
-        const FINT i_ctr = envs->i_ctr;
-        const FINT j_ctr = envs->j_ctr;
-        const FINT k_ctr = envs->k_ctr;
-        const FINT nfi = envs->nfi;
-        const FINT nfj = envs->nfj;
-        const FINT nfk = envs->nfk;
-        const FINT ni = nfi * i_ctr;
-        const FINT nj = nfj * j_ctr;
-        const FINT nk = nfk * k_ctr;
-        const FINT nf = envs->nf;
-        FINT ofj = ni;
-        FINT ofk = ni * nj;
-        FINT ic, jc, kc;
-        double *pijk;
-
-        for (kc = 0; kc < nk; kc += nfk) {
-                for (jc = 0; jc < nj; jc += nfj) {
-                        for (ic = 0; ic < ni; ic += nfi) {
-        pijk = bufijk + ofk * kc + ofj * jc + ic;
-        dcopy_ijk(pijk, gctr, ni, nj, nk, nfi, nfj, nfk);
-        gctr += nf;
-                        } } }
-
-}
-
-
-
-double *CINTc2s_bra_sph(double *gsph, FINT nket, double *gcart, FINT l)
-{
-        return (c2s_bra_sph[l])(gsph, nket, gcart, l);
-}
-double *CINTc2s_ket_sph(double *gsph, FINT nbra, double *gcart, FINT l)
-{
-        return (c2s_ket_sph[l])(gsph, nbra, gcart, l);
-}
-double *CINTc2s_ket_sph1(double *sph, double *cart, FINT lds, FINT ldc, FINT l)
-{
-        return (c2s_ket_sph1[l])(sph, cart, lds, ldc, l);
-}
-
-
-static void a_ket_cart2spinor_sf1(double complex *gspa, double complex *gspb,
-                                  double *gcart,
-                                  FINT lds, FINT nbra, FINT l, FINT kappa)
-{
-        const FINT nf = (l+1)*(l+2)/2;
-        const FINT nd = _len_spinor(l, kappa);
+        const double complex Z0 = 0;
+        const double complex Z1 = 1;
+        const char TRANS_N = 'N';
+        int nf = _len_cart[l];
+        int nf2 = nf * 2;
+        int nd = _len_spinor(kappa, l);
         const double complex *coeff_c2s;
         double complex *tmp = malloc(sizeof(double complex)*nf*nbra);
-        FINT i;
-        for (i = 0; i < nf*nbra; i++) {
-                tmp[i] = gcart[i];
-        }
+        CINTdcmplx_re(nf*nbra, tmp, gcart);
 
         if (kappa < 0) { // j = l + 1/2
                 coeff_c2s = g_c2s[l].cart2j_gt_l;
         } else {
                 coeff_c2s = g_c2s[l].cart2j_lt_l;
         }
-        c2s_zgemm('N', 'N', nbra, nd, nf,
-                  1, tmp, nbra, coeff_c2s, nf*2, 0, gspa, lds);
-        c2s_zgemm('N', 'N', nbra, nd, nf,
-                  1, tmp, nbra, coeff_c2s+nf, nf*2, 0, gspb, lds);
+        zgemm_(&TRANS_N, &TRANS_N, &nbra, &nd, &nf,
+               &Z1, tmp, &nbra, coeff_c2s, &nf2, &Z0, gspa, &lds);
+        zgemm_(&TRANS_N, &TRANS_N, &nbra, &nd, &nf,
+               &Z1, tmp, &nbra, coeff_c2s+nf, &nf2, &Z0, gspb, &lds);
         free(tmp);
 }
 // with phase "i"
-static void a_iket_cart2spinor_sf1(double complex *gspa, double complex *gspb,
-                                   double *gcart,
-                                   FINT lds, FINT nbra, FINT l, FINT kappa)
+static void a_iket_cart2spinor_e1sf(double complex *gspa, double complex *gspb,
+                                    double *gcart,
+                                    int lds, int nbra, int kappa, int l)
 {
+        const double complex Z0 = 0;
         const double complex ZI = 0 + 1 * _Complex_I;
-        const FINT nf = (l+1)*(l+2)/2;
-        const FINT nd = _len_spinor(l, kappa);
+        const char TRANS_N = 'N';
+        int nf = _len_cart[l];
+        int nf2 = nf * 2;
+        int nd = _len_spinor(kappa, l);
         const double complex *coeff_c2s;
         double complex *tmp = malloc(sizeof(double complex)*nf*nbra);
-        FINT i;
-        for (i = 0; i < nf*nbra; i++) {
-                tmp[i] = gcart[i];
-        }
+        CINTdcmplx_re(nf*nbra, tmp, gcart);
 
         if (kappa < 0) { // j = l + 1/2
                 coeff_c2s = g_c2s[l].cart2j_gt_l;
         } else {
                 coeff_c2s = g_c2s[l].cart2j_lt_l;
         }
-        c2s_zgemm('N', 'N', nbra, nd, nf,
-                  ZI, tmp, nbra, coeff_c2s, nf*2, 0, gspa, lds);
-        c2s_zgemm('N', 'N', nbra, nd, nf,
-                  ZI, tmp, nbra, coeff_c2s+nf, nf*2, 0, gspb, lds);
+        zgemm_(&TRANS_N, &TRANS_N, &nbra, &nd, &nf,
+               &ZI, tmp, &nbra, coeff_c2s, &nf2, &Z0, gspa, &lds);
+        zgemm_(&TRANS_N, &TRANS_N, &nbra, &nd, &nf,
+               &ZI, tmp, &nbra, coeff_c2s+nf, &nf2, &Z0, gspb, &lds);
         free(tmp);
 }
 
-static void a_ket_cart2spinor_si1(double complex *gspa, double complex *gspb,
-                                  double complex *gcart,
-                                  FINT lds, FINT nbra, FINT l, FINT kappa)
+static void a_ket_cart2spinor_si(double complex *gspa, double complex *gspb,
+                                 double complex *gcart,
+                                 int lds, int nbra, int kappa, int l)
 {
-        const FINT nf2 = (l+1)*(l+2);
-        const FINT nd = _len_spinor(l, kappa);
+        const double complex Z0 = 0;
+        const double complex Z1 = 1;
+        const char TRANS_N = 'N';
+        int nf = _len_cart[l];
+        int nf2 = nf * 2;
+        int nd = _len_spinor(kappa, l);
         const double complex *coeff_c2s;
         double complex *gcart1 = gcart + nbra * nf2;
 
@@ -8082,17 +4935,59 @@ static void a_ket_cart2spinor_si1(double complex *gspa, double complex *gspb,
         } else {
                 coeff_c2s = g_c2s[l].cart2j_lt_l;
         }
-        c2s_zgemm('N', 'N', nbra, nd, nf2,
-                  1, gcart, nbra, coeff_c2s, nf2, 0, gspa, lds);
-        c2s_zgemm('N', 'N', nbra, nd, nf2,
-                  1, gcart1, nbra, coeff_c2s, nf2, 0, gspb, lds);
+        zgemm_(&TRANS_N, &TRANS_N, &nbra, &nd, &nf2,
+               &Z1, gcart, &nbra, coeff_c2s, &nf2, &Z0, gspa, &lds);
+        zgemm_(&TRANS_N, &TRANS_N, &nbra, &nd, &nf2,
+               &Z1, gcart1, &nbra, coeff_c2s, &nf2, &Z0, gspb, &lds);
+}
+/*
+ * contract two-component vector with c2s transformation to get integral (scalar)
+ */
+static void a_ket_cart2spinor(double complex *gsp, int nbra,
+                              double complex *gcart, int kappa, int l)
+{
+        const double complex Z0 = 0;
+        const double complex Z1 = 1;
+        const char TRANS_N = 'N';
+        int nf = _len_cart[l];
+        int nf2 = nf * 2;
+        int nd = _len_spinor(kappa, l);
+        const double complex *coeff_c2s;
+
+        if (kappa < 0) { // j = l + 1/2
+                coeff_c2s = g_c2s[l].cart2j_gt_l;
+        } else {
+                coeff_c2s = g_c2s[l].cart2j_lt_l;
+        }
+        zgemm_(&TRANS_N, &TRANS_N, &nbra, &nd, &nf2,
+               &Z1, gcart, &nbra, coeff_c2s, &nf2, &Z0, gsp, &nbra);
+}
+// with phase "i"
+static void a_iket_cart2spinor(double complex *gsp, int nbra,
+                               double complex *gcart, int kappa, int l)
+{
+        const double complex Z0 = 0;
+        const double complex ZI = 0 + 1 * _Complex_I;
+        const char TRANS_N = 'N';
+        int nf = _len_cart[l];
+        int nf2 = nf * 2;
+        int nd = _len_spinor(kappa, l);
+        const double complex *coeff_c2s;
+
+        if (kappa < 0) { // j = l + 1/2
+                coeff_c2s = g_c2s[l].cart2j_gt_l;
+        } else {
+                coeff_c2s = g_c2s[l].cart2j_lt_l;
+        }
+        zgemm_(&TRANS_N, &TRANS_N, &nbra, &nd, &nf2,
+               &ZI, gcart, &nbra, coeff_c2s, &nf2, &Z0, gsp, &nbra);
 }
 
-static void s_ket_cart2spinor_sf1(double complex *gspa, double complex *gspb,
-                                  double *gcart,
-                                  FINT lds, FINT nbra, FINT l, FINT kappa)
+static void s_ket_cart2spinor_e1sf(double complex *gspa, double complex *gspb,
+                                   double *gcart,
+                                   int lds, int nbra, int kappa, int l)
 {
-        FINT i;
+        int i;
         for (i = 0; i < nbra; i++) {
                 gspa[    i] = 0;
                 gspa[lds+i] = gcart[i];
@@ -8100,11 +4995,11 @@ static void s_ket_cart2spinor_sf1(double complex *gspa, double complex *gspb,
                 gspb[lds+i] = 0;
         }
 }
-static void s_iket_cart2spinor_sf1(double complex *gspa, double complex *gspb,
-                                   double *gcart,
-                                   FINT lds, FINT nbra, FINT l, FINT kappa)
+static void s_iket_cart2spinor_e1sf(double complex *gspa, double complex *gspb,
+                                    double *gcart,
+                                    int lds, int nbra, int kappa, int l)
 {
-        FINT i;
+        int i;
         for (i = 0; i < nbra; i++) {
                 gspa[    i] = 0;
                 gspa[lds+i] = gcart[i] * _Complex_I;
@@ -8112,15 +5007,15 @@ static void s_iket_cart2spinor_sf1(double complex *gspa, double complex *gspb,
                 gspb[lds+i] = 0;
         }
 }
-static void s_ket_cart2spinor_si1(double complex *gspa, double complex *gspb,
-                                  double complex *gcart,
-                                  FINT lds, FINT nbra, FINT l, FINT kappa)
+static void s_ket_cart2spinor_si(double complex *gspa, double complex *gspb,
+                                 double complex *gcart,
+                                 int lds, int nbra, int kappa, int l)
 {
         double complex *gcart11 = gcart;
         double complex *gcart12 = gcart11 + nbra;
         double complex *gcart21 = gcart12 + nbra;
         double complex *gcart22 = gcart21 + nbra;
-        FINT i;
+        int i;
         for (i = 0; i < nbra; i++) {
                 gspa[    i] = gcart12[i];
                 gspa[lds+i] = gcart11[i];
@@ -8128,13 +5023,37 @@ static void s_ket_cart2spinor_si1(double complex *gspa, double complex *gspb,
                 gspb[lds+i] = gcart21[i];
         }
 }
+static void s_ket_cart2spinor(double complex *gsp, int nbra,
+                              double complex *gcart, int kappa, int l)
+{
+        //double *coeff_c2s = g_c2s[0].cart2j_lt_l;;
+        double complex *gsp1 = gsp + nbra;
+        double complex *gcart1 = gcart + nbra;
+        int i;
+        for (i = 0; i < nbra; i++) {
+                gsp [i] = gcart1[i];
+                gsp1[i] = gcart [i];
+        }
+}
+static void s_iket_cart2spinor(double complex *gsp, int nbra,
+                               double complex *gcart, int kappa, int l)
+{
+        //double *coeff_c2s = g_c2s[0].cart2j_lt_l;;
+        double complex *gsp1 = gsp + nbra;
+        double complex *gcart1 = gcart + nbra;
+        int i;
+        for (i = 0; i < nbra; i++) {
+                gsp [i] = gcart1[i] * _Complex_I;
+                gsp1[i] = gcart [i] * _Complex_I;
+        }
+}
 
-static void p_ket_cart2spinor_sf1(double complex *gspa, double complex *gspb,
-                                  double *gcart,
-                                  FINT lds, FINT nbra, FINT l, FINT kappa)
+static void p_ket_cart2spinor_e1sf(double complex *gspa, double complex *gspb,
+                                   double *gcart,
+                                   int lds, int nbra, int kappa, int l)
 {
         const double complex *coeff_c2s;
-        FINT i;
+        int i;
 
         if (kappa >= 0) {
                 coeff_c2s = g_c2s[1].cart2j_lt_l;
@@ -8167,12 +5086,12 @@ static void p_ket_cart2spinor_sf1(double complex *gspa, double complex *gspb,
                 }
         }
 }
-static void p_iket_cart2spinor_sf1(double complex *gspa, double complex *gspb,
-                                   double *gcart,
-                                   FINT lds, FINT nbra, FINT l, FINT kappa)
+static void p_iket_cart2spinor_e1sf(double complex *gspa, double complex *gspb,
+                                    double *gcart,
+                                    int lds, int nbra, int kappa, int l)
 {
         const double complex *coeff_c2s;
-        FINT i;
+        int i;
 
         if (kappa >= 0) {
                 coeff_c2s = g_c2s[1].cart2j_lt_l;
@@ -8205,13 +5124,13 @@ static void p_iket_cart2spinor_sf1(double complex *gspa, double complex *gspb,
                 }
         }
 }
-static void p_ket_cart2spinor_si1(double complex *gspa, double complex *gspb,
-                                  double complex *gcart,
-                                  FINT lds, FINT nbra, FINT l, FINT kappa)
+static void p_ket_cart2spinor_si(double complex *gspa, double complex *gspb,
+                                 double complex *gcart,
+                                 int lds, int nbra, int kappa, int l)
 {
         double complex *gcart1 = gcart + nbra*6;
         const double complex *coeff_c2s;
-        FINT i;
+        int i;
 
         if (kappa >= 0) {
                 coeff_c2s = g_c2s[1].cart2j_lt_l;
@@ -8258,13 +5177,81 @@ static void p_ket_cart2spinor_si1(double complex *gspa, double complex *gspb,
                 }
         }
 }
-
-static void d_ket_cart2spinor_sf1(double complex *gspa, double complex *gspb,
-                                  double *gcart,
-                                  FINT lds, FINT nbra, FINT l, FINT kappa)
+static void p_ket_cart2spinor(double complex *gsp, int nbra,
+                              double complex *gcart, int kappa, int l)
 {
         const double complex *coeff_c2s;
-        FINT i;
+        int i;
+
+        if (kappa >= 0) {
+                coeff_c2s = g_c2s[1].cart2j_lt_l;
+                for (i = 0; i < nbra; i++) {
+                        gsp[     i] = CRE(0,0,1)*GRE(nbra*0+i)
+                                    + CIM(1,0,1)*GIM(nbra*1+i)
+                                    + CRE(5,0,1)*GRE(nbra*5+i);
+                        gsp[nbra+i] = CRE(2,1,1)*GRE(nbra*2+i)
+                                    + CRE(3,1,1)*GRE(nbra*3+i)
+                                    + CIM(4,1,1)*GIM(nbra*4+i);
+                }
+                gsp += nbra * 2;
+        }
+        if (kappa <= 0) {
+                coeff_c2s = g_c2s[1].cart2j_gt_l;
+                for (i = 0; i < nbra; i++) {
+                        gsp[0*nbra+i] = CRE(3,0,1)*GRE(nbra*3+i)
+                                      + CIM(4,0,1)*GIM(nbra*4+i);
+                        gsp[1*nbra+i] = CRE(0,1,1)*GRE(nbra*0+i)
+                                      + CIM(1,1,1)*GIM(nbra*1+i)
+                                      + CRE(5,1,1)*GRE(nbra*5+i);
+                        gsp[2*nbra+i] = CRE(2,2,1)*GRE(nbra*2+i)
+                                      + CRE(3,2,1)*GRE(nbra*3+i)
+                                      + CIM(4,2,1)*GIM(nbra*4+i);
+                        gsp[3*nbra+i] = CRE(0,3,1)*GRE(nbra*0+i)
+                                      + CIM(1,3,1)*GIM(nbra*1+i);
+                }
+        }
+}
+static void p_iket_cart2spinor(double complex *gsp, int nbra,
+                               double complex *gcart, int kappa, int l)
+{
+        const double complex *coeff_c2s;
+        int i;
+
+        if (kappa >= 0) {
+                coeff_c2s = g_c2s[1].cart2j_lt_l;
+                for (i = 0; i < nbra; i++) {
+                        gsp[     i] = CRE(0,0,1)*GIM(nbra*0+i)
+                                    - CIM(1,0,1)*GRE(nbra*1+i)
+                                    + CRE(5,0,1)*GIM(nbra*5+i);
+                        gsp[nbra+i] = CRE(2,1,1)*GIM(nbra*2+i)
+                                    + CRE(3,1,1)*GIM(nbra*3+i)
+                                    - CIM(4,1,1)*GRE(nbra*4+i);
+                }
+                gsp += nbra * 2;
+        }
+        if (kappa <= 0) {
+                coeff_c2s = g_c2s[1].cart2j_gt_l;
+                for (i = 0; i < nbra; i++) {
+                        gsp[0*nbra+i] = CRE(3,0,1)*GIM(nbra*3+i)
+                                      - CIM(4,0,1)*GRE(nbra*4+i);
+                        gsp[1*nbra+i] = CRE(0,1,1)*GIM(nbra*0+i)
+                                      - CIM(1,1,1)*GRE(nbra*1+i)
+                                      + CRE(5,1,1)*GIM(nbra*5+i);
+                        gsp[2*nbra+i] = CRE(2,2,1)*GIM(nbra*2+i)
+                                      + CRE(3,2,1)*GIM(nbra*3+i)
+                                      - CIM(4,2,1)*GRE(nbra*4+i);
+                        gsp[3*nbra+i] = CRE(0,3,1)*GIM(nbra*0+i)
+                                      - CIM(1,3,1)*GRE(nbra*1+i);
+                }
+        }
+}
+
+static void d_ket_cart2spinor_e1sf(double complex *gspa, double complex *gspb,
+                                   double *gcart,
+                                   int lds, int nbra, int kappa, int l)
+{
+        const double complex *coeff_c2s;
+        int i;
 
         if (kappa >= 0) {
                 coeff_c2s = g_c2s[2].cart2j_lt_l;
@@ -8328,12 +5315,12 @@ static void d_ket_cart2spinor_sf1(double complex *gspa, double complex *gspb,
                 }
         }
 }
-static void d_iket_cart2spinor_sf1(double complex *gspa, double complex *gspb,
-                                   double *gcart,
-                                   FINT lds, FINT nbra, FINT l, FINT kappa)
+static void d_iket_cart2spinor_e1sf(double complex *gspa, double complex *gspb,
+                                    double *gcart,
+                                    int lds, int nbra, int kappa, int l)
 {
         const double complex *coeff_c2s;
-        FINT i;
+        int i;
 
         if (kappa >= 0) {
                 coeff_c2s = g_c2s[2].cart2j_lt_l;
@@ -8398,13 +5385,13 @@ static void d_iket_cart2spinor_sf1(double complex *gspa, double complex *gspb,
                 }
         }
 }
-static void d_ket_cart2spinor_si1(double complex *gspa, double complex *gspb,
-                                  double complex *gcart,
-                                  FINT lds, FINT nbra, FINT l, FINT kappa)
+static void d_ket_cart2spinor_si(double complex *gspa, double complex *gspb,
+                                 double complex *gcart,
+                                 int lds, int nbra, int kappa, int l)
 {
         double complex *gcart1 = gcart + nbra*12;
         const double complex *coeff_c2s;
-        FINT i;
+        int i;
 
         if (kappa >= 0) {
                 coeff_c2s = g_c2s[2].cart2j_lt_l;
@@ -8511,13 +5498,141 @@ static void d_ket_cart2spinor_si1(double complex *gspa, double complex *gspb,
                 }
         }
 }
-
-static void f_ket_cart2spinor_sf1(double complex *gspa, double complex *gspb,
-                                  double *gcart,
-                                  FINT lds, FINT nbra, FINT l, FINT kappa)
+static void d_ket_cart2spinor(double complex *gsp, int nbra,
+                              double complex *gcart, int kappa, int l)
 {
         const double complex *coeff_c2s;
-        FINT i;
+        int i;
+
+        if (kappa >= 0) {
+                coeff_c2s = g_c2s[2].cart2j_lt_l;
+                for (i = 0; i < nbra; i++) {
+                        gsp[0*nbra+i] = CRE( 0,0,2)*GRE(nbra* 0+i)
+                                      + CRE( 3,0,2)*GRE(nbra* 3+i)
+                                      + CIM( 1,0,2)*GIM(nbra* 1+i)
+                                      + CRE( 8,0,2)*GRE(nbra* 8+i)
+                                      + CIM(10,0,2)*GIM(nbra*10+i);
+                        gsp[1*nbra+i] = CRE( 2,1,2)*GRE(nbra* 2+i)
+                                      + CIM( 4,1,2)*GIM(nbra* 4+i)
+                                      + CRE( 6,1,2)*GRE(nbra* 6+i)
+                                      + CRE( 9,1,2)*GRE(nbra* 9+i)
+                                      + CRE(11,1,2)*GRE(nbra*11+i);
+                        gsp[2*nbra+i] = CRE( 0,2,2)*GRE(nbra* 0+i)
+                                      + CRE( 3,2,2)*GRE(nbra* 3+i)
+                                      + CRE( 5,2,2)*GRE(nbra* 5+i)
+                                      + CRE( 8,2,2)*GRE(nbra* 8+i)
+                                      + CIM(10,2,2)*GIM(nbra*10+i);
+                        gsp[3*nbra+i] = CRE( 2,3,2)*GRE(nbra* 2+i)
+                                      + CIM( 4,3,2)*GIM(nbra* 4+i)
+                                      + CRE( 6,3,2)*GRE(nbra* 6+i)
+                                      + CRE( 9,3,2)*GRE(nbra* 9+i)
+                                      + CIM( 7,3,2)*GIM(nbra* 7+i);
+                }
+                gsp += nbra * 4;
+        }
+        if (kappa <= 0) {
+                coeff_c2s = g_c2s[2].cart2j_gt_l;
+                for (i = 0; i < nbra; i++) {
+                        gsp[0*nbra+i] = CRE( 6,0,2)*GRE(nbra* 6+i)
+                                      + CRE( 9,0,2)*GRE(nbra* 9+i)
+                                      + CIM( 7,0,2)*GIM(nbra* 7+i);
+                        gsp[1*nbra+i] = CRE( 0,1,2)*GRE(nbra* 0+i)
+                                      + CRE( 3,1,2)*GRE(nbra* 3+i)
+                                      + CIM( 1,1,2)*GIM(nbra* 1+i)
+                                      + CRE( 8,1,2)*GRE(nbra* 8+i)
+                                      + CIM(10,1,2)*GIM(nbra*10+i);
+                        gsp[2*nbra+i] = CRE( 2,2,2)*GRE(nbra* 2+i)
+                                      + CIM( 4,2,2)*GIM(nbra* 4+i)
+                                      + CRE( 6,2,2)*GRE(nbra* 6+i)
+                                      + CRE( 9,2,2)*GRE(nbra* 9+i)
+                                      + CRE(11,2,2)*GRE(nbra*11+i);
+                        gsp[3*nbra+i] = CRE( 0,3,2)*GRE(nbra* 0+i)
+                                      + CRE( 3,3,2)*GRE(nbra* 3+i)
+                                      + CRE( 5,3,2)*GRE(nbra* 5+i)
+                                      + CRE( 8,3,2)*GRE(nbra* 8+i)
+                                      + CIM(10,3,2)*GIM(nbra*10+i);
+                        gsp[4*nbra+i] = CRE( 2,4,2)*GRE(nbra* 2+i)
+                                      + CIM( 4,4,2)*GIM(nbra* 4+i)
+                                      + CRE( 6,4,2)*GRE(nbra* 6+i)
+                                      + CRE( 9,4,2)*GRE(nbra* 9+i)
+                                      + CIM( 7,4,2)*GIM(nbra* 7+i);
+                        gsp[5*nbra+i] = CRE( 0,5,2)*GRE(nbra* 0+i)
+                                      + CRE( 3,5,2)*GRE(nbra* 3+i)
+                                      + CIM( 1,5,2)*GIM(nbra* 1+i);
+                }
+        }
+}
+static void d_iket_cart2spinor(double complex *gsp, int nbra,
+                               double complex *gcart, int kappa, int l)
+{
+        const double complex *coeff_c2s;
+        int i;
+
+        if (kappa >= 0) {
+                coeff_c2s = g_c2s[2].cart2j_lt_l;
+                for (i = 0; i < nbra; i++) {
+                        gsp[0*nbra+i] = CRE( 0,0,2)*GIM(nbra* 0+i)
+                                      + CRE( 3,0,2)*GIM(nbra* 3+i)
+                                      - CIM( 1,0,2)*GRE(nbra* 1+i)
+                                      + CRE( 8,0,2)*GIM(nbra* 8+i)
+                                      - CIM(10,0,2)*GRE(nbra*10+i);
+                        gsp[1*nbra+i] = CRE( 2,1,2)*GIM(nbra* 2+i)
+                                      - CIM( 4,1,2)*GRE(nbra* 4+i)
+                                      + CRE( 6,1,2)*GIM(nbra* 6+i)
+                                      + CRE( 9,1,2)*GIM(nbra* 9+i)
+                                      + CRE(11,1,2)*GIM(nbra*11+i);
+                        gsp[2*nbra+i] = CRE( 0,2,2)*GIM(nbra* 0+i)
+                                      + CRE( 3,2,2)*GIM(nbra* 3+i)
+                                      + CRE( 5,2,2)*GIM(nbra* 5+i)
+                                      + CRE( 8,2,2)*GIM(nbra* 8+i)
+                                      - CIM(10,2,2)*GRE(nbra*10+i);
+                        gsp[3*nbra+i] = CRE( 2,3,2)*GIM(nbra* 2+i)
+                                      - CIM( 4,3,2)*GRE(nbra* 4+i)
+                                      + CRE( 6,3,2)*GIM(nbra* 6+i)
+                                      + CRE( 9,3,2)*GIM(nbra* 9+i)
+                                      - CIM( 7,3,2)*GRE(nbra* 7+i);
+                }
+                gsp += nbra * 4;
+        }
+        if (kappa <= 0) {
+                coeff_c2s = g_c2s[2].cart2j_gt_l;
+                for (i = 0; i < nbra; i++) {
+                        gsp[0*nbra+i] = CRE( 6,0,2)*GIM(nbra* 6+i)
+                                      + CRE( 9,0,2)*GIM(nbra* 9+i)
+                                      - CIM( 7,0,2)*GRE(nbra* 7+i);
+                        gsp[1*nbra+i] = CRE( 0,1,2)*GIM(nbra* 0+i)
+                                      + CRE( 3,1,2)*GIM(nbra* 3+i)
+                                      - CIM( 1,1,2)*GRE(nbra* 1+i)
+                                      + CRE( 8,1,2)*GIM(nbra* 8+i)
+                                      - CIM(10,1,2)*GRE(nbra*10+i);
+                        gsp[2*nbra+i] = CRE( 2,2,2)*GIM(nbra* 2+i)
+                                      - CIM( 4,2,2)*GRE(nbra* 4+i)
+                                      + CRE( 6,2,2)*GIM(nbra* 6+i)
+                                      + CRE( 9,2,2)*GIM(nbra* 9+i)
+                                      + CRE(11,2,2)*GIM(nbra*11+i);
+                        gsp[3*nbra+i] = CRE( 0,3,2)*GIM(nbra* 0+i)
+                                      + CRE( 3,3,2)*GIM(nbra* 3+i)
+                                      + CRE( 5,3,2)*GIM(nbra* 5+i)
+                                      + CRE( 8,3,2)*GIM(nbra* 8+i)
+                                      - CIM(10,3,2)*GRE(nbra*10+i);
+                        gsp[4*nbra+i] = CRE( 2,4,2)*GIM(nbra* 2+i)
+                                      - CIM( 4,4,2)*GRE(nbra* 4+i)
+                                      + CRE( 6,4,2)*GIM(nbra* 6+i)
+                                      + CRE( 9,4,2)*GIM(nbra* 9+i)
+                                      - CIM( 7,4,2)*GRE(nbra* 7+i);
+                        gsp[5*nbra+i] = CRE( 0,5,2)*GIM(nbra* 0+i)
+                                      + CRE( 3,5,2)*GIM(nbra* 3+i)
+                                      - CIM( 1,5,2)*GRE(nbra* 1+i);
+                }
+        }
+}
+
+static void f_ket_cart2spinor_e1sf(double complex *gspa, double complex *gspb,
+                                   double *gcart,
+                                   int lds, int nbra, int kappa, int l)
+{
+        const double complex *coeff_c2s;
+        int i;
 
         if (kappa >= 0) {
                 coeff_c2s = g_c2s[3].cart2j_lt_l;
@@ -8642,12 +5757,12 @@ static void f_ket_cart2spinor_sf1(double complex *gspa, double complex *gspb,
                 }
         }
 }
-static void f_iket_cart2spinor_sf1(double complex *gspa, double complex *gspb,
-                                   double *gcart,
-                                   FINT lds, FINT nbra, FINT l, FINT kappa)
+static void f_iket_cart2spinor_e1sf(double complex *gspa, double complex *gspb,
+                                    double *gcart,
+                                    int lds, int nbra, int kappa, int l)
 {
         const double complex *coeff_c2s;
-        FINT i;
+        int i;
 
         if (kappa >= 0) {
                 coeff_c2s = g_c2s[3].cart2j_lt_l;
@@ -8772,13 +5887,13 @@ static void f_iket_cart2spinor_sf1(double complex *gspa, double complex *gspb,
                 }
         }
 }
-static void f_ket_cart2spinor_si1(double complex *gspa, double complex *gspb,
-                                  double complex *gcart,
-                                  FINT lds, FINT nbra, FINT l, FINT kappa)
+static void f_ket_cart2spinor_si(double complex *gspa, double complex *gspb,
+                                 double complex *gcart,
+                                 int lds, int nbra, int kappa, int l)
 {
         double complex *gcart1 = gcart + nbra*20;
         const double complex *coeff_c2s;
-        FINT i;
+        int i;
 
         if (kappa >= 0) {
                 coeff_c2s = g_c2s[3].cart2j_lt_l;
@@ -9009,13 +6124,265 @@ static void f_ket_cart2spinor_si1(double complex *gspa, double complex *gspb,
                 }
         }
 }
-
-static void g_ket_cart2spinor_sf1(double complex *gspa, double complex *gspb,
-                                  double *gcart,
-                                  FINT lds, FINT nbra, FINT l, FINT kappa)
+static void f_ket_cart2spinor(double complex *gsp, int nbra,
+                              double complex *gcart, int kappa, int l)
 {
         const double complex *coeff_c2s;
-        FINT i;
+        int i;
+
+        if (kappa >= 0) {
+                coeff_c2s = g_c2s[3].cart2j_lt_l;
+                for (i = 0; i < nbra; i++) {
+                        gsp[0*nbra+i] = CRE( 0,0,3)*GRE(nbra* 0+i)
+                                      + CIM( 1,0,3)*GIM(nbra* 1+i)
+                                      + CRE( 3,0,3)*GRE(nbra* 3+i)
+                                      + CIM( 6,0,3)*GIM(nbra* 6+i)
+                                      + CRE(12,0,3)*GRE(nbra*12+i)
+                                      + CIM(14,0,3)*GIM(nbra*14+i)
+                                      + CRE(17,0,3)*GRE(nbra*17+i);
+                        gsp[1*nbra+i] = CRE( 2,1,3)*GRE(nbra* 2+i)
+                                      + CIM( 4,1,3)*GIM(nbra* 4+i)
+                                      + CRE( 7,1,3)*GRE(nbra* 7+i)
+                                      + CRE(10,1,3)*GRE(nbra*10+i)
+                                      + CIM(11,1,3)*GIM(nbra*11+i)
+                                      + CRE(13,1,3)*GRE(nbra*13+i)
+                                      + CRE(15,1,3)*GRE(nbra*15+i)
+                                      + CIM(16,1,3)*GIM(nbra*16+i)
+                                      + CIM(18,1,3)*GIM(nbra*18+i);
+                        gsp[2*nbra+i] = CRE( 0,2,3)*GRE(nbra* 0+i)
+                                      + CIM( 1,2,3)*GIM(nbra* 1+i)
+                                      + CRE( 3,2,3)*GRE(nbra* 3+i)
+                                      + CRE( 5,2,3)*GRE(nbra* 5+i)
+                                      + CIM( 6,2,3)*GIM(nbra* 6+i)
+                                      + CIM( 8,2,3)*GIM(nbra* 8+i)
+                                      + CRE(12,2,3)*GRE(nbra*12+i)
+                                      + CRE(17,2,3)*GRE(nbra*17+i)
+                                      + CRE(19,2,3)*GRE(nbra*19+i);
+                        gsp[3*nbra+i] = CRE( 2,3,3)*GRE(nbra* 2+i)
+                                      + CRE( 7,3,3)*GRE(nbra* 7+i)
+                                      + CRE( 9,3,3)*GRE(nbra* 9+i)
+                                      + CRE(10,3,3)*GRE(nbra*10+i)
+                                      + CIM(11,3,3)*GIM(nbra*11+i)
+                                      + CRE(13,3,3)*GRE(nbra*13+i)
+                                      + CRE(15,3,3)*GRE(nbra*15+i)
+                                      + CIM(16,3,3)*GIM(nbra*16+i)
+                                      + CIM(18,3,3)*GIM(nbra*18+i);
+                        gsp[4*nbra+i] = CRE( 0,4,3)*GRE(nbra* 0+i)
+                                      + CIM( 1,4,3)*GIM(nbra* 1+i)
+                                      + CRE( 3,4,3)*GRE(nbra* 3+i)
+                                      + CRE( 5,4,3)*GRE(nbra* 5+i)
+                                      + CIM( 6,4,3)*GIM(nbra* 6+i)
+                                      + CIM( 8,4,3)*GIM(nbra* 8+i)
+                                      + CRE(12,4,3)*GRE(nbra*12+i)
+                                      + CIM(14,4,3)*GIM(nbra*14+i)
+                                      + CRE(17,4,3)*GRE(nbra*17+i);
+                        gsp[5*nbra+i] = CRE( 2,5,3)*GRE(nbra* 2+i)
+                                      + CIM( 4,5,3)*GIM(nbra* 4+i)
+                                      + CRE( 7,5,3)*GRE(nbra* 7+i)
+                                      + CRE(10,5,3)*GRE(nbra*10+i)
+                                      + CIM(11,5,3)*GIM(nbra*11+i)
+                                      + CRE(13,5,3)*GRE(nbra*13+i)
+                                      + CIM(16,5,3)*GIM(nbra*16+i);
+                }
+                gsp += nbra * 6;
+        }
+        if (kappa <= 0) {
+                coeff_c2s = g_c2s[3].cart2j_gt_l;
+                for (i = 0; i < nbra; i++) {
+                        gsp[0*nbra+i] = CRE(10,0,3)*GRE(nbra*10+i)
+                                      + CIM(11,0,3)*GIM(nbra*11+i)
+                                      + CRE(13,0,3)*GRE(nbra*13+i)
+                                      + CIM(16,0,3)*GIM(nbra*16+i);
+                        gsp[1*nbra+i] = CRE( 0,1,3)*GRE(nbra* 0+i)
+                                      + CIM( 1,1,3)*GIM(nbra* 1+i)
+                                      + CRE( 3,1,3)*GRE(nbra* 3+i)
+                                      + CIM( 6,1,3)*GIM(nbra* 6+i)
+                                      + CRE(12,1,3)*GRE(nbra*12+i)
+                                      + CIM(14,1,3)*GIM(nbra*14+i)
+                                      + CRE(17,1,3)*GRE(nbra*17+i);
+                        gsp[2*nbra+i] = CRE( 2,2,3)*GRE(nbra* 2+i)
+                                      + CIM( 4,2,3)*GIM(nbra* 4+i)
+                                      + CRE( 7,2,3)*GRE(nbra* 7+i)
+                                      + CRE(10,2,3)*GRE(nbra*10+i)
+                                      + CIM(11,2,3)*GIM(nbra*11+i)
+                                      + CRE(13,2,3)*GRE(nbra*13+i)
+                                      + CRE(15,2,3)*GRE(nbra*15+i)
+                                      + CIM(16,2,3)*GIM(nbra*16+i)
+                                      + CIM(18,2,3)*GIM(nbra*18+i);
+                        gsp[3*nbra+i] = CRE( 0,3,3)*GRE(nbra* 0+i)
+                                      + CIM( 1,3,3)*GIM(nbra* 1+i)
+                                      + CRE( 3,3,3)*GRE(nbra* 3+i)
+                                      + CRE( 5,3,3)*GRE(nbra* 5+i)
+                                      + CIM( 6,3,3)*GIM(nbra* 6+i)
+                                      + CIM( 8,3,3)*GIM(nbra* 8+i)
+                                      + CRE(12,3,3)*GRE(nbra*12+i)
+                                      + CRE(17,3,3)*GRE(nbra*17+i)
+                                      + CRE(19,3,3)*GRE(nbra*19+i);
+                        gsp[4*nbra+i] = CRE( 2,4,3)*GRE(nbra* 2+i)
+                                      + CRE( 7,4,3)*GRE(nbra* 7+i)
+                                      + CRE( 9,4,3)*GRE(nbra* 9+i)
+                                      + CRE(10,4,3)*GRE(nbra*10+i)
+                                      + CIM(11,4,3)*GIM(nbra*11+i)
+                                      + CRE(13,4,3)*GRE(nbra*13+i)
+                                      + CRE(15,4,3)*GRE(nbra*15+i)
+                                      + CIM(16,4,3)*GIM(nbra*16+i)
+                                      + CIM(18,4,3)*GIM(nbra*18+i);
+                        gsp[5*nbra+i] = CRE( 0,5,3)*GRE(nbra* 0+i)
+                                      + CIM( 1,5,3)*GIM(nbra* 1+i)
+                                      + CRE( 3,5,3)*GRE(nbra* 3+i)
+                                      + CRE( 5,5,3)*GRE(nbra* 5+i)
+                                      + CIM( 6,5,3)*GIM(nbra* 6+i)
+                                      + CIM( 8,5,3)*GIM(nbra* 8+i)
+                                      + CRE(12,5,3)*GRE(nbra*12+i)
+                                      + CIM(14,5,3)*GIM(nbra*14+i)
+                                      + CRE(17,5,3)*GRE(nbra*17+i);
+                        gsp[6*nbra+i] = CRE( 2,6,3)*GRE(nbra* 2+i)
+                                      + CIM( 4,6,3)*GIM(nbra* 4+i)
+                                      + CRE( 7,6,3)*GRE(nbra* 7+i)
+                                      + CRE(10,6,3)*GRE(nbra*10+i)
+                                      + CIM(11,6,3)*GIM(nbra*11+i)
+                                      + CRE(13,6,3)*GRE(nbra*13+i)
+                                      + CIM(16,6,3)*GIM(nbra*16+i);
+                        gsp[7*nbra+i] = CRE( 0,7,3)*GRE(nbra* 0+i)
+                                      + CIM( 1,7,3)*GIM(nbra* 1+i)
+                                      + CRE( 3,7,3)*GRE(nbra* 3+i)
+                                      + CIM( 6,7,3)*GIM(nbra* 6+i);
+                }
+        }
+}
+static void f_iket_cart2spinor(double complex *gsp, int nbra,
+                               double complex *gcart, int kappa, int l)
+{
+        const double complex *coeff_c2s;
+        int i;
+
+        if (kappa >= 0) {
+                coeff_c2s = g_c2s[3].cart2j_lt_l;
+                for (i = 0; i < nbra; i++) {
+                        gsp[0*nbra+i] = CRE( 0,0,3)*GIM(nbra* 0+i)
+                                      - CIM( 1,0,3)*GRE(nbra* 1+i)
+                                      + CRE( 3,0,3)*GIM(nbra* 3+i)
+                                      - CIM( 6,0,3)*GRE(nbra* 6+i)
+                                      + CRE(12,0,3)*GIM(nbra*12+i)
+                                      - CIM(14,0,3)*GRE(nbra*14+i)
+                                      + CRE(17,0,3)*GIM(nbra*17+i);
+                        gsp[1*nbra+i] = CRE( 2,1,3)*GIM(nbra* 2+i)
+                                      - CIM( 4,1,3)*GRE(nbra* 4+i)
+                                      + CRE( 7,1,3)*GIM(nbra* 7+i)
+                                      + CRE(10,1,3)*GIM(nbra*10+i)
+                                      - CIM(11,1,3)*GRE(nbra*11+i)
+                                      + CRE(13,1,3)*GIM(nbra*13+i)
+                                      + CRE(15,1,3)*GIM(nbra*15+i)
+                                      - CIM(16,1,3)*GRE(nbra*16+i)
+                                      - CIM(18,1,3)*GRE(nbra*18+i);
+                        gsp[2*nbra+i] = CRE( 0,2,3)*GIM(nbra* 0+i)
+                                      - CIM( 1,2,3)*GRE(nbra* 1+i)
+                                      + CRE( 3,2,3)*GIM(nbra* 3+i)
+                                      + CRE( 5,2,3)*GIM(nbra* 5+i)
+                                      - CIM( 6,2,3)*GRE(nbra* 6+i)
+                                      - CIM( 8,2,3)*GRE(nbra* 8+i)
+                                      + CRE(12,2,3)*GIM(nbra*12+i)
+                                      + CRE(17,2,3)*GIM(nbra*17+i)
+                                      + CRE(19,2,3)*GIM(nbra*19+i);
+                        gsp[3*nbra+i] = CRE( 2,3,3)*GIM(nbra* 2+i)
+                                      + CRE( 7,3,3)*GIM(nbra* 7+i)
+                                      + CRE( 9,3,3)*GIM(nbra* 9+i)
+                                      + CRE(10,3,3)*GIM(nbra*10+i)
+                                      - CIM(11,3,3)*GRE(nbra*11+i)
+                                      + CRE(13,3,3)*GIM(nbra*13+i)
+                                      + CRE(15,3,3)*GIM(nbra*15+i)
+                                      - CIM(16,3,3)*GRE(nbra*16+i)
+                                      - CIM(18,3,3)*GRE(nbra*18+i);
+                        gsp[4*nbra+i] = CRE( 0,4,3)*GIM(nbra* 0+i)
+                                      - CIM( 1,4,3)*GRE(nbra* 1+i)
+                                      + CRE( 3,4,3)*GIM(nbra* 3+i)
+                                      + CRE( 5,4,3)*GIM(nbra* 5+i)
+                                      - CIM( 6,4,3)*GRE(nbra* 6+i)
+                                      - CIM( 8,4,3)*GRE(nbra* 8+i)
+                                      + CRE(12,4,3)*GIM(nbra*12+i)
+                                      - CIM(14,4,3)*GRE(nbra*14+i)
+                                      + CRE(17,4,3)*GIM(nbra*17+i);
+                        gsp[5*nbra+i] = CRE( 2,5,3)*GIM(nbra* 2+i)
+                                      - CIM( 4,5,3)*GRE(nbra* 4+i)
+                                      + CRE( 7,5,3)*GIM(nbra* 7+i)
+                                      + CRE(10,5,3)*GIM(nbra*10+i)
+                                      - CIM(11,5,3)*GRE(nbra*11+i)
+                                      + CRE(13,5,3)*GIM(nbra*13+i)
+                                      - CIM(16,5,3)*GRE(nbra*16+i);
+                }
+                gsp += nbra * 6;
+        }
+        if (kappa <= 0) {
+                coeff_c2s = g_c2s[3].cart2j_gt_l;
+                for (i = 0; i < nbra; i++) {
+                        gsp[0*nbra+i] = CRE(10,0,3)*GIM(nbra*10+i)
+                                      - CIM(11,0,3)*GRE(nbra*11+i)
+                                      + CRE(13,0,3)*GIM(nbra*13+i)
+                                      - CIM(16,0,3)*GRE(nbra*16+i);
+                        gsp[1*nbra+i] = CRE( 0,1,3)*GIM(nbra* 0+i)
+                                      - CIM( 1,1,3)*GRE(nbra* 1+i)
+                                      + CRE( 3,1,3)*GIM(nbra* 3+i)
+                                      - CIM( 6,1,3)*GRE(nbra* 6+i)
+                                      + CRE(12,1,3)*GIM(nbra*12+i)
+                                      - CIM(14,1,3)*GRE(nbra*14+i)
+                                      + CRE(17,1,3)*GIM(nbra*17+i);
+                        gsp[2*nbra+i] = CRE( 2,2,3)*GIM(nbra* 2+i)
+                                      - CIM( 4,2,3)*GRE(nbra* 4+i)
+                                      + CRE( 7,2,3)*GIM(nbra* 7+i)
+                                      + CRE(10,2,3)*GIM(nbra*10+i)
+                                      - CIM(11,2,3)*GRE(nbra*11+i)
+                                      + CRE(13,2,3)*GIM(nbra*13+i)
+                                      + CRE(15,2,3)*GIM(nbra*15+i)
+                                      - CIM(16,2,3)*GRE(nbra*16+i)
+                                      - CIM(18,2,3)*GRE(nbra*18+i);
+                        gsp[3*nbra+i] = CRE( 0,3,3)*GIM(nbra* 0+i)
+                                      - CIM( 1,3,3)*GRE(nbra* 1+i)
+                                      + CRE( 3,3,3)*GIM(nbra* 3+i)
+                                      + CRE( 5,3,3)*GIM(nbra* 5+i)
+                                      - CIM( 6,3,3)*GRE(nbra* 6+i)
+                                      - CIM( 8,3,3)*GRE(nbra* 8+i)
+                                      + CRE(12,3,3)*GIM(nbra*12+i)
+                                      + CRE(17,3,3)*GIM(nbra*17+i)
+                                      + CRE(19,3,3)*GIM(nbra*19+i);
+                        gsp[4*nbra+i] = CRE( 2,4,3)*GIM(nbra* 2+i)
+                                      + CRE( 7,4,3)*GIM(nbra* 7+i)
+                                      + CRE( 9,4,3)*GIM(nbra* 9+i)
+                                      + CRE(10,4,3)*GIM(nbra*10+i)
+                                      - CIM(11,4,3)*GRE(nbra*11+i)
+                                      + CRE(13,4,3)*GIM(nbra*13+i)
+                                      + CRE(15,4,3)*GIM(nbra*15+i)
+                                      - CIM(16,4,3)*GRE(nbra*16+i)
+                                      - CIM(18,4,3)*GRE(nbra*18+i);
+                        gsp[5*nbra+i] = CRE( 0,5,3)*GIM(nbra* 0+i)
+                                      - CIM( 1,5,3)*GRE(nbra* 1+i)
+                                      + CRE( 3,5,3)*GIM(nbra* 3+i)
+                                      + CRE( 5,5,3)*GIM(nbra* 5+i)
+                                      - CIM( 6,5,3)*GRE(nbra* 6+i)
+                                      - CIM( 8,5,3)*GRE(nbra* 8+i)
+                                      + CRE(12,5,3)*GIM(nbra*12+i)
+                                      - CIM(14,5,3)*GRE(nbra*14+i)
+                                      + CRE(17,5,3)*GIM(nbra*17+i);
+                        gsp[6*nbra+i] = CRE( 2,6,3)*GIM(nbra* 2+i)
+                                      - CIM( 4,6,3)*GRE(nbra* 4+i)
+                                      + CRE( 7,6,3)*GIM(nbra* 7+i)
+                                      + CRE(10,6,3)*GIM(nbra*10+i)
+                                      - CIM(11,6,3)*GRE(nbra*11+i)
+                                      + CRE(13,6,3)*GIM(nbra*13+i)
+                                      - CIM(16,6,3)*GRE(nbra*16+i);
+                        gsp[7*nbra+i] = CRE( 0,7,3)*GIM(nbra* 0+i)
+                                      - CIM( 1,7,3)*GRE(nbra* 1+i)
+                                      + CRE( 3,7,3)*GIM(nbra* 3+i)
+                                      - CIM( 6,7,3)*GRE(nbra* 6+i);
+                }
+        }
+}
+
+static void g_ket_cart2spinor_e1sf(double complex *gspa, double complex *gspb,
+                                   double *gcart,
+                                   int lds, int nbra, int kappa, int l)
+{
+        const double complex *coeff_c2s;
+        int i;
 
         if (kappa >= 0) {
                 coeff_c2s = g_c2s[4].cart2j_lt_l;
@@ -9222,12 +6589,12 @@ static void g_ket_cart2spinor_sf1(double complex *gspa, double complex *gspb,
                 }
         }
 }
-static void g_iket_cart2spinor_sf1(double complex *gspa, double complex *gspb,
-                                   double *gcart,
-                                   FINT lds, FINT nbra, FINT l, FINT kappa)
+static void g_iket_cart2spinor_e1sf(double complex *gspa, double complex *gspb,
+                                    double *gcart,
+                                    int lds, int nbra, int kappa, int l)
 {
         const double complex *coeff_c2s;
-        FINT i;
+        int i;
 
         if (kappa >= 0) {
                 coeff_c2s = g_c2s[4].cart2j_lt_l;
@@ -9434,13 +6801,13 @@ static void g_iket_cart2spinor_sf1(double complex *gspa, double complex *gspb,
                 }
         }
 }
-static void g_ket_cart2spinor_si1(double complex *gspa, double complex *gspb,
-                                  double complex *gcart,
-                                  FINT lds, FINT nbra, FINT l, FINT kappa)
+static void g_ket_cart2spinor_si(double complex *gspa, double complex *gspb,
+                                 double complex *gcart,
+                                 int lds, int nbra, int kappa, int l)
 {
         double complex *gcart1 = gcart + nbra*30;
         const double complex *coeff_c2s;
-        FINT i;
+        int i;
 
         if (kappa >= 0) {
                 coeff_c2s = g_c2s[4].cart2j_lt_l;
@@ -9835,78 +7202,2342 @@ static void g_ket_cart2spinor_si1(double complex *gspa, double complex *gspb,
                 }
         }
 }
-
-void (*c2s_ket_spinor_sf1[])() = {
-        s_ket_cart2spinor_sf1,
-        p_ket_cart2spinor_sf1,
-        d_ket_cart2spinor_sf1,
-        f_ket_cart2spinor_sf1,
-        g_ket_cart2spinor_sf1,
-        a_ket_cart2spinor_sf1,
-        a_ket_cart2spinor_sf1,
-        a_ket_cart2spinor_sf1,
-};
-
-void (*c2s_iket_spinor_sf1[])() = {
-        s_iket_cart2spinor_sf1,
-        p_iket_cart2spinor_sf1,
-        d_iket_cart2spinor_sf1,
-        f_iket_cart2spinor_sf1,
-        g_iket_cart2spinor_sf1,
-        a_iket_cart2spinor_sf1,
-        a_iket_cart2spinor_sf1,
-        a_iket_cart2spinor_sf1,
-};
-
-void (*c2s_ket_spinor_si1[])() = {
-        s_ket_cart2spinor_si1,
-        p_ket_cart2spinor_si1,
-        d_ket_cart2spinor_si1,
-        f_ket_cart2spinor_si1,
-        g_ket_cart2spinor_si1,
-        a_ket_cart2spinor_si1,
-        a_ket_cart2spinor_si1,
-        a_ket_cart2spinor_si1,
-};
-
-void CINTc2s_ket_spinor_sf1(double complex *gspa, double complex *gspb, double *gcart,
-                            FINT lds, FINT ldc, FINT nctr, FINT l, FINT kappa)
+static void g_ket_cart2spinor(double complex *gsp, int nbra,
+                              double complex *gcart, int kappa, int l)
 {
-        const FINT nf = (l+1)*(l+2)/2;
-        const FINT deg = _len_spinor(l, kappa);
-        FINT k;
+        const double complex *coeff_c2s;
+        int i;
+
+        if (kappa >= 0) {
+                coeff_c2s = g_c2s[4].cart2j_lt_l;
+                for (i = 0; i < nbra; i++) {
+                        gsp[0*nbra+i] = CRE( 0,0,4) * GRE(nbra* 0+i)
+                                      + CIM( 1,0,4) * GIM(nbra* 1+i)
+                                      + CRE( 3,0,4) * GRE(nbra* 3+i)
+                                      + CIM( 6,0,4) * GIM(nbra* 6+i)
+                                      + CRE(10,0,4) * GRE(nbra*10+i)
+                                      + CRE(17,0,4) * GRE(nbra*17+i)
+                                      + CIM(19,0,4) * GIM(nbra*19+i)
+                                      + CRE(22,0,4) * GRE(nbra*22+i)
+                                      + CIM(26,0,4) * GIM(nbra*26+i);
+                        gsp[1*nbra+i] = CRE( 2,1,4) * GRE(nbra* 2+i)
+                                      + CIM( 4,1,4) * GIM(nbra* 4+i)
+                                      + CRE( 7,1,4) * GRE(nbra* 7+i)
+                                      + CIM(11,1,4) * GIM(nbra*11+i)
+                                      + CRE(15,1,4) * GRE(nbra*15+i)
+                                      + CIM(16,1,4) * GIM(nbra*16+i)
+                                      + CRE(20,1,4) * GRE(nbra*20+i)
+                                      + CIM(21,1,4) * GIM(nbra*21+i)
+                                      + CIM(23,1,4) * GIM(nbra*23+i)
+                                      + CRE(25,1,4) * GRE(nbra*25+i)
+                                      + CRE(27,1,4) * GRE(nbra*27+i);
+                        gsp[2*nbra+i] = CRE( 0,2,4) * GRE(nbra* 0+i)
+                                      + CIM( 1,2,4) * GIM(nbra* 1+i)
+                                      + CRE( 5,2,4) * GRE(nbra* 5+i)
+                                      + CIM( 6,2,4) * GIM(nbra* 6+i)
+                                      + CIM( 8,2,4) * GIM(nbra* 8+i)
+                                      + CRE(10,2,4) * GRE(nbra*10+i)
+                                      + CRE(12,2,4) * GRE(nbra*12+i)
+                                      + CRE(17,2,4) * GRE(nbra*17+i)
+                                      + CIM(19,2,4) * GIM(nbra*19+i)
+                                      + CRE(22,2,4) * GRE(nbra*22+i)
+                                      + CRE(24,2,4) * GRE(nbra*24+i)
+                                      + CIM(26,2,4) * GIM(nbra*26+i)
+                                      + CIM(28,2,4) * GIM(nbra*28+i);
+                        gsp[3*nbra+i] = CRE( 2,3,4) * GRE(nbra* 2+i)
+                                      + CIM( 4,3,4) * GIM(nbra* 4+i)
+                                      + CRE( 7,3,4) * GRE(nbra* 7+i)
+                                      + CRE( 9,3,4) * GRE(nbra* 9+i)
+                                      + CIM(11,3,4) * GIM(nbra*11+i)
+                                      + CIM(13,3,4) * GIM(nbra*13+i)
+                                      + CRE(15,3,4) * GRE(nbra*15+i)
+                                      + CRE(18,3,4) * GRE(nbra*18+i)
+                                      + CRE(20,3,4) * GRE(nbra*20+i)
+                                      + CRE(25,3,4) * GRE(nbra*25+i)
+                                      + CRE(27,3,4) * GRE(nbra*27+i)
+                                      + CRE(29,3,4) * GRE(nbra*29+i);
+                        gsp[4*nbra+i] = CRE( 0,4,4) * GRE(nbra* 0+i)
+                                      + CRE( 3,4,4) * GRE(nbra* 3+i)
+                                      + CRE( 5,4,4) * GRE(nbra* 5+i)
+                                      + CRE(10,4,4) * GRE(nbra*10+i)
+                                      + CRE(12,4,4) * GRE(nbra*12+i)
+                                      + CRE(14,4,4) * GRE(nbra*14+i)
+                                      + CRE(17,4,4) * GRE(nbra*17+i)
+                                      + CIM(19,4,4) * GIM(nbra*19+i)
+                                      + CRE(22,4,4) * GRE(nbra*22+i)
+                                      + CRE(24,4,4) * GRE(nbra*24+i)
+                                      + CIM(26,4,4) * GIM(nbra*26+i)
+                                      + CIM(28,4,4) * GIM(nbra*28+i);
+                        gsp[5*nbra+i] = CRE( 2,5,4) * GRE(nbra* 2+i)
+                                      + CIM( 4,5,4) * GIM(nbra* 4+i)
+                                      + CRE( 7,5,4) * GRE(nbra* 7+i)
+                                      + CRE( 9,5,4) * GRE(nbra* 9+i)
+                                      + CIM(11,5,4) * GIM(nbra*11+i)
+                                      + CIM(13,5,4) * GIM(nbra*13+i)
+                                      + CRE(15,5,4) * GRE(nbra*15+i)
+                                      + CIM(16,5,4) * GIM(nbra*16+i)
+                                      + CRE(20,5,4) * GRE(nbra*20+i)
+                                      + CIM(21,5,4) * GIM(nbra*21+i)
+                                      + CIM(23,5,4) * GIM(nbra*23+i)
+                                      + CRE(25,5,4) * GRE(nbra*25+i)
+                                      + CRE(27,5,4) * GRE(nbra*27+i);
+                        gsp[6*nbra+i] = CRE( 0,6,4) * GRE(nbra* 0+i)
+                                      + CIM( 1,6,4) * GIM(nbra* 1+i)
+                                      + CRE( 5,6,4) * GRE(nbra* 5+i)
+                                      + CIM( 6,6,4) * GIM(nbra* 6+i)
+                                      + CIM( 8,6,4) * GIM(nbra* 8+i)
+                                      + CRE(10,6,4) * GRE(nbra*10+i)
+                                      + CRE(12,6,4) * GRE(nbra*12+i)
+                                      + CRE(17,6,4) * GRE(nbra*17+i)
+                                      + CIM(19,6,4) * GIM(nbra*19+i)
+                                      + CRE(22,6,4) * GRE(nbra*22+i)
+                                      + CIM(26,6,4) * GIM(nbra*26+i);
+                        gsp[7*nbra+i] = CRE( 2,7,4) * GRE(nbra* 2+i)
+                                      + CIM( 4,7,4) * GIM(nbra* 4+i)
+                                      + CRE( 7,7,4) * GRE(nbra* 7+i)
+                                      + CIM(11,7,4) * GIM(nbra*11+i)
+                                      + CRE(15,7,4) * GRE(nbra*15+i)
+                                      + CIM(16,7,4) * GIM(nbra*16+i)
+                                      + CRE(18,7,4) * GRE(nbra*18+i)
+                                      + CIM(21,7,4) * GIM(nbra*21+i)
+                                      + CRE(25,7,4) * GRE(nbra*25+i);
+                };
+                gsp += nbra * 8;
+        }
+        if (kappa <= 0) {
+                coeff_c2s = g_c2s[4].cart2j_gt_l;
+                for (i = 0; i < nbra; i++) {
+                        gsp[0*nbra+i] = CRE(15,0,4) * GRE(nbra*15+i)
+                                      + CIM(16,0,4) * GIM(nbra*16+i)
+                                      + CRE(18,0,4) * GRE(nbra*18+i)
+                                      + CIM(21,0,4) * GIM(nbra*21+i)
+                                      + CRE(25,0,4) * GRE(nbra*25+i);
+                        gsp[1*nbra+i] = CRE( 0,1,4) * GRE(nbra* 0+i)
+                                      + CIM( 1,1,4) * GIM(nbra* 1+i)
+                                      + CRE( 3,1,4) * GRE(nbra* 3+i)
+                                      + CIM( 6,1,4) * GIM(nbra* 6+i)
+                                      + CRE(10,1,4) * GRE(nbra*10+i)
+                                      + CRE(17,1,4) * GRE(nbra*17+i)
+                                      + CIM(19,1,4) * GIM(nbra*19+i)
+                                      + CRE(22,1,4) * GRE(nbra*22+i)
+                                      + CIM(26,1,4) * GIM(nbra*26+i);
+                        gsp[2*nbra+i] = CRE( 2,2,4) * GRE(nbra* 2+i)
+                                      + CIM( 4,2,4) * GIM(nbra* 4+i)
+                                      + CRE( 7,2,4) * GRE(nbra* 7+i)
+                                      + CIM(11,2,4) * GIM(nbra*11+i)
+                                      + CRE(15,2,4) * GRE(nbra*15+i)
+                                      + CIM(16,2,4) * GIM(nbra*16+i)
+                                      + CRE(20,2,4) * GRE(nbra*20+i)
+                                      + CIM(21,2,4) * GIM(nbra*21+i)
+                                      + CIM(23,2,4) * GIM(nbra*23+i)
+                                      + CRE(25,2,4) * GRE(nbra*25+i)
+                                      + CRE(27,2,4) * GRE(nbra*27+i);
+                        gsp[3*nbra+i] = CRE( 0,3,4) * GRE(nbra* 0+i)
+                                      + CIM( 1,3,4) * GIM(nbra* 1+i)
+                                      + CRE( 5,3,4) * GRE(nbra* 5+i)
+                                      + CIM( 6,3,4) * GIM(nbra* 6+i)
+                                      + CIM( 8,3,4) * GIM(nbra* 8+i)
+                                      + CRE(10,3,4) * GRE(nbra*10+i)
+                                      + CRE(12,3,4) * GRE(nbra*12+i)
+                                      + CRE(17,3,4) * GRE(nbra*17+i)
+                                      + CIM(19,3,4) * GIM(nbra*19+i)
+                                      + CRE(22,3,4) * GRE(nbra*22+i)
+                                      + CRE(24,3,4) * GRE(nbra*24+i)
+                                      + CIM(26,3,4) * GIM(nbra*26+i)
+                                      + CIM(28,3,4) * GIM(nbra*28+i);
+                        gsp[4*nbra+i] = CRE( 2,4,4) * GRE(nbra* 2+i)
+                                      + CIM( 4,4,4) * GIM(nbra* 4+i)
+                                      + CRE( 7,4,4) * GRE(nbra* 7+i)
+                                      + CRE( 9,4,4) * GRE(nbra* 9+i)
+                                      + CIM(11,4,4) * GIM(nbra*11+i)
+                                      + CIM(13,4,4) * GIM(nbra*13+i)
+                                      + CRE(15,4,4) * GRE(nbra*15+i)
+                                      + CRE(18,4,4) * GRE(nbra*18+i)
+                                      + CRE(20,4,4) * GRE(nbra*20+i)
+                                      + CRE(25,4,4) * GRE(nbra*25+i)
+                                      + CRE(27,4,4) * GRE(nbra*27+i)
+                                      + CRE(29,4,4) * GRE(nbra*29+i);
+                        gsp[5*nbra+i] = CRE( 0,5,4) * GRE(nbra* 0+i)
+                                      + CRE( 3,5,4) * GRE(nbra* 3+i)
+                                      + CRE( 5,5,4) * GRE(nbra* 5+i)
+                                      + CRE(10,5,4) * GRE(nbra*10+i)
+                                      + CRE(12,5,4) * GRE(nbra*12+i)
+                                      + CRE(14,5,4) * GRE(nbra*14+i)
+                                      + CRE(17,5,4) * GRE(nbra*17+i)
+                                      + CIM(19,5,4) * GIM(nbra*19+i)
+                                      + CRE(22,5,4) * GRE(nbra*22+i)
+                                      + CRE(24,5,4) * GRE(nbra*24+i)
+                                      + CIM(26,5,4) * GIM(nbra*26+i)
+                                      + CIM(28,5,4) * GIM(nbra*28+i);
+                        gsp[6*nbra+i] = CRE( 2,6,4) * GRE(nbra* 2+i)
+                                      + CIM( 4,6,4) * GIM(nbra* 4+i)
+                                      + CRE( 7,6,4) * GRE(nbra* 7+i)
+                                      + CRE( 9,6,4) * GRE(nbra* 9+i)
+                                      + CIM(11,6,4) * GIM(nbra*11+i)
+                                      + CIM(13,6,4) * GIM(nbra*13+i)
+                                      + CRE(15,6,4) * GRE(nbra*15+i)
+                                      + CIM(16,6,4) * GIM(nbra*16+i)
+                                      + CRE(20,6,4) * GRE(nbra*20+i)
+                                      + CIM(21,6,4) * GIM(nbra*21+i)
+                                      + CIM(23,6,4) * GIM(nbra*23+i)
+                                      + CRE(25,6,4) * GRE(nbra*25+i)
+                                      + CRE(27,6,4) * GRE(nbra*27+i);
+                        gsp[7*nbra+i] = CRE( 0,7,4) * GRE(nbra* 0+i)
+                                      + CIM( 1,7,4) * GIM(nbra* 1+i)
+                                      + CRE( 5,7,4) * GRE(nbra* 5+i)
+                                      + CIM( 6,7,4) * GIM(nbra* 6+i)
+                                      + CIM( 8,7,4) * GIM(nbra* 8+i)
+                                      + CRE(10,7,4) * GRE(nbra*10+i)
+                                      + CRE(12,7,4) * GRE(nbra*12+i)
+                                      + CRE(17,7,4) * GRE(nbra*17+i)
+                                      + CIM(19,7,4) * GIM(nbra*19+i)
+                                      + CRE(22,7,4) * GRE(nbra*22+i)
+                                      + CIM(26,7,4) * GIM(nbra*26+i);
+                        gsp[8*nbra+i] = CRE( 2,8,4) * GRE(nbra* 2+i)
+                                      + CIM( 4,8,4) * GIM(nbra* 4+i)
+                                      + CRE( 7,8,4) * GRE(nbra* 7+i)
+                                      + CIM(11,8,4) * GIM(nbra*11+i)
+                                      + CRE(15,8,4) * GRE(nbra*15+i)
+                                      + CIM(16,8,4) * GIM(nbra*16+i)
+                                      + CRE(18,8,4) * GRE(nbra*18+i)
+                                      + CIM(21,8,4) * GIM(nbra*21+i)
+                                      + CRE(25,8,4) * GRE(nbra*25+i);
+                        gsp[9*nbra+i] = CRE( 0,9,4) * GRE(nbra* 0+i)
+                                      + CIM( 1,9,4) * GIM(nbra* 1+i)
+                                      + CRE( 3,9,4) * GRE(nbra* 3+i)
+                                      + CIM( 6,9,4) * GIM(nbra* 6+i)
+                                      + CRE(10,9,4) * GRE(nbra*10+i);
+                }
+        }
+}
+
+static void g_iket_cart2spinor(double complex *gsp, int nbra,
+                               double complex *gcart, int kappa, int l)
+{
+        const double complex *coeff_c2s;
+        int i;
+
+        if (kappa >= 0) {
+                coeff_c2s = g_c2s[4].cart2j_lt_l;
+                for (i = 0; i < nbra; i++) {
+                        gsp[0*nbra+i] = CRE( 0,0,4) * GIM(nbra* 0+i)
+                                      - CIM( 1,0,4) * GRE(nbra* 1+i)
+                                      + CRE( 3,0,4) * GIM(nbra* 3+i)
+                                      - CIM( 6,0,4) * GRE(nbra* 6+i)
+                                      + CRE(10,0,4) * GIM(nbra*10+i)
+                                      + CRE(17,0,4) * GIM(nbra*17+i)
+                                      - CIM(19,0,4) * GRE(nbra*19+i)
+                                      + CRE(22,0,4) * GIM(nbra*22+i)
+                                      - CIM(26,0,4) * GRE(nbra*26+i);
+                        gsp[1*nbra+i] = CRE( 2,1,4) * GIM(nbra* 2+i)
+                                      - CIM( 4,1,4) * GRE(nbra* 4+i)
+                                      + CRE( 7,1,4) * GIM(nbra* 7+i)
+                                      - CIM(11,1,4) * GRE(nbra*11+i)
+                                      + CRE(15,1,4) * GIM(nbra*15+i)
+                                      - CIM(16,1,4) * GRE(nbra*16+i)
+                                      + CRE(20,1,4) * GIM(nbra*20+i)
+                                      - CIM(21,1,4) * GRE(nbra*21+i)
+                                      - CIM(23,1,4) * GRE(nbra*23+i)
+                                      + CRE(25,1,4) * GIM(nbra*25+i)
+                                      + CRE(27,1,4) * GIM(nbra*27+i);
+                        gsp[2*nbra+i] = CRE( 0,2,4) * GIM(nbra* 0+i)
+                                      - CIM( 1,2,4) * GRE(nbra* 1+i)
+                                      + CRE( 5,2,4) * GIM(nbra* 5+i)
+                                      - CIM( 6,2,4) * GRE(nbra* 6+i)
+                                      - CIM( 8,2,4) * GRE(nbra* 8+i)
+                                      + CRE(10,2,4) * GIM(nbra*10+i)
+                                      + CRE(12,2,4) * GIM(nbra*12+i)
+                                      + CRE(17,2,4) * GIM(nbra*17+i)
+                                      - CIM(19,2,4) * GRE(nbra*19+i)
+                                      + CRE(22,2,4) * GIM(nbra*22+i)
+                                      + CRE(24,2,4) * GIM(nbra*24+i)
+                                      - CIM(26,2,4) * GRE(nbra*26+i)
+                                      - CIM(28,2,4) * GRE(nbra*28+i);
+                        gsp[3*nbra+i] = CRE( 2,3,4) * GIM(nbra* 2+i)
+                                      - CIM( 4,3,4) * GRE(nbra* 4+i)
+                                      + CRE( 7,3,4) * GIM(nbra* 7+i)
+                                      + CRE( 9,3,4) * GIM(nbra* 9+i)
+                                      - CIM(11,3,4) * GRE(nbra*11+i)
+                                      - CIM(13,3,4) * GRE(nbra*13+i)
+                                      + CRE(15,3,4) * GIM(nbra*15+i)
+                                      + CRE(18,3,4) * GIM(nbra*18+i)
+                                      + CRE(20,3,4) * GIM(nbra*20+i)
+                                      + CRE(25,3,4) * GIM(nbra*25+i)
+                                      + CRE(27,3,4) * GIM(nbra*27+i)
+                                      + CRE(29,3,4) * GIM(nbra*29+i);
+                        gsp[4*nbra+i] = CRE( 0,4,4) * GIM(nbra* 0+i)
+                                      + CRE( 3,4,4) * GIM(nbra* 3+i)
+                                      + CRE( 5,4,4) * GIM(nbra* 5+i)
+                                      + CRE(10,4,4) * GIM(nbra*10+i)
+                                      + CRE(12,4,4) * GIM(nbra*12+i)
+                                      + CRE(14,4,4) * GIM(nbra*14+i)
+                                      + CRE(17,4,4) * GIM(nbra*17+i)
+                                      - CIM(19,4,4) * GRE(nbra*19+i)
+                                      + CRE(22,4,4) * GIM(nbra*22+i)
+                                      + CRE(24,4,4) * GIM(nbra*24+i)
+                                      - CIM(26,4,4) * GRE(nbra*26+i)
+                                      - CIM(28,4,4) * GRE(nbra*28+i);
+                        gsp[5*nbra+i] = CRE( 2,5,4) * GIM(nbra* 2+i)
+                                      - CIM( 4,5,4) * GRE(nbra* 4+i)
+                                      + CRE( 7,5,4) * GIM(nbra* 7+i)
+                                      + CRE( 9,5,4) * GIM(nbra* 9+i)
+                                      - CIM(11,5,4) * GRE(nbra*11+i)
+                                      - CIM(13,5,4) * GRE(nbra*13+i)
+                                      + CRE(15,5,4) * GIM(nbra*15+i)
+                                      - CIM(16,5,4) * GRE(nbra*16+i)
+                                      + CRE(20,5,4) * GIM(nbra*20+i)
+                                      - CIM(21,5,4) * GRE(nbra*21+i)
+                                      - CIM(23,5,4) * GRE(nbra*23+i)
+                                      + CRE(25,5,4) * GIM(nbra*25+i)
+                                      + CRE(27,5,4) * GIM(nbra*27+i);
+                        gsp[6*nbra+i] = CRE( 0,6,4) * GIM(nbra* 0+i)
+                                      - CIM( 1,6,4) * GRE(nbra* 1+i)
+                                      + CRE( 5,6,4) * GIM(nbra* 5+i)
+                                      - CIM( 6,6,4) * GRE(nbra* 6+i)
+                                      - CIM( 8,6,4) * GRE(nbra* 8+i)
+                                      + CRE(10,6,4) * GIM(nbra*10+i)
+                                      + CRE(12,6,4) * GIM(nbra*12+i)
+                                      + CRE(17,6,4) * GIM(nbra*17+i)
+                                      - CIM(19,6,4) * GRE(nbra*19+i)
+                                      + CRE(22,6,4) * GIM(nbra*22+i)
+                                      - CIM(26,6,4) * GRE(nbra*26+i);
+                        gsp[7*nbra+i] = CRE( 2,7,4) * GIM(nbra* 2+i)
+                                      - CIM( 4,7,4) * GRE(nbra* 4+i)
+                                      + CRE( 7,7,4) * GIM(nbra* 7+i)
+                                      - CIM(11,7,4) * GRE(nbra*11+i)
+                                      + CRE(15,7,4) * GIM(nbra*15+i)
+                                      - CIM(16,7,4) * GRE(nbra*16+i)
+                                      + CRE(18,7,4) * GIM(nbra*18+i)
+                                      - CIM(21,7,4) * GRE(nbra*21+i)
+                                      + CRE(25,7,4) * GIM(nbra*25+i);
+                };
+                gsp += nbra * 8;
+        }
+        if (kappa <= 0) {
+                coeff_c2s = g_c2s[4].cart2j_gt_l;
+                for (i = 0; i < nbra; i++) {
+                        gsp[0*nbra+i] = CRE(15,0,4) * GIM(nbra*15+i)
+                                      - CIM(16,0,4) * GRE(nbra*16+i)
+                                      + CRE(18,0,4) * GIM(nbra*18+i)
+                                      - CIM(21,0,4) * GRE(nbra*21+i)
+                                      + CRE(25,0,4) * GIM(nbra*25+i);
+                        gsp[1*nbra+i] = CRE( 0,1,4) * GIM(nbra* 0+i)
+                                      - CIM( 1,1,4) * GRE(nbra* 1+i)
+                                      + CRE( 3,1,4) * GIM(nbra* 3+i)
+                                      - CIM( 6,1,4) * GRE(nbra* 6+i)
+                                      + CRE(10,1,4) * GIM(nbra*10+i)
+                                      + CRE(17,1,4) * GIM(nbra*17+i)
+                                      - CIM(19,1,4) * GRE(nbra*19+i)
+                                      + CRE(22,1,4) * GIM(nbra*22+i)
+                                      - CIM(26,1,4) * GRE(nbra*26+i);
+                        gsp[2*nbra+i] = CRE( 2,2,4) * GIM(nbra* 2+i)
+                                      - CIM( 4,2,4) * GRE(nbra* 4+i)
+                                      + CRE( 7,2,4) * GIM(nbra* 7+i)
+                                      - CIM(11,2,4) * GRE(nbra*11+i)
+                                      + CRE(15,2,4) * GIM(nbra*15+i)
+                                      - CIM(16,2,4) * GRE(nbra*16+i)
+                                      + CRE(20,2,4) * GIM(nbra*20+i)
+                                      - CIM(21,2,4) * GRE(nbra*21+i)
+                                      - CIM(23,2,4) * GRE(nbra*23+i)
+                                      + CRE(25,2,4) * GIM(nbra*25+i)
+                                      + CRE(27,2,4) * GIM(nbra*27+i);
+                        gsp[3*nbra+i] = CRE( 0,3,4) * GIM(nbra* 0+i)
+                                      - CIM( 1,3,4) * GRE(nbra* 1+i)
+                                      + CRE( 5,3,4) * GIM(nbra* 5+i)
+                                      - CIM( 6,3,4) * GRE(nbra* 6+i)
+                                      - CIM( 8,3,4) * GRE(nbra* 8+i)
+                                      + CRE(10,3,4) * GIM(nbra*10+i)
+                                      + CRE(12,3,4) * GIM(nbra*12+i)
+                                      + CRE(17,3,4) * GIM(nbra*17+i)
+                                      - CIM(19,3,4) * GRE(nbra*19+i)
+                                      + CRE(22,3,4) * GIM(nbra*22+i)
+                                      + CRE(24,3,4) * GIM(nbra*24+i)
+                                      - CIM(26,3,4) * GRE(nbra*26+i)
+                                      - CIM(28,3,4) * GRE(nbra*28+i);
+                        gsp[4*nbra+i] = CRE( 2,4,4) * GIM(nbra* 2+i)
+                                      - CIM( 4,4,4) * GRE(nbra* 4+i)
+                                      + CRE( 7,4,4) * GIM(nbra* 7+i)
+                                      + CRE( 9,4,4) * GIM(nbra* 9+i)
+                                      - CIM(11,4,4) * GRE(nbra*11+i)
+                                      - CIM(13,4,4) * GRE(nbra*13+i)
+                                      + CRE(15,4,4) * GIM(nbra*15+i)
+                                      + CRE(18,4,4) * GIM(nbra*18+i)
+                                      + CRE(20,4,4) * GIM(nbra*20+i)
+                                      + CRE(25,4,4) * GIM(nbra*25+i)
+                                      + CRE(27,4,4) * GIM(nbra*27+i)
+                                      + CRE(29,4,4) * GIM(nbra*29+i);
+                        gsp[5*nbra+i] = CRE( 0,5,4) * GIM(nbra* 0+i)
+                                      + CRE( 3,5,4) * GIM(nbra* 3+i)
+                                      + CRE( 5,5,4) * GIM(nbra* 5+i)
+                                      + CRE(10,5,4) * GIM(nbra*10+i)
+                                      + CRE(12,5,4) * GIM(nbra*12+i)
+                                      + CRE(14,5,4) * GIM(nbra*14+i)
+                                      + CRE(17,5,4) * GIM(nbra*17+i)
+                                      - CIM(19,5,4) * GRE(nbra*19+i)
+                                      + CRE(22,5,4) * GIM(nbra*22+i)
+                                      + CRE(24,5,4) * GIM(nbra*24+i)
+                                      - CIM(26,5,4) * GRE(nbra*26+i)
+                                      - CIM(28,5,4) * GRE(nbra*28+i);
+                        gsp[6*nbra+i] = CRE( 2,6,4) * GIM(nbra* 2+i)
+                                      - CIM( 4,6,4) * GRE(nbra* 4+i)
+                                      + CRE( 7,6,4) * GIM(nbra* 7+i)
+                                      + CRE( 9,6,4) * GIM(nbra* 9+i)
+                                      - CIM(11,6,4) * GRE(nbra*11+i)
+                                      - CIM(13,6,4) * GRE(nbra*13+i)
+                                      + CRE(15,6,4) * GIM(nbra*15+i)
+                                      - CIM(16,6,4) * GRE(nbra*16+i)
+                                      + CRE(20,6,4) * GIM(nbra*20+i)
+                                      - CIM(21,6,4) * GRE(nbra*21+i)
+                                      - CIM(23,6,4) * GRE(nbra*23+i)
+                                      + CRE(25,6,4) * GIM(nbra*25+i)
+                                      + CRE(27,6,4) * GIM(nbra*27+i);
+                        gsp[7*nbra+i] = CRE( 0,7,4) * GIM(nbra* 0+i)
+                                      - CIM( 1,7,4) * GRE(nbra* 1+i)
+                                      + CRE( 5,7,4) * GIM(nbra* 5+i)
+                                      - CIM( 6,7,4) * GRE(nbra* 6+i)
+                                      - CIM( 8,7,4) * GRE(nbra* 8+i)
+                                      + CRE(10,7,4) * GIM(nbra*10+i)
+                                      + CRE(12,7,4) * GIM(nbra*12+i)
+                                      + CRE(17,7,4) * GIM(nbra*17+i)
+                                      - CIM(19,7,4) * GRE(nbra*19+i)
+                                      + CRE(22,7,4) * GIM(nbra*22+i)
+                                      - CIM(26,7,4) * GRE(nbra*26+i);
+                        gsp[8*nbra+i] = CRE( 2,8,4) * GIM(nbra* 2+i)
+                                      - CIM( 4,8,4) * GRE(nbra* 4+i)
+                                      + CRE( 7,8,4) * GIM(nbra* 7+i)
+                                      - CIM(11,8,4) * GRE(nbra*11+i)
+                                      + CRE(15,8,4) * GIM(nbra*15+i)
+                                      - CIM(16,8,4) * GRE(nbra*16+i)
+                                      + CRE(18,8,4) * GIM(nbra*18+i)
+                                      - CIM(21,8,4) * GRE(nbra*21+i)
+                                      + CRE(25,8,4) * GIM(nbra*25+i);
+                        gsp[9*nbra+i] = CRE( 0,9,4) * GIM(nbra* 0+i)
+                                      - CIM( 1,9,4) * GRE(nbra* 1+i)
+                                      + CRE( 3,9,4) * GIM(nbra* 3+i)
+                                      - CIM( 6,9,4) * GRE(nbra* 6+i)
+                                      + CRE(10,9,4) * GIM(nbra*10+i);
+                }
+        }
+}
+
+void (*c2s_ket_spinor_e1sf[])() = {
+        s_ket_cart2spinor_e1sf,
+        p_ket_cart2spinor_e1sf,
+        d_ket_cart2spinor_e1sf,
+        f_ket_cart2spinor_e1sf,
+        g_ket_cart2spinor_e1sf,
+        a_ket_cart2spinor_e1sf,
+        a_ket_cart2spinor_e1sf,
+        a_ket_cart2spinor_e1sf,
+};
+
+void (*c2s_iket_spinor_e1sf[])() = {
+        s_iket_cart2spinor_e1sf,
+        p_iket_cart2spinor_e1sf,
+        d_iket_cart2spinor_e1sf,
+        f_iket_cart2spinor_e1sf,
+        g_iket_cart2spinor_e1sf,
+        a_iket_cart2spinor_e1sf,
+        a_iket_cart2spinor_e1sf,
+        a_iket_cart2spinor_e1sf,
+};
+
+void (*c2s_ket_spinor_si[])() = {
+        s_ket_cart2spinor_si,
+        p_ket_cart2spinor_si,
+        d_ket_cart2spinor_si,
+        f_ket_cart2spinor_si,
+        g_ket_cart2spinor_si,
+        a_ket_cart2spinor_si,
+        a_ket_cart2spinor_si,
+        a_ket_cart2spinor_si,
+};
+
+void (*c2s_ket_spinor[])() = {
+        s_ket_cart2spinor,
+        p_ket_cart2spinor,
+        d_ket_cart2spinor,
+        f_ket_cart2spinor,
+        g_ket_cart2spinor,
+        a_ket_cart2spinor,
+        a_ket_cart2spinor,
+        a_ket_cart2spinor,
+};
+
+void (*c2s_iket_spinor[])() = {
+        s_iket_cart2spinor,
+        p_iket_cart2spinor,
+        d_iket_cart2spinor,
+        f_iket_cart2spinor,
+        g_iket_cart2spinor,
+        a_iket_cart2spinor,
+        a_iket_cart2spinor,
+        a_iket_cart2spinor,
+};
+
+/*************************************************
+ *
+ * transform matrices
+ *
+ *************************************************/
+
+/*
+ * (i,k,l,j) -> (k,i,j,l)
+ */
+static void zswap_ik_jl(double complex *new, double complex *old,
+                        int ni, int nj, int nk, int nl)
+{
+        int j, l;
+        int dlo = ni * nk; // stride of (i,k,l++,j)
+        int djo = ni * nk * nl; // stride of (i,k,l,j++)
+        int djn = nk * ni; // stride of (k,i,j++,l)
+        double complex *pold;
+
+        for (l = 0; l < nl; l++) {
+                pold = old + l * dlo;
+                for (j = 0; j < nj; j++) {
+                        CINTzmat_transpose(new, pold, nk, ni);
+                        new += djn;
+                        pold += djo;
+                }
+        }
+}
+
+
+static void dcopy_ij(double *opij, double *gctr, 
+                     int ni, int nj, int mi, int mj)
+{
+        int i, j;
+
+        for (j = 0; j < mj; j++) {
+                for (i = 0; i < mi; i++) {
+                        opij[i] = gctr[i];
+                }
+                opij += ni;
+                gctr += mi;
+        }
+}
+static void zcopy_ij(double complex *opij, double complex *gctr, 
+                     int ni, int nj, int mi, int mj)
+{
+        int i, j;
+
+        for (j = 0; j < mj; j++) {
+                for (i = 0; i < mi; i++) {
+                        opij[j*ni+i] = gctr[j*mi+i];
+                }
+        }
+}
+
+/*
+ * gctr(i,k,l,j) -> fijkl(i,j,k,l)
+ * fijkl(ic:ic-1+di,jc:jc-1+dj,kc:kc-1+dk,lc:lc-1+dl)
+ * fijkl(ni,nj,nk,nl), gctr(mi,mk,ml,mj)
+ */
+static void dcopy_iklj(double *fijkl, double *gctr, 
+                       int ni, int nj, int nk, int nl,
+                       int mi, int mj, int mk, int ml)
+{
+        int nij = ni * nj;
+        int nijk = nij * nk;
+        int mik = mi * mk;
+        int mikl = mik * ml;
+        int i, j, k, l;
+        double *pijkl;
+        double *pgctr;
+
+        switch (mi) {
+        case 1:
+                for (l = 0; l < ml; l++) {
+                        for (k = 0; k < mk; k++) {
+                                pijkl = fijkl + k * nij;
+                                pgctr = gctr + k * mi;
+                                for (j = 0; j < mj; j++) {
+                                        pijkl[ni*j] = pgctr[mikl*j];
+                                }
+                        }
+                        fijkl += nijk;
+                        gctr += mik;
+                }
+                break;
+        case 3:
+                for (l = 0; l < ml; l++) {
+                        for (k = 0; k < mk; k++) {
+                                pijkl = fijkl + k * nij;
+                                pgctr = gctr + k * mi;
+                                for (j = 0; j < mj; j++) {
+                                        pijkl[ni*j+0] = pgctr[mikl*j+0];
+                                        pijkl[ni*j+1] = pgctr[mikl*j+1];
+                                        pijkl[ni*j+2] = pgctr[mikl*j+2];
+                                }
+                        }
+                        fijkl += nijk;
+                        gctr += mik;
+                }
+                break;
+        case 5:
+                for (l = 0; l < ml; l++) {
+                        for (k = 0; k < mk; k++) {
+                                pijkl = fijkl + k * nij;
+                                pgctr = gctr + k * mi;
+                                for (j = 0; j < mj; j++) {
+                                        pijkl[ni*j+0] = pgctr[mikl*j+0];
+                                        pijkl[ni*j+1] = pgctr[mikl*j+1];
+                                        pijkl[ni*j+2] = pgctr[mikl*j+2];
+                                        pijkl[ni*j+3] = pgctr[mikl*j+3];
+                                        pijkl[ni*j+4] = pgctr[mikl*j+4];
+                                }
+                        }
+                        fijkl += nijk;
+                        gctr += mik;
+                }
+                break;
+        case 7:
+                for (l = 0; l < ml; l++) {
+                        for (k = 0; k < mk; k++) {
+                                pijkl = fijkl + k * nij;
+                                pgctr = gctr + k * mi;
+                                for (j = 0; j < mj; j++) {
+                                        pijkl[ni*j+0] = pgctr[mikl*j+0];
+                                        pijkl[ni*j+1] = pgctr[mikl*j+1];
+                                        pijkl[ni*j+2] = pgctr[mikl*j+2];
+                                        pijkl[ni*j+3] = pgctr[mikl*j+3];
+                                        pijkl[ni*j+4] = pgctr[mikl*j+4];
+                                        pijkl[ni*j+5] = pgctr[mikl*j+5];
+                                        pijkl[ni*j+6] = pgctr[mikl*j+6];
+                                }
+                        }
+                        fijkl += nijk;
+                        gctr += mik;
+                }
+                break;
+        default:
+                for (l = 0; l < ml; l++) {
+                        for (k = 0; k < mk; k++) {
+                                pijkl = fijkl + k * nij;
+                                pgctr = gctr + k * mi;
+                                for (j = 0; j < mj; j++) {
+                                        for (i = 0; i < mi; i++) {
+                                                pijkl[ni*j+i] = pgctr[mikl*j+i];
+                                        }
+                                }
+                        }
+                        fijkl += nijk;
+                        gctr += mik;
+                }
+        }
+}
+
+static void zcopy_kijl(double complex *fijkl, double complex *gctr,
+                       int ni, int nj, int nk, int nl,
+                       int mi, int mj, int mk, int ml)
+{
+        int i, j, k, l;
+        double complex *pl, *pk;
+        double complex *pgctr;
+
+        for (l = 0; l < ml; l++) {
+                pl = fijkl + l * nk * ni * nj;
+                for (k = 0; k < mk; k++) {
+                        pk = pl + k * ni * nj;
+                        pgctr = gctr + (l * mk * mi * mj + k);
+                        for (j = 0; j < mj; j++) {
+                                for (i = 0; i < mi; i++) {
+                                        pk[j*ni+i] = pgctr[i*mk];
+                                }
+                                pgctr += mk * mi;
+                        }
+                }
+        }
+}
+static void zcopy_iklj(double complex *fijkl, double complex *gctr, 
+                       int ni, int nj, int nk, int nl,
+                       int mi, int mj, int mk, int ml)
+{
+        int nij = ni * nj;
+        int nijk = nij * nk;
+        int mik = mi * mk;
+        int mikl = mik * ml;
+        int i, j, k, l;
+        double complex *pijkl;
+        double complex *pgctr;
+
+        for (l = 0; l < ml; l++) {
+                for (k = 0; k < mk; k++) {
+                        pijkl = fijkl + k * nij;
+                        pgctr = gctr + k * mi;
+                        for (j = 0; j < mj; j++) {
+                                for (i = 0; i < mi; i++) {
+                                        pijkl[j*ni+i] = pgctr[j*mikl+i];
+                                }
+                        }
+                }
+                fijkl += nijk;
+                gctr += mik;
+        }
+}
+
+void c2s_dset0(double *out, int *dims, int *counts)
+{
+        int ni = dims[0];
+        int nj = dims[1];
+        int nk = dims[2];
+        int nij = ni * nj;
+        int nijk = nij * nk;
+        int i, j, k, l;
+        if (dims == counts) {
+                for (i = 0; i < nijk * counts[3]; i++) {
+                        out[i] = 0;
+                }
+                return;
+        }
+        int di = counts[0];
+        int dj = counts[1];
+        int dk = counts[2];
+        int dl = counts[3];
+        double *pout;
+        for (l = 0; l < dl; l++) {
+                for (k = 0; k < dk; k++) {
+                        pout = out + k * nij;
+                        for (j = 0; j < dj; j++) {
+                        for (i = 0; i < di; i++) {
+                                pout[j*ni+i] = 0;
+                        } }
+                }
+                out += nijk;
+        }
+}
+void c2s_zset0(double complex *out, int *dims, int *counts)
+{
+        int ni = dims[0];
+        int nj = dims[1];
+        int nk = dims[2];
+        int nij = ni * nj;
+        int nijk = nij * nk;
+        int i, j, k, l;
+        if (dims == counts) {
+                for (i = 0; i < nijk * counts[3]; i++) {
+                        out[i] = 0;
+                }
+                return;
+        }
+        int di = counts[0];
+        int dj = counts[1];
+        int dk = counts[2];
+        int dl = counts[3];
+        double complex *pout;
+        for (l = 0; l < dl; l++) {
+                for (k = 0; k < dk; k++) {
+                        pout = out + k * nij;
+                        for (j = 0; j < dj; j++) {
+                        for (i = 0; i < di; i++) {
+                                pout[j*ni+i] = 0;
+                        } }
+                }
+                out += nijk;
+        }
+}
+
+
+/*
+ * 1e integrals, cartesian to real spheric.
+ */
+void c2s_sph_1e(double *opij, double *gctr, int *dims,
+                CINTEnvVars *envs, double *cache)
+{
+        int i_l = envs->i_l;
+        int j_l = envs->j_l;
+        int i_ctr = envs->x_ctr[0];
+        int j_ctr = envs->x_ctr[1];
+        int di = i_l * 2 + 1;
+        int dj = j_l * 2 + 1;
+        int ni = dims[0];
+        int nj = dims[1];
+        int ofj = ni * dj;
+        int nfi = envs->nfi;
+        int nf = envs->nf;
+        int ic, jc;
+        int buflen = nfi*dj;
+        double *buf1, *buf2;
+        MALLOC_INSTACK(buf1, buflen);
+        MALLOC_INSTACK(buf2, buflen);
+        double *pij;
+        double *tmp1;
+
+        for (jc = 0; jc < j_ctr; jc++) {
+        for (ic = 0; ic < i_ctr; ic++) {
+                pij = opij + ofj * jc + di * ic;
+                tmp1 = (c2s_ket_sph[j_l])(buf1, gctr, nfi, nfi, j_l);
+                tmp1 = (c2s_bra_sph[i_l])(buf2, dj, tmp1, i_l);
+                dcopy_ij(pij, tmp1, ni, nj, di, dj);
+                gctr += nf;
+        } }
+}
+
+
+/*
+ * 1e integrals, cartesian to spin free spinor.
+ */
+void c2s_sf_1e(double complex *opij, double *gctr, int *dims,
+               CINTEnvVars *envs, double *cache)
+{
+        int *shls = envs->shls;
+        int *bas = envs->bas;
+        int i_sh = shls[0];
+        int j_sh = shls[1];
+        int i_l = envs->i_l;
+        int j_l = envs->j_l;
+        int i_kp = bas(KAPPA_OF, i_sh);
+        int j_kp = bas(KAPPA_OF, j_sh);
+        int i_ctr = envs->x_ctr[0];
+        int j_ctr = envs->x_ctr[1];
+        int di = _len_spinor(i_kp, i_l);
+        int dj = _len_spinor(j_kp, j_l);
+        int ni = dims[0];
+        int nj = dims[1];
+        int ofj = ni * dj;
+        int nfj = envs->nfj;
+        int nf2j = nfj + nfj;
+        int nf = envs->nf;
+        int ic, jc;
+        double complex *tmp1, *tmp2;
+        MALLOC_INSTACK(tmp1, di*nf2j);
+        MALLOC_INSTACK(tmp2, di*nf2j);
+
+        for (jc = 0; jc < j_ctr; jc++) {
+        for (ic = 0; ic < i_ctr; ic++) {
+                (c2s_bra_spinor_e1sf[i_l])(tmp1, nfj, gctr, i_kp, i_l);
+                (c2s_ket_spinor[j_l])(tmp2, di, tmp1, j_kp, j_l);
+                zcopy_ij(opij+ofj*jc+di*ic, tmp2, ni, nj, di, dj);
+                gctr += nf;
+        } }
+}
+void c2s_sf_1ei(double complex *opij, double *gctr, int *dims,
+                CINTEnvVars *envs, double *cache)
+{
+        int *shls = envs->shls;
+        int *bas = envs->bas;
+        int i_sh = shls[0];
+        int j_sh = shls[1];
+        int i_l = envs->i_l;
+        int j_l = envs->j_l;
+        int i_kp = bas(KAPPA_OF, i_sh);
+        int j_kp = bas(KAPPA_OF, j_sh);
+        int i_ctr = envs->x_ctr[0];
+        int j_ctr = envs->x_ctr[1];
+        int di = _len_spinor(i_kp, i_l);
+        int dj = _len_spinor(j_kp, j_l);
+        int ni = dims[0];
+        int nj = dims[1];
+        int ofj = ni * dj;
+        int nfj = _len_cart[j_l];
+        int nf2j = nfj + nfj;
+        int nf = envs->nf;
+        int ic, jc;
+        double complex *tmp1, *tmp2;
+        MALLOC_INSTACK(tmp1, di*nf2j);
+        MALLOC_INSTACK(tmp2, di*nf2j);
+
+        for (jc = 0; jc < j_ctr; jc++) {
+        for (ic = 0; ic < i_ctr; ic++) {
+                (c2s_bra_spinor_e1sf[i_l])(tmp1, nfj, gctr, i_kp, i_l);
+                (c2s_iket_spinor[j_l])(tmp2, di, tmp1, j_kp, j_l);
+                zcopy_ij(opij+ofj*jc+di*ic, tmp2, ni, nj, di, dj);
+                gctr += nf;
+        } }
+}
+
+
+/*
+ * 1e integrals, cartesian to spinor.
+ */
+void c2s_si_1e(double complex *opij, double *gctr, int *dims,
+               CINTEnvVars *envs, double *cache)
+{
+        int *shls = envs->shls;
+        int *bas = envs->bas;
+        int i_sh = shls[0];
+        int j_sh = shls[1];
+        int i_l = envs->i_l;
+        int j_l = envs->j_l;
+        int i_kp = bas(KAPPA_OF, i_sh);
+        int j_kp = bas(KAPPA_OF, j_sh);
+        int i_ctr = envs->x_ctr[0];
+        int j_ctr = envs->x_ctr[1];
+        int di = _len_spinor(i_kp, i_l);
+        int dj = _len_spinor(j_kp, j_l);
+        int ni = dims[0];
+        int nj = dims[1];
+        int ofj = ni * dj;
+        int nfi = envs->nfi;
+        int nfj = envs->nfj;
+        int nf2i = nfi + nfi;
+        int nf2j = nfj + nfj;
+        int nf = envs->nf;
+        int ic, jc;
+        double *gc_x = gctr;
+        double *gc_y = gc_x + nf * i_ctr * j_ctr;
+        double *gc_z = gc_y + nf * i_ctr * j_ctr;
+        double *gc_1 = gc_z + nf * i_ctr * j_ctr;
+        double complex *tmp1, *tmp2;
+        MALLOC_INSTACK(tmp1, nf2i*nf2j);
+        MALLOC_INSTACK(tmp2, di*nf2j);
+
+        for (jc = 0; jc < j_ctr; jc++) {
+        for (ic = 0; ic < i_ctr; ic++) {
+                //cmplx( gctr.POS_1, gctr.POS_Z)
+                //cmplx( gctr.POS_Y, gctr.POS_X)
+                CINTdcmplx_pp(nf, tmp1, gc_1, gc_z);
+                CINTdcmplx_pp(nf, tmp1+nf, gc_y, gc_x);
+                //cmplx(-gctr.POS_Y, gctr.POS_X)
+                //cmplx( gctr.POS_1,-gctr.POS_Z)
+                CINTdcmplx_np(nf, tmp1+nfi*nf2j, gc_y, gc_x);
+                CINTdcmplx_pn(nf, tmp1+nfi*nf2j+nf, gc_1, gc_z);
+                (c2s_bra_spinor_si[i_l])(tmp2, nf2j, tmp1, i_kp, i_l);
+                (c2s_ket_spinor[j_l])(tmp1, di, tmp2, j_kp, j_l);
+                zcopy_ij(opij+ofj*jc+di*ic, tmp1, ni, nj, di, dj);
+
+                gc_x += nf;
+                gc_y += nf;
+                gc_z += nf;
+                gc_1 += nf;
+        } }
+}
+void c2s_si_1ei(double complex *opij, double *gctr, int *dims,
+                CINTEnvVars *envs, double *cache)
+{
+        int *shls = envs->shls;
+        int *bas = envs->bas;
+        int i_sh = shls[0];
+        int j_sh = shls[1];
+        int i_l = envs->i_l;
+        int j_l = envs->j_l;
+        int i_kp = bas(KAPPA_OF, i_sh);
+        int j_kp = bas(KAPPA_OF, j_sh);
+        int i_ctr = envs->x_ctr[0];
+        int j_ctr = envs->x_ctr[1];
+        int di = _len_spinor(i_kp, i_l);
+        int dj = _len_spinor(j_kp, j_l);
+        int ni = dims[0];
+        int nj = dims[1];
+        int ofj = ni * dj;
+        int nfi = envs->nfi;
+        int nfj = envs->nfj;
+        int nf2i = nfi + nfi;
+        int nf2j = nfj + nfj;
+        int nf = envs->nf;
+        int ic, jc;
+        double *gc_x = gctr;
+        double *gc_y = gc_x + nf * i_ctr * j_ctr;
+        double *gc_z = gc_y + nf * i_ctr * j_ctr;
+        double *gc_1 = gc_z + nf * i_ctr * j_ctr;
+        double complex *tmp1, *tmp2;
+        MALLOC_INSTACK(tmp1, nf2i*nf2j);
+        MALLOC_INSTACK(tmp2, di*nf2j);
+
+        for (jc = 0; jc < j_ctr; jc++) {
+        for (ic = 0; ic < i_ctr; ic++) {
+                //cmplx( gctr.POS_1, gctr.POS_Z)
+                //cmplx( gctr.POS_Y, gctr.POS_X)
+                CINTdcmplx_pp(nf, tmp1, gc_1, gc_z);
+                CINTdcmplx_pp(nf, tmp1+nf, gc_y, gc_x);
+                //cmplx(-gctr.POS_Y, gctr.POS_X)
+                //cmplx( gctr.POS_1,-gctr.POS_Z)
+                CINTdcmplx_np(nf, tmp1+nfi*nf2j, gc_y, gc_x);
+                CINTdcmplx_pn(nf, tmp1+nfi*nf2j+nf, gc_1, gc_z);
+                (c2s_bra_spinor_si[i_l])(tmp2, nf2j, tmp1, i_kp, i_l);
+                (c2s_iket_spinor[j_l])(tmp1, di, tmp2, j_kp, j_l);
+                zcopy_ij(opij+ofj*jc+di*ic, tmp1, ni, nj, di, dj);
+
+                gc_x += nf;
+                gc_y += nf;
+                gc_z += nf;
+                gc_1 += nf;
+        } }
+}
+
+
+/*
+ * 2e integrals, cartesian to real spheric.
+ *
+ * gctr: Cartesian GTO integrals, ordered as <ik|lj>
+ */
+static double *sph2e_inner(double *gsph, double *gcart,
+                           int l, int nbra, int ncall, int sizsph, int sizcart);
+void c2s_sph_2e1(double *out, double *gctr, int *dims,
+                 CINTEnvVars *envs, double *cache)
+{
+        int i_l = envs->i_l;
+        int j_l = envs->j_l;
+        int k_l = envs->k_l;
+        int l_l = envs->l_l;
+        int i_ctr = envs->x_ctr[0];
+        int j_ctr = envs->x_ctr[1];
+        int k_ctr = envs->x_ctr[2];
+        int l_ctr = envs->x_ctr[3];
+        int di = i_l * 2 + 1;
+        int dj = j_l * 2 + 1;
+        int dk = k_l * 2 + 1;
+        int dl = l_l * 2 + 1;
+        int ni = dims[0];
+        int nj = dims[1];
+        int nk = dims[2];
+        int nl = dims[3];
+        int nfi = envs->nfi;
+        int nfk = envs->nfk;
+        int nfl = envs->nfl;
+        int nfik = nfi * nfk;
+        int nfikl = nfik * nfl;
+        int dlj = dl * dj;
+        int nf = envs->nf;
+        int ofj = ni * dj;
+        int ofk = ni * nj * dk;
+        int ofl = ni * nj * nk * dl;
+        int ic, jc, kc, lc;
+        int buflen = nfikl*dj;
+        double *buf1;
+        MALLOC_INSTACK(buf1, buflen*4);
+        double *buf2 = buf1 + buflen;
+        double *buf3 = buf2 + buflen;
+        double *buf4 = buf3 + buflen;
+        double *pout, *tmp1;
+
+        for (lc = 0; lc < l_ctr; lc++) {
+        for (kc = 0; kc < k_ctr; kc++) {
+        for (jc = 0; jc < j_ctr; jc++) {
+        for (ic = 0; ic < i_ctr; ic++) {
+                tmp1 = (c2s_ket_sph[j_l])(buf1, gctr, nfikl, nfikl, j_l);
+                tmp1 = sph2e_inner(buf2, tmp1, l_l, nfik, dj, nfik*dl, nfikl);
+                tmp1 = sph2e_inner(buf3, tmp1, k_l, nfi, dlj, nfi*dk, nfik);
+
+                tmp1 = (c2s_bra_sph[i_l])(buf4, dk*dlj, tmp1, i_l);
+
+                pout = out + ofl * lc + ofk * kc + ofj * jc + di * ic;
+                dcopy_iklj(pout, tmp1, ni, nj, nk, nl, di, dj, dk, dl);
+                gctr += nf;
+        } } } }
+}
+/*
+ * use f_ket to transform k,l for gctr(i,j,k,l), where
+ * sizsph = nbra * (2*l+1)
+ * sizcart = nbra * (l*(l+1)/2)
+ * and return the pointer to the buffer which holds the transformed gctr
+ */
+static double *sph2e_inner(double *gsph, double *gcart,
+                           int l, int nbra, int ncall, int sizsph, int sizcart)
+{
+        int n;
+        switch (l) {
+        case 0: case 1:
+                return gcart;
+        case 2:
+                for (n = 0; n < ncall; n++) {
+                        d_ket_cart2spheric(gsph+n*sizsph, gcart+n*sizcart, nbra, nbra, l);
+                }
+                break;
+        case 3:
+                for (n = 0; n < ncall; n++) {
+                        f_ket_cart2spheric(gsph+n*sizsph, gcart+n*sizcart, nbra, nbra, l);
+                }
+                break;
+        case 4:
+                for (n = 0; n < ncall; n++) {
+                        g_ket_cart2spheric(gsph+n*sizsph, gcart+n*sizcart, nbra, nbra, l);
+                }
+                break;
+        default:
+                for (n = 0; n < ncall; n++) {
+                        a_ket_cart2spheric(gsph+n*sizsph, gcart+n*sizcart, nbra, nbra, l);
+                }
+        }
+        return gsph;
+}
+
+
+/*
+ * 2e integrals, cartesian to spin free spinor for electron 1.
+ *
+ * gctr: Cartesian GTO integrals, ordered as <ik|lj>
+ * opij: partial transformed GTO integrals, ordered as <ik|lj>
+ */
+void c2s_sf_2e1(double complex *opij, double *gctr, int *dims,
+                CINTEnvVars *envs, double *cache)
+{
+        int *shls = envs->shls;
+        int *bas = envs->bas;
+        int i_sh = shls[0];
+        int j_sh = shls[1];
+        int i_l = envs->i_l;
+        int j_l = envs->j_l;
+        int i_kp = bas(KAPPA_OF, i_sh);
+        int j_kp = bas(KAPPA_OF, j_sh);
+        int i_ctr = envs->x_ctr[0];
+        int j_ctr = envs->x_ctr[1];
+        int k_ctr = envs->x_ctr[2];
+        int l_ctr = envs->x_ctr[3];
+        int di = _len_spinor(i_kp, i_l);
+        int dj = _len_spinor(j_kp, j_l);
+        int nfj = envs->nfj;
+        int nfk = envs->nfk;
+        int nfl = envs->nfl;
+        int nf2j = nfj + nfj;
+        int nf = envs->nf;
+        int no = di * nfk * nfl * dj;
+        int d_i = di * nfk * nfl;
+        int d_j = nfk * nfl * nfj;
+        int i;
+        double complex *tmp1;
+        MALLOC_INSTACK(tmp1, di*nfk*nfl*nf2j);
+
+        for (i = 0; i < i_ctr * j_ctr * k_ctr * l_ctr; i++) {
+                (c2s_bra_spinor_e1sf[i_l])(tmp1, d_j, gctr, i_kp, i_l);
+                (c2s_ket_spinor[j_l])(opij, d_i, tmp1, j_kp, j_l);
+                gctr += nf;
+                opij += no;
+        }
+}
+void c2s_sf_2e1i(double complex *opij, double *gctr, int *dims,
+                 CINTEnvVars *envs, double *cache)
+{
+        int *shls = envs->shls;
+        int *bas = envs->bas;
+        int i_sh = shls[0];
+        int j_sh = shls[1];
+        int i_l = envs->i_l;
+        int j_l = envs->j_l;
+        int i_kp = bas(KAPPA_OF, i_sh);
+        int j_kp = bas(KAPPA_OF, j_sh);
+        int i_ctr = envs->x_ctr[0];
+        int j_ctr = envs->x_ctr[1];
+        int k_ctr = envs->x_ctr[2];
+        int l_ctr = envs->x_ctr[3];
+        int di = _len_spinor(i_kp, i_l);
+        int dj = _len_spinor(j_kp, j_l);
+        int nfj = envs->nfj;
+        int nfk = envs->nfk;
+        int nfl = envs->nfl;
+        int nf2j = nfj + nfj;
+        int nf = envs->nf;
+        int no = di * nfk * nfl * dj;
+        int d_i = di * nfk * nfl;
+        int d_j = nfk * nfl * nfj;
+        int i;
+        double complex *tmp1;
+        MALLOC_INSTACK(tmp1, di*nfk*nfl*nf2j);
+
+        for (i = 0; i < i_ctr * j_ctr * k_ctr * l_ctr; i++) {
+                (c2s_bra_spinor_e1sf[i_l])(tmp1, d_j, gctr, i_kp, i_l);
+                (c2s_iket_spinor[j_l])(opij, d_i, tmp1, j_kp, j_l);
+                gctr += nf;
+                opij += no;
+        }
+}
+
+
+/*
+ * 2e integrals, cartesian to spin free spinor for electron 2.
+ *
+ * opij: partial transformed GTO integrals, ordered as <ik|lj>
+ */
+void c2s_sf_2e2(double complex *fijkl, double complex *opij, int *dims,
+                CINTEnvVars *envs, double *cache)
+{
+        int *shls = envs->shls;
+        int *bas = envs->bas;
+        int i_sh = shls[0];
+        int j_sh = shls[1];
+        int k_sh = shls[2];
+        int l_sh = shls[3];
+        int i_l = envs->i_l;
+        int j_l = envs->j_l;
+        int k_l = envs->k_l;
+        int l_l = envs->l_l;
+        int i_kp = bas(KAPPA_OF, i_sh);
+        int j_kp = bas(KAPPA_OF, j_sh);
+        int k_kp = bas(KAPPA_OF, k_sh);
+        int l_kp = bas(KAPPA_OF, l_sh);
+        int i_ctr = envs->x_ctr[0];
+        int j_ctr = envs->x_ctr[1];
+        int k_ctr = envs->x_ctr[2];
+        int l_ctr = envs->x_ctr[3];
+        int di = _len_spinor(i_kp, i_l);
+        int dj = _len_spinor(j_kp, j_l);
+        int dk = _len_spinor(k_kp, k_l);
+        int dl = _len_spinor(l_kp, l_l);
+        int ni = dims[0];
+        int nj = dims[1];
+        int nk = dims[2];
+        int nl = dims[3];
+        int nfk = envs->nfk;
+        int nfl = envs->nfl;
+        int nf2k = nfk + nfk;
+        int nf2l = nfl + nfl;
+        int d_k = dk * di * dj;
+        int d_l = di * dj * nfl;
+        int nop = nfk * di * dj * nfl;
+        int ofj = ni * dj;
+        int ofk = ni * nj * dk;
+        int ofl = ni * nj * nk * dl;
+        int ic, jc, kc, lc;
+        double complex *pfijkl;
+        int len1 = nf2k*di*dj*nf2l;
+        int len2 = dk*di*dj*nf2l;
+        double complex *tmp1, *tmp2;
+        MALLOC_INSTACK(tmp1, len1);
+        MALLOC_INSTACK(tmp2, len2);
+
+        for (lc = 0; lc < l_ctr; lc++) {
+        for (kc = 0; kc < k_ctr; kc++) {
+        for (jc = 0; jc < j_ctr; jc++) {
+        for (ic = 0; ic < i_ctr; ic++) {
+                zswap_ik_jl(tmp1, opij, di, dj, nfk, nfl);
+                (c2s_bra_spinor_sf[k_l])(tmp2, d_l, tmp1, k_kp, k_l);
+                (c2s_ket_spinor[l_l])(tmp1, d_k, tmp2, l_kp, l_l);
+                pfijkl = fijkl + (ofl * lc + ofk * kc + ofj * jc + di * ic);
+
+                zcopy_kijl(pfijkl, tmp1, ni, nj, nk, nl, di, dj, dk, dl);
+                opij += nop;
+        } } } }
+}
+void c2s_sf_2e2i(double complex *fijkl, double complex *opij, int *dims,
+                 CINTEnvVars *envs, double *cache)
+{
+        int *shls = envs->shls;
+        int *bas = envs->bas;
+        int i_sh = shls[0];
+        int j_sh = shls[1];
+        int k_sh = shls[2];
+        int l_sh = shls[3];
+        int i_l = envs->i_l;
+        int j_l = envs->j_l;
+        int k_l = envs->k_l;
+        int l_l = envs->l_l;
+        int i_kp = bas(KAPPA_OF, i_sh);
+        int j_kp = bas(KAPPA_OF, j_sh);
+        int k_kp = bas(KAPPA_OF, k_sh);
+        int l_kp = bas(KAPPA_OF, l_sh);
+        int i_ctr = envs->x_ctr[0];
+        int j_ctr = envs->x_ctr[1];
+        int k_ctr = envs->x_ctr[2];
+        int l_ctr = envs->x_ctr[3];
+        int di = _len_spinor(i_kp, i_l);
+        int dj = _len_spinor(j_kp, j_l);
+        int dk = _len_spinor(k_kp, k_l);
+        int dl = _len_spinor(l_kp, l_l);
+        int ni = dims[0];
+        int nj = dims[1];
+        int nk = dims[2];
+        int nl = dims[3];
+        int nfk = envs->nfk;
+        int nfl = envs->nfl;
+        int nf2k = nfk + nfk;
+        int nf2l = nfl + nfl;
+        int d_k = dk * di * dj;
+        int d_l = di * dj * nfl;
+        int nop = nfk * di * dj * nfl;
+        int ofj = ni * dj;
+        int ofk = ni * nj * dk;
+        int ofl = ni * nj * nk * dl;
+        int ic, jc, kc, lc;
+        double complex *pfijkl;
+        int len1 = nf2k*di*dj*nf2l;
+        int len2 = dk*di*dj*nf2l;
+        double complex *tmp1, *tmp2;
+        MALLOC_INSTACK(tmp1, len1);
+        MALLOC_INSTACK(tmp2, len2);
+
+        for (lc = 0; lc < l_ctr; lc++) {
+        for (kc = 0; kc < k_ctr; kc++) {
+        for (jc = 0; jc < j_ctr; jc++) {
+        for (ic = 0; ic < i_ctr; ic++) {
+                zswap_ik_jl(tmp1, opij, di, dj, nfk, nfl);
+                (c2s_bra_spinor_sf[k_l])(tmp2, d_l, tmp1, k_kp, k_l);
+                (c2s_iket_spinor[l_l])(tmp1, d_k, tmp2, l_kp, l_l);
+                pfijkl = fijkl + (ofl * lc + ofk * kc + ofj * jc + di * ic);
+
+                zcopy_kijl(pfijkl, tmp1, ni, nj, nk, nl, di, dj, dk, dl);
+                opij += nop;
+        } } } }
+}
+
+/*
+ * 2e integrals, cartesian to spinor for electron 1.
+ *
+ * gctr: Cartesian GTO integrals, ordered as <ik|lj>
+ * opij: partial transformed GTO integrals, ordered as <ik|lj>
+ */
+void c2s_si_2e1(double complex *opij, double *gctr, int *dims,
+                CINTEnvVars *envs, double *cache)
+{
+        int *shls = envs->shls;
+        int *bas = envs->bas;
+        int i_sh = shls[0];
+        int j_sh = shls[1];
+        int i_l = envs->i_l;
+        int j_l = envs->j_l;
+        int i_kp = bas(KAPPA_OF, i_sh);
+        int j_kp = bas(KAPPA_OF, j_sh);
+        int i_ctr = envs->x_ctr[0];
+        int j_ctr = envs->x_ctr[1];
+        int k_ctr = envs->x_ctr[2];
+        int l_ctr = envs->x_ctr[3];
+        int di = _len_spinor(i_kp, i_l);
+        int dj = _len_spinor(j_kp, j_l);
+        int nfi = envs->nfi;
+        int nfj = envs->nfj;
+        int nfk = envs->nfk;
+        int nfl = envs->nfl;
+        int nf2i = nfi + nfi;
+        int nf2j = nfj + nfj;
+        int nf = envs->nf;
+        int no = di * nfk * nfl * dj;
+        int d_i = di * nfk * nfl;
+        int d_j = nfk * nfl * nf2j;
+        int i;
+        double *gc_x = gctr;
+        double *gc_y = gc_x + nf * i_ctr * j_ctr * k_ctr * l_ctr;
+        double *gc_z = gc_y + nf * i_ctr * j_ctr * k_ctr * l_ctr;
+        double *gc_1 = gc_z + nf * i_ctr * j_ctr * k_ctr * l_ctr;
+        int len1 = nf2i*nfk*nfl*nf2j;
+        int len2 = di*nfk*nfl*nf2j;
+        double complex *tmp1, *tmp2;
+        MALLOC_INSTACK(tmp1, len1);
+        MALLOC_INSTACK(tmp2, len2);
+
+        for (i = 0; i < i_ctr * j_ctr * k_ctr * l_ctr; i++) {
+                //cmplx( gctr.POS_1, gctr.POS_Z)
+                //cmplx( gctr.POS_Y, gctr.POS_X)
+                CINTdcmplx_pp(nf, tmp1, gc_1, gc_z);
+                CINTdcmplx_pp(nf, tmp1+nf, gc_y, gc_x);
+                //cmplx(-gctr.POS_Y, gctr.POS_X)
+                //cmplx( gctr.POS_1,-gctr.POS_Z)
+                CINTdcmplx_np(nf, tmp1+nfi*d_j, gc_y, gc_x);
+                CINTdcmplx_pn(nf, tmp1+nfi*d_j+nf, gc_1, gc_z);
+                (c2s_bra_spinor_si[i_l])(tmp2, d_j, tmp1, i_kp, i_l);
+                (c2s_ket_spinor[j_l])(opij, d_i, tmp2, j_kp, j_l);
+                gc_x += nf;
+                gc_y += nf;
+                gc_z += nf;
+                gc_1 += nf;
+                opij += no;
+        }
+}
+void c2s_si_2e1i(double complex *opij, double *gctr, int *dims,
+                 CINTEnvVars *envs, double *cache)
+{
+        int *shls = envs->shls;
+        int *bas = envs->bas;
+        int i_sh = shls[0];
+        int j_sh = shls[1];
+        int i_l = envs->i_l;
+        int j_l = envs->j_l;
+        int i_kp = bas(KAPPA_OF, i_sh);
+        int j_kp = bas(KAPPA_OF, j_sh);
+        int i_ctr = envs->x_ctr[0];
+        int j_ctr = envs->x_ctr[1];
+        int k_ctr = envs->x_ctr[2];
+        int l_ctr = envs->x_ctr[3];
+        int di = _len_spinor(i_kp, i_l);
+        int dj = _len_spinor(j_kp, j_l);
+        int nfi = envs->nfi;
+        int nfj = envs->nfj;
+        int nfk = envs->nfk;
+        int nfl = envs->nfl;
+        int nf2i = nfi + nfi;
+        int nf2j = nfj + nfj;
+        int nf = envs->nf;
+        int no = di * nfk * nfl * dj;
+        int d_i = di * nfk * nfl;
+        int d_j = nfk * nfl * nf2j;
+        int i;
+        double *gc_x = gctr;
+        double *gc_y = gc_x + nf * i_ctr * j_ctr * k_ctr * l_ctr;
+        double *gc_z = gc_y + nf * i_ctr * j_ctr * k_ctr * l_ctr;
+        double *gc_1 = gc_z + nf * i_ctr * j_ctr * k_ctr * l_ctr;
+        int len1 = nf2i*nfk*nfl*nf2j;
+        int len2 = di*nfk*nfl*nf2j;
+        double complex *tmp1, *tmp2;
+        MALLOC_INSTACK(tmp1, len1);
+        MALLOC_INSTACK(tmp2, len2);
+
+        for (i = 0; i < i_ctr * j_ctr * k_ctr * l_ctr; i++) {
+                //cmplx( gctr.POS_1, gctr.POS_Z)
+                //cmplx( gctr.POS_Y, gctr.POS_X)
+                CINTdcmplx_pp(nf, tmp1, gc_1, gc_z);
+                CINTdcmplx_pp(nf, tmp1+nf, gc_y, gc_x);
+                //cmplx(-gctr.POS_Y, gctr.POS_X)
+                //cmplx( gctr.POS_1,-gctr.POS_Z)
+                CINTdcmplx_np(nf, tmp1+nfi*d_j, gc_y, gc_x);
+                CINTdcmplx_pn(nf, tmp1+nfi*d_j+nf, gc_1, gc_z);
+                (c2s_bra_spinor_si[i_l])(tmp2, d_j, tmp1, i_kp, i_l);
+                (c2s_iket_spinor[j_l])(opij, d_i, tmp2, j_kp, j_l);
+                gc_x += nf;
+                gc_y += nf;
+                gc_z += nf;
+                gc_1 += nf;
+                opij += no;
+        }
+}
+
+/*
+ * 2e integrals, cartesian to spinor for electron 2.
+ *
+ * opij: partial transformed GTO integrals, ordered as <ik|lj>
+ */
+static void si2e_swap(double complex *new,
+                      double complex *oldx, double complex *oldy,
+                      double complex *oldz, double complex *old1,
+                      int ni, int nj, int nk, int nl)
+{
+        int i, j, k, l;
+        int dlo = ni * nk; // stride of (i,k,l++,j)
+        int djo = ni * nk * nl; // stride of (i,k,l,j++)
+        int djn = nk * ni; // stride of (k,i,j++,l)
+        int dln = nk * ni * nj; // stride of (k,i,j,l++)
+        double complex *new11 = new;
+        double complex *new12 = new11 + nk * ni * nj * nl;
+        double complex *new21 = new12 + nk * ni * nj * nl;
+        double complex *new22 = new21 + nk * ni * nj * nl;
+        double complex *pn11, *pn12, *pn21, *pn22;
+        double complex *ox, *oy, *oz, *o1;
+
+        //tmp1(k    ,i,j,l    ) = opij(m,n,POS_1) + IZ1*opij(m,n,POS_Z)
+        //tmp1(k    ,i,j,l+nfl) = opij(m,n,POS_Y) + IZ1*opij(m,n,POS_X)
+        //tmp1(k+nfk,i,j,l    ) =-opij(m,n,POS_Y) + IZ1*opij(m,n,POS_X)
+        //tmp1(k+nfk,i,j,l+nfl) = opij(m,n,POS_1) - IZ1*opij(m,n,POS_Z)
+        for (l = 0; l < nl; l++) {
+        for (j = 0; j < nj; j++) {
+                pn11 = new11 + l * dln + j * djn;
+                pn12 = new12 + l * dln + j * djn;
+                pn21 = new21 + l * dln + j * djn;
+                pn22 = new22 + l * dln + j * djn;
+                ox = oldx + l * dlo + j * djo;
+                oy = oldy + l * dlo + j * djo;
+                oz = oldz + l * dlo + j * djo;
+                o1 = old1 + l * dlo + j * djo;
+                for (i = 0; i < ni; i++) {
+                for (k = 0; k < nk; k++) {
+                        pn11[i*nk+k] = o1[k*ni+i] + oz[k*ni+i]*_Complex_I;
+                        pn12[i*nk+k] = oy[k*ni+i] + ox[k*ni+i]*_Complex_I;
+                        pn21[i*nk+k] =-oy[k*ni+i] + ox[k*ni+i]*_Complex_I;
+                        pn22[i*nk+k] = o1[k*ni+i] - oz[k*ni+i]*_Complex_I;
+                } }
+        } }
+}
+void c2s_si_2e2(double complex *fijkl, double complex *opij, int *dims,
+                CINTEnvVars *envs, double *cache)
+{
+        int *shls = envs->shls;
+        int *bas = envs->bas;
+        int i_sh = shls[0];
+        int j_sh = shls[1];
+        int k_sh = shls[2];
+        int l_sh = shls[3];
+        int i_l = envs->i_l;
+        int j_l = envs->j_l;
+        int k_l = envs->k_l;
+        int l_l = envs->l_l;
+        int i_kp = bas(KAPPA_OF, i_sh);
+        int j_kp = bas(KAPPA_OF, j_sh);
+        int k_kp = bas(KAPPA_OF, k_sh);
+        int l_kp = bas(KAPPA_OF, l_sh);
+        int i_ctr = envs->x_ctr[0];
+        int j_ctr = envs->x_ctr[1];
+        int k_ctr = envs->x_ctr[2];
+        int l_ctr = envs->x_ctr[3];
+        int di = _len_spinor(i_kp, i_l);
+        int dj = _len_spinor(j_kp, j_l);
+        int dk = _len_spinor(k_kp, k_l);
+        int dl = _len_spinor(l_kp, l_l);
+        int ni = dims[0];
+        int nj = dims[1];
+        int nk = dims[2];
+        int nl = dims[3];
+        int nfk = envs->nfk;
+        int nfl = envs->nfl;
+        int nf2k = nfk + nfk;
+        int nf2l = nfl + nfl;
+        int d_k = dk * di * dj;
+        int d_l = di * dj * nf2l;
+        int nop = nfk * di * dj * nfl;
+        int ofj = ni * dj;
+        int ofk = ni * nj * dk;
+        int ofl = ni * nj * nk * dl;
+        int ic, jc, kc, lc;
+        double complex *pfijkl;
+        double complex *ox = opij;
+        double complex *oy = ox + nop * i_ctr * j_ctr * k_ctr * l_ctr;
+        double complex *oz = oy + nop * i_ctr * j_ctr * k_ctr * l_ctr;
+        double complex *o1 = oz + nop * i_ctr * j_ctr * k_ctr * l_ctr;
+        int len1 = nf2k*di*dj*nf2l;
+        int len2 = dk*di*dj*nf2l;
+        double complex *tmp1, *tmp2;
+        MALLOC_INSTACK(tmp1, len1);
+        MALLOC_INSTACK(tmp2, len2);
+
+        for (lc = 0; lc < l_ctr; lc++) {
+        for (kc = 0; kc < k_ctr; kc++) {
+        for (jc = 0; jc < j_ctr; jc++) {
+        for (ic = 0; ic < i_ctr; ic++) {
+                si2e_swap(tmp1, ox, oy, oz, o1, di, dj, nfk, nfl);
+                (c2s_bra_spinor_si[k_l])(tmp2, d_l, tmp1, k_kp, k_l);
+                (c2s_ket_spinor[l_l])(tmp1, d_k, tmp2, l_kp, l_l);
+                pfijkl = fijkl + (ofl * lc + ofk * kc + ofj * jc + di * ic);
+
+                zcopy_kijl(pfijkl, tmp1, ni, nj, nk, nl, di, dj, dk, dl);
+
+                ox += nop;
+                oy += nop;
+                oz += nop;
+                o1 += nop;
+        } } } }
+}
+void c2s_si_2e2i(double complex *fijkl, double complex *opij, int *dims,
+                 CINTEnvVars *envs, double *cache)
+{
+        int *shls = envs->shls;
+        int *bas = envs->bas;
+        int i_sh = shls[0];
+        int j_sh = shls[1];
+        int k_sh = shls[2];
+        int l_sh = shls[3];
+        int i_l = envs->i_l;
+        int j_l = envs->j_l;
+        int k_l = envs->k_l;
+        int l_l = envs->l_l;
+        int i_kp = bas(KAPPA_OF, i_sh);
+        int j_kp = bas(KAPPA_OF, j_sh);
+        int k_kp = bas(KAPPA_OF, k_sh);
+        int l_kp = bas(KAPPA_OF, l_sh);
+        int i_ctr = envs->x_ctr[0];
+        int j_ctr = envs->x_ctr[1];
+        int k_ctr = envs->x_ctr[2];
+        int l_ctr = envs->x_ctr[3];
+        int di = _len_spinor(i_kp, i_l);
+        int dj = _len_spinor(j_kp, j_l);
+        int dk = _len_spinor(k_kp, k_l);
+        int dl = _len_spinor(l_kp, l_l);
+        int ni = dims[0];
+        int nj = dims[1];
+        int nk = dims[2];
+        int nl = dims[3];
+        int nfk = envs->nfk;
+        int nfl = envs->nfl;
+        int nf2k = nfk + nfk;
+        int nf2l = nfl + nfl;
+        int d_k = dk * di * dj;
+        int d_l = di * dj * nf2l;
+        int nop = nfk * di * dj * nfl;
+        int ofj = ni * dj;
+        int ofk = ni * nj * dk;
+        int ofl = ni * nj * nk * dl;
+        int ic, jc, kc, lc;
+        double complex *pfijkl;
+        double complex *ox = opij;
+        double complex *oy = ox + nop * i_ctr * j_ctr * k_ctr * l_ctr;
+        double complex *oz = oy + nop * i_ctr * j_ctr * k_ctr * l_ctr;
+        double complex *o1 = oz + nop * i_ctr * j_ctr * k_ctr * l_ctr;
+        int len1 = nf2k*di*dj*nf2l;
+        int len2 = dk*di*dj*nf2l;
+        double complex *tmp1, *tmp2;
+        MALLOC_INSTACK(tmp1, len1);
+        MALLOC_INSTACK(tmp2, len2);
+
+        for (lc = 0; lc < l_ctr; lc++) {
+        for (kc = 0; kc < k_ctr; kc++) {
+        for (jc = 0; jc < j_ctr; jc++) {
+        for (ic = 0; ic < i_ctr; ic++) {
+                si2e_swap(tmp1, ox, oy, oz, o1, di, dj, nfk, nfl);
+                (c2s_bra_spinor_si[k_l])(tmp2, d_l, tmp1, k_kp, k_l);
+                (c2s_iket_spinor[l_l])(tmp1, d_k, tmp2, l_kp, l_l);
+                pfijkl = fijkl + (ofl * lc + ofk * kc + ofj * jc + di * ic);
+
+                zcopy_kijl(pfijkl, tmp1, ni, nj, nk, nl, di, dj, dk, dl);
+
+                ox += nop;
+                oy += nop;
+                oz += nop;
+                o1 += nop;
+        } } } }
+}
+
+/*
+ * 1e integrals, reorder cartesian integrals.
+ */
+void c2s_cart_1e(double *opij, double *gctr, int *dims,
+                 CINTEnvVars *envs, double *cache)
+{
+        int i_ctr = envs->x_ctr[0];
+        int j_ctr = envs->x_ctr[1];
+        int nfi = envs->nfi;
+        int nfj = envs->nfj;
+        int nf = envs->nf;
+        int ni = dims[0];
+        int nj = dims[1];
+        int ofj = ni * nfj;
+        int ic, jc;
+        double *popij;
+
+        for (jc = 0; jc < j_ctr; jc++) {
+        for (ic = 0; ic < i_ctr; ic++) {
+                popij = opij + ofj * jc + nfi * ic;
+                dcopy_ij(popij, gctr, ni, nj, nfi, nfj);
+                gctr += nf;
+        } }
+}
+
+/*
+ * 2e integrals, reorder cartesian integrals.
+ */
+void c2s_cart_2e1(double *fijkl, double *gctr, int *dims, CINTEnvVars *envs,
+                  double *cache)
+{
+        int i_ctr = envs->x_ctr[0];
+        int j_ctr = envs->x_ctr[1];
+        int k_ctr = envs->x_ctr[2];
+        int l_ctr = envs->x_ctr[3];
+        int nfi = envs->nfi;
+        int nfj = envs->nfj;
+        int nfk = envs->nfk;
+        int nfl = envs->nfl;
+        int nf = envs->nf;
+        int ni = dims[0];
+        int nj = dims[1];
+        int nk = dims[2];
+        int nl = dims[3];
+        int ofj = ni * nfj;
+        int ofk = ni * nj * nfk;
+        int ofl = ni * nj * nk * nfl;
+        int ic, jc, kc, lc;
+        double *pfijkl;
+
+        for (lc = 0; lc < l_ctr; lc++) {
+        for (kc = 0; kc < k_ctr; kc++) {
+        for (jc = 0; jc < j_ctr; jc++) {
+        for (ic = 0; ic < i_ctr; ic++) {
+                pfijkl = fijkl + ofl * lc + ofk * kc + ofj * jc + nfi * ic;
+                dcopy_iklj(pfijkl, gctr, ni, nj, nk, nl, nfi, nfj, nfk, nfl);
+                gctr += nf;
+        } } } }
+}
+void c2s_cart_2e2() {};
+
+
+/*************************************************
+ *
+ * 3-center 2-electron integral transformation
+ *
+ *************************************************/
+void c2s_sph_3c2e1(double *bufijk, double *gctr, int *dims,
+                   CINTEnvVars *envs, double *cache)
+{
+        int i_l = envs->i_l;
+        int j_l = envs->j_l;
+        int k_l = envs->k_l;
+        int i_ctr = envs->x_ctr[0];
+        int j_ctr = envs->x_ctr[1];
+        int k_ctr = envs->x_ctr[2];
+        int di = i_l * 2 + 1;
+        int dj = j_l * 2 + 1;
+        int dk = k_l * 2 + 1;
+        int ni = dims[0];
+        int nj = dims[1];
+        int nk = dims[2];
+        int nfi = envs->nfi;
+        int nfk = envs->nfk;
+        int nf = envs->nf;
+        int nfik = nfi * nfk;
+        int ofj = ni * dj;
+        int ofk = ni * nj * dk;
+        int ic, jc, kc;
+        int buflen = nfi*nfk*dj;
+        double *buf1;
+        MALLOC_INSTACK(buf1, buflen*3);
+        double *buf2 = buf1 + buflen;
+        double *buf3 = buf2 + buflen;
+        double *pijk;
+        double *tmp1;
+
+        for (kc = 0; kc < k_ctr; kc++) {
+        for (jc = 0; jc < j_ctr; jc++) {
+        for (ic = 0; ic < i_ctr; ic++) {
+                tmp1 = (c2s_ket_sph[j_l])(buf1, gctr, nfik, nfik, j_l);
+                tmp1 = sph2e_inner(buf2, tmp1, k_l, nfi, dj, nfi*dk, nfik);
+                tmp1 = (c2s_bra_sph[i_l])(buf3, dk*dj, tmp1, i_l);
+                pijk = bufijk + ofk * kc + ofj * jc + di * ic;
+                dcopy_iklj(pijk, tmp1, ni, nj, nk, 1, di, dj, dk, 1);
+                gctr += nf;
+        } } }
+}
+
+void c2s_cart_3c2e1(double *bufijk, double *gctr, int *dims,
+                    CINTEnvVars *envs, double *cache)
+{
+        int i_ctr = envs->x_ctr[0];
+        int j_ctr = envs->x_ctr[1];
+        int k_ctr = envs->x_ctr[2];
+        int nfi = envs->nfi;
+        int nfj = envs->nfj;
+        int nfk = envs->nfk;
+        int ni = dims[0];
+        int nj = dims[1];
+        int nk = dims[2];
+        int nf = envs->nf;
+        int ofj = ni * nfj;
+        int ofk = ni * nj * nfk;
+        int ic, jc, kc;
+        double *pijk;
+
+        for (kc = 0; kc < k_ctr; kc++) {
+        for (jc = 0; jc < j_ctr; jc++) {
+        for (ic = 0; ic < i_ctr; ic++) {
+                pijk = bufijk + ofk * kc + ofj * jc + nfi * ic;
+                dcopy_iklj(pijk, gctr, ni, nj, nk, 1, nfi, nfj, nfk, 1);
+                gctr += nf;
+        } } }
+
+}
+
+/*
+ * ssc ~ (spheric,spheric|cartesian)
+ */
+void c2s_sph_3c2e1_ssc(double *bufijk, double *gctr, int *dims,
+                       CINTEnvVars *envs, double *cache)
+{
+        int i_l = envs->i_l;
+        int j_l = envs->j_l;
+        int i_ctr = envs->x_ctr[0];
+        int j_ctr = envs->x_ctr[1];
+        int k_ctr = envs->x_ctr[2];
+        int di = i_l * 2 + 1;
+        int dj = j_l * 2 + 1;
+        int nfi = envs->nfi;
+        int nfk = envs->nfk;
+        int ni = di * i_ctr;
+        int nj = dj * j_ctr;
+        int nk = nfk * k_ctr;
+        int nf = envs->nf;
+        int nfik = nfi * nfk;
+        int ofj = ni * dj;
+        int ofk = ni * nj * nfk;
+        int ic, jc, kc;
+        int buflen = nfi*nfk*dj;
+        double *buf1, *buf2;
+        MALLOC_INSTACK(buf1, buflen);
+        MALLOC_INSTACK(buf2, buflen);
+        double *pijk;
+        double *tmp1;
+
+        for (kc = 0; kc < k_ctr; kc++) {
+        for (jc = 0; jc < j_ctr; jc++) {
+        for (ic = 0; ic < i_ctr; ic++) {
+                tmp1 = (c2s_ket_sph[j_l])(buf1, gctr, nfik, nfik, j_l);
+                tmp1 = (c2s_bra_sph[i_l])(buf2, nfk*dj, tmp1, i_l);
+                pijk = bufijk + ofk * kc + ofj * jc + nfi * ic;
+                dcopy_iklj(pijk, tmp1, ni, nj, nk, 1, di, dj, nfk, 1);
+                gctr += nf;
+        } } }
+}
+
+/*
+ * 3c2e spinor integrals, cartesian to spin free spinor for electron 1.
+ */
+void c2s_sf_3c2e1(double complex *opijk, double *gctr, int *dims,
+                  CINTEnvVars *envs, double *cache)
+{
+        int *shls = envs->shls;
+        int *bas = envs->bas;
+        int i_sh = shls[0];
+        int j_sh = shls[1];
+        int i_l = envs->i_l;
+        int j_l = envs->j_l;
+        int k_l = envs->k_l;
+        int i_kp = bas(KAPPA_OF, i_sh);
+        int j_kp = bas(KAPPA_OF, j_sh);
+        int i_ctr = envs->x_ctr[0];
+        int j_ctr = envs->x_ctr[1];
+        int k_ctr = envs->x_ctr[2];
+        int di = _len_spinor(i_kp, i_l);
+        int dj = _len_spinor(j_kp, j_l);
+        int dk = k_l * 2 + 1;
+        int nfi = envs->nfi;
+        int nfj = envs->nfj;
+        int nfk = envs->nfk;
+        int nf2j = nfj + nfj;
+        int nf = envs->nf;
+        int nfik = nfi * nfk;
+        int ni = dims[0];
+        int nj = dims[1];
+        int nk = dims[2];
+        int ofj = ni * dj;
+        int ofk = ni * nj * dk;
+        int d_i = di * dk;
+        int d_j = dk * nfj;
+        int ic, jc, kc;
+        int buflen = ALIGN_UP(nfi*dk*nfj, SIMDD);
+        double *buf, *pbuf;
+        int len1 = di*dk*nf2j;
+        int len2 = di*dk*dj;
+        MALLOC_INSTACK(buf, buflen);
+        double complex *tmp1, *tmp2;
+        MALLOC_INSTACK(tmp1, len1);
+        MALLOC_INSTACK(tmp2, len2);
+        double complex *pijk;
+
+        for (kc = 0; kc < k_ctr; kc++) {
+        for (jc = 0; jc < j_ctr; jc++) {
+        for (ic = 0; ic < i_ctr; ic++) {
+                pbuf = sph2e_inner(buf, gctr, k_l, nfi, nfj, nfi*dk, nfik);
+                (c2s_bra_spinor_e1sf[i_l])(tmp1, d_j, pbuf, i_kp, i_l);
+                (c2s_ket_spinor[j_l])(tmp2, d_i, tmp1, j_kp, j_l);
+                pijk = opijk + ofk * kc + ofj * jc + di * ic;
+                zcopy_iklj(pijk, tmp2, ni, nj, nk, 1, di, dj, dk, 1);
+                gctr += nf;
+        } } }
+}
+void c2s_sf_3c2e1i(double complex *opijk, double *gctr, int *dims,
+                   CINTEnvVars *envs, double *cache)
+{
+        int *shls = envs->shls;
+        int *bas = envs->bas;
+        int i_sh = shls[0];
+        int j_sh = shls[1];
+        int i_l = envs->i_l;
+        int j_l = envs->j_l;
+        int k_l = envs->k_l;
+        int i_kp = bas(KAPPA_OF, i_sh);
+        int j_kp = bas(KAPPA_OF, j_sh);
+        int i_ctr = envs->x_ctr[0];
+        int j_ctr = envs->x_ctr[1];
+        int k_ctr = envs->x_ctr[2];
+        int di = _len_spinor(i_kp, i_l);
+        int dj = _len_spinor(j_kp, j_l);
+        int dk = k_l * 2 + 1;
+        int nfi = envs->nfi;
+        int nfj = envs->nfj;
+        int nfk = envs->nfk;
+        int nf2j = nfj + nfj;
+        int nf = envs->nf;
+        int nfik = nfi * nfk;
+        int ni = dims[0];
+        int nj = dims[1];
+        int nk = dims[2];
+        int ofj = ni * dj;
+        int ofk = ni * nj * dk;
+        int d_i = di * dk;
+        int d_j = dk * nfj;
+        int ic, jc, kc;
+        int buflen = ALIGN_UP(nfi*dk*nfj, SIMDD);
+        double *buf, *pbuf;
+        int len1 = di*dk*nf2j;
+        int len2 = di*dk*dj;
+        MALLOC_INSTACK(buf, buflen);
+        double complex *tmp1, *tmp2;
+        MALLOC_INSTACK(tmp1, len1);
+        MALLOC_INSTACK(tmp2, len2);
+        double complex *pijk;
+
+        for (kc = 0; kc < k_ctr; kc++) {
+        for (jc = 0; jc < j_ctr; jc++) {
+        for (ic = 0; ic < i_ctr; ic++) {
+                pbuf = sph2e_inner(buf, gctr, k_l, nfi, nfj, nfi*dk, nfik);
+                (c2s_bra_spinor_e1sf[i_l])(tmp1, d_j, pbuf, i_kp, i_l);
+                (c2s_iket_spinor[j_l])(tmp2, d_i, tmp1, j_kp, j_l);
+                pijk = opijk + ofk * kc + ofj * jc + di * ic;
+                zcopy_iklj(pijk, tmp2, ni, nj, nk, 1, di, dj, dk, 1);
+                gctr += nf;
+        } } }
+}
+/*
+ * 3c2e integrals, cartesian to spinor for electron 1.
+ */
+void c2s_si_3c2e1(double complex *opijk, double *gctr, int *dims,
+                  CINTEnvVars *envs, double *cache)
+{
+        int *shls = envs->shls;
+        int *bas = envs->bas;
+        int i_sh = shls[0];
+        int j_sh = shls[1];
+        int i_l = envs->i_l;
+        int j_l = envs->j_l;
+        int k_l = envs->k_l;
+        int i_kp = bas(KAPPA_OF, i_sh);
+        int j_kp = bas(KAPPA_OF, j_sh);
+        int i_ctr = envs->x_ctr[0];
+        int j_ctr = envs->x_ctr[1];
+        int k_ctr = envs->x_ctr[2];
+        int di = _len_spinor(i_kp, i_l);
+        int dj = _len_spinor(j_kp, j_l);
+        int dk = k_l * 2 + 1;
+        int nfi = envs->nfi;
+        int nfj = envs->nfj;
+        int nfk = envs->nfk;
+        int nf2i = nfi + nfi;
+        int nf2j = nfj + nfj;
+        int nf = envs->nf;
+        int nfik = nfi * nfk;
+        int nfijdk = nfi * nfj * dk;
+        int ni = dims[0];
+        int nj = dims[1];
+        int nk = dims[2];
+        int ofj = ni * dj;
+        int ofk = ni * nj * dk;
+        int d_i = di * dk;
+        int d_j = dk * nf2j;
+        int ic, jc, kc;
+        double *gc_x = gctr;
+        double *gc_y = gc_x + nf * i_ctr * j_ctr * k_ctr;
+        double *gc_z = gc_y + nf * i_ctr * j_ctr * k_ctr;
+        double *gc_1 = gc_z + nf * i_ctr * j_ctr * k_ctr;
+        int buflen = nfi*dk*nfj;
+        double *bufx;
+        MALLOC_INSTACK(bufx, buflen*4);
+        double *bufy = bufx + buflen;
+        double *bufz = bufy + buflen;
+        double *buf1 = bufz + buflen;
+        double *pbufx, *pbufy, *pbufz, *pbuf1;
+        int len1 = nf2i*dk*nf2j;
+        int len2 = di*dk*nf2j;
+        int len3 = di*dk*dj;
+        double complex *tmp1;
+        MALLOC_INSTACK(tmp1, len1+len2+len3);
+        double complex *tmp2 = tmp1 + len1;
+        double complex *tmp3 = tmp2 + len2;
+        double complex *pijk;
+
+        for (kc = 0; kc < k_ctr; kc++) {
+        for (jc = 0; jc < j_ctr; jc++) {
+        for (ic = 0; ic < i_ctr; ic++) {
+                pbufx = sph2e_inner(bufx, gc_x, k_l, nfi, nfj, nfi*dk, nfik);
+                pbufy = sph2e_inner(bufy, gc_y, k_l, nfi, nfj, nfi*dk, nfik);
+                pbufz = sph2e_inner(bufz, gc_z, k_l, nfi, nfj, nfi*dk, nfik);
+                pbuf1 = sph2e_inner(buf1, gc_1, k_l, nfi, nfj, nfi*dk, nfik);
+                //cmplx( gctr.POS_1, gctr.POS_Z)
+                //cmplx( gctr.POS_Y, gctr.POS_X)
+                CINTdcmplx_pp(nfijdk, tmp1, pbuf1, pbufz);
+                CINTdcmplx_pp(nfijdk, tmp1+nfijdk, pbufy, pbufx);
+                //cmplx(-gctr.POS_Y, gctr.POS_X)
+                //cmplx( gctr.POS_1,-gctr.POS_Z)
+                CINTdcmplx_np(nfijdk, tmp1+nfi*d_j, pbufy, pbufx);
+                CINTdcmplx_pn(nfijdk, tmp1+nfi*d_j+nfijdk, pbuf1, pbufz);
+                (c2s_bra_spinor_si[i_l])(tmp2, d_j, tmp1, i_kp, i_l);
+                (c2s_ket_spinor[j_l])(tmp3, d_i, tmp2, j_kp, j_l);
+                pijk = opijk + ofk * kc + ofj * jc + di * ic;
+                zcopy_iklj(pijk, tmp3, ni, nj, nk, 1, di, dj, dk, 1);
+                gc_x += nf;
+                gc_y += nf;
+                gc_z += nf;
+                gc_1 += nf;
+        } } }
+}
+// CHECK
+void c2s_si_3c2e1i(double complex *opijk, double *gctr, int *dims,
+                   CINTEnvVars *envs, double *cache)
+{
+        int *shls = envs->shls;
+        int *bas = envs->bas;
+        int i_sh = shls[0];
+        int j_sh = shls[1];
+        int i_l = envs->i_l;
+        int j_l = envs->j_l;
+        int k_l = envs->k_l;
+        int i_kp = bas(KAPPA_OF, i_sh);
+        int j_kp = bas(KAPPA_OF, j_sh);
+        int i_ctr = envs->x_ctr[0];
+        int j_ctr = envs->x_ctr[1];
+        int k_ctr = envs->x_ctr[2];
+        int di = _len_spinor(i_kp, i_l);
+        int dj = _len_spinor(j_kp, j_l);
+        int dk = k_l * 2 + 1;
+        int nfi = envs->nfi;
+        int nfj = envs->nfj;
+        int nfk = envs->nfk;
+        int nf2i = nfi + nfi;
+        int nf2j = nfj + nfj;
+        int nf = envs->nf;
+        int nfik = nfi * nfk;
+        int nfijdk = nfi * nfj * dk;
+        int ni = dims[0];
+        int nj = dims[1];
+        int nk = dims[2];
+        int ofj = ni * dj;
+        int ofk = ni * nj * dk;
+        int d_i = di * dk;
+        int d_j = dk * nf2j;
+        int ic, jc, kc;
+        double *gc_x = gctr;
+        double *gc_y = gc_x + nf * i_ctr * j_ctr * k_ctr;
+        double *gc_z = gc_y + nf * i_ctr * j_ctr * k_ctr;
+        double *gc_1 = gc_z + nf * i_ctr * j_ctr * k_ctr;
+        double *bufx;
+        int buflen = nfi*dk*nfj;
+        MALLOC_INSTACK(bufx, buflen*4);
+        double *bufy = bufx + buflen;
+        double *bufz = bufy + buflen;
+        double *buf1 = bufz + buflen;
+        double *pbufx, *pbufy, *pbufz, *pbuf1;
+        int len1 = nf2i*dk*nf2j;
+        int len2 = di*dk*nf2j;
+        int len3 = di*dk*dj;
+        double complex *tmp1;
+        MALLOC_INSTACK(tmp1, len1+len2+len3);
+        double complex *tmp2 = tmp1 + len1;
+        double complex *tmp3 = tmp2 + len2;
+        double complex *pijk;
+
+        for (kc = 0; kc < k_ctr; kc++) {
+        for (jc = 0; jc < j_ctr; jc++) {
+        for (ic = 0; ic < i_ctr; ic++) {
+                pbufx = sph2e_inner(bufx, gc_x, k_l, nfi, nfj, nfi*dk, nfik);
+                pbufy = sph2e_inner(bufy, gc_y, k_l, nfi, nfj, nfi*dk, nfik);
+                pbufz = sph2e_inner(bufz, gc_z, k_l, nfi, nfj, nfi*dk, nfik);
+                pbuf1 = sph2e_inner(buf1, gc_1, k_l, nfi, nfj, nfi*dk, nfik);
+                //cmplx( gctr.POS_1, gctr.POS_Z)
+                //cmplx( gctr.POS_Y, gctr.POS_X)
+                CINTdcmplx_pp(nfijdk, tmp1, pbuf1, pbufz);
+                CINTdcmplx_pp(nfijdk, tmp1+nfijdk, pbufy, pbufx);
+                //cmplx(-gctr.POS_Y, gctr.POS_X)
+                //cmplx( gctr.POS_1,-gctr.POS_Z)
+                CINTdcmplx_np(nfijdk, tmp1+nfi*d_j, pbufy, pbufx);
+                CINTdcmplx_pn(nfijdk, tmp1+nfi*d_j+nfijdk, pbuf1, pbufz);
+                (c2s_bra_spinor_si[i_l])(tmp2, d_j, tmp1, i_kp, i_l);
+                (c2s_iket_spinor[j_l])(tmp3, d_i, tmp2, j_kp, j_l);
+                pijk = opijk + ofk * kc + ofj * jc + di * ic;
+                zcopy_iklj(pijk, tmp3, ni, nj, nk, 1, di, dj, dk, 1);
+                gc_x += nf;
+                gc_y += nf;
+                gc_z += nf;
+                gc_1 += nf;
+        } } }
+}
+
+void c2s_sf_3c2e1_ssc(double complex *opijk, double *gctr, int *dims,
+                      CINTEnvVars *envs, double *cache)
+{
+        int *shls = envs->shls;
+        int *bas = envs->bas;
+        int i_sh = shls[0];
+        int j_sh = shls[1];
+        int i_l = envs->i_l;
+        int j_l = envs->j_l;
+        int i_kp = bas(KAPPA_OF, i_sh);
+        int j_kp = bas(KAPPA_OF, j_sh);
+        int i_ctr = envs->x_ctr[0];
+        int j_ctr = envs->x_ctr[1];
+        int k_ctr = envs->x_ctr[2];
+        int di = _len_spinor(i_kp, i_l);
+        int dj = _len_spinor(j_kp, j_l);
+        int nfj = envs->nfj;
+        int nfk = envs->nfk;
+        int nf2j = nfj + nfj;
+        int nf = envs->nf;
+        int ni = dims[0];
+        int nj = dims[1];
+        int nk = dims[2];
+        int ofj = ni * dj;
+        int ofk = ni * nj * nfk;
+        int d_i = di * nfk;
+        int d_j = nfk * nfj;
+        int ic, jc, kc;
+        int len1 = di*nfk*nf2j;
+        int len2 = di*nfk*dj;
+        double complex *tmp1, *tmp2;
+        MALLOC_INSTACK(tmp1, len1);
+        MALLOC_INSTACK(tmp2, len2);
+        double complex *pijk;
+
+        for (kc = 0; kc < k_ctr; kc++) {
+        for (jc = 0; jc < j_ctr; jc++) {
+        for (ic = 0; ic < i_ctr; ic++) {
+                (c2s_bra_spinor_e1sf[i_l])(tmp1, d_j, gctr, i_kp, i_l);
+                (c2s_ket_spinor[j_l])(tmp2, d_i, tmp1, j_kp, j_l);
+                pijk = opijk + ofk * kc + ofj * jc + di * ic;
+                zcopy_iklj(pijk, tmp2, ni, nj, nk, 1, di, dj, nfk, 1);
+                gctr += nf;
+        } } }
+}
+// CHECK
+void c2s_sf_3c2e1i_ssc(double complex *opijk, double *gctr, int *dims,
+                       CINTEnvVars *envs, double *cache)
+{
+        int *shls = envs->shls;
+        int *bas = envs->bas;
+        int i_sh = shls[0];
+        int j_sh = shls[1];
+        int i_l = envs->i_l;
+        int j_l = envs->j_l;
+        int i_kp = bas(KAPPA_OF, i_sh);
+        int j_kp = bas(KAPPA_OF, j_sh);
+        int i_ctr = envs->x_ctr[0];
+        int j_ctr = envs->x_ctr[1];
+        int k_ctr = envs->x_ctr[2];
+        int di = _len_spinor(i_kp, i_l);
+        int dj = _len_spinor(j_kp, j_l);
+        int nfj = envs->nfj;
+        int nfk = envs->nfk;
+        int nf2j = nfj + nfj;
+        int nf = envs->nf;
+        int ni = dims[0];
+        int nj = dims[1];
+        int nk = dims[2];
+        int ofj = ni * dj;
+        int ofk = ni * nj * nfk;
+        int d_i = di * nfk;
+        int d_j = nfk * nfj;
+        int ic, jc, kc;
+        int len1 = di*nfk*nf2j;
+        int len2 = di*nfk*dj;
+        double complex *tmp1, *tmp2;
+        MALLOC_INSTACK(tmp1, len1);
+        MALLOC_INSTACK(tmp2, len2);
+        double complex *pijk;
+
+        for (kc = 0; kc < k_ctr; kc++) {
+        for (jc = 0; jc < j_ctr; jc++) {
+        for (ic = 0; ic < i_ctr; ic++) {
+                (c2s_bra_spinor_e1sf[i_l])(tmp1, d_j, gctr, i_kp, i_l);
+                (c2s_iket_spinor[j_l])(tmp2, d_i, tmp1, j_kp, j_l);
+                pijk = opijk + ofk * kc + ofj * jc + di * ic;
+                zcopy_iklj(pijk, tmp2, ni, nj, nk, 1, di, dj, nfk, 1);
+                gctr += nf;
+        } } }
+}
+void c2s_si_3c2e1_ssc(double complex *opijk, double *gctr, int *dims,
+                      CINTEnvVars *envs, double *cache)
+{
+        int *shls = envs->shls;
+        int *bas = envs->bas;
+        int i_sh = shls[0];
+        int j_sh = shls[1];
+        int i_l = envs->i_l;
+        int j_l = envs->j_l;
+        int i_kp = bas(KAPPA_OF, i_sh);
+        int j_kp = bas(KAPPA_OF, j_sh);
+        int i_ctr = envs->x_ctr[0];
+        int j_ctr = envs->x_ctr[1];
+        int k_ctr = envs->x_ctr[2];
+        int di = _len_spinor(i_kp, i_l);
+        int dj = _len_spinor(j_kp, j_l);
+        int nfi = envs->nfi;
+        int nfj = envs->nfj;
+        int nfk = envs->nfk;
+        int nf2i = nfi + nfi;
+        int nf2j = nfj + nfj;
+        int nf = envs->nf;
+        int nfijdk = nfi * nfj * nfk;
+        int ni = dims[0];
+        int nj = dims[1];
+        int nk = dims[2];
+        int ofj = ni * dj;
+        int ofk = ni * nj * nfk;
+        int d_i = di * nfk;
+        int d_j = nfk * nf2j;
+        int ic, jc, kc;
+        double *gc_x = gctr;
+        double *gc_y = gc_x + nf * i_ctr * j_ctr * k_ctr;
+        double *gc_z = gc_y + nf * i_ctr * j_ctr * k_ctr;
+        double *gc_1 = gc_z + nf * i_ctr * j_ctr * k_ctr;
+        int len1 = nf2i*nfk*nf2j;
+        int len2 = di*nfk*nf2j;
+        int len3 = di*nfk*dj;
+        double complex *tmp1;
+        MALLOC_INSTACK(tmp1, len1+len2+len3);
+        double complex *tmp2 = tmp1 + len1;
+        double complex *tmp3 = tmp2 + len2;
+        double complex *pijk;
+
+        for (kc = 0; kc < k_ctr; kc++) {
+        for (jc = 0; jc < j_ctr; jc++) {
+        for (ic = 0; ic < i_ctr; ic++) {
+                //cmplx( gctr.POS_1, gctr.POS_Z)
+                //cmplx( gctr.POS_Y, gctr.POS_X)
+                CINTdcmplx_pp(nfijdk, tmp1, gc_1, gc_z);
+                CINTdcmplx_pp(nfijdk, tmp1+nfijdk, gc_y, gc_x);
+                //cmplx(-gctr.POS_Y, gctr.POS_X)
+                //cmplx( gctr.POS_1,-gctr.POS_Z)
+                CINTdcmplx_np(nfijdk, tmp1+nfi*d_j, gc_y, gc_x);
+                CINTdcmplx_pn(nfijdk, tmp1+nfi*d_j+nfijdk, gc_1, gc_z);
+                (c2s_bra_spinor_si[i_l])(tmp2, d_j, tmp1, i_kp, i_l);
+                (c2s_ket_spinor[j_l])(tmp3, d_i, tmp2, j_kp, j_l);
+                pijk = opijk + ofk * kc + ofj * jc + di * ic;
+                zcopy_iklj(pijk, tmp3, ni, nj, nk, 1, di, dj, nfk, 1);
+                gc_x += nf;
+                gc_y += nf;
+                gc_z += nf;
+                gc_1 += nf;
+        } } }
+}
+void c2s_si_3c2e1i_ssc(double complex *opijk, double *gctr, int *dims,
+                       CINTEnvVars *envs, double *cache)
+{
+        int *shls = envs->shls;
+        int *bas = envs->bas;
+        int i_sh = shls[0];
+        int j_sh = shls[1];
+        int i_l = envs->i_l;
+        int j_l = envs->j_l;
+        int i_kp = bas(KAPPA_OF, i_sh);
+        int j_kp = bas(KAPPA_OF, j_sh);
+        int i_ctr = envs->x_ctr[0];
+        int j_ctr = envs->x_ctr[1];
+        int k_ctr = envs->x_ctr[2];
+        int di = _len_spinor(i_kp, i_l);
+        int dj = _len_spinor(j_kp, j_l);
+        int nfi = envs->nfi;
+        int nfj = envs->nfj;
+        int nfk = envs->nfk;
+        int nf2i = nfi + nfi;
+        int nf2j = nfj + nfj;
+        int nf = envs->nf;
+        int nfijdk = nfi * nfj * nfk;
+        int ni = dims[0];
+        int nj = dims[1];
+        int nk = dims[2];
+        int ofj = ni * dj;
+        int ofk = ni * nj * nfk;
+        int d_i = di * nfk;
+        int d_j = nfk * nf2j;
+        int ic, jc, kc;
+        double *gc_x = gctr;
+        double *gc_y = gc_x + nf * i_ctr * j_ctr * k_ctr;
+        double *gc_z = gc_y + nf * i_ctr * j_ctr * k_ctr;
+        double *gc_1 = gc_z + nf * i_ctr * j_ctr * k_ctr;
+        int len1 = nf2i*nfk*nf2j;
+        int len2 = di*nfk*nf2j;
+        int len3 = di*nfk*dj;
+        double complex *tmp1;
+        MALLOC_INSTACK(tmp1, len1+len2+len3);
+        double complex *tmp2 = tmp1 + len1;
+        double complex *tmp3 = tmp2 + len2;
+        double complex *pijk;
+
+        for (kc = 0; kc < k_ctr; kc++) {
+        for (jc = 0; jc < j_ctr; jc++) {
+        for (ic = 0; ic < i_ctr; ic++) {
+                //cmplx( gctr.POS_1, gctr.POS_Z)
+                //cmplx( gctr.POS_Y, gctr.POS_X)
+                CINTdcmplx_pp(nfijdk, tmp1, gc_1, gc_z);
+                CINTdcmplx_pp(nfijdk, tmp1+nfijdk, gc_y, gc_x);
+                //cmplx(-gctr.POS_Y, gctr.POS_X)
+                //cmplx( gctr.POS_1,-gctr.POS_Z)
+                CINTdcmplx_np(nfijdk, tmp1+nfi*d_j, gc_y, gc_x);
+                CINTdcmplx_pn(nfijdk, tmp1+nfi*d_j+nfijdk, gc_1, gc_z);
+                (c2s_bra_spinor_si[i_l])(tmp2, d_j, tmp1, i_kp, i_l);
+                (c2s_iket_spinor[j_l])(tmp3, d_i, tmp2, j_kp, j_l);
+                pijk = opijk + ofk * kc + ofj * jc + di * ic;
+                zcopy_iklj(pijk, tmp3, ni, nj, nk, 1, di, dj, nfk, 1);
+                gc_x += nf;
+                gc_y += nf;
+                gc_z += nf;
+                gc_1 += nf;
+        } } }
+}
+
+
+/*************************************************
+ *
+ * 3-center 1-electron integral transformation
+ *
+ *************************************************/
+void c2s_sph_3c1e(double *out, double *gctr, int *dims,
+                  CINTEnvVars *envs, double *cache)
+{
+        c2s_sph_3c2e1(out, gctr, dims, envs, cache);
+}
+
+void c2s_cart_3c1e(double *out, double *gctr, int *dims,
+                   CINTEnvVars *envs, double *cache)
+{
+        c2s_cart_3c2e1(out, gctr, dims, envs, cache);
+}
+
+
+/*************************************************
+ *
+ * transform vectors
+ *
+ *************************************************/
+double *CINTc2s_bra_sph(double *gsph, int nket, double *gcart, int l)
+{
+        return (c2s_bra_sph[l])(gsph, nket, gcart, l);
+}
+double *CINTc2s_ket_sph(double *gsph, int nbra, double *gcart, int l)
+{
+        return (c2s_ket_sph[l])(gsph, gcart, nbra, nbra, l);
+}
+double *CINTc2s_ket_sph1(double *sph, double *cart, int lds, int ldc, int l)
+{
+        return (c2s_ket_sph1[l])(sph, cart, lds, ldc, l);
+}
+void CINTc2s_bra_spinor_e1sf(double complex *gsp, int nket,
+                             double *gcart, int kappa, int l)
+{
+        (c2s_bra_spinor_e1sf[l])(gsp, nket, gcart, kappa, l);
+}
+void CINTc2s_bra_spinor_sf(double complex *gsp, int nket,
+                           double complex *gcart, int kappa, int l)
+{
+        (c2s_bra_spinor_sf[l])(gsp, nket, gcart, kappa, l);
+}
+void CINTc2s_ket_spinor(double complex *gsp, int nbra,
+                        double complex *gcart, int kappa, int l)
+{
+        (c2s_ket_spinor[l])(gsp, nbra, gcart, kappa, l);
+}
+void CINTc2s_iket_spinor(double complex *gsp, int nbra,
+                         double complex *gcart, int kappa, int l)
+{
+        (c2s_iket_spinor[l])(gsp, nbra, gcart, kappa, l);
+}
+void CINTc2s_bra_spinor_si(double complex *gsp, int nket,
+                           double complex *gcart, int kappa, int l)
+{
+        (c2s_bra_spinor_si[l])(gsp, nket, gcart, kappa, l);
+}
+
+
+/*
+ * vectors gspa and gspb are the upper and lower components of the
+ * two-component vector
+ */
+void CINTc2s_ket_spinor_sf1(double complex *gspa, double complex *gspb, double *gcart,
+                            int lds, int ldc, int nctr, int kappa, int l)
+{
+        const int nf = (l+1)*(l+2)/2;
+        const int deg = _len_spinor(kappa, l);
+        int k;
         for (k = 0; k < nctr; k++) {
-                (c2s_ket_spinor_sf1[l])(gspa, gspb, gcart, lds, ldc, l, kappa);
+                (c2s_ket_spinor_e1sf[l])(gspa, gspb, gcart, lds, ldc, kappa, l);
                 gspa += deg * lds;
                 gspb += deg * lds;
                 gcart += nf * ldc;
         }
 }
 void CINTc2s_iket_spinor_sf1(double complex *gspa, double complex *gspb, double *gcart,
-                             FINT lds, FINT ldc, FINT nctr, FINT l, FINT kappa)
+                             int lds, int ldc, int nctr, int kappa, int l)
 {
-        const FINT nf = (l+1)*(l+2)/2;
-        const FINT deg = _len_spinor(l, kappa);
-        FINT k;
+        const int nf = (l+1)*(l+2)/2;
+        const int deg = _len_spinor(kappa, l);
+        int k;
         for (k = 0; k < nctr; k++) {
-                (c2s_iket_spinor_sf1[l])(gspa, gspb, gcart, lds, ldc, l, kappa);
+                (c2s_iket_spinor_e1sf[l])(gspa, gspb, gcart, lds, ldc, kappa, l);
                 gspa += deg * lds;
                 gspb += deg * lds;
                 gcart += nf * ldc;
         }
 }
 void CINTc2s_ket_spinor_si1(double complex *gspa, double complex *gspb, double *gcart,
-                            FINT lds, FINT ldc, FINT nctr, FINT l, FINT kappa)
+                            int lds, int ldc, int nctr, int kappa, int l)
 {
-        const FINT nf = (l+1)*(l+2)/2;
-        const FINT deg = _len_spinor(l, kappa);
-        const FINT ngc = nf * ldc;
+        const int nf = (l+1)*(l+2)/2;
+        const int deg = _len_spinor(kappa, l);
+        const int ngc = nf * ldc;
         const double *gc_x = gcart;
         const double *gc_y = gc_x + nctr*ngc;
         const double *gc_z = gc_y + nctr*ngc;
         const double *gc_1 = gc_z + nctr*ngc;
         double complex *tmp = malloc(sizeof(double complex)*ngc*4);
-        FINT k;
+        int k;
 
         for (k = 0; k < nctr; k++) {
                 //cmplx( gctr.POS_1, gctr.POS_Z)
@@ -9917,24 +9548,24 @@ void CINTc2s_ket_spinor_si1(double complex *gspa, double complex *gspb, double *
                 //cmplx( gctr.POS_1,-gctr.POS_Z)
                 CINTdcmplx_np(ngc, tmp+ngc*2, gc_y+k*ngc, gc_x+k*ngc);
                 CINTdcmplx_pn(ngc, tmp+ngc*3, gc_1+k*ngc, gc_z+k*ngc);
-                (c2s_ket_spinor_si1[l])(gspa, gspb, tmp, lds, ldc, l, kappa);
+                (c2s_ket_spinor_si[l])(gspa, gspb, tmp, lds, ldc, kappa, l);
                 gspa += deg * lds;
                 gspb += deg * lds;
         }
         free(tmp);
 }
 void CINTc2s_iket_spinor_si1(double complex *gspa, double complex *gspb, double *gcart,
-                             FINT lds, FINT ldc, FINT nctr, FINT l, FINT kappa)
+                             int lds, int ldc, int nctr, int kappa, int l)
 {
-        const FINT nf = (l+1)*(l+2)/2;
-        const FINT deg = _len_spinor(l, kappa);
-        const FINT ngc = nf * ldc;
+        const int nf = (l+1)*(l+2)/2;
+        const int deg = _len_spinor(kappa, l);
+        const int ngc = nf * ldc;
         const double *gc_x = gcart;
         const double *gc_y = gc_x + nctr*ngc;
         const double *gc_z = gc_y + nctr*ngc;
         const double *gc_1 = gc_z + nctr*ngc;
         double complex *tmp = malloc(sizeof(double complex)*ngc*4);
-        FINT k;
+        int k;
 
         for (k = 0; k < nctr; k++) {
                 //i*cmplx( gctr.POS_1, gctr.POS_Z)
@@ -9945,7 +9576,7 @@ void CINTc2s_iket_spinor_si1(double complex *gspa, double complex *gspb, double 
                 //i*cmplx( gctr.POS_1,-gctr.POS_Z)
                 CINTdcmplx_nn(ngc, tmp+ngc*2, gc_x+k*ngc, gc_y+k*ngc);
                 CINTdcmplx_pp(ngc, tmp+ngc*3, gc_z+k*ngc, gc_1+k*ngc);
-                (c2s_ket_spinor_si1[l])(gspa, gspb, tmp, lds, ldc, l, kappa);
+                (c2s_ket_spinor_si[l])(gspa, gspb, tmp, lds, ldc, kappa, l);
                 gspa += deg * lds;
                 gspb += deg * lds;
         }
@@ -9957,26 +9588,26 @@ void CINTc2s_iket_spinor_si1(double complex *gspa, double complex *gspb, double 
  * The input gsph (Fortran contiguous) has l*2+1 rows
  * The output gcart (Fortran contiguous) has (l+1)*(l+2)/2 rows
  */
-double *CINTs2c_bra_sph(double *gsph, FINT nket, double *gcart, FINT l)
+double *CINTs2c_bra_sph(double *gsph, int nket, double *gcart, int l)
 {
         const double D0 = 0;
         const double D1 = 1;
         const char TRANS_N = 'N';
-        const FINT nf = (l+1)*(l+2)/2;
-        const FINT nd = l * 2 + 1;
+        const int nf = (l+1)*(l+2)/2;
+        const int nd = l * 2 + 1;
         dgemm_(&TRANS_N, &TRANS_N, &nf, &nket, &nd,
                &D1, g_c2s[l].cart2sph, &nf, gsph, &nd,
                &D0, gcart, &nf);
         return gcart;
 }
-double *CINTs2c_ket_sph(double *gsph, FINT nbra, double *gcart, FINT l)
+double *CINTs2c_ket_sph(double *gsph, int nbra, double *gcart, int l)
 {
         const double D0 = 0;
         const double D1 = 1;
         const char TRANS_T = 'T';
         const char TRANS_N = 'N';
-        const FINT nf = (l+1)*(l+2)/2;
-        const FINT nd = l * 2 + 1;
+        const int nf = (l+1)*(l+2)/2;
+        const int nd = l * 2 + 1;
         dgemm_(&TRANS_N, &TRANS_T, &nbra, &nf, &nd,
                &D1, gsph, &nbra, g_c2s[l].cart2sph, &nf,
                &D0, gcart, &nbra);
