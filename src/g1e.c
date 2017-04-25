@@ -1083,7 +1083,7 @@ void CINTiprim_to_ctr_1(double *RESTRICT gc, double *RESTRICT gp, double *RESTRI
         case 6:
                 for (i = 0; i < non0ctr; i++) {
                         n = sortedidx[i];
-                        c0 = coeff[nprim*i];
+                        c0 = coeff[nprim*n];
                         gc[n*6+0] += c0 * gp[0*SIMDD];
                         gc[n*6+1] += c0 * gp[1*SIMDD];
                         gc[n*6+2] += c0 * gp[2*SIMDD];

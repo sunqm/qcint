@@ -323,7 +323,7 @@ int int1e_cache_size(CINTEnvVars *envs)
 
 int CINT1e_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
                double *cache, void (*f_c2s)())
-{                                  
+{
         int *x_ctr = envs->x_ctr;
         int nc = envs->nf * x_ctr[0] * x_ctr[1];
         int n_comp = envs->ncomp_e1 * envs->ncomp_tensor;
