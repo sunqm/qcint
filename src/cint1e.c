@@ -104,8 +104,10 @@
         MM_STORE(envs->fac, MM_SET1(0.));
 
 #define RUN_REST \
-        (*envs->f_gout)(gout, g, idx, envs, cum); \
-        POP_PRIM2CTR;
+        if (cum > 0) { \
+                (*envs->f_gout)(gout, g, idx, envs, cum); \
+                POP_PRIM2CTR; \
+        }
 
 // little endian on x86
 //typedef union {

@@ -110,24 +110,26 @@
         MM_STORE(envs->fac, MM_SET1(0.));
 
 #define RUN_REST \
-        if (cum == 1) { \
-                CINTg0_2e_simd1(g, &bc, envs, 0); \
-                (*envs->f_gout_simd1)(gout, g, idx, envs); \
-                if (fp2c[0] == &CINTiprim_to_ctr_0) { \
-                        fp2c[0] = CINTprim_to_ctr_0; \
+        if (cum > 0) { \
+                if (cum == 1) { \
+                        CINTg0_2e_simd1(g, &bc, envs, 1); \
+                        (*envs->f_gout_simd1)(gout, g, idx, envs); \
+                        if (fp2c[0] == &CINTiprim_to_ctr_0) { \
+                                fp2c[0] = CINTprim_to_ctr_0; \
+                        } else { \
+                                fp2c[0] = CINTprim_to_ctr_1; \
+                        } \
                 } else { \
-                        fp2c[0] = CINTprim_to_ctr_1; \
+                        r1 = MM_SET1(1.); \
+                        for (i = 0; i < envs->nrys_roots; i++) { \
+                                MM_STORE(bc.u+i*SIMDD, r1); \
+                                MM_STORE(bc.w+i*SIMDD, r1); \
+                        } \
+                        CINTg0_2e(g, &bc, envs, cum); \
+                        (*envs->f_gout)(gout, g, idx, envs); \
                 } \
-        } else { \
-                r1 = MM_SET1(1.); \
-                for (i = 0; i < envs->nrys_roots; i++) { \
-                        MM_STORE(bc.u+i*SIMDD, r1); \
-                        MM_STORE(bc.w+i*SIMDD, r1); \
-                } \
-                CINTg0_2e(g, &bc, envs, cum); \
-                (*envs->f_gout)(gout, g, idx, envs); \
-        } \
-        POP_PRIM2CTR;
+                POP_PRIM2CTR; \
+        }
 
 int CINT2c2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
 {

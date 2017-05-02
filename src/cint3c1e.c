@@ -109,11 +109,13 @@
         MM_STORE(envs->fac, MM_SET1(0.));
 
 #define RUN_REST \
-        for (i = 0; i < cum; i++) { \
-                envs->fac[i] *= exp(-eijks[i]); \
-        } \
-        (*envs->f_gout)(gout, g, idx, envs, cum); \
-        POP_PRIM2CTR;
+        if (cum > 0) { \
+                for (i = 0; i < cum; i++) { \
+                        envs->fac[i] *= exp(-eijks[i]); \
+                } \
+                (*envs->f_gout)(gout, g, idx, envs, cum); \
+                POP_PRIM2CTR; \
+        }
 
 int int3c1e_cache_size(CINTEnvVars *envs);
 void CINTg3c1e_ovlp(double *g, CINTEnvVars *envs, int count);

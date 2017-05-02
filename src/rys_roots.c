@@ -1840,7 +1840,7 @@ static void R_dsmit(double *cs, double *s, int n, int count)
                         r2 = MM_FNMA(r0, r0, r2);
                 }
                 MM_STORE(fac, r2);
-                for (k = 0; k < SIMDD; k++) {
+                for (k = 0; k < count; k++) {
                         if (fac[k] <= 0) {
                                 fprintf(stderr, "libcint::rys_roots negative value in sqrt(fac[%d])\n", k);
                                 exit(1);
