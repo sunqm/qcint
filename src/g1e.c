@@ -190,7 +190,7 @@ void CINTg1e_ovlp(double *g, CINTEnvVars *envs, int count)
 
         MM_STORE(gx, MM_SET1(1.));
         MM_STORE(gy, MM_SET1(1.));
-        MM_STORE(gz, MM_LOAD(envs->fac) * SQRTPI*M_PI / (aij * MM_SQRT(aij)));
+        MM_STORE(gz, MM_LOAD(envs->fac) * MM_SET1(SQRTPI*M_PI) / (aij * MM_SQRT(aij)));
         if (nmax > 0) {
                 //gx[1] = -ririj[0] * gx[0];
                 //gy[1] = -ririj[1] * gy[0];
@@ -210,9 +210,9 @@ void CINTg1e_ovlp(double *g, CINTEnvVars *envs, int count)
 //gx[i+1] = 0.5 * i / aij * gx[i-1] - ririj[0] * gx[i];
 //gy[i+1] = 0.5 * i / aij * gy[i-1] - ririj[1] * gy[i];
 //gz[i+1] = 0.5 * i / aij * gz[i-1] - ririj[2] * gz[i];
-MM_STORE(p0x+i*di*SIMDD, r1 * i * MM_LOAD(p1x+i*di*SIMDD) - ririj[0] * MM_LOAD(gx+i*di*SIMDD));
-MM_STORE(p0y+i*di*SIMDD, r1 * i * MM_LOAD(p1y+i*di*SIMDD) - ririj[1] * MM_LOAD(gy+i*di*SIMDD));
-MM_STORE(p0z+i*di*SIMDD, r1 * i * MM_LOAD(p1z+i*di*SIMDD) - ririj[2] * MM_LOAD(gz+i*di*SIMDD));
+MM_STORE(p0x+i*di*SIMDD, r1 * MM_SET1(i) * MM_LOAD(p1x+i*di*SIMDD) - ririj[0] * MM_LOAD(gx+i*di*SIMDD));
+MM_STORE(p0y+i*di*SIMDD, r1 * MM_SET1(i) * MM_LOAD(p1y+i*di*SIMDD) - ririj[1] * MM_LOAD(gy+i*di*SIMDD));
+MM_STORE(p0z+i*di*SIMDD, r1 * MM_SET1(i) * MM_LOAD(p1z+i*di*SIMDD) - ririj[2] * MM_LOAD(gz+i*di*SIMDD));
                 }
 
                 p0x = gx  - dj * SIMDD;
@@ -227,9 +227,9 @@ MM_STORE(p0z+i*di*SIMDD, r1 * i * MM_LOAD(p1z+i*di*SIMDD) - ririj[2] * MM_LOAD(g
 //gx[i] = gx[i+1-dj] + rirj[0] * gx[i-dj];
 //gy[i] = gy[i+1-dj] + rirj[1] * gy[i-dj];
 //gz[i] = gz[i+1-dj] + rirj[2] * gz[i-dj];
-MM_STORE(gx+n*SIMDD, MM_LOAD(p1x+n*SIMDD) + rirj[0] * MM_LOAD(p0x+n*SIMDD));
-MM_STORE(gy+n*SIMDD, MM_LOAD(p1y+n*SIMDD) + rirj[1] * MM_LOAD(p0y+n*SIMDD));
-MM_STORE(gz+n*SIMDD, MM_LOAD(p1z+n*SIMDD) + rirj[2] * MM_LOAD(p0z+n*SIMDD));
+MM_STORE(gx+n*SIMDD, MM_LOAD(p1x+n*SIMDD) + MM_SET1(rirj[0]) * MM_LOAD(p0x+n*SIMDD));
+MM_STORE(gy+n*SIMDD, MM_LOAD(p1y+n*SIMDD) + MM_SET1(rirj[1]) * MM_LOAD(p0y+n*SIMDD));
+MM_STORE(gz+n*SIMDD, MM_LOAD(p1z+n*SIMDD) + MM_SET1(rirj[2]) * MM_LOAD(p0z+n*SIMDD));
                         }
                 }
         }
@@ -289,16 +289,16 @@ void CINTg1e_nuc(double *g, CINTEnvVars *envs, int count, int nuc_id)
         }
 
         if (nuc_id < 0) {
-                fac1 = 2*M_PI * MM_LOAD(envs->fac) * MM_LOAD(tau) / aij;
+                fac1 = MM_SET1(2*M_PI) * MM_LOAD(envs->fac) * MM_LOAD(tau) / aij;
                 cr = env + PTR_RINV_ORIG;
         } else {
-                fac1 = 2*M_PI * MM_SET1(-fabs(atm[CHARGE_OF+nuc_id*ATM_SLOTS]));
+                fac1 = MM_SET1(2*M_PI) * MM_SET1(-fabs(atm[CHARGE_OF+nuc_id*ATM_SLOTS]));
                 fac1 = fac1 * MM_LOAD(envs->fac) * MM_LOAD(tau) / aij;
                 cr = env + atm(PTR_COORD, nuc_id);
         }
-        crij[0] = cr[0] - MM_LOAD(rij+0*SIMDD);
-        crij[1] = cr[1] - MM_LOAD(rij+1*SIMDD);
-        crij[2] = cr[2] - MM_LOAD(rij+2*SIMDD);
+        crij[0] = MM_SET1(cr[0]) - MM_LOAD(rij+0*SIMDD);
+        crij[1] = MM_SET1(cr[1]) - MM_LOAD(rij+1*SIMDD);
+        crij[2] = MM_SET1(cr[2]) - MM_LOAD(rij+2*SIMDD);
         MM_STORE(x, aij * MM_LOAD(tau) * MM_LOAD(tau) * SQUARE(crij));
         for (i = 0; i < nrys_roots*SIMDD; i++) {
                 u[i] = 0;
@@ -323,9 +323,9 @@ void CINTg1e_nuc(double *g, CINTEnvVars *envs, int count, int nuc_id)
         r0 = MM_SET1(0.5);
         for (i = 0; i < nrys_roots; i++) {
                 rt2 = MM_DIV(r1 * MM_LOAD(u+i*SIMDD), r1 + MM_LOAD(u+i*SIMDD));
-                MM_STORE(ri0x+i*SIMDD, ri[0] - (MM_LOAD(rij+0*SIMDD) + rt2 * crij[0]));
-                MM_STORE(ri0y+i*SIMDD, ri[1] - (MM_LOAD(rij+1*SIMDD) + rt2 * crij[1]));
-                MM_STORE(ri0z+i*SIMDD, ri[2] - (MM_LOAD(rij+2*SIMDD) + rt2 * crij[2]));
+                MM_STORE(ri0x+i*SIMDD, MM_SET1(ri[0]) - (MM_LOAD(rij+0*SIMDD) + rt2 * crij[0]));
+                MM_STORE(ri0y+i*SIMDD, MM_SET1(ri[1]) - (MM_LOAD(rij+1*SIMDD) + rt2 * crij[1]));
+                MM_STORE(ri0z+i*SIMDD, MM_SET1(ri[2]) - (MM_LOAD(rij+2*SIMDD) + rt2 * crij[2]));
                 MM_STORE(t2+i*SIMDD, MM_DIV(r0 - r0 * rt2, aij));
         }
 
@@ -374,9 +374,9 @@ MM_STORE(p0z+(ptr+n)*SIMDD, r1 * MM_LOAD(p1z+(ptr+n)*SIMDD) - MM_LOAD(ri0z+n*SIM
 //gx[i] = gx[i+1-dj] + rirj[0] * gx[i-dj];
 //gy[i] = gy[i+1-dj] + rirj[1] * gy[i-dj];
 //gz[i] = gz[i+1-dj] + rirj[2] * gz[i-dj];
-MM_STORE(gx+n*SIMDD, MM_LOAD(p1x+n*SIMDD) + rirj[0] * MM_LOAD(p0x+n*SIMDD));
-MM_STORE(gy+n*SIMDD, MM_LOAD(p1y+n*SIMDD) + rirj[1] * MM_LOAD(p0y+n*SIMDD));
-MM_STORE(gz+n*SIMDD, MM_LOAD(p1z+n*SIMDD) + rirj[2] * MM_LOAD(p0z+n*SIMDD));
+MM_STORE(gx+n*SIMDD, MM_LOAD(p1x+n*SIMDD) + MM_SET1(rirj[0]) * MM_LOAD(p0x+n*SIMDD));
+MM_STORE(gy+n*SIMDD, MM_LOAD(p1y+n*SIMDD) + MM_SET1(rirj[1]) * MM_LOAD(p0y+n*SIMDD));
+MM_STORE(gz+n*SIMDD, MM_LOAD(p1z+n*SIMDD) + MM_SET1(rirj[2]) * MM_LOAD(p0z+n*SIMDD));
                                 }
                         }
                 }
