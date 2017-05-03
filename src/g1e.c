@@ -608,15 +608,16 @@ void CINTprim_to_ctr_0(double *RESTRICT gc, double *RESTRICT gp, double *RESTRIC
         double *RESTRICT p1;
         double *RESTRICT p2;
         double *RESTRICT p3;
-        __MD r0, r1, r2, r3, rg;
+        __MD r0, r1, r2, r3, rg, rh;
 
         switch (non0ctr) {
         case 1:
                 c0 = coeff[nprim*sortedidx[0]];
                 p0 = gc + nf * sortedidx[0];
                 r0 = MM_SET1(c0);
-                for (n = 0; n < nf/SIMDD; n++) {
-                        MM_STOREU(p0+n*SIMDD, MM_MUL(r0, MM_LOADU(gp+n*SIMDD)));
+                for (n = 0; n < nf/SIMDD-1; n+=2) {
+                        MM_STOREU(p0+n*SIMDD      , MM_MUL(r0, MM_LOADU(gp+n*SIMDD      )));
+                        MM_STOREU(p0+n*SIMDD+SIMDD, MM_MUL(r0, MM_LOADU(gp+n*SIMDD+SIMDD)));
                 }
                 for (n = n*SIMDD; n < nf; n++) {
                         p0[n] = c0 * gp[n];
@@ -629,10 +630,13 @@ void CINTprim_to_ctr_0(double *RESTRICT gc, double *RESTRICT gp, double *RESTRIC
                 p1 = gc + nf * sortedidx[1];
                 r0 = MM_SET1(c0);
                 r1 = MM_SET1(c1);
-                for (n = 0; n < nf/SIMDD; n++) {
-                        rg = MM_LOADU(gp+n*SIMDD);
-                        MM_STOREU(p0+n*SIMDD, MM_MUL(r0, rg));
-                        MM_STOREU(p1+n*SIMDD, MM_MUL(r1, rg));
+                for (n = 0; n < nf/SIMDD-1; n+=2) {
+                        rg = MM_LOADU(gp+n*SIMDD      );
+                        rh = MM_LOADU(gp+n*SIMDD+SIMDD);
+                        MM_STOREU(p0+n*SIMDD      , MM_MUL(r0, rg));
+                        MM_STOREU(p0+n*SIMDD+SIMDD, MM_MUL(r0, rh));
+                        MM_STOREU(p1+n*SIMDD      , MM_MUL(r1, rg));
+                        MM_STOREU(p1+n*SIMDD+SIMDD, MM_MUL(r1, rh));
                 }
                 for (n = n*SIMDD; n < nf; n++) {
                         p0[n] = c0 * gp[n];
@@ -649,11 +653,15 @@ void CINTprim_to_ctr_0(double *RESTRICT gc, double *RESTRICT gp, double *RESTRIC
                 r0 = MM_SET1(c0);
                 r1 = MM_SET1(c1);
                 r2 = MM_SET1(c2);
-                for (n = 0; n < nf/SIMDD; n++) {
-                        rg = MM_LOADU(gp+n*SIMDD);
-                        MM_STOREU(p0+n*SIMDD, MM_MUL(r0, rg));
-                        MM_STOREU(p1+n*SIMDD, MM_MUL(r1, rg));
-                        MM_STOREU(p2+n*SIMDD, MM_MUL(r2, rg));
+                for (n = 0; n < nf/SIMDD-1; n+=2) {
+                        rg = MM_LOADU(gp+n*SIMDD      );
+                        rh = MM_LOADU(gp+n*SIMDD+SIMDD);
+                        MM_STOREU(p0+n*SIMDD      , MM_MUL(r0, rg));
+                        MM_STOREU(p0+n*SIMDD+SIMDD, MM_MUL(r0, rh));
+                        MM_STOREU(p1+n*SIMDD      , MM_MUL(r1, rg));
+                        MM_STOREU(p1+n*SIMDD+SIMDD, MM_MUL(r1, rh));
+                        MM_STOREU(p2+n*SIMDD      , MM_MUL(r2, rg));
+                        MM_STOREU(p2+n*SIMDD+SIMDD, MM_MUL(r2, rh));
                 }
                 for (n = n*SIMDD; n < nf; n++) {
                         p0[n] = c0 * gp[n];
@@ -739,16 +747,18 @@ void CINTprim_to_ctr_1(double *RESTRICT gc, double *RESTRICT gp, double *RESTRIC
         double *RESTRICT p1;
         double *RESTRICT p2;
         double *RESTRICT p3;
-        __MD r0, r1, r2, r3, rg;
+        __MD r0, r1, r2, r3, rg, rh;
 
         switch (non0ctr) {
         case 1:
                 c0 = coeff[nprim*sortedidx[0]];
                 p0 = gc + nf * sortedidx[0];
                 r0 = MM_SET1(c0);
-                for (n = 0; n < nf/SIMDD; n++) {
-                        rg = MM_LOADU(gp+n*SIMDD);
-                        MM_STOREU(p0+n*SIMDD, MM_FMA(r0, rg, MM_LOADU(p0+n*SIMDD)));
+                for (n = 0; n < nf/SIMDD-1; n+=2) {
+                        rg = MM_LOADU(gp+n*SIMDD      );
+                        rh = MM_LOADU(gp+n*SIMDD+SIMDD);
+                        MM_STOREU(p0+n*SIMDD      , MM_FMA(r0, rg, MM_LOADU(p0+n*SIMDD      )));
+                        MM_STOREU(p0+n*SIMDD+SIMDD, MM_FMA(r0, rh, MM_LOADU(p0+n*SIMDD+SIMDD)));
                 }
                 for (n = n*SIMDD; n < nf; n++) {
                         p0[n] += c0 * gp[n];
@@ -761,10 +771,13 @@ void CINTprim_to_ctr_1(double *RESTRICT gc, double *RESTRICT gp, double *RESTRIC
                 p1 = gc + nf * sortedidx[1];
                 r0 = MM_SET1(c0);
                 r1 = MM_SET1(c1);
-                for (n = 0; n < nf/SIMDD; n++) {
-                        rg = MM_LOADU(gp+n*SIMDD);
-                        MM_STOREU(p0+n*SIMDD, MM_FMA(r0, rg, MM_LOADU(p0+n*SIMDD)));
-                        MM_STOREU(p1+n*SIMDD, MM_FMA(r1, rg, MM_LOADU(p1+n*SIMDD)));
+                for (n = 0; n < nf/SIMDD-1; n+=2) {
+                        rg = MM_LOADU(gp+n*SIMDD      );
+                        rh = MM_LOADU(gp+n*SIMDD+SIMDD);
+                        MM_STOREU(p0+n*SIMDD      , MM_FMA(r0, rg, MM_LOADU(p0+n*SIMDD      )));
+                        MM_STOREU(p0+n*SIMDD+SIMDD, MM_FMA(r0, rh, MM_LOADU(p0+n*SIMDD+SIMDD)));
+                        MM_STOREU(p1+n*SIMDD      , MM_FMA(r1, rg, MM_LOADU(p1+n*SIMDD      )));
+                        MM_STOREU(p1+n*SIMDD+SIMDD, MM_FMA(r1, rh, MM_LOADU(p1+n*SIMDD+SIMDD)));
                 }
                 for (n = n*SIMDD; n < nf; n++) {
                         p0[n] += c0 * gp[n];
@@ -781,11 +794,15 @@ void CINTprim_to_ctr_1(double *RESTRICT gc, double *RESTRICT gp, double *RESTRIC
                 r0 = MM_SET1(c0);
                 r1 = MM_SET1(c1);
                 r2 = MM_SET1(c2);
-                for (n = 0; n < nf/SIMDD; n++) {
-                        rg = MM_LOADU(gp+n*SIMDD);
-                        MM_STOREU(p0+n*SIMDD, MM_FMA(r0, rg, MM_LOADU(p0+n*SIMDD)));
-                        MM_STOREU(p1+n*SIMDD, MM_FMA(r1, rg, MM_LOADU(p1+n*SIMDD)));
-                        MM_STOREU(p2+n*SIMDD, MM_FMA(r2, rg, MM_LOADU(p2+n*SIMDD)));
+                for (n = 0; n < nf/SIMDD-1; n+=2) {
+                        rg = MM_LOADU(gp+n*SIMDD      );
+                        rh = MM_LOADU(gp+n*SIMDD+SIMDD);
+                        MM_STOREU(p0+n*SIMDD      , MM_FMA(r0, rg, MM_LOADU(p0+n*SIMDD      )));
+                        MM_STOREU(p0+n*SIMDD+SIMDD, MM_FMA(r0, rh, MM_LOADU(p0+n*SIMDD+SIMDD)));
+                        MM_STOREU(p1+n*SIMDD      , MM_FMA(r1, rg, MM_LOADU(p1+n*SIMDD      )));
+                        MM_STOREU(p1+n*SIMDD+SIMDD, MM_FMA(r1, rh, MM_LOADU(p1+n*SIMDD+SIMDD)));
+                        MM_STOREU(p2+n*SIMDD      , MM_FMA(r2, rg, MM_LOADU(p2+n*SIMDD      )));
+                        MM_STOREU(p2+n*SIMDD+SIMDD, MM_FMA(r2, rh, MM_LOADU(p2+n*SIMDD+SIMDD)));
                 }
                 for (n = n*SIMDD; n < nf; n++) {
                         p0[n] += c0 * gp[n];
@@ -806,12 +823,17 @@ void CINTprim_to_ctr_1(double *RESTRICT gc, double *RESTRICT gp, double *RESTRIC
                 r1 = MM_SET1(c1);
                 r2 = MM_SET1(c2);
                 r3 = MM_SET1(c3);
-                for (n = 0; n < nf/SIMDD; n++) {
-                        rg = MM_LOADU(gp+n*SIMDD);
-                        MM_STOREU(p0+n*SIMDD, MM_FMA(r0, rg, MM_LOADU(p0+n*SIMDD)));
-                        MM_STOREU(p1+n*SIMDD, MM_FMA(r1, rg, MM_LOADU(p1+n*SIMDD)));
-                        MM_STOREU(p2+n*SIMDD, MM_FMA(r2, rg, MM_LOADU(p2+n*SIMDD)));
-                        MM_STOREU(p3+n*SIMDD, MM_FMA(r3, rg, MM_LOADU(p3+n*SIMDD)));
+                for (n = 0; n < nf/SIMDD-1; n+=2) {
+                        rg = MM_LOADU(gp+n*SIMDD      );
+                        rh = MM_LOADU(gp+n*SIMDD+SIMDD);
+                        MM_STOREU(p0+n*SIMDD      , MM_FMA(r0, rg, MM_LOADU(p0+n*SIMDD      )));
+                        MM_STOREU(p0+n*SIMDD+SIMDD, MM_FMA(r0, rh, MM_LOADU(p0+n*SIMDD+SIMDD)));
+                        MM_STOREU(p1+n*SIMDD      , MM_FMA(r1, rg, MM_LOADU(p1+n*SIMDD      )));
+                        MM_STOREU(p1+n*SIMDD+SIMDD, MM_FMA(r1, rh, MM_LOADU(p1+n*SIMDD+SIMDD)));
+                        MM_STOREU(p2+n*SIMDD      , MM_FMA(r2, rg, MM_LOADU(p2+n*SIMDD      )));
+                        MM_STOREU(p2+n*SIMDD+SIMDD, MM_FMA(r2, rh, MM_LOADU(p2+n*SIMDD+SIMDD)));
+                        MM_STOREU(p3+n*SIMDD      , MM_FMA(r3, rg, MM_LOADU(p3+n*SIMDD      )));
+                        MM_STOREU(p3+n*SIMDD+SIMDD, MM_FMA(r3, rh, MM_LOADU(p3+n*SIMDD+SIMDD)));
                 }
                 for (n = n*SIMDD; n < nf; n++) {
                         p0[n] += c0 * gp[n];
@@ -876,11 +898,14 @@ void CINTiprim_to_ctr_0(double *RESTRICT gc, double *RESTRICT gp, double *RESTRI
         double *RESTRICT p1;
         double *RESTRICT p2;
         double *RESTRICT p3;
-        __MD r0, r1, r2, r3, rg;
+        __MD r0, r1, r2, r3, rg, rh;
 #if (SIMDD == 8)
         __m256i vindex;
-#else
+#elif __AVX2__
         __m128i vindex;
+#else
+        int vindex[SIMDD];
+        ALIGNMM double _dreg[SIMDD];
 #endif
         switch (nf) {
         case 1:
@@ -925,7 +950,7 @@ void CINTiprim_to_ctr_0(double *RESTRICT gc, double *RESTRICT gp, double *RESTRI
 #if (SIMDD == 8)
                 vindex = _mm256_set_epi32(7*SIMDD, 6*SIMDD, 5*SIMDD, 4*SIMDD,
                                           3*SIMDD, 2*SIMDD, 1*SIMDD, 0);
-#else
+#elif __AVX2__
                 vindex = _mm_set_epi32(3*SIMDD, 2*SIMDD, 1*SIMDD, 0);
 #endif
                 switch (non0ctr) {
@@ -933,9 +958,26 @@ void CINTiprim_to_ctr_0(double *RESTRICT gc, double *RESTRICT gp, double *RESTRI
                         c0 = coeff[nprim*sortedidx[0]];
                         p0 = gc + nf * sortedidx[0];
                         r0 = MM_SET1(c0);
-                        for (n = 0; n < nf/SIMDD; n++) {
-                                rg = MM_GATHER(gp+n*SIMDD*SIMDD, vindex, 8);
+                        for (n = 0; n < nf/SIMDD-1; n+=2) {
+#ifdef __AVX2__
+                                rg = MM_GATHER(gp+ n   *SIMDD*SIMDD, vindex, 8);
+                                rh = MM_GATHER(gp+(n+1)*SIMDD*SIMDD, vindex, 8);
+                                MM_STOREU(p0+ n   *SIMDD, MM_MUL(r0, rg));
+                                MM_STOREU(p0+(n+1)*SIMDD, MM_MUL(r0, rh));
+#else
+                                _dreg[0] = gp[n*SIMDD*SIMDD        ];
+                                _dreg[1] = gp[n*SIMDD*SIMDD+1*SIMDD];
+                                _dreg[2] = gp[n*SIMDD*SIMDD+2*SIMDD];
+                                _dreg[3] = gp[n*SIMDD*SIMDD+3*SIMDD];
+                                MM_LOAD(rg, _dreg);
                                 MM_STOREU(p0+n*SIMDD, MM_MUL(r0, rg));
+                                _dreg[0] = gp[(n+1)*SIMDD*SIMDD        ];
+                                _dreg[1] = gp[(n+1)*SIMDD*SIMDD+1*SIMDD];
+                                _dreg[2] = gp[(n+1)*SIMDD*SIMDD+2*SIMDD];
+                                _dreg[3] = gp[(n+1)*SIMDD*SIMDD+3*SIMDD];
+                                MM_LOAD(rg, _dreg);
+                                MM_STOREU(p0+(n+1)*SIMDD, MM_MUL(r0, rg));
+#endif
                         }
                         for (n = n*SIMDD; n < nf; n++) {
                                 p0[n] = c0 * gp[n*SIMDD];
@@ -948,10 +990,30 @@ void CINTiprim_to_ctr_0(double *RESTRICT gc, double *RESTRICT gp, double *RESTRI
                         p1 = gc + nf * sortedidx[1];
                         r0 = MM_SET1(c0);
                         r1 = MM_SET1(c1);
-                        for (n = 0; n < nf/SIMDD; n++) {
-                                rg = MM_GATHER(gp+n*SIMDD*SIMDD, vindex, 8);
+                        for (n = 0; n < nf/SIMDD-1; n+=2) {
+#ifdef __AVX2__
+                                rg = MM_GATHER(gp+ n   *SIMDD*SIMDD, vindex, 8);
+                                rh = MM_GATHER(gp+(n+1)*SIMDD*SIMDD, vindex, 8);
+                                MM_STOREU(p0+ n   *SIMDD, MM_MUL(r0, rg));
+                                MM_STOREU(p0+(n+1)*SIMDD, MM_MUL(r0, rh));
+                                MM_STOREU(p1+ n   *SIMDD, MM_MUL(r1, rg));
+                                MM_STOREU(p1+(n+1)*SIMDD, MM_MUL(r1, rh));
+#else
+                                _dreg[0] = gp[n*SIMDD*SIMDD        ];
+                                _dreg[1] = gp[n*SIMDD*SIMDD+1*SIMDD];
+                                _dreg[2] = gp[n*SIMDD*SIMDD+2*SIMDD];
+                                _dreg[3] = gp[n*SIMDD*SIMDD+3*SIMDD];
+                                MM_LOAD(rg, _dreg);
                                 MM_STOREU(p0+n*SIMDD, MM_MUL(r0, rg));
                                 MM_STOREU(p1+n*SIMDD, MM_MUL(r1, rg));
+                                _dreg[0] = gp[(n+1)*SIMDD*SIMDD        ];
+                                _dreg[1] = gp[(n+1)*SIMDD*SIMDD+1*SIMDD];
+                                _dreg[2] = gp[(n+1)*SIMDD*SIMDD+2*SIMDD];
+                                _dreg[3] = gp[(n+1)*SIMDD*SIMDD+3*SIMDD];
+                                MM_LOAD(rg, _dreg);
+                                MM_STOREU(p0+(n+1)*SIMDD, MM_MUL(r0, rg));
+                                MM_STOREU(p1+(n+1)*SIMDD, MM_MUL(r1, rg));
+#endif
                         }
                         for (n = n*SIMDD; n < nf; n++) {
                                 p0[n] = c0 * gp[n*SIMDD];
@@ -969,10 +1031,33 @@ void CINTiprim_to_ctr_0(double *RESTRICT gc, double *RESTRICT gp, double *RESTRI
                         r1 = MM_SET1(c1);
                         r2 = MM_SET1(c2);
                         for (n = 0; n < nf/SIMDD; n++) {
-                                rg = MM_GATHER(gp+n*SIMDD*SIMDD, vindex, 8);
+#ifdef __AVX2__
+                                rg = MM_GATHER(gp+ n   *SIMDD*SIMDD, vindex, 8);
+                                rh = MM_GATHER(gp+(n+1)*SIMDD*SIMDD, vindex, 8);
+                                MM_STOREU(p0+ n   *SIMDD, MM_MUL(r0, rg));
+                                MM_STOREU(p0+(n+1)*SIMDD, MM_MUL(r0, rh));
+                                MM_STOREU(p1+ n   *SIMDD, MM_MUL(r1, rg));
+                                MM_STOREU(p1+(n+1)*SIMDD, MM_MUL(r1, rh));
+                                MM_STOREU(p2+ n   *SIMDD, MM_MUL(r2, rg));
+                                MM_STOREU(p2+(n+1)*SIMDD, MM_MUL(r2, rh));
+#else
+                                _dreg[0] = gp[n*SIMDD*SIMDD        ];
+                                _dreg[1] = gp[n*SIMDD*SIMDD+1*SIMDD];
+                                _dreg[2] = gp[n*SIMDD*SIMDD+2*SIMDD];
+                                _dreg[3] = gp[n*SIMDD*SIMDD+3*SIMDD];
+                                MM_LOAD(rg, _dreg);
                                 MM_STOREU(p0+n*SIMDD, MM_MUL(r0, rg));
                                 MM_STOREU(p1+n*SIMDD, MM_MUL(r1, rg));
                                 MM_STOREU(p2+n*SIMDD, MM_MUL(r2, rg));
+                                _dreg[0] = gp[(n+1)*SIMDD*SIMDD        ];
+                                _dreg[1] = gp[(n+1)*SIMDD*SIMDD+1*SIMDD];
+                                _dreg[2] = gp[(n+1)*SIMDD*SIMDD+2*SIMDD];
+                                _dreg[3] = gp[(n+1)*SIMDD*SIMDD+3*SIMDD];
+                                MM_LOAD(rg, _dreg);
+                                MM_STOREU(p0+(n+1)*SIMDD, MM_MUL(r0, rg));
+                                MM_STOREU(p1+(n+1)*SIMDD, MM_MUL(r1, rg));
+                                MM_STOREU(p2+(n+1)*SIMDD, MM_MUL(r2, rg));
+#endif
                         }
                         for (n = n*SIMDD; n < nf; n++) {
                                 p0[n] = c0 * gp[n*SIMDD];
@@ -994,7 +1079,15 @@ void CINTiprim_to_ctr_0(double *RESTRICT gc, double *RESTRICT gp, double *RESTRI
                         r2 = MM_SET1(c2);
                         r3 = MM_SET1(c3);
                         for (n = 0; n < nf/SIMDD; n++) {
+#ifdef __AVX2__
                                 rg = MM_GATHER(gp+n*SIMDD*SIMDD, vindex, 8);
+#else
+                                _dreg[0] = gp[n*SIMDD*SIMDD        ];
+                                _dreg[1] = gp[n*SIMDD*SIMDD+1*SIMDD];
+                                _dreg[2] = gp[n*SIMDD*SIMDD+2*SIMDD];
+                                _dreg[3] = gp[n*SIMDD*SIMDD+3*SIMDD];
+                                MM_LOAD(rg, _dreg);
+#endif
                                 MM_STOREU(p0+n*SIMDD, MM_MUL(r0, rg));
                                 MM_STOREU(p1+n*SIMDD, MM_MUL(r1, rg));
                                 MM_STOREU(p2+n*SIMDD, MM_MUL(r2, rg));
@@ -1016,7 +1109,15 @@ void CINTiprim_to_ctr_0(double *RESTRICT gc, double *RESTRICT gp, double *RESTRI
                                 r0 = MM_SET1(c0);
                                 r1 = MM_SET1(c1);
                                 for (n = 0; n < nf/SIMDD; n++) {
+#ifdef __AVX2__
                                         rg = MM_GATHER(gp+n*SIMDD*SIMDD, vindex, 8);
+#else
+                                        _dreg[0] = gp[n*SIMDD*SIMDD        ];
+                                        _dreg[1] = gp[n*SIMDD*SIMDD+1*SIMDD];
+                                        _dreg[2] = gp[n*SIMDD*SIMDD+2*SIMDD];
+                                        _dreg[3] = gp[n*SIMDD*SIMDD+3*SIMDD];
+                                        MM_LOAD(rg, _dreg);
+#endif
                                         MM_STOREU(p0+n*SIMDD, MM_MUL(r0, rg));
                                         MM_STOREU(p1+n*SIMDD, MM_MUL(r1, rg));
                                 }
@@ -1030,7 +1131,15 @@ void CINTiprim_to_ctr_0(double *RESTRICT gc, double *RESTRICT gp, double *RESTRI
                                 p0 = gc + nf * sortedidx[i];
                                 r0 = MM_SET1(c0);
                                 for (n = 0; n < nf/SIMDD; n++) {
+#ifdef __AVX2__
                                         rg = MM_GATHER(gp+n*SIMDD*SIMDD, vindex, 8);
+#else
+                                        _dreg[0] = gp[n*SIMDD*SIMDD        ];
+                                        _dreg[1] = gp[n*SIMDD*SIMDD+1*SIMDD];
+                                        _dreg[2] = gp[n*SIMDD*SIMDD+2*SIMDD];
+                                        _dreg[3] = gp[n*SIMDD*SIMDD+3*SIMDD];
+                                        MM_LOAD(rg, _dreg);
+#endif
                                         MM_STOREU(p0+n*SIMDD, MM_MUL(r0, rg));
                                 }
                                 for (n = n*SIMDD; n < nf; n++) {
@@ -1060,11 +1169,14 @@ void CINTiprim_to_ctr_1(double *RESTRICT gc, double *RESTRICT gp, double *RESTRI
         double *RESTRICT p1;
         double *RESTRICT p2;
         double *RESTRICT p3;
-        __MD r0, r1, r2, r3, rg;
+        __MD r0, r1, r2, r3, rg, rh;
 #if (SIMDD == 8)
         __m256i vindex;
-#else
+#elif __AVX2__
         __m128i vindex;
+#else
+        int vindex[SIMDD];
+        ALIGNMM double _dreg[SIMDD];
 #endif
         switch (nf) {
         case 1:
@@ -1119,9 +1231,26 @@ void CINTiprim_to_ctr_1(double *RESTRICT gc, double *RESTRICT gp, double *RESTRI
                         c0 = coeff[nprim*sortedidx[0]];
                         p0 = gc + nf * sortedidx[0];
                         r0 = MM_SET1(c0);
-                        for (n = 0; n < nf/SIMDD; n++) {
-                                rg = MM_GATHER(gp+n*SIMDD*SIMDD, vindex, 8);
+                        for (n = 0; n < nf/SIMDD-1; n+=2) {
+#ifdef __AVX2__
+                                rg = MM_GATHER(gp+ n   *SIMDD*SIMDD, vindex, 8);
+                                rh = MM_GATHER(gp+(n+1)*SIMDD*SIMDD, vindex, 8);
+                                MM_STOREU(p0+ n   *SIMDD, MM_FMA(r0, rg, MM_LOADU(p0+ n   *SIMDD)));
+                                MM_STOREU(p0+(n+1)*SIMDD, MM_FMA(r0, rh, MM_LOADU(p0+(n+1)*SIMDD)));
+#else
+                                _dreg[0] = gp[n*SIMDD*SIMDD        ];
+                                _dreg[1] = gp[n*SIMDD*SIMDD+1*SIMDD];
+                                _dreg[2] = gp[n*SIMDD*SIMDD+2*SIMDD];
+                                _dreg[3] = gp[n*SIMDD*SIMDD+3*SIMDD];
+                                MM_LOAD(rg, _dreg);
                                 MM_STOREU(p0+n*SIMDD, MM_FMA(r0, rg, MM_LOADU(p0+n*SIMDD)));
+                                _dreg[0] = gp[(n+1)*SIMDD*SIMDD        ];
+                                _dreg[1] = gp[(n+1)*SIMDD*SIMDD+1*SIMDD];
+                                _dreg[2] = gp[(n+1)*SIMDD*SIMDD+2*SIMDD];
+                                _dreg[3] = gp[(n+1)*SIMDD*SIMDD+3*SIMDD];
+                                MM_LOAD(rg, _dreg);
+                                MM_STOREU(p0+(n+1)*SIMDD, MM_FMA(r0, rg, MM_LOADU(p0+(n+1)*SIMDD)));
+#endif
                         }
                         for (n = n*SIMDD; n < nf; n++) {
                                 p0[n] += c0 * gp[n*SIMDD];
@@ -1134,10 +1263,30 @@ void CINTiprim_to_ctr_1(double *RESTRICT gc, double *RESTRICT gp, double *RESTRI
                         p1 = gc + nf * sortedidx[1];
                         r0 = MM_SET1(c0);
                         r1 = MM_SET1(c1);
-                        for (n = 0; n < nf/SIMDD; n++) {
-                                rg = MM_GATHER(gp+n*SIMDD*SIMDD, vindex, 8);
+                        for (n = 0; n < nf/SIMDD-1; n+=2) {
+#ifdef __AVX2__
+                                rg = MM_GATHER(gp+ n   *SIMDD*SIMDD, vindex, 8);
+                                rh = MM_GATHER(gp+(n+1)*SIMDD*SIMDD, vindex, 8);
+                                MM_STOREU(p0+ n   *SIMDD, MM_FMA(r0, rg, MM_LOADU(p0+ n   *SIMDD)));
+                                MM_STOREU(p0+(n+1)*SIMDD, MM_FMA(r0, rh, MM_LOADU(p0+(n+1)*SIMDD)));
+                                MM_STOREU(p1+ n   *SIMDD, MM_FMA(r1, rg, MM_LOADU(p1+ n   *SIMDD)));
+                                MM_STOREU(p1+(n+1)*SIMDD, MM_FMA(r1, rh, MM_LOADU(p1+(n+1)*SIMDD)));
+#else
+                                _dreg[0] = gp[n*SIMDD*SIMDD        ];
+                                _dreg[1] = gp[n*SIMDD*SIMDD+1*SIMDD];
+                                _dreg[2] = gp[n*SIMDD*SIMDD+2*SIMDD];
+                                _dreg[3] = gp[n*SIMDD*SIMDD+3*SIMDD];
+                                MM_LOAD(rg, _dreg);
                                 MM_STOREU(p0+n*SIMDD, MM_FMA(r0, rg, MM_LOADU(p0+n*SIMDD)));
                                 MM_STOREU(p1+n*SIMDD, MM_FMA(r1, rg, MM_LOADU(p1+n*SIMDD)));
+                                _dreg[0] = gp[(n+1)*SIMDD*SIMDD        ];
+                                _dreg[1] = gp[(n+1)*SIMDD*SIMDD+1*SIMDD];
+                                _dreg[2] = gp[(n+1)*SIMDD*SIMDD+2*SIMDD];
+                                _dreg[3] = gp[(n+1)*SIMDD*SIMDD+3*SIMDD];
+                                MM_LOAD(rg, _dreg);
+                                MM_STOREU(p0+(n+1)*SIMDD, MM_FMA(r0, rg, MM_LOADU(p0+(n+1)*SIMDD)));
+                                MM_STOREU(p1+(n+1)*SIMDD, MM_FMA(r1, rg, MM_LOADU(p1+(n+1)*SIMDD)));
+#endif
                         }
                         for (n = n*SIMDD; n < nf; n++) {
                                 p0[n] += c0 * gp[n*SIMDD];
@@ -1154,11 +1303,34 @@ void CINTiprim_to_ctr_1(double *RESTRICT gc, double *RESTRICT gp, double *RESTRI
                         r0 = MM_SET1(c0);
                         r1 = MM_SET1(c1);
                         r2 = MM_SET1(c2);
-                        for (n = 0; n < nf/SIMDD; n++) {
-                                rg = MM_GATHER(gp+n*SIMDD*SIMDD, vindex, 8);
+                        for (n = 0; n < nf/SIMDD-1; n+=2) {
+#ifdef __AVX2__
+                                rg = MM_GATHER(gp+ n   *SIMDD*SIMDD, vindex, 8);
+                                rh = MM_GATHER(gp+(n+1)*SIMDD*SIMDD, vindex, 8);
+                                MM_STOREU(p0+ n   *SIMDD, MM_FMA(r0, rg, MM_LOADU(p0+ n   *SIMDD)));
+                                MM_STOREU(p0+(n+1)*SIMDD, MM_FMA(r0, rh, MM_LOADU(p0+(n+1)*SIMDD)));
+                                MM_STOREU(p1+ n   *SIMDD, MM_FMA(r1, rg, MM_LOADU(p1+ n   *SIMDD)));
+                                MM_STOREU(p1+(n+1)*SIMDD, MM_FMA(r1, rh, MM_LOADU(p1+(n+1)*SIMDD)));
+                                MM_STOREU(p2+ n   *SIMDD, MM_FMA(r2, rg, MM_LOADU(p2+ n   *SIMDD)));
+                                MM_STOREU(p2+(n+1)*SIMDD, MM_FMA(r2, rh, MM_LOADU(p2+(n+1)*SIMDD)));
+#else
+                                _dreg[0] = gp[n*SIMDD*SIMDD        ];
+                                _dreg[1] = gp[n*SIMDD*SIMDD+1*SIMDD];
+                                _dreg[2] = gp[n*SIMDD*SIMDD+2*SIMDD];
+                                _dreg[3] = gp[n*SIMDD*SIMDD+3*SIMDD];
+                                MM_LOAD(rg, _dreg);
                                 MM_STOREU(p0+n*SIMDD, MM_FMA(r0, rg, MM_LOADU(p0+n*SIMDD)));
                                 MM_STOREU(p1+n*SIMDD, MM_FMA(r1, rg, MM_LOADU(p1+n*SIMDD)));
                                 MM_STOREU(p2+n*SIMDD, MM_FMA(r2, rg, MM_LOADU(p2+n*SIMDD)));
+                                _dreg[0] = gp[(n+1)*SIMDD*SIMDD        ];
+                                _dreg[1] = gp[(n+1)*SIMDD*SIMDD+1*SIMDD];
+                                _dreg[2] = gp[(n+1)*SIMDD*SIMDD+2*SIMDD];
+                                _dreg[3] = gp[(n+1)*SIMDD*SIMDD+3*SIMDD];
+                                MM_LOAD(rg, _dreg);
+                                MM_STOREU(p0+(n+1)*SIMDD, MM_FMA(r0, rg, MM_LOADU(p0+(n+1)*SIMDD)));
+                                MM_STOREU(p1+(n+1)*SIMDD, MM_FMA(r1, rg, MM_LOADU(p1+(n+1)*SIMDD)));
+                                MM_STOREU(p2+(n+1)*SIMDD, MM_FMA(r2, rg, MM_LOADU(p2+(n+1)*SIMDD)));
+#endif
                         }
                         for (n = n*SIMDD; n < nf; n++) {
                                 p0[n] += c0 * gp[n*SIMDD];
@@ -1180,7 +1352,15 @@ void CINTiprim_to_ctr_1(double *RESTRICT gc, double *RESTRICT gp, double *RESTRI
                         r2 = MM_SET1(c2);
                         r3 = MM_SET1(c3);
                         for (n = 0; n < nf/SIMDD; n++) {
+#ifdef __AVX2__
                                 rg = MM_GATHER(gp+n*SIMDD*SIMDD, vindex, 8);
+#else
+                                _dreg[0] = gp[n*SIMDD*SIMDD        ];
+                                _dreg[1] = gp[n*SIMDD*SIMDD+1*SIMDD];
+                                _dreg[2] = gp[n*SIMDD*SIMDD+2*SIMDD];
+                                _dreg[3] = gp[n*SIMDD*SIMDD+3*SIMDD];
+                                MM_LOAD(rg, _dreg);
+#endif
                                 MM_STOREU(p0+n*SIMDD, MM_FMA(r0, rg, MM_LOADU(p0+n*SIMDD)));
                                 MM_STOREU(p1+n*SIMDD, MM_FMA(r1, rg, MM_LOADU(p1+n*SIMDD)));
                                 MM_STOREU(p2+n*SIMDD, MM_FMA(r2, rg, MM_LOADU(p2+n*SIMDD)));
@@ -1202,7 +1382,15 @@ void CINTiprim_to_ctr_1(double *RESTRICT gc, double *RESTRICT gp, double *RESTRI
                                 r0 = MM_SET1(c0);
                                 r1 = MM_SET1(c1);
                                 for (n = 0; n < nf/SIMDD; n++) {
+#ifdef __AVX2__
                                         rg = MM_GATHER(gp+n*SIMDD*SIMDD, vindex, 8);
+#else
+                                        _dreg[0] = gp[n*SIMDD*SIMDD        ];
+                                        _dreg[1] = gp[n*SIMDD*SIMDD+1*SIMDD];
+                                        _dreg[2] = gp[n*SIMDD*SIMDD+2*SIMDD];
+                                        _dreg[3] = gp[n*SIMDD*SIMDD+3*SIMDD];
+                                        MM_LOAD(rg, _dreg);
+#endif
                                         MM_STOREU(p0+n*SIMDD, MM_FMA(r0, rg, MM_LOADU(p0+n*SIMDD)));
                                         MM_STOREU(p1+n*SIMDD, MM_FMA(r1, rg, MM_LOADU(p1+n*SIMDD)));
                                 }
@@ -1216,7 +1404,15 @@ void CINTiprim_to_ctr_1(double *RESTRICT gc, double *RESTRICT gp, double *RESTRI
                                 p0 = gc + nf * sortedidx[i];
                                 r0 = MM_SET1(c0);
                                 for (n = 0; n < nf/SIMDD; n++) {
+#ifdef __AVX2__
                                         rg = MM_GATHER(gp+n*SIMDD*SIMDD, vindex, 8);
+#else
+                                        _dreg[0] = gp[n*SIMDD*SIMDD        ];
+                                        _dreg[1] = gp[n*SIMDD*SIMDD+1*SIMDD];
+                                        _dreg[2] = gp[n*SIMDD*SIMDD+2*SIMDD];
+                                        _dreg[3] = gp[n*SIMDD*SIMDD+3*SIMDD];
+                                        MM_LOAD(rg, _dreg);
+#endif
                                         MM_STOREU(p0+n*SIMDD, MM_FMA(r0, rg, MM_LOADU(p0+n*SIMDD)));
                                 }
                                 for (n = n*SIMDD; n < nf; n++) {

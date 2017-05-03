@@ -114,8 +114,8 @@
                         envs->fac[i] *= exp(-eijks[i]); \
                 } \
                 (*envs->f_gout)(gout, g, idx, envs, cum); \
-                POP_PRIM2CTR; \
-        }
+        } \
+        POP_PRIM2CTR
 
 int int3c1e_cache_size(CINTEnvVars *envs);
 void CINTg3c1e_ovlp(double *g, CINTEnvVars *envs, int count);

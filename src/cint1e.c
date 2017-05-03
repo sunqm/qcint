@@ -106,8 +106,8 @@
 #define RUN_REST \
         if (cum > 0) { \
                 (*envs->f_gout)(gout, g, idx, envs, cum); \
-                POP_PRIM2CTR; \
-        }
+        } \
+        POP_PRIM2CTR
 
 // little endian on x86
 //typedef union {

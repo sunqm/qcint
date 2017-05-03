@@ -34,6 +34,7 @@ void CINTgout2e(double *gout, double *g, int *idx, CINTEnvVars *envs)
                 int nrys_roots = envs->nrys_roots;
                 int i, n;
                 double *gx, *gy, *gz;
+                double *hx, *hy, *hz;
                 __MD r0, r1;
                 switch(nrys_roots) {
                 case 1:
@@ -41,111 +42,176 @@ void CINTgout2e(double *gout, double *g, int *idx, CINTEnvVars *envs)
                                 gx = g + idx[0+n*3] * SIMDD;
                                 gy = g + idx[1+n*3] * SIMDD;
                                 gz = g + idx[2+n*3] * SIMDD;
-                                r0 = MM_LOAD(gx    );
-                                r1 = MM_LOAD(gy    );
-                                r0 = MM_MUL (r0, r1);
-                                r1 = MM_LOAD(gz    );
-                                r0 = MM_MUL (r0, r1);
+                                r0 = MM_MUL(MM_MUL(MM_LOAD(gx), MM_LOAD(gy)), MM_LOAD(gz));
                                 MM_STORE(gout+n*SIMDD, r0);
                         }
-                        break;
+                        return;
                 case 2:
-                        for (n = 0; n < nf; n++) {
+                        for (n = 0; n < nf-1; n+=2) {
                                 gx = g + idx[0+n*3] * SIMDD;
                                 gy = g + idx[1+n*3] * SIMDD;
                                 gz = g + idx[2+n*3] * SIMDD;
+                                hx = g + idx[3+n*3] * SIMDD;
+                                hy = g + idx[4+n*3] * SIMDD;
+                                hz = g + idx[5+n*3] * SIMDD;
                                 r0 = MM_MUL(MM_MUL(MM_LOAD(gx      ), MM_LOAD(gy      )), MM_LOAD(gz      ));
-                                r0 = MM_FMA(MM_MUL(MM_LOAD(gx+SIMDD), MM_LOAD(gy+SIMDD)), MM_LOAD(gz+SIMDD), r0);
-                                MM_STORE(gout+n*SIMDD, r0);
+                                r1 = MM_MUL(MM_MUL(MM_LOAD(hx      ), MM_LOAD(hy      )), MM_LOAD(hz      ));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+SIMDD), MM_LOAD(gy+SIMDD)), MM_LOAD(gz+SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+SIMDD), MM_LOAD(hy+SIMDD)), MM_LOAD(hz+SIMDD));
+                                MM_STORE(gout+n*SIMDD      , r0);
+                                MM_STORE(gout+n*SIMDD+SIMDD, r1);
                         }
                         break;
                 case 3:
-                        for (n = 0; n < nf; n++) {
+                        for (n = 0; n < nf-1; n+=2) {
                                 gx = g + idx[0+n*3] * SIMDD;
                                 gy = g + idx[1+n*3] * SIMDD;
                                 gz = g + idx[2+n*3] * SIMDD;
+                                hx = g + idx[3+n*3] * SIMDD;
+                                hy = g + idx[4+n*3] * SIMDD;
+                                hz = g + idx[5+n*3] * SIMDD;
                                 r0 = MM_MUL(MM_MUL(MM_LOAD(gx        ), MM_LOAD(gy        )), MM_LOAD(gz        ));
-                                r0 = MM_FMA(MM_MUL(MM_LOAD(gx+  SIMDD), MM_LOAD(gy+  SIMDD)), MM_LOAD(gz+  SIMDD), r0);
-                                r0 = MM_FMA(MM_MUL(MM_LOAD(gx+2*SIMDD), MM_LOAD(gy+2*SIMDD)), MM_LOAD(gz+2*SIMDD), r0);
-                                MM_STORE(gout+n*SIMDD, r0);
+                                r1 = MM_MUL(MM_MUL(MM_LOAD(hx        ), MM_LOAD(hy        )), MM_LOAD(hz        ));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+  SIMDD), MM_LOAD(gy+  SIMDD)), MM_LOAD(gz+  SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+  SIMDD), MM_LOAD(hy+  SIMDD)), MM_LOAD(hz+  SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+2*SIMDD), MM_LOAD(gy+2*SIMDD)), MM_LOAD(gz+2*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+2*SIMDD), MM_LOAD(hy+2*SIMDD)), MM_LOAD(hz+2*SIMDD));
+                                MM_STORE(gout+n*SIMDD      , r0);
+                                MM_STORE(gout+n*SIMDD+SIMDD, r1);
                         }
                         break;
                 case 4:
-                        for (n = 0; n < nf; n++) {
+                        for (n = 0; n < nf-1; n+=2) {
                                 gx = g + idx[0+n*3] * SIMDD;
                                 gy = g + idx[1+n*3] * SIMDD;
                                 gz = g + idx[2+n*3] * SIMDD;
+                                hx = g + idx[3+n*3] * SIMDD;
+                                hy = g + idx[4+n*3] * SIMDD;
+                                hz = g + idx[5+n*3] * SIMDD;
                                 r0 = MM_MUL(MM_MUL(MM_LOAD(gx        ), MM_LOAD(gy        )), MM_LOAD(gz        ));
-                                r0 = MM_FMA(MM_MUL(MM_LOAD(gx+  SIMDD), MM_LOAD(gy+  SIMDD)), MM_LOAD(gz+  SIMDD), r0);
-                                r0 = MM_FMA(MM_MUL(MM_LOAD(gx+2*SIMDD), MM_LOAD(gy+2*SIMDD)), MM_LOAD(gz+2*SIMDD), r0);
-                                r0 = MM_FMA(MM_MUL(MM_LOAD(gx+3*SIMDD), MM_LOAD(gy+3*SIMDD)), MM_LOAD(gz+3*SIMDD), r0);
-                                MM_STORE(gout+n*SIMDD, r0);
+                                r1 = MM_MUL(MM_MUL(MM_LOAD(hx        ), MM_LOAD(hy        )), MM_LOAD(hz        ));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+  SIMDD), MM_LOAD(gy+  SIMDD)), MM_LOAD(gz+  SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+  SIMDD), MM_LOAD(hy+  SIMDD)), MM_LOAD(hz+  SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+2*SIMDD), MM_LOAD(gy+2*SIMDD)), MM_LOAD(gz+2*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+2*SIMDD), MM_LOAD(hy+2*SIMDD)), MM_LOAD(hz+2*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+3*SIMDD), MM_LOAD(gy+3*SIMDD)), MM_LOAD(gz+3*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+3*SIMDD), MM_LOAD(hy+3*SIMDD)), MM_LOAD(hz+3*SIMDD));
+                                MM_STORE(gout+n*SIMDD      , r0);
+                                MM_STORE(gout+n*SIMDD+SIMDD, r1);
                         }
                         break;
                 case 5:
-                        for (n = 0; n < nf; n++) {
+                        for (n = 0; n < nf-1; n+=2) {
                                 gx = g + idx[0+n*3] * SIMDD;
                                 gy = g + idx[1+n*3] * SIMDD;
                                 gz = g + idx[2+n*3] * SIMDD;
+                                hx = g + idx[3+n*3] * SIMDD;
+                                hy = g + idx[4+n*3] * SIMDD;
+                                hz = g + idx[5+n*3] * SIMDD;
                                 r0 = MM_MUL(MM_MUL(MM_LOAD(gx        ), MM_LOAD(gy        )), MM_LOAD(gz        ));
-                                r0 = MM_FMA(MM_MUL(MM_LOAD(gx+  SIMDD), MM_LOAD(gy+  SIMDD)), MM_LOAD(gz+  SIMDD), r0);
-                                r0 = MM_FMA(MM_MUL(MM_LOAD(gx+2*SIMDD), MM_LOAD(gy+2*SIMDD)), MM_LOAD(gz+2*SIMDD), r0);
-                                r0 = MM_FMA(MM_MUL(MM_LOAD(gx+3*SIMDD), MM_LOAD(gy+3*SIMDD)), MM_LOAD(gz+3*SIMDD), r0);
-                                r0 = MM_FMA(MM_MUL(MM_LOAD(gx+4*SIMDD), MM_LOAD(gy+4*SIMDD)), MM_LOAD(gz+4*SIMDD), r0);
-                                MM_STORE(gout+n*SIMDD, r0);
+                                r1 = MM_MUL(MM_MUL(MM_LOAD(hx        ), MM_LOAD(hy        )), MM_LOAD(hz        ));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+  SIMDD), MM_LOAD(gy+  SIMDD)), MM_LOAD(gz+  SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+  SIMDD), MM_LOAD(hy+  SIMDD)), MM_LOAD(hz+  SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+2*SIMDD), MM_LOAD(gy+2*SIMDD)), MM_LOAD(gz+2*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+2*SIMDD), MM_LOAD(hy+2*SIMDD)), MM_LOAD(hz+2*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+3*SIMDD), MM_LOAD(gy+3*SIMDD)), MM_LOAD(gz+3*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+3*SIMDD), MM_LOAD(hy+3*SIMDD)), MM_LOAD(hz+3*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+4*SIMDD), MM_LOAD(gy+4*SIMDD)), MM_LOAD(gz+4*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+4*SIMDD), MM_LOAD(hy+4*SIMDD)), MM_LOAD(hz+4*SIMDD));
+                                MM_STORE(gout+n*SIMDD      , r0);
+                                MM_STORE(gout+n*SIMDD+SIMDD, r1);
                         }
                         break;
                 case 6:
-                        for (n = 0; n < nf; n++) {
+                        for (n = 0; n < nf-1; n+=2) {
                                 gx = g + idx[0+n*3] * SIMDD;
                                 gy = g + idx[1+n*3] * SIMDD;
                                 gz = g + idx[2+n*3] * SIMDD;
+                                hx = g + idx[3+n*3] * SIMDD;
+                                hy = g + idx[4+n*3] * SIMDD;
+                                hz = g + idx[5+n*3] * SIMDD;
                                 r0 = MM_MUL(MM_MUL(MM_LOAD(gx        ), MM_LOAD(gy        )), MM_LOAD(gz        ));
-                                r0 = MM_FMA(MM_MUL(MM_LOAD(gx+  SIMDD), MM_LOAD(gy+  SIMDD)), MM_LOAD(gz+  SIMDD), r0);
-                                r0 = MM_FMA(MM_MUL(MM_LOAD(gx+2*SIMDD), MM_LOAD(gy+2*SIMDD)), MM_LOAD(gz+2*SIMDD), r0);
-                                r0 = MM_FMA(MM_MUL(MM_LOAD(gx+3*SIMDD), MM_LOAD(gy+3*SIMDD)), MM_LOAD(gz+3*SIMDD), r0);
-                                r0 = MM_FMA(MM_MUL(MM_LOAD(gx+4*SIMDD), MM_LOAD(gy+4*SIMDD)), MM_LOAD(gz+4*SIMDD), r0);
-                                r0 = MM_FMA(MM_MUL(MM_LOAD(gx+5*SIMDD), MM_LOAD(gy+5*SIMDD)), MM_LOAD(gz+5*SIMDD), r0);
-                                MM_STORE(gout+n*SIMDD, r0);
+                                r1 = MM_MUL(MM_MUL(MM_LOAD(hx        ), MM_LOAD(hy        )), MM_LOAD(hz        ));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+  SIMDD), MM_LOAD(gy+  SIMDD)), MM_LOAD(gz+  SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+  SIMDD), MM_LOAD(hy+  SIMDD)), MM_LOAD(hz+  SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+2*SIMDD), MM_LOAD(gy+2*SIMDD)), MM_LOAD(gz+2*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+2*SIMDD), MM_LOAD(hy+2*SIMDD)), MM_LOAD(hz+2*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+3*SIMDD), MM_LOAD(gy+3*SIMDD)), MM_LOAD(gz+3*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+3*SIMDD), MM_LOAD(hy+3*SIMDD)), MM_LOAD(hz+3*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+4*SIMDD), MM_LOAD(gy+4*SIMDD)), MM_LOAD(gz+4*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+4*SIMDD), MM_LOAD(hy+4*SIMDD)), MM_LOAD(hz+4*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+5*SIMDD), MM_LOAD(gy+5*SIMDD)), MM_LOAD(gz+5*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+5*SIMDD), MM_LOAD(hy+5*SIMDD)), MM_LOAD(hz+5*SIMDD));
+                                MM_STORE(gout+n*SIMDD      , r0);
+                                MM_STORE(gout+n*SIMDD+SIMDD, r1);
                         }
                         break;
                 case 7:
-                        for (n = 0; n < nf; n++) {
+                        for (n = 0; n < nf-1; n+=2) {
                                 gx = g + idx[0+n*3] * SIMDD;
                                 gy = g + idx[1+n*3] * SIMDD;
                                 gz = g + idx[2+n*3] * SIMDD;
+                                hx = g + idx[3+n*3] * SIMDD;
+                                hy = g + idx[4+n*3] * SIMDD;
+                                hz = g + idx[5+n*3] * SIMDD;
                                 r0 = MM_MUL(MM_MUL(MM_LOAD(gx        ), MM_LOAD(gy        )), MM_LOAD(gz        ));
-                                r0 = MM_FMA(MM_MUL(MM_LOAD(gx+  SIMDD), MM_LOAD(gy+  SIMDD)), MM_LOAD(gz+  SIMDD), r0);
-                                r0 = MM_FMA(MM_MUL(MM_LOAD(gx+2*SIMDD), MM_LOAD(gy+2*SIMDD)), MM_LOAD(gz+2*SIMDD), r0);
-                                r0 = MM_FMA(MM_MUL(MM_LOAD(gx+3*SIMDD), MM_LOAD(gy+3*SIMDD)), MM_LOAD(gz+3*SIMDD), r0);
-                                r0 = MM_FMA(MM_MUL(MM_LOAD(gx+4*SIMDD), MM_LOAD(gy+4*SIMDD)), MM_LOAD(gz+4*SIMDD), r0);
-                                r0 = MM_FMA(MM_MUL(MM_LOAD(gx+5*SIMDD), MM_LOAD(gy+5*SIMDD)), MM_LOAD(gz+5*SIMDD), r0);
-                                r0 = MM_FMA(MM_MUL(MM_LOAD(gx+6*SIMDD), MM_LOAD(gy+6*SIMDD)), MM_LOAD(gz+6*SIMDD), r0);
-                                MM_STORE(gout+n*SIMDD, r0);
+                                r1 = MM_MUL(MM_MUL(MM_LOAD(hx        ), MM_LOAD(hy        )), MM_LOAD(hz        ));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+  SIMDD), MM_LOAD(gy+  SIMDD)), MM_LOAD(gz+  SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+  SIMDD), MM_LOAD(hy+  SIMDD)), MM_LOAD(hz+  SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+2*SIMDD), MM_LOAD(gy+2*SIMDD)), MM_LOAD(gz+2*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+2*SIMDD), MM_LOAD(hy+2*SIMDD)), MM_LOAD(hz+2*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+3*SIMDD), MM_LOAD(gy+3*SIMDD)), MM_LOAD(gz+3*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+3*SIMDD), MM_LOAD(hy+3*SIMDD)), MM_LOAD(hz+3*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+4*SIMDD), MM_LOAD(gy+4*SIMDD)), MM_LOAD(gz+4*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+4*SIMDD), MM_LOAD(hy+4*SIMDD)), MM_LOAD(hz+4*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+5*SIMDD), MM_LOAD(gy+5*SIMDD)), MM_LOAD(gz+5*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+5*SIMDD), MM_LOAD(hy+5*SIMDD)), MM_LOAD(hz+5*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+6*SIMDD), MM_LOAD(gy+6*SIMDD)), MM_LOAD(gz+6*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+6*SIMDD), MM_LOAD(hy+6*SIMDD)), MM_LOAD(hz+6*SIMDD));
+                                MM_STORE(gout+n*SIMDD      , r0);
+                                MM_STORE(gout+n*SIMDD+SIMDD, r1);
                         }
                         break;
                 default:
-                        for (n = 0; n < nf; n++) {
+                        for (n = 0; n < nf-1; n+=2) {
                                 gx = g + idx[0+n*3] * SIMDD;
                                 gy = g + idx[1+n*3] * SIMDD;
                                 gz = g + idx[2+n*3] * SIMDD;
+                                hx = g + idx[3+n*3] * SIMDD;
+                                hy = g + idx[4+n*3] * SIMDD;
+                                hz = g + idx[5+n*3] * SIMDD;
                                 //for (k = 0; k < SIMDD; k++) {
                                 //        gc[k] = gx[k] * gy[k] * gz[k];
                                 //}
                                 r0 = MM_MUL(MM_MUL(MM_LOAD(gx), MM_LOAD(gy)), MM_LOAD(gz));
+                                r1 = MM_MUL(MM_MUL(MM_LOAD(hx), MM_LOAD(hy)), MM_LOAD(hz));
 
                                 for (i = 1; i < nrys_roots-1; i+=2) {
                                         //for (k = 0; k < SIMDD; k++) {
                                         //        gc[k]+= gx[i*SIMDD+k] * gy[i*SIMDD+k] * gz[i*SIMDD+k];
                                         //}
-        r0 = MM_FMA(MM_MUL(MM_LOAD(gx+ i   *SIMDD), MM_LOAD(gy+ i   *SIMDD)), MM_LOAD(gz+ i   *SIMDD), r0);
-        r0 = MM_FMA(MM_MUL(MM_LOAD(gx+(i+1)*SIMDD), MM_LOAD(gy+(i+1)*SIMDD)), MM_LOAD(gz+(i+1)*SIMDD), r0);
+        r0+= MM_MUL(MM_MUL(MM_LOAD(gx+ i   *SIMDD), MM_LOAD(gy+ i   *SIMDD)), MM_LOAD(gz+ i   *SIMDD));
+        r1+= MM_MUL(MM_MUL(MM_LOAD(hx+ i   *SIMDD), MM_LOAD(hy+ i   *SIMDD)), MM_LOAD(hz+ i   *SIMDD));
+        r0+= MM_MUL(MM_MUL(MM_LOAD(gx+(i+1)*SIMDD), MM_LOAD(gy+(i+1)*SIMDD)), MM_LOAD(gz+(i+1)*SIMDD));
+        r1+= MM_MUL(MM_MUL(MM_LOAD(hx+(i+1)*SIMDD), MM_LOAD(hy+(i+1)*SIMDD)), MM_LOAD(hz+(i+1)*SIMDD));
                                 }
                                 if (i < nrys_roots) {
-        r0 = MM_FMA(MM_MUL(MM_LOAD(gx+ i   *SIMDD), MM_LOAD(gy+ i   *SIMDD)), MM_LOAD(gz+ i   *SIMDD), r0);
+        r0+= MM_MUL(MM_MUL(MM_LOAD(gx+ i   *SIMDD), MM_LOAD(gy+ i   *SIMDD)), MM_LOAD(gz+ i   *SIMDD));
+        r1+= MM_MUL(MM_MUL(MM_LOAD(hx+ i   *SIMDD), MM_LOAD(hy+ i   *SIMDD)), MM_LOAD(hz+ i   *SIMDD));
                                 }
-                                MM_STORE(gout+n*SIMDD, r0);
+                                MM_STORE(gout+n*SIMDD      , r0);
+                                MM_STORE(gout+n*SIMDD+SIMDD, r1);
                         }
+                }
+                if (n < nf) {
+                        gx = g + idx[0+n*3] * SIMDD;
+                        gy = g + idx[1+n*3] * SIMDD;
+                        gz = g + idx[2+n*3] * SIMDD;
+                        r0 = MM_MUL(MM_MUL(MM_LOAD(gx), MM_LOAD(gy)), MM_LOAD(gz));
+                        for (i = 1; i < nrys_roots; i++) {
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+i*SIMDD), MM_LOAD(gy+i*SIMDD)), MM_LOAD(gz+i*SIMDD));
+                        }
+                        MM_STORE(gout+n*SIMDD, r0);
                 }
         }
 }
