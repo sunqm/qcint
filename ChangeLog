@@ -1,3 +1,9 @@
+Version 1.8.15 (2017-05-22): for libcint v2.8.15:
+	* Improved R_qnode convergence
+
+Version 1.8.14 (2017-05-18): for libcint v2.8.14:
+	* Fix cint3c2e bug for general contraction on auxiliary basis
+
 Version 1.8.13 (2017-05-13): for libcint v2.8.13:
 	* Bugfix for range-separated ssss type integral;
 	* Bugfix for quad-prec gamma_inc function in rys_roots.
