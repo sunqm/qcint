@@ -1,3 +1,6 @@
+Version 1.8.16 (2017-05-29): for libcint v2.8.16:
+	* Add 4-center 1-electron overlap integral
+
 Version 1.8.15 (2017-05-22): for libcint v2.8.15:
 	* Improved R_qnode convergence
 

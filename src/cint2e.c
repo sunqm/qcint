@@ -33,7 +33,7 @@
 #include "cart2sph.h"
 #include "c2f.h"
 
-#define SQUARE(r)       (r)[0]*(r)[0] + (r)[1]*(r)[1] + (r)[2]*(r)[2]
+#define SQUARE(r)       ((r)[0]*(r)[0] + (r)[1]*(r)[1] + (r)[2]*(r)[2])
 
 #define PRIM2CTR0(ctrsymb, gp, ngp) \
         if (ctrsymb##_ctr > 1) {\
@@ -91,8 +91,7 @@ FINT CINT2e_loop_nopt(double *gctr, CINTEnvVars *envs)
         const double *cj = env + bas(PTR_COEFF, j_sh);
         const double *ck = env + bas(PTR_COEFF, k_sh);
         const double *cl = env + bas(PTR_COEFF, l_sh);
-        const FINT n_comp = envs->ncomp_e1 * envs->ncomp_e2
-                                  * envs->ncomp_tensor;
+        const FINT n_comp = envs->ncomp_e1 * envs->ncomp_e2 * envs->ncomp_tensor;
         double fac1i, fac1j, fac1k, fac1l;
         FINT ip, jp, kp, lp;
         FINT empty[5] = {1, 1, 1, 1, 1};
