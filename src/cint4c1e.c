@@ -278,10 +278,10 @@ FINT CINT4c1e_spheric_drv(double *out, CINTEnvVars *envs, const CINTOpt *opt)
         return has_value;
 }
 
-FINT cint4c1e_ovlp_sph(double *out, const FINT *shls,
-                       const FINT *atm, const FINT natm,
-                       const FINT *bas, const FINT nbas, const double *env,
-                       const CINTOpt *opt)
+FINT cint4c1e_sph(double *out, const FINT *shls,
+                  const FINT *atm, const FINT natm,
+                  const FINT *bas, const FINT nbas, const double *env,
+                  const CINTOpt *opt)
 {
         FINT ng[] = {0, 0, 0, 0, 0, 1, 1, 1};
         CINTEnvVars envs;
@@ -289,16 +289,16 @@ FINT cint4c1e_ovlp_sph(double *out, const FINT *shls,
         envs.f_gout = &CINTgout3c1e;
         return CINT4c1e_spheric_drv(out, &envs, opt);
 }
-void cint4c1e_ovlp_sph_optimizer(CINTOpt **opt, const FINT *atm, const FINT natm,
-                                 const FINT *bas, const FINT nbas, const double *env)
+void cint4c1e_sph_optimizer(CINTOpt **opt, const FINT *atm, const FINT natm,
+                            const FINT *bas, const FINT nbas, const double *env)
 {
         *opt = NULL;
 }
 
-FINT cint4c1e_ovlp_cart(double *out, const FINT *shls,
-                        const FINT *atm, const FINT natm,
-                        const FINT *bas, const FINT nbas, const double *env,
-                        const CINTOpt *opt)
+FINT cint4c1e_cart(double *out, const FINT *shls,
+                   const FINT *atm, const FINT natm,
+                   const FINT *bas, const FINT nbas, const double *env,
+                   const CINTOpt *opt)
 {
         FINT ng[] = {0, 0, 0, 0, 0, 1, 1, 1};
         CINTEnvVars envs;
@@ -306,10 +306,10 @@ FINT cint4c1e_ovlp_cart(double *out, const FINT *shls,
         envs.f_gout = &CINTgout3c1e;
         return CINT4c1e_cart_drv(out, &envs, opt);
 }
-void cint4c1e_ovlp_cart_optimizer(CINTOpt **opt, const FINT *atm, const FINT natm,
-                                  const FINT *bas, const FINT nbas, const double *env)
+void cint4c1e_cart_optimizer(CINTOpt **opt, const FINT *atm, const FINT natm,
+                             const FINT *bas, const FINT nbas, const double *env)
 {
-        cint4c1e_ovlp_sph_optimizer(opt, atm, natm, bas, nbas, env);
+        cint4c1e_sph_optimizer(opt, atm, natm, bas, nbas, env);
 }
 
 /*
@@ -317,9 +317,8 @@ void cint4c1e_ovlp_cart_optimizer(CINTOpt **opt, const FINT *atm, const FINT nat
  * c to fortran interface
  */
 
-C2Fo_(cint4c1e_ovlp_cart);
-C2Fo_(cint4c1e_ovlp_sph);
-OPTIMIZER2F_(cint4c1e_ovlp_cart_optimizer);
-OPTIMIZER2F_(cint4c1e_ovlp_sph_optimizer);
-
+C2Fo_(cint4c1e_cart);
+C2Fo_(cint4c1e_sph);
+OPTIMIZER2F_(cint4c1e_cart_optimizer);
+OPTIMIZER2F_(cint4c1e_sph_optimizer);
 
