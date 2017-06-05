@@ -33,7 +33,7 @@
 #include "misc.h"
 #include "c2f.h"
 /* (NABLA i j|R12 |k) */
-void CINTgout2e_int3c2e_ip1(double *RESTRICT gout,
+static void CINTgout2e_int3c2e_ip1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nfc = nf * 3;
@@ -107,7 +107,7 @@ int ix, iy, iz, i, n;
 double *RESTRICT g0 = g;
 double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
 G2E_D_I_SIMD1(g1, g0, envs->i_l+0, envs->j_l, envs->k_l, 0);
-ALIGNMM double s[3];
+double s[3];
 for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
 iy = idx[1+n*3];
@@ -178,7 +178,7 @@ return CINT3c2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_3c2e1);
 ALL_CINT(int3c2e_ip1)
 //ALL_CINT_FORTRAN_(cint3c2e_ip1)
 /* (i j|R12 |NABLA k) */
-void CINTgout2e_int3c2e_ip2(double *RESTRICT gout,
+static void CINTgout2e_int3c2e_ip2(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nfc = nf * 3;
@@ -252,7 +252,7 @@ int ix, iy, iz, i, n;
 double *RESTRICT g0 = g;
 double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
 G2E_D_K_SIMD1(g1, g0, envs->i_l+0, envs->j_l+0, envs->k_l+0, 0);
-ALIGNMM double s[3];
+double s[3];
 for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
 iy = idx[1+n*3];
@@ -323,7 +323,7 @@ return CINT3c2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_3c2e1);
 ALL_CINT(int3c2e_ip2)
 //ALL_CINT_FORTRAN_(cint3c2e_ip2)
 /* (P* i DOT P j|R12 |k) */
-void CINTgout2e_int3c2e_pvp1(double *RESTRICT gout,
+static void CINTgout2e_int3c2e_pvp1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nfc = nf * 1;
@@ -469,7 +469,7 @@ double *RESTRICT g3 = g2 + envs->g_size * 3 * SIMDD;
 G2E_D_J_SIMD1(g1, g0, envs->i_l+1, envs->j_l+0, envs->k_l, 0);
 G2E_D_I_SIMD1(g2, g0, envs->i_l+0, envs->j_l, envs->k_l, 0);
 G2E_D_I_SIMD1(g3, g1, envs->i_l+0, envs->j_l, envs->k_l, 0);
-ALIGNMM double s[9];
+double s[9];
 for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
 iy = idx[1+n*3];
@@ -522,7 +522,7 @@ return CINT3c2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_3c2e1);
 ALL_CINT(int3c2e_pvp1)
 //ALL_CINT_FORTRAN_(cint3c2e_pvp1)
 /* (NABLA i |R12 |j) */
-static void CINTgout2e_int2c2e_ip1(double *RESTRICT gout,
+void CINTgout2e_int2c2e_ip1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nfc = nf * 3;
@@ -596,7 +596,7 @@ int ix, iy, iz, i, n;
 double *RESTRICT g0 = g;
 double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
 G2E_D_I_SIMD1(g1, g0, envs->i_l+0, 0, envs->k_l, 0);
-ALIGNMM double s[3];
+double s[3];
 for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
 iy = idx[1+n*3];
@@ -667,7 +667,7 @@ return CINT2c2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_1e);
 ALL_CINT(int2c2e_ip1)
 //ALL_CINT_FORTRAN_(cint2c2e_ip1)
 /* (i |R12 |NABLA j) */
-static void CINTgout2e_int2c2e_ip2(double *RESTRICT gout,
+void CINTgout2e_int2c2e_ip2(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nfc = nf * 3;
@@ -741,7 +741,7 @@ int ix, iy, iz, i, n;
 double *RESTRICT g0 = g;
 double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
 G2E_D_K_SIMD1(g1, g0, envs->i_l+0, 0, envs->k_l+0, 0);
-ALIGNMM double s[3];
+double s[3];
 for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
 iy = idx[1+n*3];
@@ -812,7 +812,7 @@ return CINT2c2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_1e);
 ALL_CINT(int2c2e_ip2)
 //ALL_CINT_FORTRAN_(cint2c2e_ip2)
 /* (G i j|R12 |k) */
-void CINTgout2e_int3c2e_ig1(double *RESTRICT gout,
+static void CINTgout2e_int3c2e_ig1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nfc = nf * 3;
@@ -900,7 +900,7 @@ c[0] = 1 * rirj[0];
 c[1] = 1 * rirj[1];
 c[2] = 1 * rirj[2];
 G2E_R0I_SIMD1(g1, g0, envs->i_l+0, envs->j_l, envs->k_l, 0);
-ALIGNMM double s[3];
+double s[3];
 for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
 iy = idx[1+n*3];
@@ -1010,7 +1010,7 @@ return CINT3c2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_3c2e1);
 ALL_CINT(int3c2e_ig1)
 //ALL_CINT_FORTRAN_(cint3c2e_ig1)
 /* (SIGMA DOT P i SIGMA DOT P j|R12 |k) */
-void CINTgout2e_int3c2e_spsp1(double *RESTRICT gout,
+static void CINTgout2e_int3c2e_spsp1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nfc = nf * 4;
@@ -1159,7 +1159,7 @@ double *RESTRICT g3 = g2 + envs->g_size * 3 * SIMDD;
 G2E_D_J_SIMD1(g1, g0, envs->i_l+1, envs->j_l+0, envs->k_l, 0);
 G2E_D_I_SIMD1(g2, g0, envs->i_l+0, envs->j_l, envs->k_l, 0);
 G2E_D_I_SIMD1(g3, g1, envs->i_l+0, envs->j_l, envs->k_l, 0);
-ALIGNMM double s[9];
+double s[9];
 for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
 iy = idx[1+n*3];
@@ -1215,7 +1215,7 @@ return CINT3c2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_3c2e1);
 ALL_CINT(int3c2e_spsp1)
 //ALL_CINT_FORTRAN_(cint3c2e_spsp1)
 /* (NABLA SIGMA DOT P i SIGMA DOT P j|R12 |k) */
-void CINTgout2e_int3c2e_ipspsp1(double *RESTRICT gout,
+static void CINTgout2e_int3c2e_ipspsp1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nfc = nf * 12;
@@ -1306,7 +1306,7 @@ G2E_D_I_SIMD1(g4, g0, envs->i_l+0, envs->j_l, envs->k_l, 0);
 G2E_D_I_SIMD1(g5, g1, envs->i_l+0, envs->j_l, envs->k_l, 0);
 G2E_D_I_SIMD1(g6, g2, envs->i_l+0, envs->j_l, envs->k_l, 0);
 G2E_D_I_SIMD1(g7, g3, envs->i_l+0, envs->j_l, envs->k_l, 0);
-ALIGNMM double s[27];
+double s[27];
 for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
 iy = idx[1+n*3];
@@ -1388,7 +1388,7 @@ return CINT3c2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_3c2e1);
 ALL_CINT(int3c2e_ipspsp1)
 //ALL_CINT_FORTRAN_(cint3c2e_ipspsp1)
 /* (SIGMA DOT P i SIGMA DOT P j|R12 |NABLA k) */
-void CINTgout2e_int3c2e_spsp1ip2(double *RESTRICT gout,
+static void CINTgout2e_int3c2e_spsp1ip2(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nfc = nf * 12;
@@ -1479,7 +1479,7 @@ G2E_D_I_SIMD1(g4, g0, envs->i_l+0, envs->j_l, envs->k_l, 0);
 G2E_D_I_SIMD1(g5, g1, envs->i_l+0, envs->j_l, envs->k_l, 0);
 G2E_D_I_SIMD1(g6, g2, envs->i_l+0, envs->j_l, envs->k_l, 0);
 G2E_D_I_SIMD1(g7, g3, envs->i_l+0, envs->j_l, envs->k_l, 0);
-ALIGNMM double s[27];
+double s[27];
 for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
 iy = idx[1+n*3];

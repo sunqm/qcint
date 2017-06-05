@@ -225,7 +225,7 @@ G2E_R0J_SIMD1(g12, g8, envs->i_l+0, envs->j_l+1, envs->k_l, envs->l_l);
 G2E_R0J_SIMD1(g13, g9, envs->i_l+0, envs->j_l+1, envs->k_l, envs->l_l);
 G2E_D_J_SIMD1(g14, g12, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
 G2E_D_J_SIMD1(g15, g13, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
-ALIGNMM double s[81];
+double s[81];
 for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
 iy = idx[1+n*3];
@@ -342,6 +342,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_gauge_r1_ssp1ssp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_gauge_r1_ssp1ssp2_simd1;
+envs.common_factor *= -1;
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
 } // int2e_gauge_r1_ssp1ssp2_cart
 int int2e_gauge_r1_ssp1ssp2_sph(double *out, int *dims, int *shls,
@@ -351,6 +352,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_gauge_r1_ssp1ssp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_gauge_r1_ssp1ssp2_simd1;
+envs.common_factor *= -1;
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
 } // int2e_gauge_r1_ssp1ssp2_sph
 int int2e_gauge_r1_ssp1ssp2_spinor(double complex *out, int *dims, int *shls,
@@ -557,7 +559,7 @@ G2E_R0J_SIMD1(g12, g8, envs->i_l+0, envs->j_l+1, envs->k_l, envs->l_l);
 G2E_R0J_SIMD1(g13, g9, envs->i_l+0, envs->j_l+1, envs->k_l, envs->l_l);
 G2E_D_J_SIMD1(g14, g12, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
 G2E_D_J_SIMD1(g15, g13, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
-ALIGNMM double s[81];
+double s[81];
 for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
 iy = idx[1+n*3];
@@ -674,6 +676,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_gauge_r1_ssp1sps2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_gauge_r1_ssp1sps2_simd1;
+envs.common_factor *= -1;
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
 } // int2e_gauge_r1_ssp1sps2_cart
 int int2e_gauge_r1_ssp1sps2_sph(double *out, int *dims, int *shls,
@@ -683,6 +686,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_gauge_r1_ssp1sps2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_gauge_r1_ssp1sps2_simd1;
+envs.common_factor *= -1;
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
 } // int2e_gauge_r1_ssp1sps2_sph
 int int2e_gauge_r1_ssp1sps2_spinor(double complex *out, int *dims, int *shls,
@@ -889,7 +893,7 @@ G2E_D_I_SIMD1(g12, g4, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
 G2E_D_I_SIMD1(g13, g5, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
 G2E_D_I_SIMD1(g14, g6, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
 G2E_D_I_SIMD1(g15, g7, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
-ALIGNMM double s[81];
+double s[81];
 for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
 iy = idx[1+n*3];
@@ -1006,6 +1010,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_gauge_r1_sps1ssp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_gauge_r1_sps1ssp2_simd1;
+envs.common_factor *= -1;
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
 } // int2e_gauge_r1_sps1ssp2_cart
 int int2e_gauge_r1_sps1ssp2_sph(double *out, int *dims, int *shls,
@@ -1015,6 +1020,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_gauge_r1_sps1ssp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_gauge_r1_sps1ssp2_simd1;
+envs.common_factor *= -1;
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
 } // int2e_gauge_r1_sps1ssp2_sph
 int int2e_gauge_r1_sps1ssp2_spinor(double complex *out, int *dims, int *shls,
@@ -1221,7 +1227,7 @@ G2E_D_I_SIMD1(g12, g4, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
 G2E_D_I_SIMD1(g13, g5, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
 G2E_D_I_SIMD1(g14, g6, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
 G2E_D_I_SIMD1(g15, g7, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
-ALIGNMM double s[81];
+double s[81];
 for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
 iy = idx[1+n*3];
@@ -1338,6 +1344,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_gauge_r1_sps1sps2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_gauge_r1_sps1sps2_simd1;
+envs.common_factor *= -1;
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
 } // int2e_gauge_r1_sps1sps2_cart
 int int2e_gauge_r1_sps1sps2_sph(double *out, int *dims, int *shls,
@@ -1347,6 +1354,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_gauge_r1_sps1sps2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_gauge_r1_sps1sps2_simd1;
+envs.common_factor *= -1;
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
 } // int2e_gauge_r1_sps1sps2_sph
 int int2e_gauge_r1_sps1sps2_spinor(double complex *out, int *dims, int *shls,
@@ -1561,7 +1569,7 @@ G2E_D_J_SIMD1(g12, g8, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
 G2E_D_J_SIMD1(g13, g9, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
 G2E_D_J_SIMD1(g14, g10, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
 G2E_D_J_SIMD1(g15, g11, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
-ALIGNMM double s[81];
+double s[81];
 for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
 iy = idx[1+n*3];
@@ -1678,6 +1686,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_gauge_r2_ssp1ssp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_gauge_r2_ssp1ssp2_simd1;
+envs.common_factor *= -1;
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
 } // int2e_gauge_r2_ssp1ssp2_cart
 int int2e_gauge_r2_ssp1ssp2_sph(double *out, int *dims, int *shls,
@@ -1687,6 +1696,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_gauge_r2_ssp1ssp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_gauge_r2_ssp1ssp2_simd1;
+envs.common_factor *= -1;
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
 } // int2e_gauge_r2_ssp1ssp2_sph
 int int2e_gauge_r2_ssp1ssp2_spinor(double complex *out, int *dims, int *shls,
@@ -1901,7 +1911,7 @@ G2E_D_J_SIMD1(g12, g8, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
 G2E_D_J_SIMD1(g13, g9, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
 G2E_D_J_SIMD1(g14, g10, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
 G2E_D_J_SIMD1(g15, g11, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
-ALIGNMM double s[81];
+double s[81];
 for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
 iy = idx[1+n*3];
@@ -2018,6 +2028,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_gauge_r2_ssp1sps2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_gauge_r2_ssp1sps2_simd1;
+envs.common_factor *= -1;
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
 } // int2e_gauge_r2_ssp1sps2_cart
 int int2e_gauge_r2_ssp1sps2_sph(double *out, int *dims, int *shls,
@@ -2027,6 +2038,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_gauge_r2_ssp1sps2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_gauge_r2_ssp1sps2_simd1;
+envs.common_factor *= -1;
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
 } // int2e_gauge_r2_ssp1sps2_sph
 int int2e_gauge_r2_ssp1sps2_spinor(double complex *out, int *dims, int *shls,
@@ -2241,7 +2253,7 @@ G2E_D_I_SIMD1(g12, g4, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
 G2E_D_I_SIMD1(g13, g5, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
 G2E_D_I_SIMD1(g14, g6, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
 G2E_D_I_SIMD1(g15, g7, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
-ALIGNMM double s[81];
+double s[81];
 for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
 iy = idx[1+n*3];
@@ -2358,6 +2370,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_gauge_r2_sps1ssp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_gauge_r2_sps1ssp2_simd1;
+envs.common_factor *= -1;
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
 } // int2e_gauge_r2_sps1ssp2_cart
 int int2e_gauge_r2_sps1ssp2_sph(double *out, int *dims, int *shls,
@@ -2367,6 +2380,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_gauge_r2_sps1ssp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_gauge_r2_sps1ssp2_simd1;
+envs.common_factor *= -1;
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
 } // int2e_gauge_r2_sps1ssp2_sph
 int int2e_gauge_r2_sps1ssp2_spinor(double complex *out, int *dims, int *shls,
@@ -2581,7 +2595,7 @@ G2E_D_I_SIMD1(g12, g4, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
 G2E_D_I_SIMD1(g13, g5, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
 G2E_D_I_SIMD1(g14, g6, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
 G2E_D_I_SIMD1(g15, g7, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
-ALIGNMM double s[81];
+double s[81];
 for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
 iy = idx[1+n*3];
@@ -2698,6 +2712,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_gauge_r2_sps1sps2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_gauge_r2_sps1sps2_simd1;
+envs.common_factor *= -1;
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
 } // int2e_gauge_r2_sps1sps2_cart
 int int2e_gauge_r2_sps1sps2_sph(double *out, int *dims, int *shls,
@@ -2707,6 +2722,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_gauge_r2_sps1sps2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_gauge_r2_sps1sps2_simd1;
+envs.common_factor *= -1;
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
 } // int2e_gauge_r2_sps1sps2_sph
 int int2e_gauge_r2_sps1sps2_spinor(double complex *out, int *dims, int *shls,

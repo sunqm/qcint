@@ -261,7 +261,7 @@ int ix, iy, iz, i, n;
 double *RESTRICT g0 = g;
 double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
 G2E_D_I_SIMD1(g1, g0, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
-ALIGNMM double s[3];
+double s[3];
 for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
 iy = idx[1+n*3];
@@ -310,6 +310,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_spv1;
 envs.f_gout_simd1 = &CINTgout2e_int2e_spv1_simd1;
+envs.common_factor *= 1;
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
 } // int2e_spv1_cart
 int int2e_spv1_sph(double *out, int *dims, int *shls,
@@ -319,6 +320,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_spv1;
 envs.f_gout_simd1 = &CINTgout2e_int2e_spv1_simd1;
+envs.common_factor *= 1;
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
 } // int2e_spv1_sph
 int int2e_spv1_spinor(double complex *out, int *dims, int *shls,
@@ -409,7 +411,7 @@ int ix, iy, iz, i, n;
 double *RESTRICT g0 = g;
 double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
 G2E_D_J_SIMD1(g1, g0, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
-ALIGNMM double s[3];
+double s[3];
 for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
 iy = idx[1+n*3];
@@ -458,6 +460,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_vsp1;
 envs.f_gout_simd1 = &CINTgout2e_int2e_vsp1_simd1;
+envs.common_factor *= 1;
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
 } // int2e_vsp1_cart
 int int2e_vsp1_sph(double *out, int *dims, int *shls,
@@ -467,6 +470,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_vsp1;
 envs.f_gout_simd1 = &CINTgout2e_int2e_vsp1_simd1;
+envs.common_factor *= 1;
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
 } // int2e_vsp1_sph
 int int2e_vsp1_spinor(double complex *out, int *dims, int *shls,
@@ -631,7 +635,7 @@ double *RESTRICT g3 = g2 + envs->g_size * 3 * SIMDD;
 G2E_D_L_SIMD1(g1, g0, envs->i_l+0, envs->j_l+0, envs->k_l+1, envs->l_l+0);
 G2E_D_K_SIMD1(g2, g0, envs->i_l+0, envs->j_l+0, envs->k_l+0, envs->l_l);
 G2E_D_K_SIMD1(g3, g1, envs->i_l+0, envs->j_l+0, envs->k_l+0, envs->l_l);
-ALIGNMM double s[9];
+double s[9];
 for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
 iy = idx[1+n*3];
@@ -664,6 +668,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_spsp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_spsp2_simd1;
+envs.common_factor *= 1;
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
 } // int2e_spsp2_cart
 int int2e_spsp2_sph(double *out, int *dims, int *shls,
@@ -673,6 +678,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_spsp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_spsp2_simd1;
+envs.common_factor *= 1;
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
 } // int2e_spsp2_sph
 int int2e_spsp2_spinor(double complex *out, int *dims, int *shls,
@@ -849,7 +855,7 @@ double *RESTRICT g3 = g2 + envs->g_size * 3 * SIMDD;
 G2E_D_K_SIMD1(g1, g0, envs->i_l+1, envs->j_l+0, envs->k_l+0, envs->l_l);
 G2E_D_I_SIMD1(g2, g0, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
 G2E_D_I_SIMD1(g3, g1, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
-ALIGNMM double s[9];
+double s[9];
 for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
 iy = idx[1+n*3];
@@ -894,6 +900,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_spv1spv2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_spv1spv2_simd1;
+envs.common_factor *= 1;
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
 } // int2e_spv1spv2_cart
 int int2e_spv1spv2_sph(double *out, int *dims, int *shls,
@@ -903,6 +910,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_spv1spv2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_spv1spv2_simd1;
+envs.common_factor *= 1;
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
 } // int2e_spv1spv2_sph
 int int2e_spv1spv2_spinor(double complex *out, int *dims, int *shls,
@@ -1079,7 +1087,7 @@ double *RESTRICT g3 = g2 + envs->g_size * 3 * SIMDD;
 G2E_D_K_SIMD1(g1, g0, envs->i_l+0, envs->j_l+1, envs->k_l+0, envs->l_l);
 G2E_D_J_SIMD1(g2, g0, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
 G2E_D_J_SIMD1(g3, g1, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
-ALIGNMM double s[9];
+double s[9];
 for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
 iy = idx[1+n*3];
@@ -1124,6 +1132,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_vsp1spv2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_vsp1spv2_simd1;
+envs.common_factor *= 1;
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
 } // int2e_vsp1spv2_cart
 int int2e_vsp1spv2_sph(double *out, int *dims, int *shls,
@@ -1133,6 +1142,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_vsp1spv2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_vsp1spv2_simd1;
+envs.common_factor *= 1;
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
 } // int2e_vsp1spv2_sph
 int int2e_vsp1spv2_spinor(double complex *out, int *dims, int *shls,
@@ -1309,7 +1319,7 @@ double *RESTRICT g3 = g2 + envs->g_size * 3 * SIMDD;
 G2E_D_L_SIMD1(g1, g0, envs->i_l+1, envs->j_l+0, envs->k_l+0, envs->l_l+0);
 G2E_D_I_SIMD1(g2, g0, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
 G2E_D_I_SIMD1(g3, g1, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
-ALIGNMM double s[9];
+double s[9];
 for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
 iy = idx[1+n*3];
@@ -1354,6 +1364,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_spv1vsp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_spv1vsp2_simd1;
+envs.common_factor *= 1;
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
 } // int2e_spv1vsp2_cart
 int int2e_spv1vsp2_sph(double *out, int *dims, int *shls,
@@ -1363,6 +1374,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_spv1vsp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_spv1vsp2_simd1;
+envs.common_factor *= 1;
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
 } // int2e_spv1vsp2_sph
 int int2e_spv1vsp2_spinor(double complex *out, int *dims, int *shls,
@@ -1539,7 +1551,7 @@ double *RESTRICT g3 = g2 + envs->g_size * 3 * SIMDD;
 G2E_D_L_SIMD1(g1, g0, envs->i_l+0, envs->j_l+1, envs->k_l+0, envs->l_l+0);
 G2E_D_J_SIMD1(g2, g0, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
 G2E_D_J_SIMD1(g3, g1, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
-ALIGNMM double s[9];
+double s[9];
 for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
 iy = idx[1+n*3];
@@ -1584,6 +1596,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_vsp1vsp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_vsp1vsp2_simd1;
+envs.common_factor *= 1;
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
 } // int2e_vsp1vsp2_cart
 int int2e_vsp1vsp2_sph(double *out, int *dims, int *shls,
@@ -1593,6 +1606,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_vsp1vsp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_vsp1vsp2_simd1;
+envs.common_factor *= 1;
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
 } // int2e_vsp1vsp2_sph
 int int2e_vsp1vsp2_spinor(double complex *out, int *dims, int *shls,
@@ -1703,7 +1717,7 @@ G2E_D_I_SIMD1(g4, g0, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
 G2E_D_I_SIMD1(g5, g1, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
 G2E_D_I_SIMD1(g6, g2, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
 G2E_D_I_SIMD1(g7, g3, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
-ALIGNMM double s[27];
+double s[27];
 for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
 iy = idx[1+n*3];
@@ -1766,6 +1780,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_spv1spsp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_spv1spsp2_simd1;
+envs.common_factor *= 1;
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
 } // int2e_spv1spsp2_cart
 int int2e_spv1spsp2_sph(double *out, int *dims, int *shls,
@@ -1775,6 +1790,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_spv1spsp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_spv1spsp2_simd1;
+envs.common_factor *= 1;
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
 } // int2e_spv1spsp2_sph
 int int2e_spv1spsp2_spinor(double complex *out, int *dims, int *shls,
@@ -1885,7 +1901,7 @@ G2E_D_J_SIMD1(g4, g0, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
 G2E_D_J_SIMD1(g5, g1, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
 G2E_D_J_SIMD1(g6, g2, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
 G2E_D_J_SIMD1(g7, g3, envs->i_l+0, envs->j_l+0, envs->k_l, envs->l_l);
-ALIGNMM double s[27];
+double s[27];
 for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
 iy = idx[1+n*3];
@@ -1948,6 +1964,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_vsp1spsp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_vsp1spsp2_simd1;
+envs.common_factor *= 1;
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
 } // int2e_vsp1spsp2_cart
 int int2e_vsp1spsp2_sph(double *out, int *dims, int *shls,
@@ -1957,6 +1974,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_vsp1spsp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_vsp1spsp2_simd1;
+envs.common_factor *= 1;
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
 } // int2e_vsp1spsp2_sph
 int int2e_vsp1spsp2_spinor(double complex *out, int *dims, int *shls,

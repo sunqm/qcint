@@ -347,8 +347,8 @@
                   (g?e-of op) ig ig0 i-len right
                   (g?e-of op) (1+ ig) ig0 i-len right
                   ig (1+ ig))
-          (if (and (breit-int? opj-rev)
-                   (< (1+ right) (length opj-rev))) ; more ops on the left of breit-op
+          (if (and (intersection *act-left-right* opj-rev)
+                   (< (1+ right) (length opj-rev))) ; ops have *act-left-right* but the rightmost op is not
               (format fout fmt-j (g?e-of op) ig ig0 (1+ i-len) right)
               (format fout fmt-j (g?e-of op) ig ig0 i-len right)))))))
 
@@ -751,7 +751,7 @@ for (i = 0; i < nrys_roots; i++) {~%" (expt 3 tot-bits))
       (format fout "s[~a] += g~a[ix+i] * g~a[iy+i] * g~a[iz+i];~%"
               i xbin ybin zbin)))) ; end do i = 1, envs->nrys_roots
 (defun dump-s-2e (fout tot-bits &optional (deriv-max 2))
-  (format fout "ALIGNMM double s[~a];~%" (expt 3 tot-bits))
+  (format fout "double s[~a];~%" (expt 3 tot-bits))
   (format fout "for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
 iy = idx[1+n*3];
@@ -799,7 +799,7 @@ int nfc = nf * ~a;~%" goutinc)
 int ix, iy, iz, i, n;
 DECLARE_GOUT;
 double *RESTRICT g0 = g;~%")
-      (if (breit-int? op)
+      (if (intersection *act-left-right* op)
         (loop for i in (range (ash 1 tot-bits)) do
               (format fout "double *RESTRICT g~a = g~a + envs->g_size * 3 * SIMDD;~%" (1+ i) i))
         (loop for i in (range (1- (ash 1 tot-bits))) do
@@ -814,7 +814,7 @@ double *RESTRICT g0 = g;~%")
 ;;; G2E_D_I(g1, g0, envs->i_l+1, envs->j_l, envs->k_l, envs->l_l);
 ;;; G2E_D_I(g2, g0, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
 ;;; can be converted to g2 = g1;
-      (if (breit-int? op)
+      (if (intersection *act-left-right* op)
         (let ((fmt-k (mkstr "G2E_~aK(g~a, g~a, envs->i_l+" (1+ i-len) ", envs->j_l+" (1+ j-len)
                             ", envs->k_l+~a, envs->l_l);~%"))
               (fmt-op "")
@@ -869,7 +869,7 @@ double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {~%" intname)
 int nrys_roots = envs->nrys_roots;
 int ix, iy, iz, i, n;
 double *RESTRICT g0 = g;~%")
-      (if (breit-int? op)
+      (if (intersection *act-left-right* op)
         (loop for i in (range (ash 1 tot-bits)) do
               (format fout "double *RESTRICT g~a = g~a + envs->g_size * 3 * SIMDD;~%" (1+ i) i))
         (loop for i in (range (1- (ash 1 tot-bits))) do
@@ -879,7 +879,7 @@ double *RESTRICT g0 = g;~%")
       (dump-declare-dri-for-rc fout bra-k "k")
       (dump-declare-dri-for-rc fout ket-l "l")
       (dump-declare-giao-ijkl fout bra-i ket-j bra-k ket-l)
-      (if (breit-int? op)
+      (if (intersection *act-left-right* op)
         (let ((fmt-k (mkstr "G2E_~aK_SIMD1(g~a, g~a, envs->i_l+" (1+ i-len) ", envs->j_l+" (1+ j-len)
                             ", envs->k_l+~a, envs->l_l);~%"))
               (fmt-op "")
@@ -930,7 +930,7 @@ for (ix = 0; ix < envs->g_size * 3 * SIMDD; ix++) {g~a[ix] += g~a[ix];}~%"))
                           ((and (eql sf1 'si) (eql sf2 'si)) (/ goutinc 16))
                           (t (/ goutinc 4))))
            (ngdef (with-output-to-string (tmpout)
-                    (if (breit-int? op)
+                    (if (intersection *act-left-right* op)
                       (format tmpout "int ng[] = {~d, ~d, ~d, ~d, ~d, ~d, ~d, ~d};~%"
                               (1+ i-len) (1+ j-len) k-len l-len tot-bits e1comps e2comps tensors)
                       (format tmpout "int ng[] = {~d, ~d, ~d, ~d, ~d, ~d, ~d, ~d};~%"
@@ -956,6 +956,9 @@ for (ix = 0; ix < envs->g_size * 3 * SIMDD; ix++) {g~a[ix] += g~a[ix];}~%"))
       (format fout "int ~a_cart(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {~%" intname)
       (format fout envs-common)
+      (if (and (eql ts1 'tas) (eql ts2 'tas))
+        (format fout "envs.common_factor *= ~a;~%" (- (factor-of raw-infix)))
+        (format fout "envs.common_factor *= ~a;~%" (factor-of raw-infix)))
       (when (member 'g raw-infix)
         (format fout "int i, nout;
 int counts[4];~%")
@@ -986,6 +989,9 @@ return 0; }~%")))
       (format fout "int ~a_sph(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {~%" intname)
       (format fout envs-common)
+      (if (and (eql ts1 'tas) (eql ts2 'tas))
+        (format fout "envs.common_factor *= ~a;~%" (- (factor-of raw-infix)))
+        (format fout "envs.common_factor *= ~a;~%" (factor-of raw-infix)))
       (when (member 'g raw-infix)
         (format fout "int i, nout;
 int counts[4];~%")
@@ -1061,7 +1067,7 @@ return 0; }~%")))
            (k-len (length k-rev))
            (tot-bits (+ i-len j-len op-len k-len))
            (goutinc (length flat-script)))
-      (format fout "void CINTgout2e_~a(double *RESTRICT gout,
+      (format fout "static void CINTgout2e_~a(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {~%" intname)
       (format fout "int nf = envs->nf;
 int nfc = nf * ~a;~%" goutinc)
@@ -1069,7 +1075,7 @@ int nfc = nf * ~a;~%" goutinc)
 int ix, iy, iz, i, n;
 DECLARE_GOUT;
 double *RESTRICT g0 = g;~%")
-      (if (breit-int? op)
+      (if (intersection *act-left-right* op)
         (loop for i in (range (ash 1 tot-bits)) do
               (format fout "double *RESTRICT g~a = g~a + envs->g_size * 3 * SIMDD;~%" (1+ i) i))
         (loop for i in (range (1- (ash 1 tot-bits))) do
@@ -1078,7 +1084,7 @@ double *RESTRICT g0 = g;~%")
       (dump-declare-dri-for-rc fout ket-j "j")
       (dump-declare-dri-for-rc fout bra-k "k")
       (dump-declare-giao-ij fout bra-i ket-j)
-      (if (breit-int? op)
+      (if (intersection *act-left-right* op)
         (let ((fmt-k (mkstr "G2E_~aK(g~a, g~a, envs->i_l+" (1+ i-len) ", envs->j_l+" (1+ j-len)
                             ", envs->k_l+~a, 0);~%"))
               (fmt-op "")
@@ -1123,7 +1129,7 @@ double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {~%" intname)
 int nrys_roots = envs->nrys_roots;
 int ix, iy, iz, i, n;
 double *RESTRICT g0 = g;~%")
-      (if (breit-int? op)
+      (if (intersection *act-left-right* op)
         (loop for i in (range (ash 1 tot-bits)) do
               (format fout "double *RESTRICT g~a = g~a + envs->g_size * 3 * SIMDD;~%" (1+ i) i))
         (loop for i in (range (1- (ash 1 tot-bits))) do
@@ -1132,7 +1138,7 @@ double *RESTRICT g0 = g;~%")
       (dump-declare-dri-for-rc fout ket-j "j")
       (dump-declare-dri-for-rc fout bra-k "k")
       (dump-declare-giao-ij fout bra-i ket-j)
-      (if (breit-int? op)
+      (if (intersection *act-left-right* op)
         (let ((fmt-k (mkstr "G2E_~aK_SIMD1(g~a, g~a, envs->i_l+" (1+ i-len) ", envs->j_l+" (1+ j-len)
                             ", envs->k_l+~a, 0);~%"))
               (fmt-op "")
@@ -1179,7 +1185,7 @@ for (ix = 0; ix < envs->g_size * 3 * SIMDD; ix++) {g~a[ix] += g~a[ix];}~%"))
                           ((and (eql sf1 'si) (eql sf2 'si)) (/ goutinc 16))
                           (t (/ goutinc 4))))
            (ngdef (with-output-to-string (tmpout)
-                    (if (breit-int? op)
+                    (if (intersection *act-left-right* op)
                       (format tmpout "int ng[] = {~d, ~d, ~d, 0, ~d, ~d, ~d, ~d};~%"
                               (1+ i-len) (1+ j-len) k-len tot-bits e1comps e2comps tensors)
                       (format tmpout "int ng[] = {~d, ~d, ~d, 0, ~d, ~d, ~d, ~d};~%"
@@ -1273,7 +1279,7 @@ return 0; }~%")))
            (k-len (length k-rev))
            (tot-bits (+ i-len op-len k-len))
            (goutinc (length flat-script)))
-      (format fout "static void CINTgout2e_~a(double *RESTRICT gout,
+      (format fout "void CINTgout2e_~a(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {~%" intname)
       (format fout "int nf = envs->nf;
 int nfc = nf * ~a;~%" goutinc)
@@ -1281,14 +1287,14 @@ int nfc = nf * ~a;~%" goutinc)
 int ix, iy, iz, i, n;
 DECLARE_GOUT;
 double *RESTRICT g0 = g;~%")
-      (if (breit-int? op)
+      (if (intersection *act-left-right* op)
         (loop for i in (range (ash 1 tot-bits)) do
               (format fout "double *RESTRICT g~a = g~a + envs->g_size * 3 * SIMDD;~%" (1+ i) i))
         (loop for i in (range (1- (ash 1 tot-bits))) do
               (format fout "double *RESTRICT g~a = g~a + envs->g_size * 3 * SIMDD;~%" (1+ i) i)))
       (dump-declare-dri-for-rc fout bra-i "i")
       (dump-declare-dri-for-rc fout bra-k "k")
-      (if (breit-int? op)
+      (if (intersection *act-left-right* op)
         (let ((fmt-k (mkstr "G2E_~aK(g~a, g~a, envs->i_l+" (1+ i-len) ", 0, envs->k_l+~a, 0);~%"))
               (fmt-op "")
               (fmt-l ""))
@@ -1329,14 +1335,14 @@ double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {~%" intname)
 int nrys_roots = envs->nrys_roots;
 int ix, iy, iz, i, n;
 double *RESTRICT g0 = g;~%")
-      (if (breit-int? op)
+      (if (intersection *act-left-right* op)
         (loop for i in (range (ash 1 tot-bits)) do
               (format fout "double *RESTRICT g~a = g~a + envs->g_size * 3 * SIMDD;~%" (1+ i) i))
         (loop for i in (range (1- (ash 1 tot-bits))) do
               (format fout "double *RESTRICT g~a = g~a + envs->g_size * 3 * SIMDD;~%" (1+ i) i)))
       (dump-declare-dri-for-rc fout bra-i "i")
       (dump-declare-dri-for-rc fout bra-k "k")
-      (if (breit-int? op)
+      (if (intersection *act-left-right* op)
         (let ((fmt-k (mkstr "G2E_~aK_SIMD1(g~a, g~a, envs->i_l+" (1+ i-len) ", 0, envs->k_l+~a, 0);~%"))
               (fmt-op "")
               (fmt-l ""))
@@ -1379,7 +1385,7 @@ for (ix = 0; ix < envs->g_size * 3 * SIMDD; ix++) {g~a[ix] += g~a[ix];}~%"))
                           ((and (eql sf1 'si) (eql sf2 'si)) (/ goutinc 16))
                           (t (/ goutinc 4))))
            (ngdef (with-output-to-string (tmpout)
-                    (if (breit-int? op)
+                    (if (intersection *act-left-right* op)
                       (format tmpout "int ng[] = {~d, 1, ~d, 0, ~d, ~d, ~d, ~d};~%"
                               (1+ i-len) k-len tot-bits e1comps e2comps tensors)
                       (format tmpout "int ng[] = {~d, ~d, ~d, 0, ~d, ~d, ~d, ~d};~%"
@@ -1442,7 +1448,7 @@ int nfc = nf * ~a;~%" goutinc)
       (format fout "int ix, iy, iz, n;
 DECLARE_GOUT;
 double *RESTRICT g0 = g;~%")
-      (if (breit-int? op)
+      (if (intersection *act-left-right* op)
         (loop for i in (range (ash 1 tot-bits)) do
               (format fout "double *RESTRICT g~a = g~a + envs->g_size * 3 * SIMDD;~%" (1+ i) i))
         (loop for i in (range (1- (ash 1 tot-bits))) do

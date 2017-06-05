@@ -124,7 +124,7 @@ c[0] = 1 * rirj[0];
 c[1] = 1 * rirj[1];
 c[2] = 1 * rirj[2];
 G2E_R0I_SIMD1(g1, g0, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
-ALIGNMM double s[3];
+double s[3];
 for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
 iy = idx[1+n*3];
@@ -173,6 +173,7 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_ig1;
 envs.f_gout_simd1 = &CINTgout2e_int2e_ig1_simd1;
 envs.common_factor *= 0.5;
+envs.common_factor *= 0.5;
 int i, nout;
 int counts[4];
 if (envs.shls[0] == envs.shls[1]) {
@@ -194,6 +195,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_ig1;
 envs.f_gout_simd1 = &CINTgout2e_int2e_ig1_simd1;
+envs.common_factor *= 0.5;
 envs.common_factor *= 0.5;
 int i, nout;
 int counts[4];
@@ -425,7 +427,7 @@ c[8] = 1 * rirj[2] * rkrl[2];
 G2E_R0K_SIMD1(g1, g0, envs->i_l+1, envs->j_l+0, envs->k_l+0, envs->l_l);
 G2E_R0I_SIMD1(g2, g0, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
 G2E_R0I_SIMD1(g3, g1, envs->i_l+0, envs->j_l, envs->k_l, envs->l_l);
-ALIGNMM double s[9];
+double s[9];
 for (n = 0; n < nf; n++) {
 ix = idx[0+n*3];
 iy = idx[1+n*3];
@@ -464,6 +466,7 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_ig1ig2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_ig1ig2_simd1;
 envs.common_factor *= -0.25;
+envs.common_factor *= 0.25;
 int i, nout;
 int counts[4];
 if (envs.shls[0] == envs.shls[1]) {
@@ -496,6 +499,7 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_ig1ig2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_ig1ig2_simd1;
 envs.common_factor *= -0.25;
+envs.common_factor *= 0.25;
 int i, nout;
 int counts[4];
 if (envs.shls[0] == envs.shls[1]) {

@@ -37,11 +37,12 @@
 ;;; nabla-rinv = \vec{r}/r^3 = -\nabla{1/r}
 ;;; rinv  = 1/r
 ;;; r12   = 1/r_12
+;;; nabla-r12 = \vec{r}_{12}/r_{12}^3 = -\nabla_1{1/r_{12}}
 ;;; translate these keys in function dress-other combo-op
 (defparameter *one-electron-operator* '(ovlp rinv nuc nabla-rinv ccc1e))
 (defparameter *two-electron-operator* '(r12 ccc2e nabla-r12 gaunt breit-r1 breit-r2))
 (defparameter *one-componet-operator* '(rinv nuc r12))
-(defparameter *nabla-not-comutable* '(rinv nuc nabla-rinv r12 nabla-r12 gaunt2 breit-r1 breit-r2))
+(defparameter *nabla-not-comutable* '(rinv nuc nabla-rinv r12 nabla-r12 gaunt breit-r1 breit-r2))
 (defparameter *act-left-right* '(nabla-rinv nabla-r12 breit-r1 breit-r2))
 
 ;;; *operator*: precedence from high to low
@@ -74,6 +75,8 @@
 (defparameter *var-sticker* '(p* ip* nabla* px* py* pz*))
 (defparameter *var-vec* '(p ip nabla p* ip* nabla* r r0 rc ri rj rk rl g))
 
+(defun gaunt-int? (expr)
+  (member 'gaunt expr))
 (defun breit-int? (expr)
   (or (member 'breit-r1 expr) (member 'breit-r2 expr)))
 ;;;;;; convert to reversed polish notation ;;;;;;;;;;;
@@ -514,7 +517,9 @@
          (ts1 (car vs1))
          (sf1 (cadr vs1))
          (pv1 (caddr vs1))
-         (vs2 (format-vs-1e 1 bra-k ket-l op))
+         (vs2 (if (gaunt-int? op)
+                (format-vs-1e 1 bra-k ket-l op)
+                (format-vs-1e 1 bra-k ket-l '(r12))))
          (ts2 (car vs2))
          (sf2 (cadr vs2))
          (pv2 (caddr vs2)))
@@ -617,7 +622,7 @@
                     (eval-breit-gauge-r1 phasefac ops-i ops-j ops-k ops-l))
                    ((member 'breit-r2 op)
                     (eval-breit-gauge-r2 phasefac ops-i ops-j ops-k ops-l))
-                   ((member 'r12 op)
+                   ((or (member 'r12 op) (member 'nabla-r12 op))
                     (eval-int-r12 phasefac op ops-i ops-j ops-k ops-l))
                    (t (error "unsupport operator ~s~%" op))))
             ((int3c2e? expr)

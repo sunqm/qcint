@@ -93,7 +93,7 @@ void CINTrys_roots(int nroots, double *RESTRICT x,
 #ifdef HAVE_QUADMATH_H
                 for (i = 0; i < count; i++) rys_qroot(nroots, x[i], u+i, w+i);
 #else
-                fprintf(stderr, "libcint does not support nroots=%d\n", nroots);
+                fprintf(stderr, "libcint needs quadmath library to support nroots=%d\n", nroots);
                 exit(1);
 #endif
         }
