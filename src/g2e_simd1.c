@@ -1338,6 +1338,7 @@ void CINTg0_2e_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
         //fac1 = sqrt(a0 / (a1 * a1 * a1)) * envs->fac[idsimd];
         fac1 = envs->fac[idsimd] / (sqrt(aij+akl) * a1);
 #ifdef WITH_RANGE_COULOMB
+        const double omega = envs->env[PTR_RANGE_OMEGA];
         double theta = 1;
         if (omega > 0) {
 // For long-range part of range-separated Coulomb operator
@@ -1365,7 +1366,7 @@ void CINTg0_2e_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
                  * transform u[:] to theta^-1 tau^2 / (theta^-1 - tau^2)
                  * so the rest code can be reused.
                  */
-                for (i = 0; i < nroots; i++) {
+                for (i = 0; i < envs->nrys_roots; i++) {
                         u[i*SIMDD] /= u[i*SIMDD] + 1 - u[i*SIMDD] * theta;
                 }
         }
