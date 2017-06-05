@@ -260,7 +260,7 @@ int CINT2c2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
         double common_factor = envs->common_factor * (M_PI*M_PI*M_PI)*2/SQRTPI
                 * CINTcommon_fac_sp(envs->i_l) * CINTcommon_fac_sp(envs->k_l);
 
-        int *idx = opt->index_xyz_array[envs->i_l*ANG_MAX+envs->k_l];
+        int *idx = opt->index_xyz_array[envs->i_l*LMAX1+envs->k_l];
         int *non0ctr[2] = {opt->non0ctr[i_sh], opt->non0ctr[k_sh]};
         int *non0idx[2] = {opt->sortedidx[i_sh], opt->sortedidx[k_sh]};
 

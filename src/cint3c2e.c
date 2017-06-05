@@ -353,8 +353,8 @@ int CINT3c2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
                 * CINTcommon_fac_sp(envs->i_l) * CINTcommon_fac_sp(envs->j_l)
                 * CINTcommon_fac_sp(envs->k_l);
 
-        int *idx = opt->index_xyz_array[envs->i_l*ANG_MAX*ANG_MAX
-                                       +envs->j_l*ANG_MAX
+        int *idx = opt->index_xyz_array[envs->i_l*LMAX1*LMAX1
+                                       +envs->j_l*LMAX1
                                        +envs->k_l];
         int *non0ctr[3] = {opt->non0ctr[i_sh], opt->non0ctr[j_sh], opt->non0ctr[k_sh]};
         int *non0idx[3] = {opt->sortedidx[i_sh], opt->sortedidx[j_sh], opt->sortedidx[k_sh]};

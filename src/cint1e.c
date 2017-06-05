@@ -276,7 +276,7 @@ int CINT1e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
         double common_factor = envs->common_factor
                 * CINTcommon_fac_sp(envs->i_l) * CINTcommon_fac_sp(envs->j_l);
 
-        int *idx = opt->index_xyz_array[envs->i_l*ANG_MAX+envs->j_l];
+        int *idx = opt->index_xyz_array[envs->i_l*LMAX1+envs->j_l];
         int *non0ctr[2] = {opt->non0ctr[i_sh], opt->non0ctr[j_sh]};
         int *non0idx[2] = {opt->sortedidx[i_sh], opt->sortedidx[j_sh]};
 

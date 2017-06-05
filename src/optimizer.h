@@ -27,7 +27,7 @@ typedef struct {
     int _padding;
 } PairData;
 typedef struct {
-    int **index_xyz_array; // ANG_MAX**4 pointers to index_xyz
+    int **index_xyz_array; // LMAX1**4 pointers to index_xyz
     int **non0ctr;
     int **sortedidx;
     int nbas;

@@ -421,9 +421,9 @@ int CINT2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
                 * CINTcommon_fac_sp(envs->k_l) * CINTcommon_fac_sp(envs->l_l);
         double expijkl;
 
-        int *idx = opt->index_xyz_array[envs->i_l*ANG_MAX*ANG_MAX*ANG_MAX
-                                       +envs->j_l*ANG_MAX*ANG_MAX
-                                       +envs->k_l*ANG_MAX
+        int *idx = opt->index_xyz_array[envs->i_l*LMAX1*LMAX1*LMAX1
+                                       +envs->j_l*LMAX1*LMAX1
+                                       +envs->k_l*LMAX1
                                        +envs->l_l];
         int *non0ctri = opt->non0ctr[i_sh];
         int *non0ctrj = opt->non0ctr[j_sh];
