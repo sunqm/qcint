@@ -1618,7 +1618,6 @@ static void polyfit_roots(int nroots, double x, double* rr, double* ww)
 
 #ifdef HAVE_QUADMATH_H
 
-
 static void qgamma_inc_like(__float128 *f, __float128 t, int m)
 {
         int i;
