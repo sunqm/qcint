@@ -171,7 +171,7 @@ void CINTOpt_4cindex_xyz(CINTOpt *opt, int *ng, int *atm, int natm,
 {
         int i, j, k, l, ptr;
         int n = ANG_MAX*ANG_MAX*ANG_MAX*ANG_MAX;
-        opt->index_xyz_array = (int **)malloc(sizeof(int *) * n);
+        opt->index_xyz_array = malloc(sizeof(int*) * n);
         for (i = 0; i < n; i++) {
                 opt->index_xyz_array[i] = NULL;
         }
@@ -192,8 +192,7 @@ void CINTOpt_4cindex_xyz(CINTOpt *opt, int *ng, int *atm, int natm,
                     + j*ANG_MAX*ANG_MAX
                     + k*ANG_MAX
                     + l;
-                opt->index_xyz_array[ptr] =
-                        (int *)malloc(sizeof(int)*envs.nf*3);
+                opt->index_xyz_array[ptr] = malloc(sizeof(int)*envs.nf*3);
                 CINTg4c_index_xyz(opt->index_xyz_array[ptr], &envs);
         } } } }
 }
@@ -203,7 +202,7 @@ void CINTOpt_3cindex_xyz(CINTOpt *opt, int *ng, int *atm, int natm,
 {
         int i, j, k, ptr;
         int n = ANG_MAX*ANG_MAX*ANG_MAX;
-        opt->index_xyz_array = (int **)malloc(sizeof(int *) * n);
+        opt->index_xyz_array = malloc(sizeof(int*) * n);
         for (i = 0; i < n; i++) {
                 opt->index_xyz_array[i] = NULL;
         }
@@ -220,9 +219,8 @@ void CINTOpt_3cindex_xyz(CINTOpt *opt, int *ng, int *atm, int natm,
                 CINTinit_int3c2e_EnvVars(&envs, ng, shls,
                                          atm, natm, fakebas, fakenbas, env);
                 ptr = i*ANG_MAX*ANG_MAX + j*ANG_MAX + k;
-                opt->index_xyz_array[ptr] =
-                        (int *)malloc(sizeof(int)*envs.nf*3);
-                CINTg3c_index_xyz(opt->index_xyz_array[ptr], &envs);
+                opt->index_xyz_array[ptr] = malloc(sizeof(int)*envs.nf*3);
+                CINTg4c_index_xyz(opt->index_xyz_array[ptr], &envs);
         } } }
 }
 
@@ -231,7 +229,7 @@ void CINTOpt_2cindex_xyz(CINTOpt *opt, int *ng, int *atm, int natm,
 {
         int i, j, ptr;
         int n = ANG_MAX*ANG_MAX;
-        opt->index_xyz_array = (int **)malloc(sizeof(int *) * n);
+        opt->index_xyz_array = malloc(sizeof(int*) * n);
         for (i = 0; i < n; i++) {
                 opt->index_xyz_array[i] = NULL;
         }
@@ -247,8 +245,7 @@ void CINTOpt_2cindex_xyz(CINTOpt *opt, int *ng, int *atm, int natm,
                 CINTinit_int1e_EnvVars(&envs, ng, shls,
                                        atm, natm, fakebas, fakenbas, env);
                 ptr = i*ANG_MAX + j;
-                opt->index_xyz_array[ptr] =
-                        (int *)malloc(sizeof(int)*envs.nf*3);
+                opt->index_xyz_array[ptr] = malloc(sizeof(int)*envs.nf*3);
                 CINTg2c_index_xyz(opt->index_xyz_array[ptr], &envs);
         } }
 }
@@ -258,7 +255,7 @@ void CINTOpt_3c1eindex_xyz(CINTOpt *opt, int *ng, int *atm, int natm,
 {
         int i, j, k, ptr;
         int n = ANG_MAX*ANG_MAX*ANG_MAX;
-        opt->index_xyz_array = (int **)malloc(sizeof(int *) * n);
+        opt->index_xyz_array = malloc(sizeof(int*) * n);
         for (i = 0; i < n; i++) {
                 opt->index_xyz_array[i] = NULL;
         }
@@ -275,11 +272,54 @@ void CINTOpt_3c1eindex_xyz(CINTOpt *opt, int *ng, int *atm, int natm,
                 CINTinit_int3c1e_EnvVars(&envs, ng, shls,
                                          atm, natm, fakebas, fakenbas, env);
                 ptr = i*ANG_MAX*ANG_MAX + j*ANG_MAX + k;
-                opt->index_xyz_array[ptr] =
-                        (int *)malloc(sizeof(int)*envs.nf*3);
-                CINTg3c_index_xyz(opt->index_xyz_array[ptr], &envs);
+                opt->index_xyz_array[ptr] = malloc(sizeof(int)*envs.nf*3);
+                CINTg4c_index_xyz(opt->index_xyz_array[ptr], &envs);
         } } }
 }
+
+#ifdef WITH_F12
+void CINTinit_int2e_stg_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
+                                int *atm, int natm, int *bas, int nbas, double *env);
+void CINTOpt_stg_4cindex_xyz(CINTOpt *opt, int *ng, int *atm, int natm,
+                             int *bas, int nbas, double *env)
+{
+        int i, j, k, l, ptr;
+        int n = ANG_MAX*ANG_MAX*ANG_MAX*ANG_MAX;
+        opt->index_xyz_array = malloc(sizeof(int*) * n);
+        for (i = 0; i < n; i++) {
+                opt->index_xyz_array[i] = NULL;
+        }
+
+        int fakebas[BAS_SLOTS*ANG_MAX];
+        int max_l = _make_fakebas(fakebas, bas, nbas, env);
+        int fakenbas = max_l+1;
+        CINTEnvVars envs;
+        int shls[4];
+        for (i = 0; i <= max_l; i++) {
+        for (j = 0; j <= max_l; j++) {
+        for (k = 0; k <= max_l; k++) {
+        for (l = 0; l <= max_l; l++) {
+                shls[0] = i; shls[1] = j; shls[2] = k; shls[3] = l;
+                CINTinit_int2e_stg_EnvVars(&envs, ng, shls,
+                                           atm, natm, fakebas, fakenbas, env);
+                ptr = i*ANG_MAX*ANG_MAX*ANG_MAX
+                    + j*ANG_MAX*ANG_MAX
+                    + k*ANG_MAX
+                    + l;
+                opt->index_xyz_array[ptr] = malloc(sizeof(int)*envs.nf*3);
+                CINTg4c_index_xyz(opt->index_xyz_array[ptr], &envs);
+        } } } }
+}
+
+void CINTall_2e_stg_optimizer(CINTOpt **opt, int *ng,
+                              int *atm, int natm, int *bas, int nbas, double *env)
+{
+        CINTinit_2e_optimizer(opt, atm, natm, bas, nbas, env);
+        CINTOpt_setij(*opt, ng, atm, natm, bas, nbas, env);
+        CINTOpt_set_non0coeff(*opt, atm, natm, bas, nbas, env);
+        CINTOpt_stg_4cindex_xyz(*opt, ng, atm, natm, bas, nbas, env);
+}
+#endif
 
 
 // for the coeffs of the pGTO, find the maximum abs(coeff)

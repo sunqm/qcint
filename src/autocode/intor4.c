@@ -37,8 +37,10 @@
 static void CINTgout2e_int2e_spsp1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
+int nfc = nf * 4;
 int nrys_roots = envs->nrys_roots;
 int ix, iy, iz, i, n;
+DECLARE_GOUT;
 double *RESTRICT g0 = g;
 double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
@@ -164,10 +166,10 @@ rs[6] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)
 rs[7] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
 rs[8] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
 } break;}
-r1 = + rs[5] - rs[7]; MM_STORE(gout+(n*4+0)*SIMDD, r1);
-r1 = + rs[6] - rs[2]; MM_STORE(gout+(n*4+1)*SIMDD, r1);
-r1 = + rs[1] - rs[3]; MM_STORE(gout+(n*4+2)*SIMDD, r1);
-r1 = + rs[0] + rs[4] + rs[8]; MM_STORE(gout+(n*4+3)*SIMDD, r1);
+r1 = + rs[5] - rs[7]; GOUT_SCATTER(gout, n*4+0, r1);
+r1 = + rs[6] - rs[2]; GOUT_SCATTER(gout, n*4+1, r1);
+r1 = + rs[1] - rs[3]; GOUT_SCATTER(gout, n*4+2, r1);
+r1 = + rs[0] + rs[4] + rs[8]; GOUT_SCATTER(gout, n*4+3, r1);
 }}
 static void CINTgout2e_int2e_spsp1_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
@@ -214,10 +216,8 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_spsp1;
 envs.f_gout_simd1 = &CINTgout2e_int2e_spsp1_simd1;
-if (out == NULL) { return int2e_cache_size(&envs);
-} else {
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
-}} // int2e_spsp1_cart
+} // int2e_spsp1_cart
 int int2e_spsp1_sph(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 1, 0, 0, 2, 4, 1, 1};
@@ -225,10 +225,8 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_spsp1;
 envs.f_gout_simd1 = &CINTgout2e_int2e_spsp1_simd1;
-if (out == NULL) { return int2e_cache_size(&envs) + envs.nf*MAX(0, 3-SIMDD);
-} else {
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
-}} // int2e_spsp1_sph
+} // int2e_spsp1_sph
 int int2e_spsp1_spinor(double complex *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 1, 0, 0, 2, 4, 1, 1};
@@ -236,14 +234,8 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_spsp1;
 envs.f_gout_simd1 = &CINTgout2e_int2e_spsp1_simd1;
-if (out == NULL) {
-int n0 = int2e_cache_size(&envs);
-int n1 = CINTcgto_spinor(shls[0], bas) * envs.nfk * envs.x_ctr[2]
-* envs.nfl * envs.x_ctr[3] * CINTcgto_spinor(shls[1], bas);
-return MAX(n0, n0/2 + n1*envs.ncomp_e2*OF_CMPLX + envs.nf*32*OF_CMPLX);
-} else {
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1, &c2s_sf_2e2);
-}} // int2e_spsp1_spinor
+} // int2e_spsp1_spinor
 ALL_CINT(int2e_spsp1)
 //ALL_CINT_FORTRAN_(cint2e_spsp1)
 /* <SIGMA DOT P k SIGMA DOT P i|R12 |SIGMA DOT P j SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
@@ -251,8 +243,10 @@ ALL_CINT(int2e_spsp1)
 static void CINTgout2e_int2e_spsp1spsp2(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
+int nfc = nf * 16;
 int nrys_roots = envs->nrys_roots;
 int ix, iy, iz, i, n;
+DECLARE_GOUT;
 double *RESTRICT g0 = g;
 double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
@@ -374,22 +368,22 @@ rs[78] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g14+(iz+
 rs[79] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g14+(iz+i)*SIMDD);
 rs[80] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g15+(iz+i)*SIMDD);
 }
-r1 = + rs[50] - rs[68] - rs[52] + rs[70]; MM_STORE(gout+(n*16+0)*SIMDD, r1);
-r1 = + rs[59] - rs[23] - rs[61] + rs[25]; MM_STORE(gout+(n*16+1)*SIMDD, r1);
-r1 = + rs[14] - rs[32] - rs[16] + rs[34]; MM_STORE(gout+(n*16+2)*SIMDD, r1);
-r1 = + rs[5] + rs[41] + rs[77] - rs[7] - rs[43] - rs[79]; MM_STORE(gout+(n*16+3)*SIMDD, r1);
-r1 = + rs[51] - rs[69] - rs[47] + rs[65]; MM_STORE(gout+(n*16+4)*SIMDD, r1);
-r1 = + rs[60] - rs[24] - rs[56] + rs[20]; MM_STORE(gout+(n*16+5)*SIMDD, r1);
-r1 = + rs[15] - rs[33] - rs[11] + rs[29]; MM_STORE(gout+(n*16+6)*SIMDD, r1);
-r1 = + rs[6] + rs[42] + rs[78] - rs[2] - rs[38] - rs[74]; MM_STORE(gout+(n*16+7)*SIMDD, r1);
-r1 = + rs[46] - rs[64] - rs[48] + rs[66]; MM_STORE(gout+(n*16+8)*SIMDD, r1);
-r1 = + rs[55] - rs[19] - rs[57] + rs[21]; MM_STORE(gout+(n*16+9)*SIMDD, r1);
-r1 = + rs[10] - rs[28] - rs[12] + rs[30]; MM_STORE(gout+(n*16+10)*SIMDD, r1);
-r1 = + rs[1] + rs[37] + rs[73] - rs[3] - rs[39] - rs[75]; MM_STORE(gout+(n*16+11)*SIMDD, r1);
-r1 = + rs[45] - rs[63] + rs[49] - rs[67] + rs[53] - rs[71]; MM_STORE(gout+(n*16+12)*SIMDD, r1);
-r1 = + rs[54] - rs[18] + rs[58] - rs[22] + rs[62] - rs[26]; MM_STORE(gout+(n*16+13)*SIMDD, r1);
-r1 = + rs[9] - rs[27] + rs[13] - rs[31] + rs[17] - rs[35]; MM_STORE(gout+(n*16+14)*SIMDD, r1);
-r1 = + rs[0] + rs[36] + rs[72] + rs[4] + rs[40] + rs[76] + rs[8] + rs[44] + rs[80]; MM_STORE(gout+(n*16+15)*SIMDD, r1);
+r1 = + rs[50] - rs[68] - rs[52] + rs[70]; GOUT_SCATTER(gout, n*16+0, r1);
+r1 = + rs[59] - rs[23] - rs[61] + rs[25]; GOUT_SCATTER(gout, n*16+1, r1);
+r1 = + rs[14] - rs[32] - rs[16] + rs[34]; GOUT_SCATTER(gout, n*16+2, r1);
+r1 = + rs[5] + rs[41] + rs[77] - rs[7] - rs[43] - rs[79]; GOUT_SCATTER(gout, n*16+3, r1);
+r1 = + rs[51] - rs[69] - rs[47] + rs[65]; GOUT_SCATTER(gout, n*16+4, r1);
+r1 = + rs[60] - rs[24] - rs[56] + rs[20]; GOUT_SCATTER(gout, n*16+5, r1);
+r1 = + rs[15] - rs[33] - rs[11] + rs[29]; GOUT_SCATTER(gout, n*16+6, r1);
+r1 = + rs[6] + rs[42] + rs[78] - rs[2] - rs[38] - rs[74]; GOUT_SCATTER(gout, n*16+7, r1);
+r1 = + rs[46] - rs[64] - rs[48] + rs[66]; GOUT_SCATTER(gout, n*16+8, r1);
+r1 = + rs[55] - rs[19] - rs[57] + rs[21]; GOUT_SCATTER(gout, n*16+9, r1);
+r1 = + rs[10] - rs[28] - rs[12] + rs[30]; GOUT_SCATTER(gout, n*16+10, r1);
+r1 = + rs[1] + rs[37] + rs[73] - rs[3] - rs[39] - rs[75]; GOUT_SCATTER(gout, n*16+11, r1);
+r1 = + rs[45] - rs[63] + rs[49] - rs[67] + rs[53] - rs[71]; GOUT_SCATTER(gout, n*16+12, r1);
+r1 = + rs[54] - rs[18] + rs[58] - rs[22] + rs[62] - rs[26]; GOUT_SCATTER(gout, n*16+13, r1);
+r1 = + rs[9] - rs[27] + rs[13] - rs[31] + rs[17] - rs[35]; GOUT_SCATTER(gout, n*16+14, r1);
+r1 = + rs[0] + rs[36] + rs[72] + rs[4] + rs[40] + rs[76] + rs[8] + rs[44] + rs[80]; GOUT_SCATTER(gout, n*16+15, r1);
 }}
 static void CINTgout2e_int2e_spsp1spsp2_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
@@ -544,10 +538,8 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_spsp1spsp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_spsp1spsp2_simd1;
-if (out == NULL) { return int2e_cache_size(&envs);
-} else {
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
-}} // int2e_spsp1spsp2_cart
+} // int2e_spsp1spsp2_cart
 int int2e_spsp1spsp2_sph(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 1, 1, 1, 4, 4, 4, 1};
@@ -555,10 +547,8 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_spsp1spsp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_spsp1spsp2_simd1;
-if (out == NULL) { return int2e_cache_size(&envs) + envs.nf*MAX(0, 3-SIMDD);
-} else {
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
-}} // int2e_spsp1spsp2_sph
+} // int2e_spsp1spsp2_sph
 int int2e_spsp1spsp2_spinor(double complex *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 1, 1, 1, 4, 4, 4, 1};
@@ -566,14 +556,8 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_spsp1spsp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_spsp1spsp2_simd1;
-if (out == NULL) {
-int n0 = int2e_cache_size(&envs);
-int n1 = CINTcgto_spinor(shls[0], bas) * envs.nfk * envs.x_ctr[2]
-* envs.nfl * envs.x_ctr[3] * CINTcgto_spinor(shls[1], bas);
-return MAX(n0, n0/2 + n1*envs.ncomp_e2*OF_CMPLX + envs.nf*32*OF_CMPLX);
-} else {
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1, &c2s_si_2e2);
-}} // int2e_spsp1spsp2_spinor
+} // int2e_spsp1spsp2_spinor
 ALL_CINT(int2e_spsp1spsp2)
 //ALL_CINT_FORTRAN_(cint2e_spsp1spsp2)
 /* <k SIGMA DOT R i|R12 |SIGMA DOT R j l> : i,j \in electron 1; k,l \in electron 2
@@ -581,8 +565,10 @@ ALL_CINT(int2e_spsp1spsp2)
 static void CINTgout2e_int2e_srsr1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
+int nfc = nf * 4;
 int nrys_roots = envs->nrys_roots;
 int ix, iy, iz, i, n;
+DECLARE_GOUT;
 double *RESTRICT g0 = g;
 double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
@@ -708,10 +694,10 @@ rs[6] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)
 rs[7] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
 rs[8] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
 } break;}
-r1 = + rs[5] - rs[7]; MM_STORE(gout+(n*4+0)*SIMDD, r1);
-r1 = + rs[6] - rs[2]; MM_STORE(gout+(n*4+1)*SIMDD, r1);
-r1 = + rs[1] - rs[3]; MM_STORE(gout+(n*4+2)*SIMDD, r1);
-r1 = + rs[0] + rs[4] + rs[8]; MM_STORE(gout+(n*4+3)*SIMDD, r1);
+r1 = + rs[5] - rs[7]; GOUT_SCATTER(gout, n*4+0, r1);
+r1 = + rs[6] - rs[2]; GOUT_SCATTER(gout, n*4+1, r1);
+r1 = + rs[1] - rs[3]; GOUT_SCATTER(gout, n*4+2, r1);
+r1 = + rs[0] + rs[4] + rs[8]; GOUT_SCATTER(gout, n*4+3, r1);
 }}
 static void CINTgout2e_int2e_srsr1_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
@@ -758,10 +744,8 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_srsr1;
 envs.f_gout_simd1 = &CINTgout2e_int2e_srsr1_simd1;
-if (out == NULL) { return int2e_cache_size(&envs);
-} else {
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
-}} // int2e_srsr1_cart
+} // int2e_srsr1_cart
 int int2e_srsr1_sph(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 1, 0, 0, 2, 4, 1, 1};
@@ -769,10 +753,8 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_srsr1;
 envs.f_gout_simd1 = &CINTgout2e_int2e_srsr1_simd1;
-if (out == NULL) { return int2e_cache_size(&envs) + envs.nf*MAX(0, 3-SIMDD);
-} else {
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
-}} // int2e_srsr1_sph
+} // int2e_srsr1_sph
 int int2e_srsr1_spinor(double complex *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 1, 0, 0, 2, 4, 1, 1};
@@ -780,14 +762,8 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_srsr1;
 envs.f_gout_simd1 = &CINTgout2e_int2e_srsr1_simd1;
-if (out == NULL) {
-int n0 = int2e_cache_size(&envs);
-int n1 = CINTcgto_spinor(shls[0], bas) * envs.nfk * envs.x_ctr[2]
-* envs.nfl * envs.x_ctr[3] * CINTcgto_spinor(shls[1], bas);
-return MAX(n0, n0/2 + n1*envs.ncomp_e2*OF_CMPLX + envs.nf*32*OF_CMPLX);
-} else {
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1, &c2s_sf_2e2);
-}} // int2e_srsr1_spinor
+} // int2e_srsr1_spinor
 ALL_CINT(int2e_srsr1)
 //ALL_CINT_FORTRAN_(cint2e_srsr1)
 /* <SIGMA DOT R k SIGMA DOT R i|R12 |SIGMA DOT R j SIGMA DOT R l> : i,j \in electron 1; k,l \in electron 2
@@ -795,8 +771,10 @@ ALL_CINT(int2e_srsr1)
 static void CINTgout2e_int2e_srsr1srsr2(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
+int nfc = nf * 16;
 int nrys_roots = envs->nrys_roots;
 int ix, iy, iz, i, n;
+DECLARE_GOUT;
 double *RESTRICT g0 = g;
 double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
@@ -918,22 +896,22 @@ rs[78] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g14+(iz+
 rs[79] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g14+(iz+i)*SIMDD);
 rs[80] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g15+(iz+i)*SIMDD);
 }
-r1 = + rs[50] - rs[68] - rs[52] + rs[70]; MM_STORE(gout+(n*16+0)*SIMDD, r1);
-r1 = + rs[59] - rs[23] - rs[61] + rs[25]; MM_STORE(gout+(n*16+1)*SIMDD, r1);
-r1 = + rs[14] - rs[32] - rs[16] + rs[34]; MM_STORE(gout+(n*16+2)*SIMDD, r1);
-r1 = + rs[5] + rs[41] + rs[77] - rs[7] - rs[43] - rs[79]; MM_STORE(gout+(n*16+3)*SIMDD, r1);
-r1 = + rs[51] - rs[69] - rs[47] + rs[65]; MM_STORE(gout+(n*16+4)*SIMDD, r1);
-r1 = + rs[60] - rs[24] - rs[56] + rs[20]; MM_STORE(gout+(n*16+5)*SIMDD, r1);
-r1 = + rs[15] - rs[33] - rs[11] + rs[29]; MM_STORE(gout+(n*16+6)*SIMDD, r1);
-r1 = + rs[6] + rs[42] + rs[78] - rs[2] - rs[38] - rs[74]; MM_STORE(gout+(n*16+7)*SIMDD, r1);
-r1 = + rs[46] - rs[64] - rs[48] + rs[66]; MM_STORE(gout+(n*16+8)*SIMDD, r1);
-r1 = + rs[55] - rs[19] - rs[57] + rs[21]; MM_STORE(gout+(n*16+9)*SIMDD, r1);
-r1 = + rs[10] - rs[28] - rs[12] + rs[30]; MM_STORE(gout+(n*16+10)*SIMDD, r1);
-r1 = + rs[1] + rs[37] + rs[73] - rs[3] - rs[39] - rs[75]; MM_STORE(gout+(n*16+11)*SIMDD, r1);
-r1 = + rs[45] - rs[63] + rs[49] - rs[67] + rs[53] - rs[71]; MM_STORE(gout+(n*16+12)*SIMDD, r1);
-r1 = + rs[54] - rs[18] + rs[58] - rs[22] + rs[62] - rs[26]; MM_STORE(gout+(n*16+13)*SIMDD, r1);
-r1 = + rs[9] - rs[27] + rs[13] - rs[31] + rs[17] - rs[35]; MM_STORE(gout+(n*16+14)*SIMDD, r1);
-r1 = + rs[0] + rs[36] + rs[72] + rs[4] + rs[40] + rs[76] + rs[8] + rs[44] + rs[80]; MM_STORE(gout+(n*16+15)*SIMDD, r1);
+r1 = + rs[50] - rs[68] - rs[52] + rs[70]; GOUT_SCATTER(gout, n*16+0, r1);
+r1 = + rs[59] - rs[23] - rs[61] + rs[25]; GOUT_SCATTER(gout, n*16+1, r1);
+r1 = + rs[14] - rs[32] - rs[16] + rs[34]; GOUT_SCATTER(gout, n*16+2, r1);
+r1 = + rs[5] + rs[41] + rs[77] - rs[7] - rs[43] - rs[79]; GOUT_SCATTER(gout, n*16+3, r1);
+r1 = + rs[51] - rs[69] - rs[47] + rs[65]; GOUT_SCATTER(gout, n*16+4, r1);
+r1 = + rs[60] - rs[24] - rs[56] + rs[20]; GOUT_SCATTER(gout, n*16+5, r1);
+r1 = + rs[15] - rs[33] - rs[11] + rs[29]; GOUT_SCATTER(gout, n*16+6, r1);
+r1 = + rs[6] + rs[42] + rs[78] - rs[2] - rs[38] - rs[74]; GOUT_SCATTER(gout, n*16+7, r1);
+r1 = + rs[46] - rs[64] - rs[48] + rs[66]; GOUT_SCATTER(gout, n*16+8, r1);
+r1 = + rs[55] - rs[19] - rs[57] + rs[21]; GOUT_SCATTER(gout, n*16+9, r1);
+r1 = + rs[10] - rs[28] - rs[12] + rs[30]; GOUT_SCATTER(gout, n*16+10, r1);
+r1 = + rs[1] + rs[37] + rs[73] - rs[3] - rs[39] - rs[75]; GOUT_SCATTER(gout, n*16+11, r1);
+r1 = + rs[45] - rs[63] + rs[49] - rs[67] + rs[53] - rs[71]; GOUT_SCATTER(gout, n*16+12, r1);
+r1 = + rs[54] - rs[18] + rs[58] - rs[22] + rs[62] - rs[26]; GOUT_SCATTER(gout, n*16+13, r1);
+r1 = + rs[9] - rs[27] + rs[13] - rs[31] + rs[17] - rs[35]; GOUT_SCATTER(gout, n*16+14, r1);
+r1 = + rs[0] + rs[36] + rs[72] + rs[4] + rs[40] + rs[76] + rs[8] + rs[44] + rs[80]; GOUT_SCATTER(gout, n*16+15, r1);
 }}
 static void CINTgout2e_int2e_srsr1srsr2_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
@@ -1088,10 +1066,8 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_srsr1srsr2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_srsr1srsr2_simd1;
-if (out == NULL) { return int2e_cache_size(&envs);
-} else {
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
-}} // int2e_srsr1srsr2_cart
+} // int2e_srsr1srsr2_cart
 int int2e_srsr1srsr2_sph(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 1, 1, 1, 4, 4, 4, 1};
@@ -1099,10 +1075,8 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_srsr1srsr2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_srsr1srsr2_simd1;
-if (out == NULL) { return int2e_cache_size(&envs) + envs.nf*MAX(0, 3-SIMDD);
-} else {
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
-}} // int2e_srsr1srsr2_sph
+} // int2e_srsr1srsr2_sph
 int int2e_srsr1srsr2_spinor(double complex *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 1, 1, 1, 4, 4, 4, 1};
@@ -1110,14 +1084,8 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_srsr1srsr2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_srsr1srsr2_simd1;
-if (out == NULL) {
-int n0 = int2e_cache_size(&envs);
-int n1 = CINTcgto_spinor(shls[0], bas) * envs.nfk * envs.x_ctr[2]
-* envs.nfl * envs.x_ctr[3] * CINTcgto_spinor(shls[1], bas);
-return MAX(n0, n0/2 + n1*envs.ncomp_e2*OF_CMPLX + envs.nf*32*OF_CMPLX);
-} else {
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1, &c2s_si_2e2);
-}} // int2e_srsr1srsr2_spinor
+} // int2e_srsr1srsr2_spinor
 ALL_CINT(int2e_srsr1srsr2)
 //ALL_CINT_FORTRAN_(cint2e_srsr1srsr2)
 /* <k RC CROSS SIGMA i|R12 |SIGMA DOT P j l> : i,j \in electron 1; k,l \in electron 2
@@ -1125,8 +1093,10 @@ ALL_CINT(int2e_srsr1srsr2)
 static void CINTgout2e_int2e_cg_sa10sp1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
+int nfc = nf * 12;
 int nrys_roots = envs->nrys_roots;
 int ix, iy, iz, i, n;
+DECLARE_GOUT;
 double *RESTRICT g0 = g;
 double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
@@ -1256,18 +1226,18 @@ rs[6] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)
 rs[7] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
 rs[8] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
 } break;}
-r1 = + rs[8] + rs[4]; MM_STORE(gout+(n*12+0)*SIMDD, r1);
-r1 = - rs[3]; MM_STORE(gout+(n*12+1)*SIMDD, r1);
-r1 = - rs[6]; MM_STORE(gout+(n*12+2)*SIMDD, r1);
-r1 = + rs[7] - rs[5]; MM_STORE(gout+(n*12+3)*SIMDD, r1);
-r1 = - rs[1]; MM_STORE(gout+(n*12+4)*SIMDD, r1);
-r1 = + rs[0] + rs[8]; MM_STORE(gout+(n*12+5)*SIMDD, r1);
-r1 = - rs[7]; MM_STORE(gout+(n*12+6)*SIMDD, r1);
-r1 = - rs[6] + rs[2]; MM_STORE(gout+(n*12+7)*SIMDD, r1);
-r1 = - rs[2]; MM_STORE(gout+(n*12+8)*SIMDD, r1);
-r1 = - rs[5]; MM_STORE(gout+(n*12+9)*SIMDD, r1);
-r1 = + rs[4] + rs[0]; MM_STORE(gout+(n*12+10)*SIMDD, r1);
-r1 = + rs[3] - rs[1]; MM_STORE(gout+(n*12+11)*SIMDD, r1);
+r1 = + rs[8] + rs[4]; GOUT_SCATTER(gout, n*12+0, r1);
+r1 = - rs[3]; GOUT_SCATTER(gout, n*12+1, r1);
+r1 = - rs[6]; GOUT_SCATTER(gout, n*12+2, r1);
+r1 = + rs[7] - rs[5]; GOUT_SCATTER(gout, n*12+3, r1);
+r1 = - rs[1]; GOUT_SCATTER(gout, n*12+4, r1);
+r1 = + rs[0] + rs[8]; GOUT_SCATTER(gout, n*12+5, r1);
+r1 = - rs[7]; GOUT_SCATTER(gout, n*12+6, r1);
+r1 = - rs[6] + rs[2]; GOUT_SCATTER(gout, n*12+7, r1);
+r1 = - rs[2]; GOUT_SCATTER(gout, n*12+8, r1);
+r1 = - rs[5]; GOUT_SCATTER(gout, n*12+9, r1);
+r1 = + rs[4] + rs[0]; GOUT_SCATTER(gout, n*12+10, r1);
+r1 = + rs[3] - rs[1]; GOUT_SCATTER(gout, n*12+11, r1);
 }}
 static void CINTgout2e_int2e_cg_sa10sp1_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
@@ -1327,10 +1297,8 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_cg_sa10sp1;
 envs.f_gout_simd1 = &CINTgout2e_int2e_cg_sa10sp1_simd1;
 envs.common_factor *= 0.5;
-if (out == NULL) { return int2e_cache_size(&envs);
-} else {
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
-}} // int2e_cg_sa10sp1_cart
+} // int2e_cg_sa10sp1_cart
 int int2e_cg_sa10sp1_sph(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 1, 0, 0, 2, 4, 1, 3};
@@ -1339,10 +1307,8 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_cg_sa10sp1;
 envs.f_gout_simd1 = &CINTgout2e_int2e_cg_sa10sp1_simd1;
 envs.common_factor *= 0.5;
-if (out == NULL) { return int2e_cache_size(&envs) + envs.nf*MAX(0, 3-SIMDD);
-} else {
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
-}} // int2e_cg_sa10sp1_sph
+} // int2e_cg_sa10sp1_sph
 int int2e_cg_sa10sp1_spinor(double complex *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 1, 0, 0, 2, 4, 1, 3};
@@ -1351,14 +1317,8 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_cg_sa10sp1;
 envs.f_gout_simd1 = &CINTgout2e_int2e_cg_sa10sp1_simd1;
 envs.common_factor *= 0.5;
-if (out == NULL) {
-int n0 = int2e_cache_size(&envs);
-int n1 = CINTcgto_spinor(shls[0], bas) * envs.nfk * envs.x_ctr[2]
-* envs.nfl * envs.x_ctr[3] * CINTcgto_spinor(shls[1], bas);
-return MAX(n0, n0/2 + n1*envs.ncomp_e2*OF_CMPLX + envs.nf*32*OF_CMPLX);
-} else {
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1i, &c2s_sf_2e2);
-}} // int2e_cg_sa10sp1_spinor
+} // int2e_cg_sa10sp1_spinor
 ALL_CINT(int2e_cg_sa10sp1)
 //ALL_CINT_FORTRAN_(cint2e_cg_sa10sp1)
 /* <SIGMA DOT P k RC CROSS SIGMA i|R12 |SIGMA DOT P j SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
@@ -1366,8 +1326,10 @@ ALL_CINT(int2e_cg_sa10sp1)
 static void CINTgout2e_int2e_cg_sa10sp1spsp2(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
+int nfc = nf * 48;
 int nrys_roots = envs->nrys_roots;
 int ix, iy, iz, i, n;
+DECLARE_GOUT;
 double *RESTRICT g0 = g;
 double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
@@ -1493,54 +1455,54 @@ rs[78] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g14+(iz+
 rs[79] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g14+(iz+i)*SIMDD);
 rs[80] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g15+(iz+i)*SIMDD);
 }
-r1 = + rs[77] + rs[41] - rs[79] - rs[43]; MM_STORE(gout+(n*48+0)*SIMDD, r1);
-r1 = - rs[32] + rs[34]; MM_STORE(gout+(n*48+1)*SIMDD, r1);
-r1 = - rs[59] + rs[61]; MM_STORE(gout+(n*48+2)*SIMDD, r1);
-r1 = + rs[68] - rs[50] - rs[70] + rs[52]; MM_STORE(gout+(n*48+3)*SIMDD, r1);
-r1 = + rs[78] + rs[42] - rs[74] - rs[38]; MM_STORE(gout+(n*48+4)*SIMDD, r1);
-r1 = - rs[33] + rs[29]; MM_STORE(gout+(n*48+5)*SIMDD, r1);
-r1 = - rs[60] + rs[56]; MM_STORE(gout+(n*48+6)*SIMDD, r1);
-r1 = + rs[69] - rs[51] - rs[65] + rs[47]; MM_STORE(gout+(n*48+7)*SIMDD, r1);
-r1 = + rs[73] + rs[37] - rs[75] - rs[39]; MM_STORE(gout+(n*48+8)*SIMDD, r1);
-r1 = - rs[28] + rs[30]; MM_STORE(gout+(n*48+9)*SIMDD, r1);
-r1 = - rs[55] + rs[57]; MM_STORE(gout+(n*48+10)*SIMDD, r1);
-r1 = + rs[64] - rs[46] - rs[66] + rs[48]; MM_STORE(gout+(n*48+11)*SIMDD, r1);
-r1 = + rs[72] + rs[36] + rs[76] + rs[40] + rs[80] + rs[44]; MM_STORE(gout+(n*48+12)*SIMDD, r1);
-r1 = - rs[27] - rs[31] - rs[35]; MM_STORE(gout+(n*48+13)*SIMDD, r1);
-r1 = - rs[54] - rs[58] - rs[62]; MM_STORE(gout+(n*48+14)*SIMDD, r1);
-r1 = + rs[63] - rs[45] + rs[67] - rs[49] + rs[71] - rs[53]; MM_STORE(gout+(n*48+15)*SIMDD, r1);
-r1 = - rs[14] + rs[16]; MM_STORE(gout+(n*48+16)*SIMDD, r1);
-r1 = + rs[5] + rs[77] - rs[7] - rs[79]; MM_STORE(gout+(n*48+17)*SIMDD, r1);
-r1 = - rs[68] + rs[70]; MM_STORE(gout+(n*48+18)*SIMDD, r1);
-r1 = - rs[59] + rs[23] + rs[61] - rs[25]; MM_STORE(gout+(n*48+19)*SIMDD, r1);
-r1 = - rs[15] + rs[11]; MM_STORE(gout+(n*48+20)*SIMDD, r1);
-r1 = + rs[6] + rs[78] - rs[2] - rs[74]; MM_STORE(gout+(n*48+21)*SIMDD, r1);
-r1 = - rs[69] + rs[65]; MM_STORE(gout+(n*48+22)*SIMDD, r1);
-r1 = - rs[60] + rs[24] + rs[56] - rs[20]; MM_STORE(gout+(n*48+23)*SIMDD, r1);
-r1 = - rs[10] + rs[12]; MM_STORE(gout+(n*48+24)*SIMDD, r1);
-r1 = + rs[1] + rs[73] - rs[3] - rs[75]; MM_STORE(gout+(n*48+25)*SIMDD, r1);
-r1 = - rs[64] + rs[66]; MM_STORE(gout+(n*48+26)*SIMDD, r1);
-r1 = - rs[55] + rs[19] + rs[57] - rs[21]; MM_STORE(gout+(n*48+27)*SIMDD, r1);
-r1 = - rs[9] - rs[13] - rs[17]; MM_STORE(gout+(n*48+28)*SIMDD, r1);
-r1 = + rs[0] + rs[72] + rs[4] + rs[76] + rs[8] + rs[80]; MM_STORE(gout+(n*48+29)*SIMDD, r1);
-r1 = - rs[63] - rs[67] - rs[71]; MM_STORE(gout+(n*48+30)*SIMDD, r1);
-r1 = - rs[54] + rs[18] - rs[58] + rs[22] - rs[62] + rs[26]; MM_STORE(gout+(n*48+31)*SIMDD, r1);
-r1 = - rs[23] + rs[25]; MM_STORE(gout+(n*48+32)*SIMDD, r1);
-r1 = - rs[50] + rs[52]; MM_STORE(gout+(n*48+33)*SIMDD, r1);
-r1 = + rs[41] + rs[5] - rs[43] - rs[7]; MM_STORE(gout+(n*48+34)*SIMDD, r1);
-r1 = + rs[32] - rs[14] - rs[34] + rs[16]; MM_STORE(gout+(n*48+35)*SIMDD, r1);
-r1 = - rs[24] + rs[20]; MM_STORE(gout+(n*48+36)*SIMDD, r1);
-r1 = - rs[51] + rs[47]; MM_STORE(gout+(n*48+37)*SIMDD, r1);
-r1 = + rs[42] + rs[6] - rs[38] - rs[2]; MM_STORE(gout+(n*48+38)*SIMDD, r1);
-r1 = + rs[33] - rs[15] - rs[29] + rs[11]; MM_STORE(gout+(n*48+39)*SIMDD, r1);
-r1 = - rs[19] + rs[21]; MM_STORE(gout+(n*48+40)*SIMDD, r1);
-r1 = - rs[46] + rs[48]; MM_STORE(gout+(n*48+41)*SIMDD, r1);
-r1 = + rs[37] + rs[1] - rs[39] - rs[3]; MM_STORE(gout+(n*48+42)*SIMDD, r1);
-r1 = + rs[28] - rs[10] - rs[30] + rs[12]; MM_STORE(gout+(n*48+43)*SIMDD, r1);
-r1 = - rs[18] - rs[22] - rs[26]; MM_STORE(gout+(n*48+44)*SIMDD, r1);
-r1 = - rs[45] - rs[49] - rs[53]; MM_STORE(gout+(n*48+45)*SIMDD, r1);
-r1 = + rs[36] + rs[0] + rs[40] + rs[4] + rs[44] + rs[8]; MM_STORE(gout+(n*48+46)*SIMDD, r1);
-r1 = + rs[27] - rs[9] + rs[31] - rs[13] + rs[35] - rs[17]; MM_STORE(gout+(n*48+47)*SIMDD, r1);
+r1 = + rs[77] + rs[41] - rs[79] - rs[43]; GOUT_SCATTER(gout, n*48+0, r1);
+r1 = - rs[32] + rs[34]; GOUT_SCATTER(gout, n*48+1, r1);
+r1 = - rs[59] + rs[61]; GOUT_SCATTER(gout, n*48+2, r1);
+r1 = + rs[68] - rs[50] - rs[70] + rs[52]; GOUT_SCATTER(gout, n*48+3, r1);
+r1 = + rs[78] + rs[42] - rs[74] - rs[38]; GOUT_SCATTER(gout, n*48+4, r1);
+r1 = - rs[33] + rs[29]; GOUT_SCATTER(gout, n*48+5, r1);
+r1 = - rs[60] + rs[56]; GOUT_SCATTER(gout, n*48+6, r1);
+r1 = + rs[69] - rs[51] - rs[65] + rs[47]; GOUT_SCATTER(gout, n*48+7, r1);
+r1 = + rs[73] + rs[37] - rs[75] - rs[39]; GOUT_SCATTER(gout, n*48+8, r1);
+r1 = - rs[28] + rs[30]; GOUT_SCATTER(gout, n*48+9, r1);
+r1 = - rs[55] + rs[57]; GOUT_SCATTER(gout, n*48+10, r1);
+r1 = + rs[64] - rs[46] - rs[66] + rs[48]; GOUT_SCATTER(gout, n*48+11, r1);
+r1 = + rs[72] + rs[36] + rs[76] + rs[40] + rs[80] + rs[44]; GOUT_SCATTER(gout, n*48+12, r1);
+r1 = - rs[27] - rs[31] - rs[35]; GOUT_SCATTER(gout, n*48+13, r1);
+r1 = - rs[54] - rs[58] - rs[62]; GOUT_SCATTER(gout, n*48+14, r1);
+r1 = + rs[63] - rs[45] + rs[67] - rs[49] + rs[71] - rs[53]; GOUT_SCATTER(gout, n*48+15, r1);
+r1 = - rs[14] + rs[16]; GOUT_SCATTER(gout, n*48+16, r1);
+r1 = + rs[5] + rs[77] - rs[7] - rs[79]; GOUT_SCATTER(gout, n*48+17, r1);
+r1 = - rs[68] + rs[70]; GOUT_SCATTER(gout, n*48+18, r1);
+r1 = - rs[59] + rs[23] + rs[61] - rs[25]; GOUT_SCATTER(gout, n*48+19, r1);
+r1 = - rs[15] + rs[11]; GOUT_SCATTER(gout, n*48+20, r1);
+r1 = + rs[6] + rs[78] - rs[2] - rs[74]; GOUT_SCATTER(gout, n*48+21, r1);
+r1 = - rs[69] + rs[65]; GOUT_SCATTER(gout, n*48+22, r1);
+r1 = - rs[60] + rs[24] + rs[56] - rs[20]; GOUT_SCATTER(gout, n*48+23, r1);
+r1 = - rs[10] + rs[12]; GOUT_SCATTER(gout, n*48+24, r1);
+r1 = + rs[1] + rs[73] - rs[3] - rs[75]; GOUT_SCATTER(gout, n*48+25, r1);
+r1 = - rs[64] + rs[66]; GOUT_SCATTER(gout, n*48+26, r1);
+r1 = - rs[55] + rs[19] + rs[57] - rs[21]; GOUT_SCATTER(gout, n*48+27, r1);
+r1 = - rs[9] - rs[13] - rs[17]; GOUT_SCATTER(gout, n*48+28, r1);
+r1 = + rs[0] + rs[72] + rs[4] + rs[76] + rs[8] + rs[80]; GOUT_SCATTER(gout, n*48+29, r1);
+r1 = - rs[63] - rs[67] - rs[71]; GOUT_SCATTER(gout, n*48+30, r1);
+r1 = - rs[54] + rs[18] - rs[58] + rs[22] - rs[62] + rs[26]; GOUT_SCATTER(gout, n*48+31, r1);
+r1 = - rs[23] + rs[25]; GOUT_SCATTER(gout, n*48+32, r1);
+r1 = - rs[50] + rs[52]; GOUT_SCATTER(gout, n*48+33, r1);
+r1 = + rs[41] + rs[5] - rs[43] - rs[7]; GOUT_SCATTER(gout, n*48+34, r1);
+r1 = + rs[32] - rs[14] - rs[34] + rs[16]; GOUT_SCATTER(gout, n*48+35, r1);
+r1 = - rs[24] + rs[20]; GOUT_SCATTER(gout, n*48+36, r1);
+r1 = - rs[51] + rs[47]; GOUT_SCATTER(gout, n*48+37, r1);
+r1 = + rs[42] + rs[6] - rs[38] - rs[2]; GOUT_SCATTER(gout, n*48+38, r1);
+r1 = + rs[33] - rs[15] - rs[29] + rs[11]; GOUT_SCATTER(gout, n*48+39, r1);
+r1 = - rs[19] + rs[21]; GOUT_SCATTER(gout, n*48+40, r1);
+r1 = - rs[46] + rs[48]; GOUT_SCATTER(gout, n*48+41, r1);
+r1 = + rs[37] + rs[1] - rs[39] - rs[3]; GOUT_SCATTER(gout, n*48+42, r1);
+r1 = + rs[28] - rs[10] - rs[30] + rs[12]; GOUT_SCATTER(gout, n*48+43, r1);
+r1 = - rs[18] - rs[22] - rs[26]; GOUT_SCATTER(gout, n*48+44, r1);
+r1 = - rs[45] - rs[49] - rs[53]; GOUT_SCATTER(gout, n*48+45, r1);
+r1 = + rs[36] + rs[0] + rs[40] + rs[4] + rs[44] + rs[8]; GOUT_SCATTER(gout, n*48+46, r1);
+r1 = + rs[27] - rs[9] + rs[31] - rs[13] + rs[35] - rs[17]; GOUT_SCATTER(gout, n*48+47, r1);
 }}
 static void CINTgout2e_int2e_cg_sa10sp1spsp2_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
@@ -1732,10 +1694,8 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_cg_sa10sp1spsp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_cg_sa10sp1spsp2_simd1;
 envs.common_factor *= 0.5;
-if (out == NULL) { return int2e_cache_size(&envs);
-} else {
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
-}} // int2e_cg_sa10sp1spsp2_cart
+} // int2e_cg_sa10sp1spsp2_cart
 int int2e_cg_sa10sp1spsp2_sph(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 1, 1, 1, 4, 4, 4, 3};
@@ -1744,10 +1704,8 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_cg_sa10sp1spsp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_cg_sa10sp1spsp2_simd1;
 envs.common_factor *= 0.5;
-if (out == NULL) { return int2e_cache_size(&envs) + envs.nf*MAX(0, 3-SIMDD);
-} else {
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
-}} // int2e_cg_sa10sp1spsp2_sph
+} // int2e_cg_sa10sp1spsp2_sph
 int int2e_cg_sa10sp1spsp2_spinor(double complex *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 1, 1, 1, 4, 4, 4, 3};
@@ -1756,14 +1714,8 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_cg_sa10sp1spsp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_cg_sa10sp1spsp2_simd1;
 envs.common_factor *= 0.5;
-if (out == NULL) {
-int n0 = int2e_cache_size(&envs);
-int n1 = CINTcgto_spinor(shls[0], bas) * envs.nfk * envs.x_ctr[2]
-* envs.nfl * envs.x_ctr[3] * CINTcgto_spinor(shls[1], bas);
-return MAX(n0, n0/2 + n1*envs.ncomp_e2*OF_CMPLX + envs.nf*32*OF_CMPLX);
-} else {
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1i, &c2s_si_2e2);
-}} // int2e_cg_sa10sp1spsp2_spinor
+} // int2e_cg_sa10sp1spsp2_spinor
 ALL_CINT(int2e_cg_sa10sp1spsp2)
 //ALL_CINT_FORTRAN_(cint2e_cg_sa10sp1spsp2)
 /* <k R CROSS SIGMA i|R12 |SIGMA DOT P j l> : i,j \in electron 1; k,l \in electron 2
@@ -1771,8 +1723,10 @@ ALL_CINT(int2e_cg_sa10sp1spsp2)
 static void CINTgout2e_int2e_giao_sa10sp1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
+int nfc = nf * 12;
 int nrys_roots = envs->nrys_roots;
 int ix, iy, iz, i, n;
+DECLARE_GOUT;
 double *RESTRICT g0 = g;
 double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
@@ -1898,18 +1852,18 @@ rs[6] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)
 rs[7] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
 rs[8] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
 } break;}
-r1 = + rs[8] + rs[4]; MM_STORE(gout+(n*12+0)*SIMDD, r1);
-r1 = - rs[3]; MM_STORE(gout+(n*12+1)*SIMDD, r1);
-r1 = - rs[6]; MM_STORE(gout+(n*12+2)*SIMDD, r1);
-r1 = + rs[7] - rs[5]; MM_STORE(gout+(n*12+3)*SIMDD, r1);
-r1 = - rs[1]; MM_STORE(gout+(n*12+4)*SIMDD, r1);
-r1 = + rs[0] + rs[8]; MM_STORE(gout+(n*12+5)*SIMDD, r1);
-r1 = - rs[7]; MM_STORE(gout+(n*12+6)*SIMDD, r1);
-r1 = - rs[6] + rs[2]; MM_STORE(gout+(n*12+7)*SIMDD, r1);
-r1 = - rs[2]; MM_STORE(gout+(n*12+8)*SIMDD, r1);
-r1 = - rs[5]; MM_STORE(gout+(n*12+9)*SIMDD, r1);
-r1 = + rs[4] + rs[0]; MM_STORE(gout+(n*12+10)*SIMDD, r1);
-r1 = + rs[3] - rs[1]; MM_STORE(gout+(n*12+11)*SIMDD, r1);
+r1 = + rs[8] + rs[4]; GOUT_SCATTER(gout, n*12+0, r1);
+r1 = - rs[3]; GOUT_SCATTER(gout, n*12+1, r1);
+r1 = - rs[6]; GOUT_SCATTER(gout, n*12+2, r1);
+r1 = + rs[7] - rs[5]; GOUT_SCATTER(gout, n*12+3, r1);
+r1 = - rs[1]; GOUT_SCATTER(gout, n*12+4, r1);
+r1 = + rs[0] + rs[8]; GOUT_SCATTER(gout, n*12+5, r1);
+r1 = - rs[7]; GOUT_SCATTER(gout, n*12+6, r1);
+r1 = - rs[6] + rs[2]; GOUT_SCATTER(gout, n*12+7, r1);
+r1 = - rs[2]; GOUT_SCATTER(gout, n*12+8, r1);
+r1 = - rs[5]; GOUT_SCATTER(gout, n*12+9, r1);
+r1 = + rs[4] + rs[0]; GOUT_SCATTER(gout, n*12+10, r1);
+r1 = + rs[3] - rs[1]; GOUT_SCATTER(gout, n*12+11, r1);
 }}
 static void CINTgout2e_int2e_giao_sa10sp1_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
@@ -1965,10 +1919,8 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_giao_sa10sp1;
 envs.f_gout_simd1 = &CINTgout2e_int2e_giao_sa10sp1_simd1;
 envs.common_factor *= 0.5;
-if (out == NULL) { return int2e_cache_size(&envs);
-} else {
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
-}} // int2e_giao_sa10sp1_cart
+} // int2e_giao_sa10sp1_cart
 int int2e_giao_sa10sp1_sph(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 1, 0, 0, 2, 4, 1, 3};
@@ -1977,10 +1929,8 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_giao_sa10sp1;
 envs.f_gout_simd1 = &CINTgout2e_int2e_giao_sa10sp1_simd1;
 envs.common_factor *= 0.5;
-if (out == NULL) { return int2e_cache_size(&envs) + envs.nf*MAX(0, 3-SIMDD);
-} else {
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
-}} // int2e_giao_sa10sp1_sph
+} // int2e_giao_sa10sp1_sph
 int int2e_giao_sa10sp1_spinor(double complex *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 1, 0, 0, 2, 4, 1, 3};
@@ -1989,14 +1939,8 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_giao_sa10sp1;
 envs.f_gout_simd1 = &CINTgout2e_int2e_giao_sa10sp1_simd1;
 envs.common_factor *= 0.5;
-if (out == NULL) {
-int n0 = int2e_cache_size(&envs);
-int n1 = CINTcgto_spinor(shls[0], bas) * envs.nfk * envs.x_ctr[2]
-* envs.nfl * envs.x_ctr[3] * CINTcgto_spinor(shls[1], bas);
-return MAX(n0, n0/2 + n1*envs.ncomp_e2*OF_CMPLX + envs.nf*32*OF_CMPLX);
-} else {
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1i, &c2s_sf_2e2);
-}} // int2e_giao_sa10sp1_spinor
+} // int2e_giao_sa10sp1_spinor
 ALL_CINT(int2e_giao_sa10sp1)
 //ALL_CINT_FORTRAN_(cint2e_giao_sa10sp1)
 /* <SIGMA DOT P k R CROSS SIGMA i|R12 |SIGMA DOT P j SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
@@ -2004,8 +1948,10 @@ ALL_CINT(int2e_giao_sa10sp1)
 static void CINTgout2e_int2e_giao_sa10sp1spsp2(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
+int nfc = nf * 48;
 int nrys_roots = envs->nrys_roots;
 int ix, iy, iz, i, n;
+DECLARE_GOUT;
 double *RESTRICT g0 = g;
 double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
@@ -2127,54 +2073,54 @@ rs[78] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g14+(iz+
 rs[79] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g14+(iz+i)*SIMDD);
 rs[80] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g15+(iz+i)*SIMDD);
 }
-r1 = + rs[77] + rs[41] - rs[79] - rs[43]; MM_STORE(gout+(n*48+0)*SIMDD, r1);
-r1 = - rs[32] + rs[34]; MM_STORE(gout+(n*48+1)*SIMDD, r1);
-r1 = - rs[59] + rs[61]; MM_STORE(gout+(n*48+2)*SIMDD, r1);
-r1 = + rs[68] - rs[50] - rs[70] + rs[52]; MM_STORE(gout+(n*48+3)*SIMDD, r1);
-r1 = + rs[78] + rs[42] - rs[74] - rs[38]; MM_STORE(gout+(n*48+4)*SIMDD, r1);
-r1 = - rs[33] + rs[29]; MM_STORE(gout+(n*48+5)*SIMDD, r1);
-r1 = - rs[60] + rs[56]; MM_STORE(gout+(n*48+6)*SIMDD, r1);
-r1 = + rs[69] - rs[51] - rs[65] + rs[47]; MM_STORE(gout+(n*48+7)*SIMDD, r1);
-r1 = + rs[73] + rs[37] - rs[75] - rs[39]; MM_STORE(gout+(n*48+8)*SIMDD, r1);
-r1 = - rs[28] + rs[30]; MM_STORE(gout+(n*48+9)*SIMDD, r1);
-r1 = - rs[55] + rs[57]; MM_STORE(gout+(n*48+10)*SIMDD, r1);
-r1 = + rs[64] - rs[46] - rs[66] + rs[48]; MM_STORE(gout+(n*48+11)*SIMDD, r1);
-r1 = + rs[72] + rs[36] + rs[76] + rs[40] + rs[80] + rs[44]; MM_STORE(gout+(n*48+12)*SIMDD, r1);
-r1 = - rs[27] - rs[31] - rs[35]; MM_STORE(gout+(n*48+13)*SIMDD, r1);
-r1 = - rs[54] - rs[58] - rs[62]; MM_STORE(gout+(n*48+14)*SIMDD, r1);
-r1 = + rs[63] - rs[45] + rs[67] - rs[49] + rs[71] - rs[53]; MM_STORE(gout+(n*48+15)*SIMDD, r1);
-r1 = - rs[14] + rs[16]; MM_STORE(gout+(n*48+16)*SIMDD, r1);
-r1 = + rs[5] + rs[77] - rs[7] - rs[79]; MM_STORE(gout+(n*48+17)*SIMDD, r1);
-r1 = - rs[68] + rs[70]; MM_STORE(gout+(n*48+18)*SIMDD, r1);
-r1 = - rs[59] + rs[23] + rs[61] - rs[25]; MM_STORE(gout+(n*48+19)*SIMDD, r1);
-r1 = - rs[15] + rs[11]; MM_STORE(gout+(n*48+20)*SIMDD, r1);
-r1 = + rs[6] + rs[78] - rs[2] - rs[74]; MM_STORE(gout+(n*48+21)*SIMDD, r1);
-r1 = - rs[69] + rs[65]; MM_STORE(gout+(n*48+22)*SIMDD, r1);
-r1 = - rs[60] + rs[24] + rs[56] - rs[20]; MM_STORE(gout+(n*48+23)*SIMDD, r1);
-r1 = - rs[10] + rs[12]; MM_STORE(gout+(n*48+24)*SIMDD, r1);
-r1 = + rs[1] + rs[73] - rs[3] - rs[75]; MM_STORE(gout+(n*48+25)*SIMDD, r1);
-r1 = - rs[64] + rs[66]; MM_STORE(gout+(n*48+26)*SIMDD, r1);
-r1 = - rs[55] + rs[19] + rs[57] - rs[21]; MM_STORE(gout+(n*48+27)*SIMDD, r1);
-r1 = - rs[9] - rs[13] - rs[17]; MM_STORE(gout+(n*48+28)*SIMDD, r1);
-r1 = + rs[0] + rs[72] + rs[4] + rs[76] + rs[8] + rs[80]; MM_STORE(gout+(n*48+29)*SIMDD, r1);
-r1 = - rs[63] - rs[67] - rs[71]; MM_STORE(gout+(n*48+30)*SIMDD, r1);
-r1 = - rs[54] + rs[18] - rs[58] + rs[22] - rs[62] + rs[26]; MM_STORE(gout+(n*48+31)*SIMDD, r1);
-r1 = - rs[23] + rs[25]; MM_STORE(gout+(n*48+32)*SIMDD, r1);
-r1 = - rs[50] + rs[52]; MM_STORE(gout+(n*48+33)*SIMDD, r1);
-r1 = + rs[41] + rs[5] - rs[43] - rs[7]; MM_STORE(gout+(n*48+34)*SIMDD, r1);
-r1 = + rs[32] - rs[14] - rs[34] + rs[16]; MM_STORE(gout+(n*48+35)*SIMDD, r1);
-r1 = - rs[24] + rs[20]; MM_STORE(gout+(n*48+36)*SIMDD, r1);
-r1 = - rs[51] + rs[47]; MM_STORE(gout+(n*48+37)*SIMDD, r1);
-r1 = + rs[42] + rs[6] - rs[38] - rs[2]; MM_STORE(gout+(n*48+38)*SIMDD, r1);
-r1 = + rs[33] - rs[15] - rs[29] + rs[11]; MM_STORE(gout+(n*48+39)*SIMDD, r1);
-r1 = - rs[19] + rs[21]; MM_STORE(gout+(n*48+40)*SIMDD, r1);
-r1 = - rs[46] + rs[48]; MM_STORE(gout+(n*48+41)*SIMDD, r1);
-r1 = + rs[37] + rs[1] - rs[39] - rs[3]; MM_STORE(gout+(n*48+42)*SIMDD, r1);
-r1 = + rs[28] - rs[10] - rs[30] + rs[12]; MM_STORE(gout+(n*48+43)*SIMDD, r1);
-r1 = - rs[18] - rs[22] - rs[26]; MM_STORE(gout+(n*48+44)*SIMDD, r1);
-r1 = - rs[45] - rs[49] - rs[53]; MM_STORE(gout+(n*48+45)*SIMDD, r1);
-r1 = + rs[36] + rs[0] + rs[40] + rs[4] + rs[44] + rs[8]; MM_STORE(gout+(n*48+46)*SIMDD, r1);
-r1 = + rs[27] - rs[9] + rs[31] - rs[13] + rs[35] - rs[17]; MM_STORE(gout+(n*48+47)*SIMDD, r1);
+r1 = + rs[77] + rs[41] - rs[79] - rs[43]; GOUT_SCATTER(gout, n*48+0, r1);
+r1 = - rs[32] + rs[34]; GOUT_SCATTER(gout, n*48+1, r1);
+r1 = - rs[59] + rs[61]; GOUT_SCATTER(gout, n*48+2, r1);
+r1 = + rs[68] - rs[50] - rs[70] + rs[52]; GOUT_SCATTER(gout, n*48+3, r1);
+r1 = + rs[78] + rs[42] - rs[74] - rs[38]; GOUT_SCATTER(gout, n*48+4, r1);
+r1 = - rs[33] + rs[29]; GOUT_SCATTER(gout, n*48+5, r1);
+r1 = - rs[60] + rs[56]; GOUT_SCATTER(gout, n*48+6, r1);
+r1 = + rs[69] - rs[51] - rs[65] + rs[47]; GOUT_SCATTER(gout, n*48+7, r1);
+r1 = + rs[73] + rs[37] - rs[75] - rs[39]; GOUT_SCATTER(gout, n*48+8, r1);
+r1 = - rs[28] + rs[30]; GOUT_SCATTER(gout, n*48+9, r1);
+r1 = - rs[55] + rs[57]; GOUT_SCATTER(gout, n*48+10, r1);
+r1 = + rs[64] - rs[46] - rs[66] + rs[48]; GOUT_SCATTER(gout, n*48+11, r1);
+r1 = + rs[72] + rs[36] + rs[76] + rs[40] + rs[80] + rs[44]; GOUT_SCATTER(gout, n*48+12, r1);
+r1 = - rs[27] - rs[31] - rs[35]; GOUT_SCATTER(gout, n*48+13, r1);
+r1 = - rs[54] - rs[58] - rs[62]; GOUT_SCATTER(gout, n*48+14, r1);
+r1 = + rs[63] - rs[45] + rs[67] - rs[49] + rs[71] - rs[53]; GOUT_SCATTER(gout, n*48+15, r1);
+r1 = - rs[14] + rs[16]; GOUT_SCATTER(gout, n*48+16, r1);
+r1 = + rs[5] + rs[77] - rs[7] - rs[79]; GOUT_SCATTER(gout, n*48+17, r1);
+r1 = - rs[68] + rs[70]; GOUT_SCATTER(gout, n*48+18, r1);
+r1 = - rs[59] + rs[23] + rs[61] - rs[25]; GOUT_SCATTER(gout, n*48+19, r1);
+r1 = - rs[15] + rs[11]; GOUT_SCATTER(gout, n*48+20, r1);
+r1 = + rs[6] + rs[78] - rs[2] - rs[74]; GOUT_SCATTER(gout, n*48+21, r1);
+r1 = - rs[69] + rs[65]; GOUT_SCATTER(gout, n*48+22, r1);
+r1 = - rs[60] + rs[24] + rs[56] - rs[20]; GOUT_SCATTER(gout, n*48+23, r1);
+r1 = - rs[10] + rs[12]; GOUT_SCATTER(gout, n*48+24, r1);
+r1 = + rs[1] + rs[73] - rs[3] - rs[75]; GOUT_SCATTER(gout, n*48+25, r1);
+r1 = - rs[64] + rs[66]; GOUT_SCATTER(gout, n*48+26, r1);
+r1 = - rs[55] + rs[19] + rs[57] - rs[21]; GOUT_SCATTER(gout, n*48+27, r1);
+r1 = - rs[9] - rs[13] - rs[17]; GOUT_SCATTER(gout, n*48+28, r1);
+r1 = + rs[0] + rs[72] + rs[4] + rs[76] + rs[8] + rs[80]; GOUT_SCATTER(gout, n*48+29, r1);
+r1 = - rs[63] - rs[67] - rs[71]; GOUT_SCATTER(gout, n*48+30, r1);
+r1 = - rs[54] + rs[18] - rs[58] + rs[22] - rs[62] + rs[26]; GOUT_SCATTER(gout, n*48+31, r1);
+r1 = - rs[23] + rs[25]; GOUT_SCATTER(gout, n*48+32, r1);
+r1 = - rs[50] + rs[52]; GOUT_SCATTER(gout, n*48+33, r1);
+r1 = + rs[41] + rs[5] - rs[43] - rs[7]; GOUT_SCATTER(gout, n*48+34, r1);
+r1 = + rs[32] - rs[14] - rs[34] + rs[16]; GOUT_SCATTER(gout, n*48+35, r1);
+r1 = - rs[24] + rs[20]; GOUT_SCATTER(gout, n*48+36, r1);
+r1 = - rs[51] + rs[47]; GOUT_SCATTER(gout, n*48+37, r1);
+r1 = + rs[42] + rs[6] - rs[38] - rs[2]; GOUT_SCATTER(gout, n*48+38, r1);
+r1 = + rs[33] - rs[15] - rs[29] + rs[11]; GOUT_SCATTER(gout, n*48+39, r1);
+r1 = - rs[19] + rs[21]; GOUT_SCATTER(gout, n*48+40, r1);
+r1 = - rs[46] + rs[48]; GOUT_SCATTER(gout, n*48+41, r1);
+r1 = + rs[37] + rs[1] - rs[39] - rs[3]; GOUT_SCATTER(gout, n*48+42, r1);
+r1 = + rs[28] - rs[10] - rs[30] + rs[12]; GOUT_SCATTER(gout, n*48+43, r1);
+r1 = - rs[18] - rs[22] - rs[26]; GOUT_SCATTER(gout, n*48+44, r1);
+r1 = - rs[45] - rs[49] - rs[53]; GOUT_SCATTER(gout, n*48+45, r1);
+r1 = + rs[36] + rs[0] + rs[40] + rs[4] + rs[44] + rs[8]; GOUT_SCATTER(gout, n*48+46, r1);
+r1 = + rs[27] - rs[9] + rs[31] - rs[13] + rs[35] - rs[17]; GOUT_SCATTER(gout, n*48+47, r1);
 }}
 static void CINTgout2e_int2e_giao_sa10sp1spsp2_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
@@ -2362,10 +2308,8 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_giao_sa10sp1spsp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_giao_sa10sp1spsp2_simd1;
 envs.common_factor *= 0.5;
-if (out == NULL) { return int2e_cache_size(&envs);
-} else {
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
-}} // int2e_giao_sa10sp1spsp2_cart
+} // int2e_giao_sa10sp1spsp2_cart
 int int2e_giao_sa10sp1spsp2_sph(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 1, 1, 1, 4, 4, 4, 3};
@@ -2374,10 +2318,8 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_giao_sa10sp1spsp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_giao_sa10sp1spsp2_simd1;
 envs.common_factor *= 0.5;
-if (out == NULL) { return int2e_cache_size(&envs) + envs.nf*MAX(0, 3-SIMDD);
-} else {
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
-}} // int2e_giao_sa10sp1spsp2_sph
+} // int2e_giao_sa10sp1spsp2_sph
 int int2e_giao_sa10sp1spsp2_spinor(double complex *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 1, 1, 1, 4, 4, 4, 3};
@@ -2386,14 +2328,8 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_giao_sa10sp1spsp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_giao_sa10sp1spsp2_simd1;
 envs.common_factor *= 0.5;
-if (out == NULL) {
-int n0 = int2e_cache_size(&envs);
-int n1 = CINTcgto_spinor(shls[0], bas) * envs.nfk * envs.x_ctr[2]
-* envs.nfl * envs.x_ctr[3] * CINTcgto_spinor(shls[1], bas);
-return MAX(n0, n0/2 + n1*envs.ncomp_e2*OF_CMPLX + envs.nf*32*OF_CMPLX);
-} else {
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1i, &c2s_si_2e2);
-}} // int2e_giao_sa10sp1spsp2_spinor
+} // int2e_giao_sa10sp1spsp2_spinor
 ALL_CINT(int2e_giao_sa10sp1spsp2)
 //ALL_CINT_FORTRAN_(cint2e_giao_sa10sp1spsp2)
 /* <k G i|R12 |j l> : i,j \in electron 1; k,l \in electron 2
@@ -2401,8 +2337,10 @@ ALL_CINT(int2e_giao_sa10sp1spsp2)
 static void CINTgout2e_int2e_g1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
+int nfc = nf * 3;
 int nrys_roots = envs->nrys_roots;
 int ix, iy, iz, i, n;
+DECLARE_GOUT;
 double *RESTRICT g0 = g;
 double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
 double rirj[3];
@@ -2466,9 +2404,9 @@ rs[0] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)
 rs[1] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
 rs[2] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
 } break;}
-r1 = + MM_SET1(c[1])*rs[2] - MM_SET1(c[2])*rs[1]; MM_STORE(gout+(n*3+0)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[0] - MM_SET1(c[0])*rs[2]; MM_STORE(gout+(n*3+1)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[1] - MM_SET1(c[1])*rs[0]; MM_STORE(gout+(n*3+2)*SIMDD, r1);
+r1 = + MM_SET1(c[1])*rs[2] - MM_SET1(c[2])*rs[1]; GOUT_SCATTER(gout, n*3+0, r1);
+r1 = + MM_SET1(c[2])*rs[0] - MM_SET1(c[0])*rs[2]; GOUT_SCATTER(gout, n*3+1, r1);
+r1 = + MM_SET1(c[0])*rs[1] - MM_SET1(c[1])*rs[0]; GOUT_SCATTER(gout, n*3+2, r1);
 }}
 static void CINTgout2e_int2e_g1_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
@@ -2535,16 +2473,20 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_g1;
 envs.f_gout_simd1 = &CINTgout2e_int2e_g1_simd1;
 envs.common_factor *= 0.5;
-if (out == NULL) { return int2e_cache_size(&envs);
-} else {
-int i, nc;
+int i, nout;
+int counts[4];
 if (envs.shls[0] == envs.shls[1]) {
-nc = envs.nf * envs.x_ctr[0] * envs.x_ctr[1] * envs.x_ctr[2] * envs.x_ctr[3];
-int n_comp = envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor;
-for (i = 0; i < nc * n_comp; i++) { out[i] = 0; }
+counts[0] = envs.nfi * envs.x_ctr[0];
+counts[1] = envs.nfj * envs.x_ctr[1];
+counts[2] = envs.nfk * envs.x_ctr[2];
+counts[3] = envs.nfl * envs.x_ctr[3];
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2] * dims[3];
+for (i = 0; i < envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor; i++) {
+c2s_dset0(out+nout*i, dims, counts); }
 return 0; }
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
-}} // int2e_g1_cart
+} // int2e_g1_cart
 int int2e_g1_sph(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 0, 0, 0, 1, 1, 1, 3};
@@ -2553,17 +2495,20 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_g1;
 envs.f_gout_simd1 = &CINTgout2e_int2e_g1_simd1;
 envs.common_factor *= 0.5;
-if (out == NULL) { return int2e_cache_size(&envs) + envs.nf*MAX(0, 3-SIMDD);
-} else {
-int i, nc;
+int i, nout;
+int counts[4];
 if (envs.shls[0] == envs.shls[1]) {
-nc = (envs.i_l*2+1) * (envs.j_l*2+1) * (envs.k_l*2+1) * (envs.l_l*2+1) *
-envs.x_ctr[0] * envs.x_ctr[1] * envs.x_ctr[2] * envs.x_ctr[3];
-int n_comp = envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor;
-for (i = 0; i < nc * n_comp; i++) { out[i] = 0; }
+counts[0] = (envs.i_l*2+1) * envs.x_ctr[0];
+counts[1] = (envs.j_l*2+1) * envs.x_ctr[1];
+counts[2] = (envs.k_l*2+1) * envs.x_ctr[2];
+counts[3] = (envs.l_l*2+1) * envs.x_ctr[3];
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2] * dims[3];
+for (i = 0; i < envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor; i++) {
+c2s_dset0(out+nout*i, dims, counts); }
 return 0; }
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
-}} // int2e_g1_sph
+} // int2e_g1_sph
 int int2e_g1_spinor(double complex *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 0, 0, 0, 1, 1, 1, 3};
@@ -2572,22 +2517,20 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_g1;
 envs.f_gout_simd1 = &CINTgout2e_int2e_g1_simd1;
 envs.common_factor *= 0.5;
-if (out == NULL) {
-int n0 = int2e_cache_size(&envs);
-int n1 = CINTcgto_spinor(shls[0], bas) * envs.nfk * envs.x_ctr[2]
-* envs.nfl * envs.x_ctr[3] * CINTcgto_spinor(shls[1], bas);
-return MAX(n0, n0/2 + n1*envs.ncomp_e2*OF_CMPLX + envs.nf*20*OF_CMPLX);
-} else {
-int i, nc;
+int i, nout;
+int counts[4];
 if (envs.shls[0] == envs.shls[1]) {
-nc = CINTcgto_spinor(envs.shls[0], envs.bas)
-* CINTcgto_spinor(envs.shls[1], envs.bas)
-* CINTcgto_spinor(envs.shls[2], envs.bas)
-* CINTcgto_spinor(envs.shls[3], envs.bas);
-for (i = 0; i < nc * envs.ncomp_tensor; i++) { out[i] = 0; }
+counts[0] = CINTcgto_spinor(envs.shls[0], envs.bas);
+counts[1] = CINTcgto_spinor(envs.shls[1], envs.bas);
+counts[2] = CINTcgto_spinor(envs.shls[2], envs.bas);
+counts[3] = CINTcgto_spinor(envs.shls[3], envs.bas);
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2] * dims[3];
+for (i = 0; i < envs.ncomp_tensor; i++) {
+c2s_zset0(out+nout*i, dims, counts); }
 return 0; }
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_2e1i, &c2s_sf_2e2);
-}} // int2e_g1_spinor
+} // int2e_g1_spinor
 ALL_CINT(int2e_g1)
 //ALL_CINT_FORTRAN_(cint2e_g1)
 /* <k G SIGMA DOT P i|R12 |SIGMA DOT P j l> : i,j \in electron 1; k,l \in electron 2
@@ -2595,8 +2538,10 @@ ALL_CINT(int2e_g1)
 static void CINTgout2e_int2e_spgsp1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
+int nfc = nf * 12;
 int nrys_roots = envs->nrys_roots;
 int ix, iy, iz, i, n;
+DECLARE_GOUT;
 double *RESTRICT g0 = g;
 double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
@@ -2656,18 +2601,18 @@ rs[24] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i
 rs[25] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
 rs[26] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g7+(iz+i)*SIMDD);
 }
-r1 = + MM_SET1(c[1])*rs[17] - MM_SET1(c[2])*rs[14] - MM_SET1(c[1])*rs[25] + MM_SET1(c[2])*rs[22]; MM_STORE(gout+(n*12+0)*SIMDD, r1);
-r1 = + MM_SET1(c[1])*rs[24] - MM_SET1(c[2])*rs[21] - MM_SET1(c[1])*rs[8] + MM_SET1(c[2])*rs[5]; MM_STORE(gout+(n*12+1)*SIMDD, r1);
-r1 = + MM_SET1(c[1])*rs[7] - MM_SET1(c[2])*rs[4] - MM_SET1(c[1])*rs[15] + MM_SET1(c[2])*rs[12]; MM_STORE(gout+(n*12+2)*SIMDD, r1);
-r1 = + MM_SET1(c[1])*rs[6] - MM_SET1(c[2])*rs[3] + MM_SET1(c[1])*rs[16] - MM_SET1(c[2])*rs[13] + MM_SET1(c[1])*rs[26] - MM_SET1(c[2])*rs[23]; MM_STORE(gout+(n*12+3)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[11] - MM_SET1(c[0])*rs[17] - MM_SET1(c[2])*rs[19] + MM_SET1(c[0])*rs[25]; MM_STORE(gout+(n*12+4)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[18] - MM_SET1(c[0])*rs[24] - MM_SET1(c[2])*rs[2] + MM_SET1(c[0])*rs[8]; MM_STORE(gout+(n*12+5)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[1] - MM_SET1(c[0])*rs[7] - MM_SET1(c[2])*rs[9] + MM_SET1(c[0])*rs[15]; MM_STORE(gout+(n*12+6)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[0] - MM_SET1(c[0])*rs[6] + MM_SET1(c[2])*rs[10] - MM_SET1(c[0])*rs[16] + MM_SET1(c[2])*rs[20] - MM_SET1(c[0])*rs[26]; MM_STORE(gout+(n*12+7)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[14] - MM_SET1(c[1])*rs[11] - MM_SET1(c[0])*rs[22] + MM_SET1(c[1])*rs[19]; MM_STORE(gout+(n*12+8)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[21] - MM_SET1(c[1])*rs[18] - MM_SET1(c[0])*rs[5] + MM_SET1(c[1])*rs[2]; MM_STORE(gout+(n*12+9)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[4] - MM_SET1(c[1])*rs[1] - MM_SET1(c[0])*rs[12] + MM_SET1(c[1])*rs[9]; MM_STORE(gout+(n*12+10)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[3] - MM_SET1(c[1])*rs[0] + MM_SET1(c[0])*rs[13] - MM_SET1(c[1])*rs[10] + MM_SET1(c[0])*rs[23] - MM_SET1(c[1])*rs[20]; MM_STORE(gout+(n*12+11)*SIMDD, r1);
+r1 = + MM_SET1(c[1])*rs[17] - MM_SET1(c[2])*rs[14] - MM_SET1(c[1])*rs[25] + MM_SET1(c[2])*rs[22]; GOUT_SCATTER(gout, n*12+0, r1);
+r1 = + MM_SET1(c[1])*rs[24] - MM_SET1(c[2])*rs[21] - MM_SET1(c[1])*rs[8] + MM_SET1(c[2])*rs[5]; GOUT_SCATTER(gout, n*12+1, r1);
+r1 = + MM_SET1(c[1])*rs[7] - MM_SET1(c[2])*rs[4] - MM_SET1(c[1])*rs[15] + MM_SET1(c[2])*rs[12]; GOUT_SCATTER(gout, n*12+2, r1);
+r1 = + MM_SET1(c[1])*rs[6] - MM_SET1(c[2])*rs[3] + MM_SET1(c[1])*rs[16] - MM_SET1(c[2])*rs[13] + MM_SET1(c[1])*rs[26] - MM_SET1(c[2])*rs[23]; GOUT_SCATTER(gout, n*12+3, r1);
+r1 = + MM_SET1(c[2])*rs[11] - MM_SET1(c[0])*rs[17] - MM_SET1(c[2])*rs[19] + MM_SET1(c[0])*rs[25]; GOUT_SCATTER(gout, n*12+4, r1);
+r1 = + MM_SET1(c[2])*rs[18] - MM_SET1(c[0])*rs[24] - MM_SET1(c[2])*rs[2] + MM_SET1(c[0])*rs[8]; GOUT_SCATTER(gout, n*12+5, r1);
+r1 = + MM_SET1(c[2])*rs[1] - MM_SET1(c[0])*rs[7] - MM_SET1(c[2])*rs[9] + MM_SET1(c[0])*rs[15]; GOUT_SCATTER(gout, n*12+6, r1);
+r1 = + MM_SET1(c[2])*rs[0] - MM_SET1(c[0])*rs[6] + MM_SET1(c[2])*rs[10] - MM_SET1(c[0])*rs[16] + MM_SET1(c[2])*rs[20] - MM_SET1(c[0])*rs[26]; GOUT_SCATTER(gout, n*12+7, r1);
+r1 = + MM_SET1(c[0])*rs[14] - MM_SET1(c[1])*rs[11] - MM_SET1(c[0])*rs[22] + MM_SET1(c[1])*rs[19]; GOUT_SCATTER(gout, n*12+8, r1);
+r1 = + MM_SET1(c[0])*rs[21] - MM_SET1(c[1])*rs[18] - MM_SET1(c[0])*rs[5] + MM_SET1(c[1])*rs[2]; GOUT_SCATTER(gout, n*12+9, r1);
+r1 = + MM_SET1(c[0])*rs[4] - MM_SET1(c[1])*rs[1] - MM_SET1(c[0])*rs[12] + MM_SET1(c[1])*rs[9]; GOUT_SCATTER(gout, n*12+10, r1);
+r1 = + MM_SET1(c[0])*rs[3] - MM_SET1(c[1])*rs[0] + MM_SET1(c[0])*rs[13] - MM_SET1(c[1])*rs[10] + MM_SET1(c[0])*rs[23] - MM_SET1(c[1])*rs[20]; GOUT_SCATTER(gout, n*12+11, r1);
 }}
 static void CINTgout2e_int2e_spgsp1_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
@@ -2757,16 +2702,20 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_spgsp1;
 envs.f_gout_simd1 = &CINTgout2e_int2e_spgsp1_simd1;
 envs.common_factor *= 0.5;
-if (out == NULL) { return int2e_cache_size(&envs);
-} else {
-int i, nc;
+int i, nout;
+int counts[4];
 if (envs.shls[0] == envs.shls[1]) {
-nc = envs.nf * envs.x_ctr[0] * envs.x_ctr[1] * envs.x_ctr[2] * envs.x_ctr[3];
-int n_comp = envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor;
-for (i = 0; i < nc * n_comp; i++) { out[i] = 0; }
+counts[0] = envs.nfi * envs.x_ctr[0];
+counts[1] = envs.nfj * envs.x_ctr[1];
+counts[2] = envs.nfk * envs.x_ctr[2];
+counts[3] = envs.nfl * envs.x_ctr[3];
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2] * dims[3];
+for (i = 0; i < envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor; i++) {
+c2s_dset0(out+nout*i, dims, counts); }
 return 0; }
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
-}} // int2e_spgsp1_cart
+} // int2e_spgsp1_cart
 int int2e_spgsp1_sph(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {2, 1, 0, 0, 3, 4, 1, 3};
@@ -2775,17 +2724,20 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_spgsp1;
 envs.f_gout_simd1 = &CINTgout2e_int2e_spgsp1_simd1;
 envs.common_factor *= 0.5;
-if (out == NULL) { return int2e_cache_size(&envs) + envs.nf*MAX(0, 3-SIMDD);
-} else {
-int i, nc;
+int i, nout;
+int counts[4];
 if (envs.shls[0] == envs.shls[1]) {
-nc = (envs.i_l*2+1) * (envs.j_l*2+1) * (envs.k_l*2+1) * (envs.l_l*2+1) *
-envs.x_ctr[0] * envs.x_ctr[1] * envs.x_ctr[2] * envs.x_ctr[3];
-int n_comp = envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor;
-for (i = 0; i < nc * n_comp; i++) { out[i] = 0; }
+counts[0] = (envs.i_l*2+1) * envs.x_ctr[0];
+counts[1] = (envs.j_l*2+1) * envs.x_ctr[1];
+counts[2] = (envs.k_l*2+1) * envs.x_ctr[2];
+counts[3] = (envs.l_l*2+1) * envs.x_ctr[3];
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2] * dims[3];
+for (i = 0; i < envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor; i++) {
+c2s_dset0(out+nout*i, dims, counts); }
 return 0; }
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
-}} // int2e_spgsp1_sph
+} // int2e_spgsp1_sph
 int int2e_spgsp1_spinor(double complex *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {2, 1, 0, 0, 3, 4, 1, 3};
@@ -2794,22 +2746,20 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_spgsp1;
 envs.f_gout_simd1 = &CINTgout2e_int2e_spgsp1_simd1;
 envs.common_factor *= 0.5;
-if (out == NULL) {
-int n0 = int2e_cache_size(&envs);
-int n1 = CINTcgto_spinor(shls[0], bas) * envs.nfk * envs.x_ctr[2]
-* envs.nfl * envs.x_ctr[3] * CINTcgto_spinor(shls[1], bas);
-return MAX(n0, n0/2 + n1*envs.ncomp_e2*OF_CMPLX + envs.nf*32*OF_CMPLX);
-} else {
-int i, nc;
+int i, nout;
+int counts[4];
 if (envs.shls[0] == envs.shls[1]) {
-nc = CINTcgto_spinor(envs.shls[0], envs.bas)
-* CINTcgto_spinor(envs.shls[1], envs.bas)
-* CINTcgto_spinor(envs.shls[2], envs.bas)
-* CINTcgto_spinor(envs.shls[3], envs.bas);
-for (i = 0; i < nc * envs.ncomp_tensor; i++) { out[i] = 0; }
+counts[0] = CINTcgto_spinor(envs.shls[0], envs.bas);
+counts[1] = CINTcgto_spinor(envs.shls[1], envs.bas);
+counts[2] = CINTcgto_spinor(envs.shls[2], envs.bas);
+counts[3] = CINTcgto_spinor(envs.shls[3], envs.bas);
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2] * dims[3];
+for (i = 0; i < envs.ncomp_tensor; i++) {
+c2s_zset0(out+nout*i, dims, counts); }
 return 0; }
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1i, &c2s_sf_2e2);
-}} // int2e_spgsp1_spinor
+} // int2e_spgsp1_spinor
 ALL_CINT(int2e_spgsp1)
 //ALL_CINT_FORTRAN_(cint2e_spgsp1)
 /* <SIGMA DOT P k G i|R12 |j SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
@@ -2817,8 +2767,10 @@ ALL_CINT(int2e_spgsp1)
 static void CINTgout2e_int2e_g1spsp2(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
+int nfc = nf * 12;
 int nrys_roots = envs->nrys_roots;
 int ix, iy, iz, i, n;
+DECLARE_GOUT;
 double *RESTRICT g0 = g;
 double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
@@ -2878,18 +2830,18 @@ rs[24] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i
 rs[25] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
 rs[26] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g7+(iz+i)*SIMDD);
 }
-r1 = + MM_SET1(c[1])*rs[23] - MM_SET1(c[2])*rs[14] - MM_SET1(c[1])*rs[25] + MM_SET1(c[2])*rs[16]; MM_STORE(gout+(n*12+0)*SIMDD, r1);
-r1 = + MM_SET1(c[1])*rs[24] - MM_SET1(c[2])*rs[15] - MM_SET1(c[1])*rs[20] + MM_SET1(c[2])*rs[11]; MM_STORE(gout+(n*12+1)*SIMDD, r1);
-r1 = + MM_SET1(c[1])*rs[19] - MM_SET1(c[2])*rs[10] - MM_SET1(c[1])*rs[21] + MM_SET1(c[2])*rs[12]; MM_STORE(gout+(n*12+2)*SIMDD, r1);
-r1 = + MM_SET1(c[1])*rs[18] - MM_SET1(c[2])*rs[9] + MM_SET1(c[1])*rs[22] - MM_SET1(c[2])*rs[13] + MM_SET1(c[1])*rs[26] - MM_SET1(c[2])*rs[17]; MM_STORE(gout+(n*12+3)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[5] - MM_SET1(c[0])*rs[23] - MM_SET1(c[2])*rs[7] + MM_SET1(c[0])*rs[25]; MM_STORE(gout+(n*12+4)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[6] - MM_SET1(c[0])*rs[24] - MM_SET1(c[2])*rs[2] + MM_SET1(c[0])*rs[20]; MM_STORE(gout+(n*12+5)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[1] - MM_SET1(c[0])*rs[19] - MM_SET1(c[2])*rs[3] + MM_SET1(c[0])*rs[21]; MM_STORE(gout+(n*12+6)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[0] - MM_SET1(c[0])*rs[18] + MM_SET1(c[2])*rs[4] - MM_SET1(c[0])*rs[22] + MM_SET1(c[2])*rs[8] - MM_SET1(c[0])*rs[26]; MM_STORE(gout+(n*12+7)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[14] - MM_SET1(c[1])*rs[5] - MM_SET1(c[0])*rs[16] + MM_SET1(c[1])*rs[7]; MM_STORE(gout+(n*12+8)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[15] - MM_SET1(c[1])*rs[6] - MM_SET1(c[0])*rs[11] + MM_SET1(c[1])*rs[2]; MM_STORE(gout+(n*12+9)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[10] - MM_SET1(c[1])*rs[1] - MM_SET1(c[0])*rs[12] + MM_SET1(c[1])*rs[3]; MM_STORE(gout+(n*12+10)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[9] - MM_SET1(c[1])*rs[0] + MM_SET1(c[0])*rs[13] - MM_SET1(c[1])*rs[4] + MM_SET1(c[0])*rs[17] - MM_SET1(c[1])*rs[8]; MM_STORE(gout+(n*12+11)*SIMDD, r1);
+r1 = + MM_SET1(c[1])*rs[23] - MM_SET1(c[2])*rs[14] - MM_SET1(c[1])*rs[25] + MM_SET1(c[2])*rs[16]; GOUT_SCATTER(gout, n*12+0, r1);
+r1 = + MM_SET1(c[1])*rs[24] - MM_SET1(c[2])*rs[15] - MM_SET1(c[1])*rs[20] + MM_SET1(c[2])*rs[11]; GOUT_SCATTER(gout, n*12+1, r1);
+r1 = + MM_SET1(c[1])*rs[19] - MM_SET1(c[2])*rs[10] - MM_SET1(c[1])*rs[21] + MM_SET1(c[2])*rs[12]; GOUT_SCATTER(gout, n*12+2, r1);
+r1 = + MM_SET1(c[1])*rs[18] - MM_SET1(c[2])*rs[9] + MM_SET1(c[1])*rs[22] - MM_SET1(c[2])*rs[13] + MM_SET1(c[1])*rs[26] - MM_SET1(c[2])*rs[17]; GOUT_SCATTER(gout, n*12+3, r1);
+r1 = + MM_SET1(c[2])*rs[5] - MM_SET1(c[0])*rs[23] - MM_SET1(c[2])*rs[7] + MM_SET1(c[0])*rs[25]; GOUT_SCATTER(gout, n*12+4, r1);
+r1 = + MM_SET1(c[2])*rs[6] - MM_SET1(c[0])*rs[24] - MM_SET1(c[2])*rs[2] + MM_SET1(c[0])*rs[20]; GOUT_SCATTER(gout, n*12+5, r1);
+r1 = + MM_SET1(c[2])*rs[1] - MM_SET1(c[0])*rs[19] - MM_SET1(c[2])*rs[3] + MM_SET1(c[0])*rs[21]; GOUT_SCATTER(gout, n*12+6, r1);
+r1 = + MM_SET1(c[2])*rs[0] - MM_SET1(c[0])*rs[18] + MM_SET1(c[2])*rs[4] - MM_SET1(c[0])*rs[22] + MM_SET1(c[2])*rs[8] - MM_SET1(c[0])*rs[26]; GOUT_SCATTER(gout, n*12+7, r1);
+r1 = + MM_SET1(c[0])*rs[14] - MM_SET1(c[1])*rs[5] - MM_SET1(c[0])*rs[16] + MM_SET1(c[1])*rs[7]; GOUT_SCATTER(gout, n*12+8, r1);
+r1 = + MM_SET1(c[0])*rs[15] - MM_SET1(c[1])*rs[6] - MM_SET1(c[0])*rs[11] + MM_SET1(c[1])*rs[2]; GOUT_SCATTER(gout, n*12+9, r1);
+r1 = + MM_SET1(c[0])*rs[10] - MM_SET1(c[1])*rs[1] - MM_SET1(c[0])*rs[12] + MM_SET1(c[1])*rs[3]; GOUT_SCATTER(gout, n*12+10, r1);
+r1 = + MM_SET1(c[0])*rs[9] - MM_SET1(c[1])*rs[0] + MM_SET1(c[0])*rs[13] - MM_SET1(c[1])*rs[4] + MM_SET1(c[0])*rs[17] - MM_SET1(c[1])*rs[8]; GOUT_SCATTER(gout, n*12+11, r1);
 }}
 static void CINTgout2e_int2e_g1spsp2_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
@@ -2979,16 +2931,20 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_g1spsp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_g1spsp2_simd1;
 envs.common_factor *= 0.5;
-if (out == NULL) { return int2e_cache_size(&envs);
-} else {
-int i, nc;
+int i, nout;
+int counts[4];
 if (envs.shls[0] == envs.shls[1]) {
-nc = envs.nf * envs.x_ctr[0] * envs.x_ctr[1] * envs.x_ctr[2] * envs.x_ctr[3];
-int n_comp = envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor;
-for (i = 0; i < nc * n_comp; i++) { out[i] = 0; }
+counts[0] = envs.nfi * envs.x_ctr[0];
+counts[1] = envs.nfj * envs.x_ctr[1];
+counts[2] = envs.nfk * envs.x_ctr[2];
+counts[3] = envs.nfl * envs.x_ctr[3];
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2] * dims[3];
+for (i = 0; i < envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor; i++) {
+c2s_dset0(out+nout*i, dims, counts); }
 return 0; }
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
-}} // int2e_g1spsp2_cart
+} // int2e_g1spsp2_cart
 int int2e_g1spsp2_sph(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 0, 1, 1, 3, 1, 4, 3};
@@ -2997,17 +2953,20 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_g1spsp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_g1spsp2_simd1;
 envs.common_factor *= 0.5;
-if (out == NULL) { return int2e_cache_size(&envs) + envs.nf*MAX(0, 3-SIMDD);
-} else {
-int i, nc;
+int i, nout;
+int counts[4];
 if (envs.shls[0] == envs.shls[1]) {
-nc = (envs.i_l*2+1) * (envs.j_l*2+1) * (envs.k_l*2+1) * (envs.l_l*2+1) *
-envs.x_ctr[0] * envs.x_ctr[1] * envs.x_ctr[2] * envs.x_ctr[3];
-int n_comp = envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor;
-for (i = 0; i < nc * n_comp; i++) { out[i] = 0; }
+counts[0] = (envs.i_l*2+1) * envs.x_ctr[0];
+counts[1] = (envs.j_l*2+1) * envs.x_ctr[1];
+counts[2] = (envs.k_l*2+1) * envs.x_ctr[2];
+counts[3] = (envs.l_l*2+1) * envs.x_ctr[3];
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2] * dims[3];
+for (i = 0; i < envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor; i++) {
+c2s_dset0(out+nout*i, dims, counts); }
 return 0; }
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
-}} // int2e_g1spsp2_sph
+} // int2e_g1spsp2_sph
 int int2e_g1spsp2_spinor(double complex *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 0, 1, 1, 3, 1, 4, 3};
@@ -3016,22 +2975,20 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_g1spsp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_g1spsp2_simd1;
 envs.common_factor *= 0.5;
-if (out == NULL) {
-int n0 = int2e_cache_size(&envs);
-int n1 = CINTcgto_spinor(shls[0], bas) * envs.nfk * envs.x_ctr[2]
-* envs.nfl * envs.x_ctr[3] * CINTcgto_spinor(shls[1], bas);
-return MAX(n0, n0/2 + n1*envs.ncomp_e2*OF_CMPLX + envs.nf*20*OF_CMPLX);
-} else {
-int i, nc;
+int i, nout;
+int counts[4];
 if (envs.shls[0] == envs.shls[1]) {
-nc = CINTcgto_spinor(envs.shls[0], envs.bas)
-* CINTcgto_spinor(envs.shls[1], envs.bas)
-* CINTcgto_spinor(envs.shls[2], envs.bas)
-* CINTcgto_spinor(envs.shls[3], envs.bas);
-for (i = 0; i < nc * envs.ncomp_tensor; i++) { out[i] = 0; }
+counts[0] = CINTcgto_spinor(envs.shls[0], envs.bas);
+counts[1] = CINTcgto_spinor(envs.shls[1], envs.bas);
+counts[2] = CINTcgto_spinor(envs.shls[2], envs.bas);
+counts[3] = CINTcgto_spinor(envs.shls[3], envs.bas);
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2] * dims[3];
+for (i = 0; i < envs.ncomp_tensor; i++) {
+c2s_zset0(out+nout*i, dims, counts); }
 return 0; }
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_2e1i, &c2s_si_2e2);
-}} // int2e_g1spsp2_spinor
+} // int2e_g1spsp2_spinor
 ALL_CINT(int2e_g1spsp2)
 //ALL_CINT_FORTRAN_(cint2e_g1spsp2)
 /* <SIGMA DOT P k G SIGMA DOT P i|R12 |SIGMA DOT P j SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
@@ -3039,8 +2996,10 @@ ALL_CINT(int2e_g1spsp2)
 static void CINTgout2e_int2e_spgsp1spsp2(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
+int nfc = nf * 48;
 int nrys_roots = envs->nrys_roots;
 int ix, iy, iz, i, n;
+DECLARE_GOUT;
 double *RESTRICT g0 = g;
 double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
@@ -3364,54 +3323,54 @@ rs[240] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g30+(iz
 rs[241] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g30+(iz+i)*SIMDD);
 rs[242] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g31+(iz+i)*SIMDD);
 }
-r1 = + MM_SET1(c[1])*rs[158] - MM_SET1(c[2])*rs[131] - MM_SET1(c[1])*rs[230] + MM_SET1(c[2])*rs[203] - MM_SET1(c[1])*rs[160] + MM_SET1(c[2])*rs[133] + MM_SET1(c[1])*rs[232] - MM_SET1(c[2])*rs[205]; MM_STORE(gout+(n*48+0)*SIMDD, r1);
-r1 = + MM_SET1(c[1])*rs[221] - MM_SET1(c[2])*rs[194] - MM_SET1(c[1])*rs[77] + MM_SET1(c[2])*rs[50] - MM_SET1(c[1])*rs[223] + MM_SET1(c[2])*rs[196] + MM_SET1(c[1])*rs[79] - MM_SET1(c[2])*rs[52]; MM_STORE(gout+(n*48+1)*SIMDD, r1);
-r1 = + MM_SET1(c[1])*rs[68] - MM_SET1(c[2])*rs[41] - MM_SET1(c[1])*rs[140] + MM_SET1(c[2])*rs[113] - MM_SET1(c[1])*rs[70] + MM_SET1(c[2])*rs[43] + MM_SET1(c[1])*rs[142] - MM_SET1(c[2])*rs[115]; MM_STORE(gout+(n*48+2)*SIMDD, r1);
-r1 = + MM_SET1(c[1])*rs[59] - MM_SET1(c[2])*rs[32] + MM_SET1(c[1])*rs[149] - MM_SET1(c[2])*rs[122] + MM_SET1(c[1])*rs[239] - MM_SET1(c[2])*rs[212] - MM_SET1(c[1])*rs[61] + MM_SET1(c[2])*rs[34] - MM_SET1(c[1])*rs[151] + MM_SET1(c[2])*rs[124] - MM_SET1(c[1])*rs[241] + MM_SET1(c[2])*rs[214]; MM_STORE(gout+(n*48+3)*SIMDD, r1);
-r1 = + MM_SET1(c[1])*rs[159] - MM_SET1(c[2])*rs[132] - MM_SET1(c[1])*rs[231] + MM_SET1(c[2])*rs[204] - MM_SET1(c[1])*rs[155] + MM_SET1(c[2])*rs[128] + MM_SET1(c[1])*rs[227] - MM_SET1(c[2])*rs[200]; MM_STORE(gout+(n*48+4)*SIMDD, r1);
-r1 = + MM_SET1(c[1])*rs[222] - MM_SET1(c[2])*rs[195] - MM_SET1(c[1])*rs[78] + MM_SET1(c[2])*rs[51] - MM_SET1(c[1])*rs[218] + MM_SET1(c[2])*rs[191] + MM_SET1(c[1])*rs[74] - MM_SET1(c[2])*rs[47]; MM_STORE(gout+(n*48+5)*SIMDD, r1);
-r1 = + MM_SET1(c[1])*rs[69] - MM_SET1(c[2])*rs[42] - MM_SET1(c[1])*rs[141] + MM_SET1(c[2])*rs[114] - MM_SET1(c[1])*rs[65] + MM_SET1(c[2])*rs[38] + MM_SET1(c[1])*rs[137] - MM_SET1(c[2])*rs[110]; MM_STORE(gout+(n*48+6)*SIMDD, r1);
-r1 = + MM_SET1(c[1])*rs[60] - MM_SET1(c[2])*rs[33] + MM_SET1(c[1])*rs[150] - MM_SET1(c[2])*rs[123] + MM_SET1(c[1])*rs[240] - MM_SET1(c[2])*rs[213] - MM_SET1(c[1])*rs[56] + MM_SET1(c[2])*rs[29] - MM_SET1(c[1])*rs[146] + MM_SET1(c[2])*rs[119] - MM_SET1(c[1])*rs[236] + MM_SET1(c[2])*rs[209]; MM_STORE(gout+(n*48+7)*SIMDD, r1);
-r1 = + MM_SET1(c[1])*rs[154] - MM_SET1(c[2])*rs[127] - MM_SET1(c[1])*rs[226] + MM_SET1(c[2])*rs[199] - MM_SET1(c[1])*rs[156] + MM_SET1(c[2])*rs[129] + MM_SET1(c[1])*rs[228] - MM_SET1(c[2])*rs[201]; MM_STORE(gout+(n*48+8)*SIMDD, r1);
-r1 = + MM_SET1(c[1])*rs[217] - MM_SET1(c[2])*rs[190] - MM_SET1(c[1])*rs[73] + MM_SET1(c[2])*rs[46] - MM_SET1(c[1])*rs[219] + MM_SET1(c[2])*rs[192] + MM_SET1(c[1])*rs[75] - MM_SET1(c[2])*rs[48]; MM_STORE(gout+(n*48+9)*SIMDD, r1);
-r1 = + MM_SET1(c[1])*rs[64] - MM_SET1(c[2])*rs[37] - MM_SET1(c[1])*rs[136] + MM_SET1(c[2])*rs[109] - MM_SET1(c[1])*rs[66] + MM_SET1(c[2])*rs[39] + MM_SET1(c[1])*rs[138] - MM_SET1(c[2])*rs[111]; MM_STORE(gout+(n*48+10)*SIMDD, r1);
-r1 = + MM_SET1(c[1])*rs[55] - MM_SET1(c[2])*rs[28] + MM_SET1(c[1])*rs[145] - MM_SET1(c[2])*rs[118] + MM_SET1(c[1])*rs[235] - MM_SET1(c[2])*rs[208] - MM_SET1(c[1])*rs[57] + MM_SET1(c[2])*rs[30] - MM_SET1(c[1])*rs[147] + MM_SET1(c[2])*rs[120] - MM_SET1(c[1])*rs[237] + MM_SET1(c[2])*rs[210]; MM_STORE(gout+(n*48+11)*SIMDD, r1);
-r1 = + MM_SET1(c[1])*rs[153] - MM_SET1(c[2])*rs[126] - MM_SET1(c[1])*rs[225] + MM_SET1(c[2])*rs[198] + MM_SET1(c[1])*rs[157] - MM_SET1(c[2])*rs[130] - MM_SET1(c[1])*rs[229] + MM_SET1(c[2])*rs[202] + MM_SET1(c[1])*rs[161] - MM_SET1(c[2])*rs[134] - MM_SET1(c[1])*rs[233] + MM_SET1(c[2])*rs[206]; MM_STORE(gout+(n*48+12)*SIMDD, r1);
-r1 = + MM_SET1(c[1])*rs[216] - MM_SET1(c[2])*rs[189] - MM_SET1(c[1])*rs[72] + MM_SET1(c[2])*rs[45] + MM_SET1(c[1])*rs[220] - MM_SET1(c[2])*rs[193] - MM_SET1(c[1])*rs[76] + MM_SET1(c[2])*rs[49] + MM_SET1(c[1])*rs[224] - MM_SET1(c[2])*rs[197] - MM_SET1(c[1])*rs[80] + MM_SET1(c[2])*rs[53]; MM_STORE(gout+(n*48+13)*SIMDD, r1);
-r1 = + MM_SET1(c[1])*rs[63] - MM_SET1(c[2])*rs[36] - MM_SET1(c[1])*rs[135] + MM_SET1(c[2])*rs[108] + MM_SET1(c[1])*rs[67] - MM_SET1(c[2])*rs[40] - MM_SET1(c[1])*rs[139] + MM_SET1(c[2])*rs[112] + MM_SET1(c[1])*rs[71] - MM_SET1(c[2])*rs[44] - MM_SET1(c[1])*rs[143] + MM_SET1(c[2])*rs[116]; MM_STORE(gout+(n*48+14)*SIMDD, r1);
-r1 = + MM_SET1(c[1])*rs[54] - MM_SET1(c[2])*rs[27] + MM_SET1(c[1])*rs[144] - MM_SET1(c[2])*rs[117] + MM_SET1(c[1])*rs[234] - MM_SET1(c[2])*rs[207] + MM_SET1(c[1])*rs[58] - MM_SET1(c[2])*rs[31] + MM_SET1(c[1])*rs[148] - MM_SET1(c[2])*rs[121] + MM_SET1(c[1])*rs[238] - MM_SET1(c[2])*rs[211] + MM_SET1(c[1])*rs[62] - MM_SET1(c[2])*rs[35] + MM_SET1(c[1])*rs[152] - MM_SET1(c[2])*rs[125] + MM_SET1(c[1])*rs[242] - MM_SET1(c[2])*rs[215]; MM_STORE(gout+(n*48+15)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[104] - MM_SET1(c[0])*rs[158] - MM_SET1(c[2])*rs[176] + MM_SET1(c[0])*rs[230] - MM_SET1(c[2])*rs[106] + MM_SET1(c[0])*rs[160] + MM_SET1(c[2])*rs[178] - MM_SET1(c[0])*rs[232]; MM_STORE(gout+(n*48+16)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[167] - MM_SET1(c[0])*rs[221] - MM_SET1(c[2])*rs[23] + MM_SET1(c[0])*rs[77] - MM_SET1(c[2])*rs[169] + MM_SET1(c[0])*rs[223] + MM_SET1(c[2])*rs[25] - MM_SET1(c[0])*rs[79]; MM_STORE(gout+(n*48+17)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[14] - MM_SET1(c[0])*rs[68] - MM_SET1(c[2])*rs[86] + MM_SET1(c[0])*rs[140] - MM_SET1(c[2])*rs[16] + MM_SET1(c[0])*rs[70] + MM_SET1(c[2])*rs[88] - MM_SET1(c[0])*rs[142]; MM_STORE(gout+(n*48+18)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[5] - MM_SET1(c[0])*rs[59] + MM_SET1(c[2])*rs[95] - MM_SET1(c[0])*rs[149] + MM_SET1(c[2])*rs[185] - MM_SET1(c[0])*rs[239] - MM_SET1(c[2])*rs[7] + MM_SET1(c[0])*rs[61] - MM_SET1(c[2])*rs[97] + MM_SET1(c[0])*rs[151] - MM_SET1(c[2])*rs[187] + MM_SET1(c[0])*rs[241]; MM_STORE(gout+(n*48+19)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[105] - MM_SET1(c[0])*rs[159] - MM_SET1(c[2])*rs[177] + MM_SET1(c[0])*rs[231] - MM_SET1(c[2])*rs[101] + MM_SET1(c[0])*rs[155] + MM_SET1(c[2])*rs[173] - MM_SET1(c[0])*rs[227]; MM_STORE(gout+(n*48+20)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[168] - MM_SET1(c[0])*rs[222] - MM_SET1(c[2])*rs[24] + MM_SET1(c[0])*rs[78] - MM_SET1(c[2])*rs[164] + MM_SET1(c[0])*rs[218] + MM_SET1(c[2])*rs[20] - MM_SET1(c[0])*rs[74]; MM_STORE(gout+(n*48+21)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[15] - MM_SET1(c[0])*rs[69] - MM_SET1(c[2])*rs[87] + MM_SET1(c[0])*rs[141] - MM_SET1(c[2])*rs[11] + MM_SET1(c[0])*rs[65] + MM_SET1(c[2])*rs[83] - MM_SET1(c[0])*rs[137]; MM_STORE(gout+(n*48+22)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[6] - MM_SET1(c[0])*rs[60] + MM_SET1(c[2])*rs[96] - MM_SET1(c[0])*rs[150] + MM_SET1(c[2])*rs[186] - MM_SET1(c[0])*rs[240] - MM_SET1(c[2])*rs[2] + MM_SET1(c[0])*rs[56] - MM_SET1(c[2])*rs[92] + MM_SET1(c[0])*rs[146] - MM_SET1(c[2])*rs[182] + MM_SET1(c[0])*rs[236]; MM_STORE(gout+(n*48+23)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[100] - MM_SET1(c[0])*rs[154] - MM_SET1(c[2])*rs[172] + MM_SET1(c[0])*rs[226] - MM_SET1(c[2])*rs[102] + MM_SET1(c[0])*rs[156] + MM_SET1(c[2])*rs[174] - MM_SET1(c[0])*rs[228]; MM_STORE(gout+(n*48+24)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[163] - MM_SET1(c[0])*rs[217] - MM_SET1(c[2])*rs[19] + MM_SET1(c[0])*rs[73] - MM_SET1(c[2])*rs[165] + MM_SET1(c[0])*rs[219] + MM_SET1(c[2])*rs[21] - MM_SET1(c[0])*rs[75]; MM_STORE(gout+(n*48+25)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[10] - MM_SET1(c[0])*rs[64] - MM_SET1(c[2])*rs[82] + MM_SET1(c[0])*rs[136] - MM_SET1(c[2])*rs[12] + MM_SET1(c[0])*rs[66] + MM_SET1(c[2])*rs[84] - MM_SET1(c[0])*rs[138]; MM_STORE(gout+(n*48+26)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[1] - MM_SET1(c[0])*rs[55] + MM_SET1(c[2])*rs[91] - MM_SET1(c[0])*rs[145] + MM_SET1(c[2])*rs[181] - MM_SET1(c[0])*rs[235] - MM_SET1(c[2])*rs[3] + MM_SET1(c[0])*rs[57] - MM_SET1(c[2])*rs[93] + MM_SET1(c[0])*rs[147] - MM_SET1(c[2])*rs[183] + MM_SET1(c[0])*rs[237]; MM_STORE(gout+(n*48+27)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[99] - MM_SET1(c[0])*rs[153] - MM_SET1(c[2])*rs[171] + MM_SET1(c[0])*rs[225] + MM_SET1(c[2])*rs[103] - MM_SET1(c[0])*rs[157] - MM_SET1(c[2])*rs[175] + MM_SET1(c[0])*rs[229] + MM_SET1(c[2])*rs[107] - MM_SET1(c[0])*rs[161] - MM_SET1(c[2])*rs[179] + MM_SET1(c[0])*rs[233]; MM_STORE(gout+(n*48+28)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[162] - MM_SET1(c[0])*rs[216] - MM_SET1(c[2])*rs[18] + MM_SET1(c[0])*rs[72] + MM_SET1(c[2])*rs[166] - MM_SET1(c[0])*rs[220] - MM_SET1(c[2])*rs[22] + MM_SET1(c[0])*rs[76] + MM_SET1(c[2])*rs[170] - MM_SET1(c[0])*rs[224] - MM_SET1(c[2])*rs[26] + MM_SET1(c[0])*rs[80]; MM_STORE(gout+(n*48+29)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[9] - MM_SET1(c[0])*rs[63] - MM_SET1(c[2])*rs[81] + MM_SET1(c[0])*rs[135] + MM_SET1(c[2])*rs[13] - MM_SET1(c[0])*rs[67] - MM_SET1(c[2])*rs[85] + MM_SET1(c[0])*rs[139] + MM_SET1(c[2])*rs[17] - MM_SET1(c[0])*rs[71] - MM_SET1(c[2])*rs[89] + MM_SET1(c[0])*rs[143]; MM_STORE(gout+(n*48+30)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[0] - MM_SET1(c[0])*rs[54] + MM_SET1(c[2])*rs[90] - MM_SET1(c[0])*rs[144] + MM_SET1(c[2])*rs[180] - MM_SET1(c[0])*rs[234] + MM_SET1(c[2])*rs[4] - MM_SET1(c[0])*rs[58] + MM_SET1(c[2])*rs[94] - MM_SET1(c[0])*rs[148] + MM_SET1(c[2])*rs[184] - MM_SET1(c[0])*rs[238] + MM_SET1(c[2])*rs[8] - MM_SET1(c[0])*rs[62] + MM_SET1(c[2])*rs[98] - MM_SET1(c[0])*rs[152] + MM_SET1(c[2])*rs[188] - MM_SET1(c[0])*rs[242]; MM_STORE(gout+(n*48+31)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[131] - MM_SET1(c[1])*rs[104] - MM_SET1(c[0])*rs[203] + MM_SET1(c[1])*rs[176] - MM_SET1(c[0])*rs[133] + MM_SET1(c[1])*rs[106] + MM_SET1(c[0])*rs[205] - MM_SET1(c[1])*rs[178]; MM_STORE(gout+(n*48+32)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[194] - MM_SET1(c[1])*rs[167] - MM_SET1(c[0])*rs[50] + MM_SET1(c[1])*rs[23] - MM_SET1(c[0])*rs[196] + MM_SET1(c[1])*rs[169] + MM_SET1(c[0])*rs[52] - MM_SET1(c[1])*rs[25]; MM_STORE(gout+(n*48+33)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[41] - MM_SET1(c[1])*rs[14] - MM_SET1(c[0])*rs[113] + MM_SET1(c[1])*rs[86] - MM_SET1(c[0])*rs[43] + MM_SET1(c[1])*rs[16] + MM_SET1(c[0])*rs[115] - MM_SET1(c[1])*rs[88]; MM_STORE(gout+(n*48+34)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[32] - MM_SET1(c[1])*rs[5] + MM_SET1(c[0])*rs[122] - MM_SET1(c[1])*rs[95] + MM_SET1(c[0])*rs[212] - MM_SET1(c[1])*rs[185] - MM_SET1(c[0])*rs[34] + MM_SET1(c[1])*rs[7] - MM_SET1(c[0])*rs[124] + MM_SET1(c[1])*rs[97] - MM_SET1(c[0])*rs[214] + MM_SET1(c[1])*rs[187]; MM_STORE(gout+(n*48+35)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[132] - MM_SET1(c[1])*rs[105] - MM_SET1(c[0])*rs[204] + MM_SET1(c[1])*rs[177] - MM_SET1(c[0])*rs[128] + MM_SET1(c[1])*rs[101] + MM_SET1(c[0])*rs[200] - MM_SET1(c[1])*rs[173]; MM_STORE(gout+(n*48+36)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[195] - MM_SET1(c[1])*rs[168] - MM_SET1(c[0])*rs[51] + MM_SET1(c[1])*rs[24] - MM_SET1(c[0])*rs[191] + MM_SET1(c[1])*rs[164] + MM_SET1(c[0])*rs[47] - MM_SET1(c[1])*rs[20]; MM_STORE(gout+(n*48+37)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[42] - MM_SET1(c[1])*rs[15] - MM_SET1(c[0])*rs[114] + MM_SET1(c[1])*rs[87] - MM_SET1(c[0])*rs[38] + MM_SET1(c[1])*rs[11] + MM_SET1(c[0])*rs[110] - MM_SET1(c[1])*rs[83]; MM_STORE(gout+(n*48+38)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[33] - MM_SET1(c[1])*rs[6] + MM_SET1(c[0])*rs[123] - MM_SET1(c[1])*rs[96] + MM_SET1(c[0])*rs[213] - MM_SET1(c[1])*rs[186] - MM_SET1(c[0])*rs[29] + MM_SET1(c[1])*rs[2] - MM_SET1(c[0])*rs[119] + MM_SET1(c[1])*rs[92] - MM_SET1(c[0])*rs[209] + MM_SET1(c[1])*rs[182]; MM_STORE(gout+(n*48+39)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[127] - MM_SET1(c[1])*rs[100] - MM_SET1(c[0])*rs[199] + MM_SET1(c[1])*rs[172] - MM_SET1(c[0])*rs[129] + MM_SET1(c[1])*rs[102] + MM_SET1(c[0])*rs[201] - MM_SET1(c[1])*rs[174]; MM_STORE(gout+(n*48+40)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[190] - MM_SET1(c[1])*rs[163] - MM_SET1(c[0])*rs[46] + MM_SET1(c[1])*rs[19] - MM_SET1(c[0])*rs[192] + MM_SET1(c[1])*rs[165] + MM_SET1(c[0])*rs[48] - MM_SET1(c[1])*rs[21]; MM_STORE(gout+(n*48+41)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[37] - MM_SET1(c[1])*rs[10] - MM_SET1(c[0])*rs[109] + MM_SET1(c[1])*rs[82] - MM_SET1(c[0])*rs[39] + MM_SET1(c[1])*rs[12] + MM_SET1(c[0])*rs[111] - MM_SET1(c[1])*rs[84]; MM_STORE(gout+(n*48+42)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[28] - MM_SET1(c[1])*rs[1] + MM_SET1(c[0])*rs[118] - MM_SET1(c[1])*rs[91] + MM_SET1(c[0])*rs[208] - MM_SET1(c[1])*rs[181] - MM_SET1(c[0])*rs[30] + MM_SET1(c[1])*rs[3] - MM_SET1(c[0])*rs[120] + MM_SET1(c[1])*rs[93] - MM_SET1(c[0])*rs[210] + MM_SET1(c[1])*rs[183]; MM_STORE(gout+(n*48+43)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[126] - MM_SET1(c[1])*rs[99] - MM_SET1(c[0])*rs[198] + MM_SET1(c[1])*rs[171] + MM_SET1(c[0])*rs[130] - MM_SET1(c[1])*rs[103] - MM_SET1(c[0])*rs[202] + MM_SET1(c[1])*rs[175] + MM_SET1(c[0])*rs[134] - MM_SET1(c[1])*rs[107] - MM_SET1(c[0])*rs[206] + MM_SET1(c[1])*rs[179]; MM_STORE(gout+(n*48+44)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[189] - MM_SET1(c[1])*rs[162] - MM_SET1(c[0])*rs[45] + MM_SET1(c[1])*rs[18] + MM_SET1(c[0])*rs[193] - MM_SET1(c[1])*rs[166] - MM_SET1(c[0])*rs[49] + MM_SET1(c[1])*rs[22] + MM_SET1(c[0])*rs[197] - MM_SET1(c[1])*rs[170] - MM_SET1(c[0])*rs[53] + MM_SET1(c[1])*rs[26]; MM_STORE(gout+(n*48+45)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[36] - MM_SET1(c[1])*rs[9] - MM_SET1(c[0])*rs[108] + MM_SET1(c[1])*rs[81] + MM_SET1(c[0])*rs[40] - MM_SET1(c[1])*rs[13] - MM_SET1(c[0])*rs[112] + MM_SET1(c[1])*rs[85] + MM_SET1(c[0])*rs[44] - MM_SET1(c[1])*rs[17] - MM_SET1(c[0])*rs[116] + MM_SET1(c[1])*rs[89]; MM_STORE(gout+(n*48+46)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[27] - MM_SET1(c[1])*rs[0] + MM_SET1(c[0])*rs[117] - MM_SET1(c[1])*rs[90] + MM_SET1(c[0])*rs[207] - MM_SET1(c[1])*rs[180] + MM_SET1(c[0])*rs[31] - MM_SET1(c[1])*rs[4] + MM_SET1(c[0])*rs[121] - MM_SET1(c[1])*rs[94] + MM_SET1(c[0])*rs[211] - MM_SET1(c[1])*rs[184] + MM_SET1(c[0])*rs[35] - MM_SET1(c[1])*rs[8] + MM_SET1(c[0])*rs[125] - MM_SET1(c[1])*rs[98] + MM_SET1(c[0])*rs[215] - MM_SET1(c[1])*rs[188]; MM_STORE(gout+(n*48+47)*SIMDD, r1);
+r1 = + MM_SET1(c[1])*rs[158] - MM_SET1(c[2])*rs[131] - MM_SET1(c[1])*rs[230] + MM_SET1(c[2])*rs[203] - MM_SET1(c[1])*rs[160] + MM_SET1(c[2])*rs[133] + MM_SET1(c[1])*rs[232] - MM_SET1(c[2])*rs[205]; GOUT_SCATTER(gout, n*48+0, r1);
+r1 = + MM_SET1(c[1])*rs[221] - MM_SET1(c[2])*rs[194] - MM_SET1(c[1])*rs[77] + MM_SET1(c[2])*rs[50] - MM_SET1(c[1])*rs[223] + MM_SET1(c[2])*rs[196] + MM_SET1(c[1])*rs[79] - MM_SET1(c[2])*rs[52]; GOUT_SCATTER(gout, n*48+1, r1);
+r1 = + MM_SET1(c[1])*rs[68] - MM_SET1(c[2])*rs[41] - MM_SET1(c[1])*rs[140] + MM_SET1(c[2])*rs[113] - MM_SET1(c[1])*rs[70] + MM_SET1(c[2])*rs[43] + MM_SET1(c[1])*rs[142] - MM_SET1(c[2])*rs[115]; GOUT_SCATTER(gout, n*48+2, r1);
+r1 = + MM_SET1(c[1])*rs[59] - MM_SET1(c[2])*rs[32] + MM_SET1(c[1])*rs[149] - MM_SET1(c[2])*rs[122] + MM_SET1(c[1])*rs[239] - MM_SET1(c[2])*rs[212] - MM_SET1(c[1])*rs[61] + MM_SET1(c[2])*rs[34] - MM_SET1(c[1])*rs[151] + MM_SET1(c[2])*rs[124] - MM_SET1(c[1])*rs[241] + MM_SET1(c[2])*rs[214]; GOUT_SCATTER(gout, n*48+3, r1);
+r1 = + MM_SET1(c[1])*rs[159] - MM_SET1(c[2])*rs[132] - MM_SET1(c[1])*rs[231] + MM_SET1(c[2])*rs[204] - MM_SET1(c[1])*rs[155] + MM_SET1(c[2])*rs[128] + MM_SET1(c[1])*rs[227] - MM_SET1(c[2])*rs[200]; GOUT_SCATTER(gout, n*48+4, r1);
+r1 = + MM_SET1(c[1])*rs[222] - MM_SET1(c[2])*rs[195] - MM_SET1(c[1])*rs[78] + MM_SET1(c[2])*rs[51] - MM_SET1(c[1])*rs[218] + MM_SET1(c[2])*rs[191] + MM_SET1(c[1])*rs[74] - MM_SET1(c[2])*rs[47]; GOUT_SCATTER(gout, n*48+5, r1);
+r1 = + MM_SET1(c[1])*rs[69] - MM_SET1(c[2])*rs[42] - MM_SET1(c[1])*rs[141] + MM_SET1(c[2])*rs[114] - MM_SET1(c[1])*rs[65] + MM_SET1(c[2])*rs[38] + MM_SET1(c[1])*rs[137] - MM_SET1(c[2])*rs[110]; GOUT_SCATTER(gout, n*48+6, r1);
+r1 = + MM_SET1(c[1])*rs[60] - MM_SET1(c[2])*rs[33] + MM_SET1(c[1])*rs[150] - MM_SET1(c[2])*rs[123] + MM_SET1(c[1])*rs[240] - MM_SET1(c[2])*rs[213] - MM_SET1(c[1])*rs[56] + MM_SET1(c[2])*rs[29] - MM_SET1(c[1])*rs[146] + MM_SET1(c[2])*rs[119] - MM_SET1(c[1])*rs[236] + MM_SET1(c[2])*rs[209]; GOUT_SCATTER(gout, n*48+7, r1);
+r1 = + MM_SET1(c[1])*rs[154] - MM_SET1(c[2])*rs[127] - MM_SET1(c[1])*rs[226] + MM_SET1(c[2])*rs[199] - MM_SET1(c[1])*rs[156] + MM_SET1(c[2])*rs[129] + MM_SET1(c[1])*rs[228] - MM_SET1(c[2])*rs[201]; GOUT_SCATTER(gout, n*48+8, r1);
+r1 = + MM_SET1(c[1])*rs[217] - MM_SET1(c[2])*rs[190] - MM_SET1(c[1])*rs[73] + MM_SET1(c[2])*rs[46] - MM_SET1(c[1])*rs[219] + MM_SET1(c[2])*rs[192] + MM_SET1(c[1])*rs[75] - MM_SET1(c[2])*rs[48]; GOUT_SCATTER(gout, n*48+9, r1);
+r1 = + MM_SET1(c[1])*rs[64] - MM_SET1(c[2])*rs[37] - MM_SET1(c[1])*rs[136] + MM_SET1(c[2])*rs[109] - MM_SET1(c[1])*rs[66] + MM_SET1(c[2])*rs[39] + MM_SET1(c[1])*rs[138] - MM_SET1(c[2])*rs[111]; GOUT_SCATTER(gout, n*48+10, r1);
+r1 = + MM_SET1(c[1])*rs[55] - MM_SET1(c[2])*rs[28] + MM_SET1(c[1])*rs[145] - MM_SET1(c[2])*rs[118] + MM_SET1(c[1])*rs[235] - MM_SET1(c[2])*rs[208] - MM_SET1(c[1])*rs[57] + MM_SET1(c[2])*rs[30] - MM_SET1(c[1])*rs[147] + MM_SET1(c[2])*rs[120] - MM_SET1(c[1])*rs[237] + MM_SET1(c[2])*rs[210]; GOUT_SCATTER(gout, n*48+11, r1);
+r1 = + MM_SET1(c[1])*rs[153] - MM_SET1(c[2])*rs[126] - MM_SET1(c[1])*rs[225] + MM_SET1(c[2])*rs[198] + MM_SET1(c[1])*rs[157] - MM_SET1(c[2])*rs[130] - MM_SET1(c[1])*rs[229] + MM_SET1(c[2])*rs[202] + MM_SET1(c[1])*rs[161] - MM_SET1(c[2])*rs[134] - MM_SET1(c[1])*rs[233] + MM_SET1(c[2])*rs[206]; GOUT_SCATTER(gout, n*48+12, r1);
+r1 = + MM_SET1(c[1])*rs[216] - MM_SET1(c[2])*rs[189] - MM_SET1(c[1])*rs[72] + MM_SET1(c[2])*rs[45] + MM_SET1(c[1])*rs[220] - MM_SET1(c[2])*rs[193] - MM_SET1(c[1])*rs[76] + MM_SET1(c[2])*rs[49] + MM_SET1(c[1])*rs[224] - MM_SET1(c[2])*rs[197] - MM_SET1(c[1])*rs[80] + MM_SET1(c[2])*rs[53]; GOUT_SCATTER(gout, n*48+13, r1);
+r1 = + MM_SET1(c[1])*rs[63] - MM_SET1(c[2])*rs[36] - MM_SET1(c[1])*rs[135] + MM_SET1(c[2])*rs[108] + MM_SET1(c[1])*rs[67] - MM_SET1(c[2])*rs[40] - MM_SET1(c[1])*rs[139] + MM_SET1(c[2])*rs[112] + MM_SET1(c[1])*rs[71] - MM_SET1(c[2])*rs[44] - MM_SET1(c[1])*rs[143] + MM_SET1(c[2])*rs[116]; GOUT_SCATTER(gout, n*48+14, r1);
+r1 = + MM_SET1(c[1])*rs[54] - MM_SET1(c[2])*rs[27] + MM_SET1(c[1])*rs[144] - MM_SET1(c[2])*rs[117] + MM_SET1(c[1])*rs[234] - MM_SET1(c[2])*rs[207] + MM_SET1(c[1])*rs[58] - MM_SET1(c[2])*rs[31] + MM_SET1(c[1])*rs[148] - MM_SET1(c[2])*rs[121] + MM_SET1(c[1])*rs[238] - MM_SET1(c[2])*rs[211] + MM_SET1(c[1])*rs[62] - MM_SET1(c[2])*rs[35] + MM_SET1(c[1])*rs[152] - MM_SET1(c[2])*rs[125] + MM_SET1(c[1])*rs[242] - MM_SET1(c[2])*rs[215]; GOUT_SCATTER(gout, n*48+15, r1);
+r1 = + MM_SET1(c[2])*rs[104] - MM_SET1(c[0])*rs[158] - MM_SET1(c[2])*rs[176] + MM_SET1(c[0])*rs[230] - MM_SET1(c[2])*rs[106] + MM_SET1(c[0])*rs[160] + MM_SET1(c[2])*rs[178] - MM_SET1(c[0])*rs[232]; GOUT_SCATTER(gout, n*48+16, r1);
+r1 = + MM_SET1(c[2])*rs[167] - MM_SET1(c[0])*rs[221] - MM_SET1(c[2])*rs[23] + MM_SET1(c[0])*rs[77] - MM_SET1(c[2])*rs[169] + MM_SET1(c[0])*rs[223] + MM_SET1(c[2])*rs[25] - MM_SET1(c[0])*rs[79]; GOUT_SCATTER(gout, n*48+17, r1);
+r1 = + MM_SET1(c[2])*rs[14] - MM_SET1(c[0])*rs[68] - MM_SET1(c[2])*rs[86] + MM_SET1(c[0])*rs[140] - MM_SET1(c[2])*rs[16] + MM_SET1(c[0])*rs[70] + MM_SET1(c[2])*rs[88] - MM_SET1(c[0])*rs[142]; GOUT_SCATTER(gout, n*48+18, r1);
+r1 = + MM_SET1(c[2])*rs[5] - MM_SET1(c[0])*rs[59] + MM_SET1(c[2])*rs[95] - MM_SET1(c[0])*rs[149] + MM_SET1(c[2])*rs[185] - MM_SET1(c[0])*rs[239] - MM_SET1(c[2])*rs[7] + MM_SET1(c[0])*rs[61] - MM_SET1(c[2])*rs[97] + MM_SET1(c[0])*rs[151] - MM_SET1(c[2])*rs[187] + MM_SET1(c[0])*rs[241]; GOUT_SCATTER(gout, n*48+19, r1);
+r1 = + MM_SET1(c[2])*rs[105] - MM_SET1(c[0])*rs[159] - MM_SET1(c[2])*rs[177] + MM_SET1(c[0])*rs[231] - MM_SET1(c[2])*rs[101] + MM_SET1(c[0])*rs[155] + MM_SET1(c[2])*rs[173] - MM_SET1(c[0])*rs[227]; GOUT_SCATTER(gout, n*48+20, r1);
+r1 = + MM_SET1(c[2])*rs[168] - MM_SET1(c[0])*rs[222] - MM_SET1(c[2])*rs[24] + MM_SET1(c[0])*rs[78] - MM_SET1(c[2])*rs[164] + MM_SET1(c[0])*rs[218] + MM_SET1(c[2])*rs[20] - MM_SET1(c[0])*rs[74]; GOUT_SCATTER(gout, n*48+21, r1);
+r1 = + MM_SET1(c[2])*rs[15] - MM_SET1(c[0])*rs[69] - MM_SET1(c[2])*rs[87] + MM_SET1(c[0])*rs[141] - MM_SET1(c[2])*rs[11] + MM_SET1(c[0])*rs[65] + MM_SET1(c[2])*rs[83] - MM_SET1(c[0])*rs[137]; GOUT_SCATTER(gout, n*48+22, r1);
+r1 = + MM_SET1(c[2])*rs[6] - MM_SET1(c[0])*rs[60] + MM_SET1(c[2])*rs[96] - MM_SET1(c[0])*rs[150] + MM_SET1(c[2])*rs[186] - MM_SET1(c[0])*rs[240] - MM_SET1(c[2])*rs[2] + MM_SET1(c[0])*rs[56] - MM_SET1(c[2])*rs[92] + MM_SET1(c[0])*rs[146] - MM_SET1(c[2])*rs[182] + MM_SET1(c[0])*rs[236]; GOUT_SCATTER(gout, n*48+23, r1);
+r1 = + MM_SET1(c[2])*rs[100] - MM_SET1(c[0])*rs[154] - MM_SET1(c[2])*rs[172] + MM_SET1(c[0])*rs[226] - MM_SET1(c[2])*rs[102] + MM_SET1(c[0])*rs[156] + MM_SET1(c[2])*rs[174] - MM_SET1(c[0])*rs[228]; GOUT_SCATTER(gout, n*48+24, r1);
+r1 = + MM_SET1(c[2])*rs[163] - MM_SET1(c[0])*rs[217] - MM_SET1(c[2])*rs[19] + MM_SET1(c[0])*rs[73] - MM_SET1(c[2])*rs[165] + MM_SET1(c[0])*rs[219] + MM_SET1(c[2])*rs[21] - MM_SET1(c[0])*rs[75]; GOUT_SCATTER(gout, n*48+25, r1);
+r1 = + MM_SET1(c[2])*rs[10] - MM_SET1(c[0])*rs[64] - MM_SET1(c[2])*rs[82] + MM_SET1(c[0])*rs[136] - MM_SET1(c[2])*rs[12] + MM_SET1(c[0])*rs[66] + MM_SET1(c[2])*rs[84] - MM_SET1(c[0])*rs[138]; GOUT_SCATTER(gout, n*48+26, r1);
+r1 = + MM_SET1(c[2])*rs[1] - MM_SET1(c[0])*rs[55] + MM_SET1(c[2])*rs[91] - MM_SET1(c[0])*rs[145] + MM_SET1(c[2])*rs[181] - MM_SET1(c[0])*rs[235] - MM_SET1(c[2])*rs[3] + MM_SET1(c[0])*rs[57] - MM_SET1(c[2])*rs[93] + MM_SET1(c[0])*rs[147] - MM_SET1(c[2])*rs[183] + MM_SET1(c[0])*rs[237]; GOUT_SCATTER(gout, n*48+27, r1);
+r1 = + MM_SET1(c[2])*rs[99] - MM_SET1(c[0])*rs[153] - MM_SET1(c[2])*rs[171] + MM_SET1(c[0])*rs[225] + MM_SET1(c[2])*rs[103] - MM_SET1(c[0])*rs[157] - MM_SET1(c[2])*rs[175] + MM_SET1(c[0])*rs[229] + MM_SET1(c[2])*rs[107] - MM_SET1(c[0])*rs[161] - MM_SET1(c[2])*rs[179] + MM_SET1(c[0])*rs[233]; GOUT_SCATTER(gout, n*48+28, r1);
+r1 = + MM_SET1(c[2])*rs[162] - MM_SET1(c[0])*rs[216] - MM_SET1(c[2])*rs[18] + MM_SET1(c[0])*rs[72] + MM_SET1(c[2])*rs[166] - MM_SET1(c[0])*rs[220] - MM_SET1(c[2])*rs[22] + MM_SET1(c[0])*rs[76] + MM_SET1(c[2])*rs[170] - MM_SET1(c[0])*rs[224] - MM_SET1(c[2])*rs[26] + MM_SET1(c[0])*rs[80]; GOUT_SCATTER(gout, n*48+29, r1);
+r1 = + MM_SET1(c[2])*rs[9] - MM_SET1(c[0])*rs[63] - MM_SET1(c[2])*rs[81] + MM_SET1(c[0])*rs[135] + MM_SET1(c[2])*rs[13] - MM_SET1(c[0])*rs[67] - MM_SET1(c[2])*rs[85] + MM_SET1(c[0])*rs[139] + MM_SET1(c[2])*rs[17] - MM_SET1(c[0])*rs[71] - MM_SET1(c[2])*rs[89] + MM_SET1(c[0])*rs[143]; GOUT_SCATTER(gout, n*48+30, r1);
+r1 = + MM_SET1(c[2])*rs[0] - MM_SET1(c[0])*rs[54] + MM_SET1(c[2])*rs[90] - MM_SET1(c[0])*rs[144] + MM_SET1(c[2])*rs[180] - MM_SET1(c[0])*rs[234] + MM_SET1(c[2])*rs[4] - MM_SET1(c[0])*rs[58] + MM_SET1(c[2])*rs[94] - MM_SET1(c[0])*rs[148] + MM_SET1(c[2])*rs[184] - MM_SET1(c[0])*rs[238] + MM_SET1(c[2])*rs[8] - MM_SET1(c[0])*rs[62] + MM_SET1(c[2])*rs[98] - MM_SET1(c[0])*rs[152] + MM_SET1(c[2])*rs[188] - MM_SET1(c[0])*rs[242]; GOUT_SCATTER(gout, n*48+31, r1);
+r1 = + MM_SET1(c[0])*rs[131] - MM_SET1(c[1])*rs[104] - MM_SET1(c[0])*rs[203] + MM_SET1(c[1])*rs[176] - MM_SET1(c[0])*rs[133] + MM_SET1(c[1])*rs[106] + MM_SET1(c[0])*rs[205] - MM_SET1(c[1])*rs[178]; GOUT_SCATTER(gout, n*48+32, r1);
+r1 = + MM_SET1(c[0])*rs[194] - MM_SET1(c[1])*rs[167] - MM_SET1(c[0])*rs[50] + MM_SET1(c[1])*rs[23] - MM_SET1(c[0])*rs[196] + MM_SET1(c[1])*rs[169] + MM_SET1(c[0])*rs[52] - MM_SET1(c[1])*rs[25]; GOUT_SCATTER(gout, n*48+33, r1);
+r1 = + MM_SET1(c[0])*rs[41] - MM_SET1(c[1])*rs[14] - MM_SET1(c[0])*rs[113] + MM_SET1(c[1])*rs[86] - MM_SET1(c[0])*rs[43] + MM_SET1(c[1])*rs[16] + MM_SET1(c[0])*rs[115] - MM_SET1(c[1])*rs[88]; GOUT_SCATTER(gout, n*48+34, r1);
+r1 = + MM_SET1(c[0])*rs[32] - MM_SET1(c[1])*rs[5] + MM_SET1(c[0])*rs[122] - MM_SET1(c[1])*rs[95] + MM_SET1(c[0])*rs[212] - MM_SET1(c[1])*rs[185] - MM_SET1(c[0])*rs[34] + MM_SET1(c[1])*rs[7] - MM_SET1(c[0])*rs[124] + MM_SET1(c[1])*rs[97] - MM_SET1(c[0])*rs[214] + MM_SET1(c[1])*rs[187]; GOUT_SCATTER(gout, n*48+35, r1);
+r1 = + MM_SET1(c[0])*rs[132] - MM_SET1(c[1])*rs[105] - MM_SET1(c[0])*rs[204] + MM_SET1(c[1])*rs[177] - MM_SET1(c[0])*rs[128] + MM_SET1(c[1])*rs[101] + MM_SET1(c[0])*rs[200] - MM_SET1(c[1])*rs[173]; GOUT_SCATTER(gout, n*48+36, r1);
+r1 = + MM_SET1(c[0])*rs[195] - MM_SET1(c[1])*rs[168] - MM_SET1(c[0])*rs[51] + MM_SET1(c[1])*rs[24] - MM_SET1(c[0])*rs[191] + MM_SET1(c[1])*rs[164] + MM_SET1(c[0])*rs[47] - MM_SET1(c[1])*rs[20]; GOUT_SCATTER(gout, n*48+37, r1);
+r1 = + MM_SET1(c[0])*rs[42] - MM_SET1(c[1])*rs[15] - MM_SET1(c[0])*rs[114] + MM_SET1(c[1])*rs[87] - MM_SET1(c[0])*rs[38] + MM_SET1(c[1])*rs[11] + MM_SET1(c[0])*rs[110] - MM_SET1(c[1])*rs[83]; GOUT_SCATTER(gout, n*48+38, r1);
+r1 = + MM_SET1(c[0])*rs[33] - MM_SET1(c[1])*rs[6] + MM_SET1(c[0])*rs[123] - MM_SET1(c[1])*rs[96] + MM_SET1(c[0])*rs[213] - MM_SET1(c[1])*rs[186] - MM_SET1(c[0])*rs[29] + MM_SET1(c[1])*rs[2] - MM_SET1(c[0])*rs[119] + MM_SET1(c[1])*rs[92] - MM_SET1(c[0])*rs[209] + MM_SET1(c[1])*rs[182]; GOUT_SCATTER(gout, n*48+39, r1);
+r1 = + MM_SET1(c[0])*rs[127] - MM_SET1(c[1])*rs[100] - MM_SET1(c[0])*rs[199] + MM_SET1(c[1])*rs[172] - MM_SET1(c[0])*rs[129] + MM_SET1(c[1])*rs[102] + MM_SET1(c[0])*rs[201] - MM_SET1(c[1])*rs[174]; GOUT_SCATTER(gout, n*48+40, r1);
+r1 = + MM_SET1(c[0])*rs[190] - MM_SET1(c[1])*rs[163] - MM_SET1(c[0])*rs[46] + MM_SET1(c[1])*rs[19] - MM_SET1(c[0])*rs[192] + MM_SET1(c[1])*rs[165] + MM_SET1(c[0])*rs[48] - MM_SET1(c[1])*rs[21]; GOUT_SCATTER(gout, n*48+41, r1);
+r1 = + MM_SET1(c[0])*rs[37] - MM_SET1(c[1])*rs[10] - MM_SET1(c[0])*rs[109] + MM_SET1(c[1])*rs[82] - MM_SET1(c[0])*rs[39] + MM_SET1(c[1])*rs[12] + MM_SET1(c[0])*rs[111] - MM_SET1(c[1])*rs[84]; GOUT_SCATTER(gout, n*48+42, r1);
+r1 = + MM_SET1(c[0])*rs[28] - MM_SET1(c[1])*rs[1] + MM_SET1(c[0])*rs[118] - MM_SET1(c[1])*rs[91] + MM_SET1(c[0])*rs[208] - MM_SET1(c[1])*rs[181] - MM_SET1(c[0])*rs[30] + MM_SET1(c[1])*rs[3] - MM_SET1(c[0])*rs[120] + MM_SET1(c[1])*rs[93] - MM_SET1(c[0])*rs[210] + MM_SET1(c[1])*rs[183]; GOUT_SCATTER(gout, n*48+43, r1);
+r1 = + MM_SET1(c[0])*rs[126] - MM_SET1(c[1])*rs[99] - MM_SET1(c[0])*rs[198] + MM_SET1(c[1])*rs[171] + MM_SET1(c[0])*rs[130] - MM_SET1(c[1])*rs[103] - MM_SET1(c[0])*rs[202] + MM_SET1(c[1])*rs[175] + MM_SET1(c[0])*rs[134] - MM_SET1(c[1])*rs[107] - MM_SET1(c[0])*rs[206] + MM_SET1(c[1])*rs[179]; GOUT_SCATTER(gout, n*48+44, r1);
+r1 = + MM_SET1(c[0])*rs[189] - MM_SET1(c[1])*rs[162] - MM_SET1(c[0])*rs[45] + MM_SET1(c[1])*rs[18] + MM_SET1(c[0])*rs[193] - MM_SET1(c[1])*rs[166] - MM_SET1(c[0])*rs[49] + MM_SET1(c[1])*rs[22] + MM_SET1(c[0])*rs[197] - MM_SET1(c[1])*rs[170] - MM_SET1(c[0])*rs[53] + MM_SET1(c[1])*rs[26]; GOUT_SCATTER(gout, n*48+45, r1);
+r1 = + MM_SET1(c[0])*rs[36] - MM_SET1(c[1])*rs[9] - MM_SET1(c[0])*rs[108] + MM_SET1(c[1])*rs[81] + MM_SET1(c[0])*rs[40] - MM_SET1(c[1])*rs[13] - MM_SET1(c[0])*rs[112] + MM_SET1(c[1])*rs[85] + MM_SET1(c[0])*rs[44] - MM_SET1(c[1])*rs[17] - MM_SET1(c[0])*rs[116] + MM_SET1(c[1])*rs[89]; GOUT_SCATTER(gout, n*48+46, r1);
+r1 = + MM_SET1(c[0])*rs[27] - MM_SET1(c[1])*rs[0] + MM_SET1(c[0])*rs[117] - MM_SET1(c[1])*rs[90] + MM_SET1(c[0])*rs[207] - MM_SET1(c[1])*rs[180] + MM_SET1(c[0])*rs[31] - MM_SET1(c[1])*rs[4] + MM_SET1(c[0])*rs[121] - MM_SET1(c[1])*rs[94] + MM_SET1(c[0])*rs[211] - MM_SET1(c[1])*rs[184] + MM_SET1(c[0])*rs[35] - MM_SET1(c[1])*rs[8] + MM_SET1(c[0])*rs[125] - MM_SET1(c[1])*rs[98] + MM_SET1(c[0])*rs[215] - MM_SET1(c[1])*rs[188]; GOUT_SCATTER(gout, n*48+47, r1);
 }}
 static void CINTgout2e_int2e_spgsp1spsp2_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
@@ -3801,16 +3760,20 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_spgsp1spsp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_spgsp1spsp2_simd1;
 envs.common_factor *= 0.5;
-if (out == NULL) { return int2e_cache_size(&envs);
-} else {
-int i, nc;
+int i, nout;
+int counts[4];
 if (envs.shls[0] == envs.shls[1]) {
-nc = envs.nf * envs.x_ctr[0] * envs.x_ctr[1] * envs.x_ctr[2] * envs.x_ctr[3];
-int n_comp = envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor;
-for (i = 0; i < nc * n_comp; i++) { out[i] = 0; }
+counts[0] = envs.nfi * envs.x_ctr[0];
+counts[1] = envs.nfj * envs.x_ctr[1];
+counts[2] = envs.nfk * envs.x_ctr[2];
+counts[3] = envs.nfl * envs.x_ctr[3];
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2] * dims[3];
+for (i = 0; i < envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor; i++) {
+c2s_dset0(out+nout*i, dims, counts); }
 return 0; }
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
-}} // int2e_spgsp1spsp2_cart
+} // int2e_spgsp1spsp2_cart
 int int2e_spgsp1spsp2_sph(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {2, 1, 1, 1, 5, 4, 4, 3};
@@ -3819,17 +3782,20 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_spgsp1spsp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_spgsp1spsp2_simd1;
 envs.common_factor *= 0.5;
-if (out == NULL) { return int2e_cache_size(&envs) + envs.nf*MAX(0, 3-SIMDD);
-} else {
-int i, nc;
+int i, nout;
+int counts[4];
 if (envs.shls[0] == envs.shls[1]) {
-nc = (envs.i_l*2+1) * (envs.j_l*2+1) * (envs.k_l*2+1) * (envs.l_l*2+1) *
-envs.x_ctr[0] * envs.x_ctr[1] * envs.x_ctr[2] * envs.x_ctr[3];
-int n_comp = envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor;
-for (i = 0; i < nc * n_comp; i++) { out[i] = 0; }
+counts[0] = (envs.i_l*2+1) * envs.x_ctr[0];
+counts[1] = (envs.j_l*2+1) * envs.x_ctr[1];
+counts[2] = (envs.k_l*2+1) * envs.x_ctr[2];
+counts[3] = (envs.l_l*2+1) * envs.x_ctr[3];
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2] * dims[3];
+for (i = 0; i < envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor; i++) {
+c2s_dset0(out+nout*i, dims, counts); }
 return 0; }
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
-}} // int2e_spgsp1spsp2_sph
+} // int2e_spgsp1spsp2_sph
 int int2e_spgsp1spsp2_spinor(double complex *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {2, 1, 1, 1, 5, 4, 4, 3};
@@ -3838,22 +3804,20 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_spgsp1spsp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_spgsp1spsp2_simd1;
 envs.common_factor *= 0.5;
-if (out == NULL) {
-int n0 = int2e_cache_size(&envs);
-int n1 = CINTcgto_spinor(shls[0], bas) * envs.nfk * envs.x_ctr[2]
-* envs.nfl * envs.x_ctr[3] * CINTcgto_spinor(shls[1], bas);
-return MAX(n0, n0/2 + n1*envs.ncomp_e2*OF_CMPLX + envs.nf*32*OF_CMPLX);
-} else {
-int i, nc;
+int i, nout;
+int counts[4];
 if (envs.shls[0] == envs.shls[1]) {
-nc = CINTcgto_spinor(envs.shls[0], envs.bas)
-* CINTcgto_spinor(envs.shls[1], envs.bas)
-* CINTcgto_spinor(envs.shls[2], envs.bas)
-* CINTcgto_spinor(envs.shls[3], envs.bas);
-for (i = 0; i < nc * envs.ncomp_tensor; i++) { out[i] = 0; }
+counts[0] = CINTcgto_spinor(envs.shls[0], envs.bas);
+counts[1] = CINTcgto_spinor(envs.shls[1], envs.bas);
+counts[2] = CINTcgto_spinor(envs.shls[2], envs.bas);
+counts[3] = CINTcgto_spinor(envs.shls[3], envs.bas);
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2] * dims[3];
+for (i = 0; i < envs.ncomp_tensor; i++) {
+c2s_zset0(out+nout*i, dims, counts); }
 return 0; }
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1i, &c2s_si_2e2);
-}} // int2e_spgsp1spsp2_spinor
+} // int2e_spgsp1spsp2_spinor
 ALL_CINT(int2e_spgsp1spsp2)
 //ALL_CINT_FORTRAN_(cint2e_spgsp1spsp2)
 /* <k P* i|R12 |DOT P j l> : i,j \in electron 1; k,l \in electron 2
@@ -3861,8 +3825,10 @@ ALL_CINT(int2e_spgsp1spsp2)
 static void CINTgout2e_int2e_pp1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
+int nfc = nf * 1;
 int nrys_roots = envs->nrys_roots;
 int ix, iy, iz, i, n;
+DECLARE_GOUT;
 double *RESTRICT g0 = g;
 double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
@@ -3988,7 +3954,7 @@ rs[6] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)
 rs[7] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
 rs[8] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
 } break;}
-r1 = + rs[0] + rs[4] + rs[8]; MM_STORE(gout+(n*1+0)*SIMDD, r1);
+r1 = + rs[0] + rs[4] + rs[8]; GOUT_SCATTER(gout, n*1+0, r1);
 }}
 static void CINTgout2e_int2e_pp1_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
@@ -4032,10 +3998,8 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_pp1;
 envs.f_gout_simd1 = &CINTgout2e_int2e_pp1_simd1;
-if (out == NULL) { return int2e_cache_size(&envs);
-} else {
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
-}} // int2e_pp1_cart
+} // int2e_pp1_cart
 int int2e_pp1_sph(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 1, 0, 0, 2, 1, 1, 1};
@@ -4043,10 +4007,8 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_pp1;
 envs.f_gout_simd1 = &CINTgout2e_int2e_pp1_simd1;
-if (out == NULL) { return int2e_cache_size(&envs) + envs.nf*MAX(0, 3-SIMDD);
-} else {
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
-}} // int2e_pp1_sph
+} // int2e_pp1_sph
 int int2e_pp1_spinor(double complex *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 1, 0, 0, 2, 1, 1, 1};
@@ -4054,14 +4016,8 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_pp1;
 envs.f_gout_simd1 = &CINTgout2e_int2e_pp1_simd1;
-if (out == NULL) {
-int n0 = int2e_cache_size(&envs);
-int n1 = CINTcgto_spinor(shls[0], bas) * envs.nfk * envs.x_ctr[2]
-* envs.nfl * envs.x_ctr[3] * CINTcgto_spinor(shls[1], bas);
-return MAX(n0, n0/2 + n1*envs.ncomp_e2*OF_CMPLX + envs.nf*20*OF_CMPLX);
-} else {
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_2e1, &c2s_sf_2e2);
-}} // int2e_pp1_spinor
+} // int2e_pp1_spinor
 ALL_CINT(int2e_pp1)
 //ALL_CINT_FORTRAN_(cint2e_pp1)
 /* <P* k i|R12 |j DOT P l> : i,j \in electron 1; k,l \in electron 2
@@ -4069,8 +4025,10 @@ ALL_CINT(int2e_pp1)
 static void CINTgout2e_int2e_pp2(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
+int nfc = nf * 1;
 int nrys_roots = envs->nrys_roots;
 int ix, iy, iz, i, n;
+DECLARE_GOUT;
 double *RESTRICT g0 = g;
 double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
@@ -4196,7 +4154,7 @@ rs[6] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)
 rs[7] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
 rs[8] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
 } break;}
-r1 = + rs[0] + rs[4] + rs[8]; MM_STORE(gout+(n*1+0)*SIMDD, r1);
+r1 = + rs[0] + rs[4] + rs[8]; GOUT_SCATTER(gout, n*1+0, r1);
 }}
 static void CINTgout2e_int2e_pp2_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
@@ -4240,10 +4198,8 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_pp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_pp2_simd1;
-if (out == NULL) { return int2e_cache_size(&envs);
-} else {
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
-}} // int2e_pp2_cart
+} // int2e_pp2_cart
 int int2e_pp2_sph(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {0, 0, 1, 1, 2, 1, 1, 1};
@@ -4251,10 +4207,8 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_pp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_pp2_simd1;
-if (out == NULL) { return int2e_cache_size(&envs) + envs.nf*MAX(0, 3-SIMDD);
-} else {
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
-}} // int2e_pp2_sph
+} // int2e_pp2_sph
 int int2e_pp2_spinor(double complex *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {0, 0, 1, 1, 2, 1, 1, 1};
@@ -4262,14 +4216,8 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_pp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_pp2_simd1;
-if (out == NULL) {
-int n0 = int2e_cache_size(&envs);
-int n1 = CINTcgto_spinor(shls[0], bas) * envs.nfk * envs.x_ctr[2]
-* envs.nfl * envs.x_ctr[3] * CINTcgto_spinor(shls[1], bas);
-return MAX(n0, n0/2 + n1*envs.ncomp_e2*OF_CMPLX + envs.nf*20*OF_CMPLX);
-} else {
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_2e1, &c2s_sf_2e2);
-}} // int2e_pp2_spinor
+} // int2e_pp2_spinor
 ALL_CINT(int2e_pp2)
 //ALL_CINT_FORTRAN_(cint2e_pp2)
 /* <P* k P* i|R12 |DOT P j DOT P l> : i,j \in electron 1; k,l \in electron 2
@@ -4277,8 +4225,10 @@ ALL_CINT(int2e_pp2)
 static void CINTgout2e_int2e_pp1pp2(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
+int nfc = nf * 1;
 int nrys_roots = envs->nrys_roots;
 int ix, iy, iz, i, n;
+DECLARE_GOUT;
 double *RESTRICT g0 = g;
 double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
@@ -4400,7 +4350,7 @@ rs[78] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g14+(iz+
 rs[79] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g14+(iz+i)*SIMDD);
 rs[80] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g15+(iz+i)*SIMDD);
 }
-r1 = + rs[0] + rs[36] + rs[72] + rs[4] + rs[40] + rs[76] + rs[8] + rs[44] + rs[80]; MM_STORE(gout+(n*1+0)*SIMDD, r1);
+r1 = + rs[0] + rs[36] + rs[72] + rs[4] + rs[40] + rs[76] + rs[8] + rs[44] + rs[80]; GOUT_SCATTER(gout, n*1+0, r1);
 }}
 static void CINTgout2e_int2e_pp1pp2_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
@@ -4540,10 +4490,8 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_pp1pp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_pp1pp2_simd1;
-if (out == NULL) { return int2e_cache_size(&envs);
-} else {
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
-}} // int2e_pp1pp2_cart
+} // int2e_pp1pp2_cart
 int int2e_pp1pp2_sph(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 1, 1, 1, 4, 1, 1, 1};
@@ -4551,10 +4499,8 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_pp1pp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_pp1pp2_simd1;
-if (out == NULL) { return int2e_cache_size(&envs) + envs.nf*MAX(0, 3-SIMDD);
-} else {
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
-}} // int2e_pp1pp2_sph
+} // int2e_pp1pp2_sph
 int int2e_pp1pp2_spinor(double complex *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 1, 1, 1, 4, 1, 1, 1};
@@ -4562,13 +4508,7 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_pp1pp2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_pp1pp2_simd1;
-if (out == NULL) {
-int n0 = int2e_cache_size(&envs);
-int n1 = CINTcgto_spinor(shls[0], bas) * envs.nfk * envs.x_ctr[2]
-* envs.nfl * envs.x_ctr[3] * CINTcgto_spinor(shls[1], bas);
-return MAX(n0, n0/2 + n1*envs.ncomp_e2*OF_CMPLX + envs.nf*20*OF_CMPLX);
-} else {
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_2e1, &c2s_sf_2e2);
-}} // int2e_pp1pp2_spinor
+} // int2e_pp1pp2_spinor
 ALL_CINT(int2e_pp1pp2)
 //ALL_CINT_FORTRAN_(cint2e_pp1pp2)

@@ -26,72 +26,76 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-
-#include "config.h"
-#ifdef HAVE_QUADMATH_H
-#include <quadmath.h>
-#endif
-
 #include "cint_const.h"
 #include "simd.h"
 #include "rys_roots.h"
 
-//double exp_cephes(double x);
-//#define fastexp(x)      exp_cephes(x)
-#define fastexp(x)      exp(x)
-
+#ifdef HAVE_QUADMATH_H
+#include <quadmath.h>
+#endif
 #define MXROOTS   MXRYSROOTS
 //#define MXROOTS1  (MXROOTS+1)
 #define MXROOTS1  MXROOTS
 #define PIE4        0.78539816339744827900
-#define SQRTPIE4    0.88622692545275794095
+#define SQRTPIE4    0.8862269254527580136490837416705725913987747280611935641069038949264
+#define SQRTPIE4q   0.8862269254527580136490837416705725913987747280611935641069038949264q
+#define SML_FLOAT128  1.0e-34
 
 static void rys_root1(double x, double *roots, double *weights);
 static void rys_root2(double x, double roots[], double weights[]);
 static void rys_root3(double x, double roots[], double weights[]);
 static void rys_root4(double x, double roots[], double weights[]);
 static void rys_root5(double x, double roots[], double weights[]);
-//static void rys_droot(int nroots, double x, double roots[], double weights[]);
-static void rys_droot(int nroots, double *x, double *roots, double *weights, int count);
+static void polyfit_roots(int nroots, double x, double* rr, double* ww);
 static void rys_qroot(int nroots, double x, double roots[], double weights[]);
 
-// FIXME: R_dsmit causes big errors for nroots > 13
+#include "rys_xw.dat"
+
 void CINTrys_roots(int nroots, double *RESTRICT x,
                    double *RESTRICT u, double *RESTRICT w, int count)
 {
         int i;
         ALIGNMM double F1[SIMDD];
         ALIGNMM double E [SIMDD];
+        ALIGNMM double x1[SIMDD];
         __MD r0, r1;
         switch (nroots) {
-                case 1:
-                        //for (i = 0; i < count; i++) rys_root1(x[i], u+i, w+i);
-                        MM_STORE(F1, MM_SET1(0.));
-                        MM_STORE(E , MM_SET1(1.));
-                        for (i = 0; i < count; i++) rys_root1(x[i], F1+i, E+i);
-                        r0 = MM_LOAD(F1);
-                        r1 = MM_FMA(MM_LOAD(x), MM_ADD(r0,r0), MM_LOAD(E));
-                        MM_STORE(w, r1);
-                        MM_STORE(u, MM_DIV(r0, MM_SUB(r1, r0)));
-                        break;
-                case 2:
-                        for (i = 0; i < count; i++) rys_root2(x[i], u+i, w+i);
-                        break;
-                case 3:
-                        for (i = 0; i < count; i++) rys_root3(x[i], u+i, w+i);
-                        break;
-                case 4:
-                        for (i = 0; i < count; i++) rys_root4(x[i], u+i, w+i);
-                        break;
-                case 5:
-                        for (i = 0; i < count; i++) rys_root5(x[i], u+i, w+i);
-                        break;
-                case 6: case 7: case 8: case 9:
-                        //for (i = 0; i < count; i++) rys_droot(nroots, x[i], u+i, w+i);
-                        rys_droot(nroots, x, u, w, count);
-                        break;
-                default:
-                        for (i = 0; i < count; i++) rys_qroot(nroots, x[i], u+i, w+i);
+        case 1:
+                MM_STORE(F1, MM_SET1(0.));
+                MM_STORE(x1, -MM_LOAD(x));
+                CINTexp_cephes(E, x1);
+                for (i = 0; i < count; i++) rys_root1(x[i], F1+i, E+i);
+                r0 = MM_LOAD(F1);
+                r1 = MM_FMA(MM_LOAD(x), MM_ADD(r0,r0), MM_LOAD(E));
+                MM_STORE(w, r1);
+                MM_STORE(u, MM_DIV(r0, MM_SUB(r1, r0)));
+                break;
+        case 2:
+                MM_STORE(x1, -MM_LOAD(x));
+                CINTexp_cephes(u, x1);
+                for (i = 0; i < count; i++) rys_root2(x[i], u+i, w+i);
+                break;
+        case 3:
+                MM_STORE(x1, -MM_LOAD(x));
+                CINTexp_cephes(u, x1);
+                for (i = 0; i < count; i++) rys_root3(x[i], u+i, w+i);
+                break;
+        case 4:
+                for (i = 0; i < count; i++) rys_root4(x[i], u+i, w+i);
+                break;
+        case 5:
+                for (i = 0; i < count; i++) rys_root5(x[i], u+i, w+i);
+                break;
+        case 6: case 7: case 8: case 9: case 10: case 11: case 12: case 13:
+                for (i = 0; i < count; i++) polyfit_roots(nroots, x[i], u+i, w+i);
+                break;
+        default:
+#ifdef HAVE_QUADMATH_H
+                for (i = 0; i < count; i++) rys_qroot(nroots, x[i], u+i, w+i);
+#else
+                fprintf(stderr, "libcint does not support nroots=%d\n", nroots);
+                exit(1);
+#endif
         }
 }
 static void rys_root1(double X, double *F1, double *E)
@@ -105,20 +109,20 @@ static void rys_root1(double X, double *F1, double *E)
                 *F1 = SQRTPIE4/(sqrt(X)*X*2);
         } else if (X > 15.) {
                 Y = 1./X;
-                *E = fastexp(-X);
+//                *E = exp(-X);
                 *F1 = ((( 1.9623264149430E-01*Y-4.9695241464490E-01)*Y -
                        6.0156581186481E-05)* *E + sqrt(PIE4/X) -  *E)*Y;
                 *F1 *= .5;
         } else if (X > 10.) {
                 Y = 1./X;
-                *E = fastexp(-X);
+//                *E = exp(-X);
                 *F1 = ((((-1.8784686463512E-01*Y+2.2991849164985E-01)*Y -
                         4.9893752514047E-01)*Y-2.1916512131607E-05)* *E
                         + sqrt(PIE4/X) - *E)*Y;
                 *F1 *= .5;
         } else if (X > 5.) {
                 Y = 1./X;
-                *E = fastexp(-X);
+//                *E = exp(-X);
                 *F1 = ((((((( 4.6897511375022E-01*Y-6.9955602298985E-01)*Y +
                            5.3689283271887E-01)*Y-3.2883030418398E-01)*Y +
                          2.4645596956002E-01)*Y-4.9984072848436E-01)*Y -
@@ -126,7 +130,7 @@ static void rys_root1(double X, double *F1, double *E)
                 *F1 *= .5;
         } else if (X > 3.){
                 Y = X-4.0E+00;
-                *E = fastexp(-X);
+//                *E = exp(-X);
                 *F1 = ((((((((((-2.62453564772299E-11*Y+3.24031041623823E-10 )*Y-
                               3.614965656163E-09)*Y+3.760256799971E-08)*Y-
                             3.553558319675E-07)*Y+3.022556449731E-06)*Y-
@@ -135,7 +139,7 @@ static void rys_root1(double X, double *F1, double *E)
                       1.75257821619926E-02 )*Y+5.28406320615584E-02;
         } else if (X > 1.) {
                 Y = X-2.0E+00;
-                *E = fastexp(-X);
+//                *E = exp(-X);
                 *F1 = ((((((((((-1.61702782425558E-10*Y+1.96215250865776E-09 )*Y-
                               2.14234468198419E-08 )*Y+2.17216556336318E-07 )*Y-
                             1.98850171329371E-06 )*Y+1.62429321438911E-05 )*Y-
@@ -143,7 +147,7 @@ static void rys_root1(double X, double *F1, double *E)
                         3.79490003707156E-03 )*Y+1.61723488664661E-02 )*Y-
                       5.29428148329736E-02 )*Y+1.15702180856167E-01;
         } else if (X > 3.e-7) {
-                *E = fastexp(-X);
+//                *E = exp(-X);
                 *F1 = ((((((((-8.36313918003957E-08*X+1.21222603512827E-06 )*X-
                             1.15662609053481E-05 )*X+9.25197374512647E-05 )*X-
                           6.40994113129432E-04 )*X+3.78787044215009E-03 )*X-
@@ -152,7 +156,7 @@ static void rys_root1(double X, double *F1, double *E)
         } else {
                 //weights[0] = 1.0E+00 -X/3.0E+00;
                 //roots[0] = 0.5E+00 -X/5.0E+00;
-                *E = 1. - X;
+//                *E = 1. - X;
                 *F1 = 1./3 - X*.2;
         }
 }
@@ -287,6 +291,7 @@ static void rys_root2(double X, double *roots, double *weights)
         ALIGNMM double s[4];
         ALIGNMM double s1[4];
         __m256d r0, r1;
+        E = roots[0];
 
         const double R12  = 2.75255128608411E-01;
         const double R22  = 2.72474487139158E+00;
@@ -299,7 +304,7 @@ static void rys_root2(double X, double *roots, double *weights)
                 weights[0] -= weights[SIMDD];
         } else if (X > 33.) {
                 weights[0] = sqrt(PIE4/X);
-                E = exp(-X);
+//                E = exp(-X);
                 roots[0]   = (POLY2_40[0]*X + POLY2_40[4])*E + R12/(X-R12);
                 roots[SIMDD]   = (POLY2_40[1]*X + POLY2_40[5])*E + R22/(X-R22);
                 weights[SIMDD] = (POLY2_40[2]*X + POLY2_40[6])*E + W22*weights[0];
@@ -318,7 +323,7 @@ static void rys_root2(double X, double *roots, double *weights)
                 //        }
                 //}
                 POLYSUM4(s1, POLY2_33A, X1, 3);
-                E = exp(-X);
+//                E = exp(-X);
                 roots[0] = (s[0]*X + s1[0]) * E + R12/(X-R12);
                 roots[SIMDD] = (s[1]*X + s1[1]) * E + R22/(X-R22);
                 weights[0] = s1[2]*E + sqrt(PIE4*X1);
@@ -341,7 +346,7 @@ static void rys_root2(double X, double *roots, double *weights)
                 //}
                 POLYSUM4(s1, POLY2_15A, X1, 5);
 
-                E = exp(-X);
+//                E = exp(-X);
                 roots[0] = (s[0]*X + s1[0]) * E + R12/(X-R12);
                 roots[SIMDD] = (s[1]*X + s1[1]) * E + R22/(X-R22);
                 weights[0] = s1[2]*E + sqrt(PIE4*X1);
@@ -350,7 +355,7 @@ static void rys_root2(double X, double *roots, double *weights)
                            * (1.+roots[SIMDD])/(roots[SIMDD]-roots[0]);
                 weights[0] -= weights[SIMDD];
         } else if (X > 5.) {
-                E = exp(-X);
+//                E = exp(-X);
                 X1 = 1/X;
                 weights[0] = (((((( 4.6897511375022E-01*X1-6.9955602298985E-01)*X1 +
                            5.3689283271887E-01)*X1-3.2883030418398E-01)*X1 +
@@ -380,8 +385,9 @@ static void rys_root2(double X, double *roots, double *weights)
                 POLYSUM4(s, POLY2_5, Y, 12);
                 roots[0] = s[0];
                 roots[SIMDD] = s[1];
-                F1  = s[2];
-                weights[0] = (X+X)*F1+exp(-X);
+                F1 = s[2];
+//                E  = exp(-X);
+                weights[0] = (X+X)*F1+E;
                 weights[SIMDD] = ((F1-weights[0])*roots[0]+F1)
                            * (1.+roots[SIMDD])/(roots[SIMDD]-roots[0]);
                 weights[0] -= weights[SIMDD];
@@ -396,7 +402,8 @@ static void rys_root2(double X, double *roots, double *weights)
                 roots[0] = s[0];
                 roots[SIMDD] = s[1];
                 F1  = s[2];
-                weights[0] = (X+X)*F1+exp(-X);
+//                E  = exp(-X);
+                weights[0] = (X+X)*F1+E;
                 weights[SIMDD] = ((F1-weights[0])*roots[0]+F1)
                            * (1.+roots[SIMDD])/(roots[SIMDD]-roots[0]);
                 weights[0] -= weights[SIMDD];
@@ -410,7 +417,8 @@ static void rys_root2(double X, double *roots, double *weights)
                 roots[0] = s[0];
                 roots[SIMDD] = s[1];
                 F1 = s[2];
-                weights[0] = (X+X)*F1+exp(-X);
+//                E  = exp(-X);
+                weights[0] = (X+X)*F1+E;
                 weights[SIMDD] = ((F1-weights[0])*roots[0]+F1)
                            * (1.+roots[SIMDD])/(roots[SIMDD]-roots[0]);
                 weights[0] -= weights[SIMDD];
@@ -526,6 +534,7 @@ static void rys_root3(double X, double *roots, double *weights)
         ALIGNMM double s[4];
         ALIGNMM double s1[4];
         __m256d r0, r1;
+        E = roots[0];
 
         const double R13 = 1.90163509193487E-01;
         const double R23 = 1.78449274854325E+00;
@@ -551,7 +560,7 @@ static void rys_root3(double X, double *roots, double *weights)
                 roots[SIMDD] = s[1];
                 roots[2*SIMDD] = s[2];
                 F2  = s[3];
-                E = exp(-X);
+//                E = exp(-X);
                 F1 = ((X+X)*F2+E)/3.0E+00;
                 weights[0] = (X+X)*F1+E;
                 T1 = roots[0]/(roots[0]+1.0E+00);
@@ -574,7 +583,7 @@ static void rys_root3(double X, double *roots, double *weights)
                 roots[SIMDD] = s[1];
                 roots[2*SIMDD] = s[2];
                 F2  = s[3];
-                E = exp(-X);
+//                E = exp(-X);
                 F1 = ((X+X)*F2+E)/3.0E+00;
                 weights[0] = (X+X)*F1+E;
                 T1 = roots[0]/(roots[0]+1.0E+00);
@@ -597,7 +606,7 @@ static void rys_root3(double X, double *roots, double *weights)
                 roots[SIMDD] = s[1];
                 roots[2*SIMDD] = s[2];
                 F2  = s[3];
-                E = exp(-X);
+//                E = exp(-X);
                 F1 = ((X+X)*F2+E)/3.0E+00;
                 weights[0] = (X+X)*F1+E;
                 T1 = roots[0]/(roots[0]+1.0E+00);
@@ -609,7 +618,7 @@ static void rys_root3(double X, double *roots, double *weights)
                 weights[SIMDD] = (T3*A1-A2)/((T3-T2)*(T2-T1));
                 weights[0] = weights[0]-weights[SIMDD]-weights[2*SIMDD];
         } else if (X < 10) {
-                E = exp(-X);
+//                E = exp(-X);
                 X1 = 1/X;
                 weights[0] = (((((( 4.6897511375022E-01*X1-6.9955602298985E-01)*X1 +
                            5.3689283271887E-01)*X1-3.2883030418398E-01)*X1 +
@@ -636,7 +645,7 @@ static void rys_root3(double X, double *roots, double *weights)
                 weights[SIMDD] = (T3*A1-A2)/((T3-T2)*(T2-T1));
                 weights[0] = weights[0]-weights[SIMDD]-weights[2*SIMDD];
         } else if (X < 15) {
-                E = exp(-X);
+//                E = exp(-X);
                 X1 = 1/X;
                 weights[0] = (((-1.8784686463512E-01*X1+2.2991849164985E-01)*X1 -
                         4.9893752514047E-01)*X1-2.1916512131607E-05)*E
@@ -662,7 +671,7 @@ static void rys_root3(double X, double *roots, double *weights)
                 weights[SIMDD] = (T3*A1-A2)/((T3-T2)*(T2-T1));
                 weights[0] = weights[0]-weights[SIMDD]-weights[2*SIMDD];
         } else if (X < 20) {
-                E = exp(-X);
+//                E = exp(-X);
                 X1 = 1/X;
                 //for (n = 0; n < 6; n++) {
                 //        for (i = 0; i < 4; i++) {
@@ -691,7 +700,7 @@ static void rys_root3(double X, double *roots, double *weights)
                 weights[SIMDD] = (T3*A1-A2)/((T3-T2)*(T2-T1));
                 weights[0] = weights[0]-weights[SIMDD]-weights[2*SIMDD];
         } else if (X < 33) {
-                E = exp(-X);
+//                E = exp(-X);
                 X1 = 1/X;
                 //for (n = 0; n < 4; n++) {
                 //        for (i = 0; i < 4; i++) {
@@ -715,7 +724,7 @@ static void rys_root3(double X, double *roots, double *weights)
                 weights[0] = weights[0]-weights[SIMDD]-weights[2*SIMDD];
         } else if (X < 47) {
                 weights[0] = sqrt(PIE4/X);
-                E = exp(-X);
+//                E = exp(-X);
                 //for (n = 0; n < 3; n++) {
                 //        for (i = 0; i < 4; i++) {
                 //                s[i] = s[i] * X + POLY3_47[n*4+i];
@@ -942,6 +951,7 @@ static void rys_root4(double X, double roots[], double weights[])
                 roots[3*SIMDD] = s[7];
         } else if (X <= 15) {
                 Y = X-12.5E+00;
+                E = exp(-X);
                 //for (n = 0; n < 15; n++) {
                 //        for (i = 0; i < 8; i++) {
                 //                s[i] = s[i] * Y + POLY4_15[n*8+i];
@@ -957,10 +967,11 @@ static void rys_root4(double X, double roots[], double weights[])
                 roots[3*SIMDD] = s[7];
                 X1 = 1/X;
                 weights[0] = (((-1.8784686463512E-01*X1+2.2991849164985E-01)*X1 -
-                        4.9893752514047E-01)*X1-2.1916512131607E-05)*exp(-X) +
+                        4.9893752514047E-01)*X1-2.1916512131607E-05)*E +
                         sqrt(PIE4*X1)-weights[3*SIMDD]-weights[2*SIMDD]-weights[SIMDD];
         } else if (X <= 20) {
                 Y = X-17.5E+00;
+                E = exp(-X);
                 //for (n = 0; n < 13; n++) {
                 //        for (i = 0; i < 8; i++) {
                 //                s[i] = s[i] * Y + POLY4_20[n*8+i];
@@ -975,7 +986,7 @@ static void rys_root4(double X, double roots[], double weights[])
                 roots[2*SIMDD] = s[6];
                 roots[3*SIMDD] = s[7];
                 X1 = 1/X;
-                weights[0] = ((+1.9623264149430E-01*X1-4.9695241464490E-01)*X1-6.0156581186481E-05)*exp(-X)
+                weights[0] = ((+1.9623264149430E-01*X1-4.9695241464490E-01)*X1-6.0156581186481E-05)*E
                         +sqrt(PIE4*X1)-weights[SIMDD]-weights[2*SIMDD]-weights[3*SIMDD];
         } else if (X <= 25) {
                 X1 = 1/X;
@@ -1027,7 +1038,8 @@ static void rys_root4(double X, double roots[], double weights[])
                 roots[3*SIMDD] = (s[7]*X+s1[7])*E + R44/(X-R44);
         } else if (X <= 53) {
                 X1 = X * X;
-                E = exp(-X)*X1*X1;
+                E = exp(-X);
+                E *= X1*X1;
                 weights[0] = sqrt(PIE4/X);
                 roots[3*SIMDD] = ((-2.19135070169653E-03*X-1.19108256987623E-01)*X -
                        7.50238795695573E-01)*E + R44/(X-R44);
@@ -1285,6 +1297,7 @@ static void rys_root5(double X, double roots[], double weights[])
         __m256d r0, r1;
         __m512d r10, r11;
 #endif
+        E = roots[0];
 
         const double R15 = 1.17581320211778E-01;
         const double R25 = 1.07456201243690E+00;
@@ -1477,8 +1490,9 @@ static void rys_root5(double X, double roots[], double weights[])
                 weights[0] = weights[0]-0.01962E+00*E-weights[SIMDD]-weights[2*SIMDD]-weights[3*SIMDD]-weights[4*SIMDD];
         } else if (X < 59.0) {
                 weights[0] = sqrt(PIE4/X);
+                E = exp(-X);
                 XXX = X * X * X;
-                E = XXX*exp(-X);
+                E *= XXX;
 
                 //for (n = 0; n < 4; n++) {
                 //        for (i = 0; i < 8; i++) {
@@ -1491,7 +1505,7 @@ static void rys_root5(double X, double roots[], double weights[])
                 roots[2*SIMDD] = s[2]*E + R35/(X-R35);
                 roots[3*SIMDD] = s[3]*E + R45/(X-R45);
                 roots[4*SIMDD] = s[4]*E + R55/(X-R55);
-                E = XXX*E;
+                E *= XXX;
                 //for (n = 0; n < 3; n++) {
                 //        for (i = 0; i < 4; i++) {
                 //                s1[i] = s1[i] * X + POLY5_59W[n*4+i];
@@ -1518,136 +1532,140 @@ static void rys_root5(double X, double roots[], double weights[])
         }
 }
 
-#define POLYNOMIAL_VALUE(p, x) \
-r##p = MM_LOAD(a+k*SIMDD); \
-r##x = MM_LOAD(x); \
-for (i = 1; i <= k; i++) { \
-        r##p = MM_FMA(r##p, r##x, MM_LOAD(a+(k-i)*SIMDD)); \
-} \
-MM_STORE(p, r##p);
-static void R_dnode(double *a, double *rt, int k, int count)
+static void _clenshaw_d1(double *rr, const double *x, double u, int nroot)
 {
-        const double accrt = 1e-11;
-        ALIGNMM double x0[SIMDD];
-        ALIGNMM double x1[SIMDD];
-        ALIGNMM double xi[SIMDD];
-        ALIGNMM double p0[SIMDD];
-        ALIGNMM double p1[SIMDD];
-        ALIGNMM double pi[SIMDD];
-        ALIGNMM double x1init[SIMDD];
-        ALIGNMM double p1init[SIMDD];
-        ALIGNMM double dx[SIMDD];
-        int i, m, anytrue, n;
-        __MD rx0, rx1, rxi, rp0, rp1, rpi, rx1init, rp1init;
-        __MD rs = MM_SET1(1e-200);
+    int i;
+    double d0, d1, g0, g1;
+    double u2 = u * 2.;
 
-        //x1init = 0;
-        //p1init = a[0];
-        MM_STORE(x1init, MM_SET1(0));
-        MM_STORE(p1init, MM_LOAD(a));
-        for (m = 0; m < k; ++m) {
-                //x0 = x1init;
-                //p0 = p1init;
-                //x1init = rt[m];
-                MM_STORE(x0, MM_LOAD(x1init));
-                MM_STORE(p0, MM_LOAD(p1init));
-                MM_STORE(x1init, MM_LOAD(rt+m*SIMDD));
-                POLYNOMIAL_VALUE(p1init, x1init);
+    for (i = 0; i < nroot-1; i+=2) {
+        d0 = 0;
+        d1 = 0;
+        g0 = x[13+   14*i];
+        g1 = x[13+14+14*i];
+        d0 = u2 * g0 - d0 + x[12+   14*i];
+        d1 = u2 * g1 - d1 + x[12+14+14*i];
+        g0 = u2 * d0 - g0 + x[11+   14*i];
+        g1 = u2 * d1 - g1 + x[11+14+14*i];
+        d0 = u2 * g0 - d0 + x[10+   14*i];
+        d1 = u2 * g1 - d1 + x[10+14+14*i];
+        g0 = u2 * d0 - g0 + x[9 +   14*i];
+        g1 = u2 * d1 - g1 + x[9 +14+14*i];
+        d0 = u2 * g0 - d0 + x[8 +   14*i];
+        d1 = u2 * g1 - d1 + x[8 +14+14*i];
+        g0 = u2 * d0 - g0 + x[7 +   14*i];
+        g1 = u2 * d1 - g1 + x[7 +14+14*i];
+        d0 = u2 * g0 - d0 + x[6 +   14*i];
+        d1 = u2 * g1 - d1 + x[6 +14+14*i];
+        g0 = u2 * d0 - g0 + x[5 +   14*i];
+        g1 = u2 * d1 - g1 + x[5 +14+14*i];
+        d0 = u2 * g0 - d0 + x[4 +   14*i];
+        d1 = u2 * g1 - d1 + x[4 +14+14*i];
+        g0 = u2 * d0 - g0 + x[3 +   14*i];
+        g1 = u2 * d1 - g1 + x[3 +14+14*i];
+        d0 = u2 * g0 - d0 + x[2 +   14*i];
+        d1 = u2 * g1 - d1 + x[2 +14+14*i];
+        g0 = u2 * d0 - g0 + x[1 +   14*i];
+        g1 = u2 * d1 - g1 + x[1 +14+14*i];
+        rr[i    *SIMDD] = u * g0 - d0 + x[14*i   ] * 0.5;
+        rr[(i+1)*SIMDD] = u * g1 - d1 + x[14*i+14] * 0.5;
+    }
+    if (i < nroot) {
+        d0 = 0;
+        g0 = x[13+14*i];
+        d0 = u2 * g0 - d0 + x[12+14*i];
+        g0 = u2 * d0 - g0 + x[11+14*i];
+        d0 = u2 * g0 - d0 + x[10+14*i];
+        g0 = u2 * d0 - g0 + x[9 +14*i];
+        d0 = u2 * g0 - d0 + x[8 +14*i];
+        g0 = u2 * d0 - g0 + x[7 +14*i];
+        d0 = u2 * g0 - d0 + x[6 +14*i];
+        g0 = u2 * d0 - g0 + x[5 +14*i];
+        d0 = u2 * g0 - d0 + x[4 +14*i];
+        g0 = u2 * d0 - g0 + x[3 +14*i];
+        d0 = u2 * g0 - d0 + x[2 +14*i];
+        g0 = u2 * d0 - g0 + x[1 +14*i];
+        rr[i*SIMDD] = u * g0 - d0 + x[14*i] * 0.5;
+    }
+}
 
-                for (i = 0; i < count; i++) {
-                        if (p0[i] * p1init[i] > 0) {
-                                fprintf(stderr, "ROOT NUMBER %d-%d WAS NOT FOUND FOR POLYNOMIAL OF ORDER %d\n", m, i, k);
-                                exit(1);
-                        }
-                        if (x0[i] <= x1init[i]) {
-                                x1[i] = x1init[i];
-                                p1[i] = p1init[i];
-                        } else {
-                                x1[i] = x0[i];
-                                p1[i] = p0[i];
-                                x0[i] = x1init[i];
-                                p0[i] = p1init[i];
-                        }
-                }
-                // interpolate/extrapolate between [x0,x1]
-                //xi = (x0 * p1 - x1 * p0) / (p1 - p0) = x0 + (x0-x1)/(p1-p0)*p0;
-                rx0 = MM_LOAD(x0);
-                rx1 = MM_LOAD(x1);
-                rp0 = MM_LOAD(p0);
-                rp1 = MM_LOAD(p1);
-                rp1 = rp1 - rp0 + rs;
-                rxi = rx0 + (rx0 - rx1) / rp1 * rp0;
-                MM_STORE(xi, rxi);
+static void polyfit_roots(int nroots, double x, double* rr, double* ww)
+{
+        // starting from root=6
+        const double* datax = DATA_X + ((nroots-1)*nroots/2-15) * 140;
+        const double* dataw = DATA_W + ((nroots-1)*nroots/2-15) * 140;
+        double t, tt;
+        int k, it, offset;
 
-                MM_STORE(dx, MM_SUB(rx1, rx0));
-                for (anytrue = 0, i = 0; i < count; i++) {
-                        if (dx[i] > accrt) {
-                                anytrue = 1;
-                                break;
-                        }
-                }
-                n = 0;
-                while (anytrue) {
-                        POLYNOMIAL_VALUE(pi, xi);
+        t = x;
+        if (t > 19682.99) t = 19682.99;  // it=9
+        if (t > 1.0) {
+                tt = log(t) * 0.9102392266268373 + 1.0; // log(3)+1 
+        } else {
+                tt = sqrt(t);
+        }
+        it = (int)tt;
+        tt = tt - it;
+        tt = 2.0 * tt - 1.0;
 
-                        for (i = 0; i < count; i++) {
-                                if (p0[i] * pi[i] <= 0) {
-                                        x1[i] = xi[i];
-                                        p1[i] = pi[i];
-                                        xi[i] = x0[i] * .125 + xi[i] * .875;
-                                } else {
-                                        x0[i] = xi[i];
-                                        p0[i] = pi[i];
-                                        xi[i] = xi[i] * .875 + x1[i] * .125;
-                                }
-                        }
-
-                        POLYNOMIAL_VALUE(pi, xi);
-                        for (i = 0; i < count; i++) {
-                                if (p0[i] * pi[i] <= 0) {
-                                        x1[i] = xi[i];
-                                        p1[i] = pi[i];
-                                } else {
-                                        x0[i] = xi[i];
-                                        p0[i] = pi[i];
-                                }
-                        }
-
-                        //xi = (x0 * p1 - x1 * p0) / (p1 - p0) = x0 + (x0-x1)/(p1-p0)*p0;
-                        rx0 = MM_LOAD(x0);
-                        rx1 = MM_LOAD(x1);
-                        rp0 = MM_LOAD(p0);
-                        rp1 = MM_LOAD(p1);
-                        rp1 = rp1 - rp0 + rs;
-                        rxi = rx0 + (rx0 - rx1) / rp1 * rp0;
-                        MM_STORE(xi, rxi);
-
-                        MM_STORE(dx, MM_SUB(rx1, rx0));
-                        for (anytrue = 0, i = 0; i < count; i++) {
-                                if (dx[i] > accrt) {
-                                        anytrue = 1;
-                                        break;
-                                }
-                        }
-                        n++;
-                        if (n > 200) {
-                                fprintf(stderr, "libcint::rys_roots NO CONV. IN DNODE\n");
-                                exit(1);
-                        }
-                }
-                //rt[m] = xi;
-                MM_STORE(rt+m*SIMDD, rxi);
+        offset = nroots * 14 * it;
+        _clenshaw_d1(rr, datax+offset, tt, nroots);
+        _clenshaw_d1(ww, dataw+offset, tt, nroots);
+        for (k = 0; k < nroots; k++) {
+                rr[k*SIMDD] = rr[k*SIMDD] / (1.-rr[k*SIMDD]);
         }
 }
-#define POLYNOMIAL_VALUE1(p, x) \
-p = a[order*SIMDD]; \
-for (i = 1; i <= order; i++) { \
-        p = p * x + a[(order-i)*SIMDD]; \
-}
-static void R_dnode_dbg(double *a, double *rt, int order)
+
+#ifdef HAVE_QUADMATH_H
+
+
+static void qgamma_inc_like(__float128 *f, __float128 t, int m)
 {
-        const double accrt = 1e-11;
-        double x0, x1, xi, x1init, p0, p1, pi, p1init;
+        int i;
+        if (t < m + 1.5) {
+                __float128 b = m + .5q;
+                __float128 x = 1;
+                __float128 s = 1;
+                __float128 e = .5q * expq(-t);
+                if (t < SML_FLOAT128) {
+                        f[m] = .5q / b;
+                } else {
+                        //f[m] = fmtpse(m, t);
+                        for (i = 1; x > SML_FLOAT128; i++)
+                        {
+                                x *= t / (b + i);
+                                s += x;
+                        }
+                        f[m] = e * s / b;
+                }
+                if (m > 0) {
+                        for (i = m; i > 0; i--) {
+                                b -= 1;
+                                f[i-1] = (e + t * f[i]) / b;
+                        }
+                }
+        } else {
+                __float128 pi2 = SQRTPIE4q;
+                __float128 tt = sqrtq(t);
+                f[0] = pi2 / tt * erfq(tt);
+                if (m > 0) {
+                        __float128 e = expq(-t);
+                        __float128 b = .5q / t;
+                        for (i = 1; i <= m; i++)
+                                f[i] = b * ((2*i-1) * f[i-1] - e);
+                }
+        }
+}
+
+#define POLYNOMIAL_VALUE1(p, x) \
+p = a[order]; \
+for (i = 1; i <= order; i++) { \
+        p = p * x + a[order-i]; \
+}
+static void R_qnode(__float128 *a, __float128 *rt, int order)
+{
+        const __float128 accrt = 1e-32q;
+        __float128 x0, x1, xi, x1init, p0, p1, pi, p1init;
         int i, m, n;
 
         x1init = 0;
@@ -1672,23 +1690,27 @@ static void R_dnode_dbg(double *a, double *rt, int order)
                         p0 = p1init;
                 }
                 // interpolate/extrapolate between [x0,x1]
-                xi = x0 + (x0 - x1) / (p1 - p0 + 1e-200) * p0;
+                if (p0 == p1) {
+                        xi = x0;
+                } else {
+                        xi = x0 + (x0 - x1) / (p1 - p0) * p0;
+                }
                 n = 0;
                 while (fabs(x1-x0) > accrt) {
                         n++;
                         if (n > 200) {
-                                fprintf(stderr, "libcint::rys_roots NO CONV. IN DNODE\n");
+                                fprintf(stderr, "libcint::rys_roots NO CONV. IN R_qnode\n");
                                 exit(1);
                         }
                         POLYNOMIAL_VALUE1(pi, xi);
                         if (p0 * pi <= 0) {
                                 x1 = xi;
                                 p1 = pi;
-                                xi = x0 * .125 + xi * .875;
+                                xi = x0 * .125q + xi * .875q;
                         } else {
                                 x0 = xi;
                                 p0 = pi;
-                                xi = xi * .875 + x1 * .125;
+                                xi = xi * .875q + x1 * .125q;
                         }
                         POLYNOMIAL_VALUE1(pi, xi);
                         if (p0 * pi <= 0) {
@@ -1699,587 +1721,133 @@ static void R_dnode_dbg(double *a, double *rt, int order)
                                 p0 = pi;
                         }
 
-                        xi = x0 + (x0 - x1) / (p1 - p0 + 1e-200) * p0;
+                        if (p0 == p1) {
+                                xi = x0;
+                        } else {
+                                xi = x0 + (x0 - x1) / (p1 - p0) * p0;
+                        }
                 }
                 rt[m] = xi;
         }
 }
 
-/* Incomplete gamma function
- * f(2n,x) = \int t^{2n} exp(-xt^2) dt
- *         = 1/2 \int r^{n-1/2} exp(-xr) dr
- *         = 1/2 scipy.special.gammainc(n+1/2, x) * gamma(n+1/2) / x^{n+1/2}
- */
-static void gamma_inc_like(double *ff, double x, int n)
+static void R_qsmit(__float128 *cs, __float128 *s, int n)
 {
-        const double pie4 = .7853981633974483096156608; // PI/4
-        const double xsw = 33.;
-        const double e = .5 * exp(-x);
-        const double fac0 = n + .5;
-        double term[200];
-        double sum, fac, sum1, suma, term0;
-        int k;
-        int nterm = 0;
+        int i, j, k;
+        __float128 fac, dot;
+        __float128 v[MXROOTS1];
 
-        if (x > xsw) {
-                sum = sqrt(pie4 / x);
-                fac = -.5;
-                for (k = 0; k < n; k++) {
-                        fac += 1;
-                        sum *= fac / x;
+        for (i = 0; i < n; ++i) {
+                for (j = 0; j < i; ++j) {
+                        cs[i + j * MXROOTS1] = 0;
+                }
+        }
+
+        for (j = 0; j < n; ++j) {
+
+                fac = s[j + j * MXROOTS1];
+
+                for (k = 0; k < j; ++k) {
+                        v[k] = 0;
                 }
 
-                term[0] = -e / x;
-                suma = sum + term[0];
-                if (sum == suma) {
-                        goto _CONV;
-                }
-                fac = fac0;
-                for (nterm = 1; nterm < (int)(x+fac0-1); ++nterm) {
-                        fac -= 1;
-                        term[nterm] = term[nterm-1] * fac / x;
-                        sum1 = suma;
-                        suma += term[nterm];
-                        if (sum1 == suma) {
-                                goto _CONV;
+                for (k = 0; k < j; ++k) {
+                        dot = 0;
+                        for (i = 0; i <= k; ++i) {
+                                dot += cs[i + k * MXROOTS1] * s[i+j*MXROOTS1];
                         }
-                }
-        }
-        // if xsw too low, 1/x series not converge; or x < xsw
-
-        fac = fac0;
-        term0 = e / fac;
-        sum = term0;
-        for (k = 0; k < (int)(x-fac0); k++) {
-                fac += 1;
-                term0 *= x / fac;
-                sum += term0;
-        }
-
-        fac += 1;
-        term[0] = term0 * x / fac;
-        suma = sum + term[0];
-        if (sum == suma) {
-                goto _CONV;
-        }
-
-        for (nterm = 1; nterm < 200; nterm++) {
-                fac += 1;
-                term[nterm] = term[nterm-1] * x / fac;
-                sum1 = suma;
-                suma += term[nterm];
-                if (sum1 - suma == 0) {
-                        goto _CONV;
-                }
-        }
-        if (nterm > 199) {
-                fprintf(stderr, "libcint::rys_roots power series of gamma_inc_like not converge"
-                        "val=%.16g last term=%.16g x=%.16g n=%d\n",
-                        suma, term[199], x, n);
-                exit(1);
-        }
-
-_CONV:
-        sum1 = 0;
-        for (k = nterm; k >= 0; k--) {
-                sum1 += term[k];
-        }
-        ff[n*SIMDD] = sum + sum1;
-        fac = fac0;
-        for (k = n; k > 0; k--) {
-                fac -= 1;
-                ff[(k-1)*SIMDD] = (e + x * ff[k*SIMDD]) / fac;
-        }
-}
-
-/* find upper triangular matrix cs, cs.T.dot(s).cs = 1 */
-static void R_dsmit(double *cs, double *s, int n, int count)
-{
-        int i, j, k, kmax;
-        ALIGNMM double v[MXROOTS1*SIMDD];
-        ALIGNMM double fac[SIMDD];
-        __MD r0, r1, r2;
-        r0 = MM_SET1(0);
-        r1 = MM_SET1(1);
-
-        for (i = 0; i < n; i++) {
-                for (j = i; j < n; j++) {
-                        MM_STORE(cs+(j+i*MXROOTS1)*SIMDD, r0);
-                }
-        }
-
-        //cs[0] = 1 / sqrt(s[0]);
-        MM_STORE(cs, MM_DIV(r1, MM_SQRT(MM_LOAD(s))));
-
-        for (j = 1; j < n; j++) {
-                kmax = j;
-                //fac = s[j + j * MXROOTS1];
-                r2 = MM_LOAD(s+(j+j*MXROOTS1)*SIMDD);
-
-                r0 = MM_SET1(0);
-                for (k = 0; k < kmax; k++) {
-                        //v[k] = 0;
-                        MM_STORE(v+k*SIMDD, r0);
-                }
-
-                for (k = 0; k < kmax; k++) {
-                        //dot = 0;
-                        r0 = MM_SET1(0);
-                        for (i = 0; i <= k; i++) {
-                                //dot += cs[i+k*MXROOTS1] * s[i+j*MXROOTS1];
-                                r0 = MM_FMA(MM_LOAD(cs+(i+k*MXROOTS1)*SIMDD),
-                                            MM_LOAD(s +(i+j*MXROOTS1)*SIMDD), r0);
+                        for (i = 0; i <= k; ++i) {
+                                v[i] -= dot * cs[i + k * MXROOTS1];
                         }
-                        for (i = 0; i <= k; i++) {
-                                //v[i] -= dot * cs[i+k*MXROOTS1];
-                                r1 = MM_LOAD(v+i*SIMDD);
-                                r1 = MM_FNMA(r0, MM_LOAD(cs+(i+k*MXROOTS1)*SIMDD), r1);
-                                MM_STORE(v+i*SIMDD, r1);
-                        }
-                        //fac -= dot * dot;
-                        r2 = MM_FNMA(r0, r0, r2);
+                        fac -= dot * dot;
                 }
-                MM_STORE(fac, r2);
-                for (k = 0; k < count; k++) {
-                        if (fac[k] <= 0) {
-                                fprintf(stderr, "libcint::rys_roots negative value in sqrt(fac[%d])\n", k);
-                                exit(1);
-                        }
+
+                if (fac < 0) {
+                        fprintf(stderr, "libcint::rys_roots negative value in sqrtq\n");
+                        exit(1);
                 }
-                //fac = 1 / sqrt(fac);
-                //cs[j + j * MXROOTS1] = fac;
-                r1 = MM_SET1(1);
-                r2 = MM_DIV(r1, MM_SQRT(r2));
-                MM_STORE(cs+(j+j*MXROOTS1)*SIMDD, r2);
-                for (k = 0; k < kmax; k++) {
-                        //cs[k + j * MXROOTS1] = fac * v[k];
-                        MM_STORE(cs+(k+j*MXROOTS1)*SIMDD, MM_MUL(r2, MM_LOAD(v+k*SIMDD)));
+                fac = 1 / sqrtq(fac);
+                cs[j + j * MXROOTS1] = fac;
+                for (k = 0; k < j; ++k) {
+                        cs[k + j * MXROOTS1] = fac * v[k];
                 }
         }
 }
 
-static void rys_droot(int nroots, double *x,
-                      double *roots, double *weights, int count)
+static void rys_qroot(int nroots, double x, double roots[], double weights[])
 {
-        int i, k, j, m;
-        ALIGNMM double r [MXROOTS*MXROOTS*SIMDD];
-        ALIGNMM double w [MXROOTS*MXROOTS*SIMDD];
-        ALIGNMM double cs[MXROOTS1*MXROOTS1*SIMDD];
-        ALIGNMM double s [MXROOTS1*MXROOTS1*SIMDD];
-        ALIGNMM double ff[MXROOTS*2*SIMDD+SIMDD];
-        ALIGNMM double rt[MXROOTS1*SIMDD];
-        __MD r0, r1, r2, r3;
-        r0 = MM_SET1(0);
+        int i, k, j, m, jmax;
+        __float128 r[MXROOTS*MXROOTS];
+        __float128 w[MXROOTS*MXROOTS];
+        __float128 cs[MXROOTS1*MXROOTS1];
+        __float128 s[MXROOTS1*MXROOTS1];
+        __float128 rt[MXROOTS1];
+        __float128 a[MXROOTS1];
+        __float128 ff[MXROOTS*2+1];
+        __float128 root, poly, wsum, dum;
 
         if (nroots < 2) {
                 nroots = 2;
         }
 
-        for (k = 0; k < count; k++) {
-                gamma_inc_like(ff+k, x[k], nroots*2);
-        }
-        for (; k < SIMDD; k++) {
-                // Initialize ff to avoid singular operations in R_dsmit
-                for (i = 0; i <= nroots*2; i++) {
-                        ff[i*SIMDD+k] = ff[i*SIMDD];
+        qgamma_inc_like(ff, x, nroots*2);
+
+        for (j = 0; j < nroots+1; j++) {
+                for (i = 0; i < nroots+1; i++) {
+                        s[i + j * MXROOTS1] = ff[i + j];
                 }
         }
 
-        for (j = 0; j <= nroots; j++) {
-                for (i = 0; i <= nroots; i++) {
-                        MM_STORE(s+(i+j*MXROOTS1)*SIMDD, MM_LOAD(ff+(i+j)*SIMDD));
+        R_qsmit(cs, s, nroots+1);
+
+        wsum = ff[0];
+        w[0] = wsum;
+        r[0] = ff[1] / wsum;
+
+        dum = sqrtq(cs[2*MXROOTS1+1] * cs[2*MXROOTS1+1]
+                    - 4 * cs[2*MXROOTS1+0] * cs[2*MXROOTS1+2]);
+        r[MXROOTS  ] = .5 * (-cs[2*MXROOTS1+1] - dum) / cs[2*MXROOTS1+2];
+        r[MXROOTS+1] = .5 * (-cs[2*MXROOTS1+1] + dum) / cs[2*MXROOTS1+2];
+
+        if (nroots != 2) {
+                for (i = 2; i < nroots+1; i++) {
+                        rt[i] = 1;
                 }
-        }
-
-        R_dsmit(cs, s, nroots+1, count);
-
-        // frist root for linear term
-        //w[0] = ff[0];
-        //r[0] = ff[1] / ff[0];
-        MM_STORE(w, MM_LOAD(ff));
-        MM_STORE(r, MM_DIV(MM_LOAD(ff+SIMDD), MM_LOAD(ff)));
-
-        // second root for quadratic polynomial
-        //dum = sqrt(cs[2*MXROOTS1+1] * cs[2*MXROOTS1+1]
-        //           - 4 * cs[2*MXROOTS1+0] * cs[2*MXROOTS1+2]);
-        //r[MXROOTS  ] = -.5 * (cs[2*MXROOTS1+1] + dum) / cs[2*MXROOTS1+2];
-        //r[MXROOTS+1] = -.5 * (cs[2*MXROOTS1+1] - dum) / cs[2*MXROOTS1+2];
-        r0 = MM_LOAD(cs+(2*MXROOTS1+1)*SIMDD);
-        r1 = MM_MUL(MM_LOAD(cs+(2*MXROOTS1+0)*SIMDD), MM_LOAD(cs+(2*MXROOTS1+2)*SIMDD));
-        r0 = MM_SQRT(MM_FMA(r0, r0, MM_MUL(MM_SET1(-4), r1)));
-        r1 = MM_DIV(MM_SET1(-.5), MM_LOAD(cs+(2*MXROOTS1+2)*SIMDD));
-        MM_STORE(r+(MXROOTS  )*SIMDD, MM_MUL(MM_ADD(MM_LOAD(cs+(2*MXROOTS1+1)*SIMDD), r0), r1));
-        MM_STORE(r+(MXROOTS+1)*SIMDD, MM_MUL(MM_SUB(MM_LOAD(cs+(2*MXROOTS1+1)*SIMDD), r0), r1));
-
-        r1 = MM_SET1(1);
-        if (nroots > 2) {
-                MM_STORE(rt+0*SIMDD, MM_LOAD(r+(MXROOTS  )*SIMDD));
-                MM_STORE(rt+1*SIMDD, MM_LOAD(r+(MXROOTS+1)*SIMDD));
-                for (i = 2; i <= nroots; i++) {
-                        MM_STORE(rt+i*SIMDD, r1);
-                }
+                rt[0] = r[MXROOTS  ];
+                rt[1] = r[MXROOTS+1];
                 for (k = 2; k < nroots; k++) {
-                        R_dnode(cs+((k+1)*MXROOTS1)*SIMDD, rt, k+1, count);
                         for (i = 0; i < k+2; i++) {
-                                //r[(i+k*MXROOTS)*SIMDD+j] = rt[i];
-                                MM_STORE(r+(i+k*MXROOTS)*SIMDD, MM_LOAD(rt+i*SIMDD));
+                                a[i] = cs[i + (k+1) * MXROOTS1];
+                        }
+                        R_qnode(a, rt, k+1);
+
+                        for (i = 0; i < k+2; i++) {
+                                r[i + k * MXROOTS] = rt[i];
                         }
                 }
-                //for (j = 0; j < count; j++) {
-                //        rt[0] = r[MXROOTS    *SIMDD+j];
-                //        rt[1] = r[(MXROOTS+1)*SIMDD+j];
-                //        for (i = 2; i <= nroots; i++) {
-                //                rt[i] = 1;
-                //        }
-                //        for (k = 2; k < nroots; k++) {
-                //                R_dnode_dbg(cs+((k+1)*MXROOTS1)*SIMDD+j, rt, k+1);
-                //                for (i = 0; i < k+2; i++) {
-                //                        r[(i+k*MXROOTS)*SIMDD+j] = rt[i];
-                //                }
-                //        }
-                //}
         }
-
         for (k = 1; k < nroots; k++) {
+                jmax = k;
                 for (i = 0; i <= k; i++) {
-                        //root = r[i + k * MXROOTS];
-                        //dum = 1 / ff[0];
-                        r0 = MM_LOAD(r+(i+k*MXROOTS)*SIMDD);
-                        r3 = MM_DIV(r1, MM_LOAD(ff));
-                        for (j = 1; j <= k; j++) {
-                                //poly = cs[j + j * MXROOTS1];
-                                r2 = MM_LOAD(cs+(j+j*MXROOTS1)*SIMDD);
+                        root = r[i + k * MXROOTS];
+                        dum = 1 / ff[0];
+                        for (j = 1; j <= jmax; j++) {
+                                poly = cs[j + j * MXROOTS1];
                                 for (m = 1; m <= j; ++m) {
-                                        //poly = poly * root + cs[j - m + j * MXROOTS1];
-                                        r2 = MM_FMA(r2, r0, MM_LOAD(cs+(j-m+j*MXROOTS1)*SIMDD));
+                                        poly = poly * root + cs[j - m + j * MXROOTS1];
                                 }
-                                //dum += poly * poly;
-                                r3 = MM_FMA(r2, r2, r3);
+                                dum += poly * poly;
                         }
-                        //w[i + k * MXROOTS] = 1 / dum;
-                        MM_STORE(w+(i+k*MXROOTS)*SIMDD, MM_DIV(r1, r3));
+                        w[i + k * MXROOTS] = 1 / dum;
                 }
         }
 
         for (k = 0; k < nroots; k++) {
-                //dum = r[k + (nroots-1) * MXROOTS];
-                //roots[k*SIMDD] = dum / (1 - dum);
-                //weights[k*SIMDD] = w[k + (nroots-1) * MXROOTS];
-                r0 = MM_LOAD(r + (k+(nroots-1)*MXROOTS)*SIMDD);
-                MM_STORE(roots+k*SIMDD, MM_DIV(r0, MM_SUB(r1, r0)));
-                MM_STORE(weights+k*SIMDD, MM_LOAD(w+(k+(nroots-1)*MXROOTS)*SIMDD));
+                dum = r[k + (nroots-1) * MXROOTS];
+                roots[k*SIMDD] = dum / (1 - dum);
+                weights[k*SIMDD] = w[k + (nroots-1) * MXROOTS];
         }
+        return;
 }
 
-/*
- ******************************************************
- * float128
- */
-static void R_qnode(long double *a, long double *rt, int k)
-{
-    const long double accrt = 1e-11l;
-
-    int i, m;
-    int icoun2, icount;
-    long double r;
-    long double p1, p2, r1, r2, p5, p6, r5, r6, r3, p3, r4, p4, dr, prod, delta;
-
-    r2 = 0;
-    p2 = a[0];
-    for (m = 0; m < k; ++m) {
-        r1 = r2;
-        p1 = p2;
-        r2 = rt[m];
-        p2 = a[k];
-        for (i = 1; i <= k; i++) {
-            p2 = p2 * r2 + a[k - i];
-        }
-        prod = p1 * p2;
-        if (prod < 0) {
-            goto L20;
-        }
-        fprintf(stderr, " 0ROOT NUMBER %4d WAS NOT FOUND FOR POLYNOMIAL OF ORDER %4d\n", m, k);
-L20:
-        r5 = r1;
-        p5 = p1;
-        r6 = r2;
-        p6 = p2;
-        icount = 0;
-L30:
-        r3 = r5;
-        p3 = p5;
-        r4 = r6;
-        p4 = p6;
-        r = (r3 * p4 - r4 * p3) / (p4 - p3);
-        dr = r4 - r3;
-        delta = dr;
-        dr = .0625l * dr;
-        r5 = r - dr;
-        r6 = r + dr;
-        if (fabsl(delta) < accrt || r5 == r || r6 == r) {
-            goto L90;
-        }
-        ++icount;
-        if (icount == 50) {
-            fprintf(stderr, "libcint::rys_roots NO CONV. IN DNODE: DELTA= %.15Lg\n", delta);
-            exit(1);
-        }
-        if (r5 < r3) {
-            r5 = r3;
-        }
-        if (r6 > r4) {
-            r6 = r4;
-        }
-        p5 = a[k];
-        p6 = p5;
-        for (i = 1; i <= k; i++) {
-            p5 = p5 * r5 + a[k - i];
-            p6 = p6 * r6 + a[k - i];
-        }
-        icoun2 = 0;
-L45:
-        prod = p5 * p6;
-        if (prod < 0) {
-            goto L30;
-        }
-        ++icoun2;
-        if (icoun2 > 50) {
-                fprintf(stderr, "libcint::rys_roots ERROR NO CONVERGENCE IN LOOP DNODE (L 45), PROD= %12.4Lf\n", prod);
-                exit(1);
-        }
-        prod = p3 * p5;
-        if (prod > 0.) {
-            goto L60;
-        }
-        r5 = .25l * r3 + .75l * r5;
-        p5 = a[k];
-        for (i = 1; i <= k; i++) {
-            p5 = p5 * r5 + a[k - i];
-        }
-        goto L45;
-L60:
-        r6 = .25l * r4 + .75l * r6;
-        p6 = a[k];
-        for (i = 1; i <= k; i++) {
-            p6 = p6 * r6 + a[k - i];
-        }
-        goto L45;
-L90:
-        rt[m] = r;
-    }
-    return;
-}
-
-static void qgamma_inc_like(long double *ff, long double x, int n)
-{
-        const long double pie4 = .7853981633974483096156608458l; // PI/4
-        const long double xsw = 33.;
-        const long double e = .5l * expl(-x);
-        const long double fac0 = n + .5l;
-        long double term[200];
-        long double sum, fac, sum1, suma, term0;
-        int k;
-        int nterm = 0;
-
-        if (x > xsw) {
-                sum = sqrtl(pie4 / x);
-                fac = -.5l;
-                for (k = 0; k < n; k++) {
-                        fac += 1;
-                        sum *= fac / x;
-                }
-
-                term[0] = -e / x;
-                suma = sum + term[0];
-                if (sum == suma) {
-                        goto _CONV;
-                }
-                fac = fac0;
-                for (nterm = 1; nterm < (int)(x+fac0-1); ++nterm) {
-                        fac -= 1;
-                        term[nterm] = term[nterm-1] * fac / x;
-                        sum1 = suma;
-                        suma += term[nterm];
-                        if (sum1 == suma) {
-                                goto _CONV;
-                        }
-                }
-        }
-        // if xsw too low, 1/x series not converge; or x < xsw
-
-        fac = fac0;
-        term0 = e / fac;
-        sum = term0;
-        for (k = 0; k < (int)(x-fac0); k++) {
-                fac += 1;
-                term0 *= x / fac;
-                sum += term0;
-        }
-
-        fac += 1;
-        term[0] = term0 * x / fac;
-        suma = sum + term[0];
-        if (sum == suma) {
-                goto _CONV;
-        }
-
-        for (nterm = 1; nterm < 200; nterm++) {
-                fac += 1;
-                term[nterm] = term[nterm-1] * x / fac;
-                sum1 = suma;
-                suma += term[nterm];
-                if (sum1 - suma == 0) {
-                        goto _CONV;
-                }
-        }
-        if (nterm > 199) {
-                fprintf(stderr, "libcint::rys_roots power series of gamma_inc_like not converge"
-                        "val=%.16Lg last term=%.16Lg x=%.16Lg n=%d\n",
-                        suma, term[199], x, n);
-                exit(1);
-        }
-
-_CONV:
-        sum1 = 0;
-        for (k = nterm; k >= 0; k--) {
-                sum1 += term[k];
-        }
-        ff[n] = sum + sum1;
-        fac = fac0;
-        for (k = n; k > 0; k--) {
-                fac -= 1;
-                ff[k-1] = (e + x * ff[k]) / fac;
-        }
-}
-
-static void R_qsmit(long double *cs, long double *s, int n)
-{
-    int i, j, k;
-    int kmax;
-    long double fac, dot;
-    long double v[MXROOTS1];
-    long double *y;
-
-    for (i = 0; i < n; i++) {
-        for (j = 0; j < i; j++) {
-            cs[i + j * MXROOTS1] = 0;
-        }
-    }
-
-    for (j = 0; j < n; j++) {
-        kmax = j;
-        fac = s[j + j * MXROOTS1];
-
-        if (kmax == 0) {
-            goto L60;
-        }
-
-        for (k = 0; k < kmax; k++) {
-            v[k] = 0;
-        }
-        y = &s[j * MXROOTS1];
-
-        for (k = 0; k < kmax; k++) {
-            dot = 0;
-            for (i = 0; i <= k; i++) {
-                dot += cs[i + k * MXROOTS1] * y[i];
-            }
-            for (i = 0; i <= k; i++) {
-                v[i] -= dot * cs[i + k * MXROOTS1];
-            }
-            fac -= dot * dot;
-        }
-L60:
-        if (fac < 0) {
-                fprintf(stderr, "libcint::rys_roots negative value in sqrt\n");
-                exit(1);
-        }
-        fac = 1 / sqrtl(fac);
-        cs[j + j * MXROOTS1] = fac;
-        if (kmax == 0) {
-            goto L100;
-        }
-        for (k = 0; k < kmax; k++) {
-            cs[k + j * MXROOTS1] = fac * v[k];
-        }
-L100:
-        ;
-    }
-}
-
-static void rys_qroot(int nroots, double x, double roots[], double weights[])
-{
-    int i, k, j, m, jmax;
-    long double r[MXROOTS*MXROOTS] = {0};
-    long double w[MXROOTS*MXROOTS] = {0};
-    long double cs[MXROOTS1*MXROOTS1];
-    long double s[MXROOTS1*MXROOTS1];
-    long double rt[MXROOTS1];
-    long double a[MXROOTS1];
-    long double ff[MXROOTS*2+1];
-    long double root, poly, wsum, dum;
-
-    if (nroots < 2) {
-            nroots = 2;
-    }
-
-    qgamma_inc_like(ff, x, nroots*2);
-
-    for (j = 0; j < nroots+1; j++) {
-            for (i = 0; i < nroots+1; i++) {
-                    s[i + j * MXROOTS1] = ff[i + j];
-            }
-    }
-
-    R_qsmit(cs, s, nroots+1);
-
-    wsum = ff[0];
-    w[0] = wsum;
-    r[0] = ff[1] / wsum;
-
-    dum = sqrtl(cs[2*MXROOTS1+1] * cs[2*MXROOTS1+1]
-               - 4 * cs[2*MXROOTS1+0] * cs[2*MXROOTS1+2]);
-    r[MXROOTS  ] = .5 * (-cs[2*MXROOTS1+1] - dum) / cs[2*MXROOTS1+2];
-    r[MXROOTS+1] = .5 * (-cs[2*MXROOTS1+1] + dum) / cs[2*MXROOTS1+2];
-
-    if (nroots != 2) {
-            for (i = 2; i < nroots+1; i++) {
-                    rt[i] = 1;
-            }
-            rt[0] = r[MXROOTS  ];
-            rt[1] = r[MXROOTS+1];
-            for (k = 2; k < nroots; k++) {
-                    for (i = 0; i < k+2; i++) {
-                            a[i] = cs[i + (k+1) * MXROOTS1];
-                    }
-                    R_qnode(a, rt, k+1);
-
-                    for (i = 0; i < k+2; i++) {
-                            r[i + k * MXROOTS] = rt[i];
-                    }
-            }
-    }
-    for (k = 1; k < nroots; k++) {
-            jmax = k;
-            for (i = 0; i <= k; i++) {
-                    root = r[i + k * MXROOTS];
-                    dum = 1 / ff[0];
-                    for (j = 1; j <= jmax; j++) {
-                            poly = cs[j + j * MXROOTS1];
-                            for (m = 1; m <= j; ++m) {
-                                    poly = poly * root + cs[j - m + j * MXROOTS1];
-                            }
-                            dum += poly * poly;
-                    }
-                    w[i + k * MXROOTS] = 1 / dum;
-            }
-    }
-
-    for (k = 0; k < nroots; k++) {
-            dum = r[k + (nroots-1) * MXROOTS];
-            roots[k*SIMDD] = dum / (1 - dum);
-            weights[k*SIMDD] = w[k + (nroots-1) * MXROOTS];
-    }
-    return;
-}
-
+#endif

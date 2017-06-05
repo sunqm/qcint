@@ -27,11 +27,6 @@
 #include "g1e.h"
 #include "rys_roots.h"
 
-#define DEF_GXYZ(type, G, GX, GY, GZ) \
-        type *GX = G; \
-        type *GY = G + envs->g_size     * SIMDD; \
-        type *GZ = G + envs->g_size * 2 * SIMDD
-
 void CINTinit_int3c1e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
                               int *atm, int natm, int *bas, int nbas, double *env)
 {
@@ -48,6 +43,7 @@ void CINTinit_int3c1e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
         envs->i_l = bas(ANG_OF, i_sh);
         envs->j_l = bas(ANG_OF, j_sh);
         envs->k_l = bas(ANG_OF, k_sh);
+        envs->l_l = 0;
         envs->x_ctr[0] = bas(NCTR_OF, i_sh);
         envs->x_ctr[1] = bas(NCTR_OF, j_sh);
         envs->x_ctr[2] = bas(NCTR_OF, k_sh);
@@ -55,6 +51,7 @@ void CINTinit_int3c1e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
         envs->nfi = (envs->i_l+1)*(envs->i_l+2)/2;
         envs->nfj = (envs->j_l+1)*(envs->j_l+2)/2;
         envs->nfk = (envs->k_l+1)*(envs->k_l+2)/2;
+        envs->nfl = 1;
         envs->nf = envs->nfi * envs->nfk * envs->nfj;
         envs->common_factor = 1;
 
@@ -66,6 +63,7 @@ void CINTinit_int3c1e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
         envs->li_ceil = envs->i_l + ng[IINC];
         envs->lj_ceil = envs->j_l + ng[JINC];
         envs->lk_ceil = envs->k_l + ng[KINC];
+        envs->ll_ceil = 0;
 
         envs->ri = env + atm(PTR_COORD, bas(ATOM_OF, i_sh));
         envs->rj = env + atm(PTR_COORD, bas(ATOM_OF, j_sh));
@@ -83,6 +81,7 @@ void CINTinit_int3c1e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
         envs->g_stride_i = envs->nrys_roots;
         envs->g_stride_j = dli * envs->nrys_roots;
         envs->g_stride_k = dli * dlj * envs->nrys_roots;
+        envs->g_stride_l = envs->g_stride_k;
         envs->g_size     = MAX(dli*dlj*dlk, dli*nmax) * envs->nrys_roots;
 
         envs->rirj[0] = envs->ri[0] - envs->rj[0];
@@ -91,9 +90,6 @@ void CINTinit_int3c1e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
         envs->rkrl[0] = envs->rj[0] - envs->rk[0];
         envs->rkrl[1] = envs->rj[1] - envs->rk[1];
         envs->rkrl[2] = envs->rj[2] - envs->rk[2];
-
-        envs->ll_ceil = 1;
-        envs->g_stride_l = 0;
 }
 
 void CINTg3c1e_ovlp(double *g, CINTEnvVars *envs, int count)

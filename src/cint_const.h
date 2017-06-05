@@ -24,6 +24,10 @@
 #define PTR_COMMON_ORIG         1
 #define PTR_RINV_ORIG           4
 #define PTR_RINV_ZETA           7
+// omega parameter in range-separated coulomb operator erf(omega*r12)/r12
+#define PTR_RANGE_OMEGA         8
+// Yukawa potential and slater-type geminal e^{-zeta r}
+#define PTR_F12_ZETA            9
 #define PTR_ENV_START           20
 
 // slots of atm
@@ -93,10 +97,16 @@
 #define POS_E2          6
 #define TENSOR          7
 
+#include "config.h"
+
 // some other boundaries
+#ifdef HAVE_QUADMATH_H
+#define MXRYSROOTS      32 // > ANG_MAX*2+1 for 4c2e
+#else
 #define MXRYSROOTS      16 // > ANG_MAX*2+1 for 4c2e
-#define ANG_MAX         8 // l = 0..7
-#define CART_MAX        64 // > (ANG_MAX*(ANG_MAX+1)/2)
+#endif
+#define ANG_MAX         12 // l = 0..12
+#define CART_MAX        128 // > (ANG_MAX*(ANG_MAX+1)/2)
 #define SHLS_MAX        0x7fffffff
 #define NPRIM_MAX       64
 #define NCTR_MAX        64
@@ -112,6 +122,9 @@
 #define OF_CMPLX        2
 
 #define PI              3.1415926535897932384626433832795028
+#ifndef M_PI
+#define M_PI            PI
+#endif
 #define SQRTPI          1.7724538509055160272981674833411451
 
 #define POINT_NUC       1

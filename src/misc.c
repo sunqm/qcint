@@ -20,7 +20,12 @@
 
 #include <math.h>
 #include <complex.h>
-#include "simd.h"
+
+#if defined(__GNUC__)
+#define RESTRICT __restrict__
+#else
+#define RESTRICT
+#endif
 
 void CINTdcmplx_re(const int n, double complex *RESTRICT z,
                    const double *RESTRICT re)

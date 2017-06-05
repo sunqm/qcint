@@ -94,11 +94,6 @@ static inline void *_align_upwards(void *p, uintptr_t align)
         return (void *)a;
 }
 
-typedef struct {
-    double *top;
-    double *bottom;
-} SimpleStack;
-
 #define MALLOC_DOUBLE(var, n) \
         double *var; \
         int __##var##len = 0; \

@@ -29,7 +29,6 @@
 #include "optimizer.h"
 #include "cint1e.h"
 #include "cint2e.h"
-#include "fblas.h"
 #include "cart2sph.h"
 #include "c2f.h"
 
@@ -85,7 +84,7 @@
         } else { \
                 fp2c[np2c] = CINTiprim_to_ctr_1; \
         } \
-        gprim[np2c] = gout + cum; \
+        gprim[np2c] = gout + cum * ngp[0]; \
         iprim[np2c] = ip; \
         shltyp[np2c] = 0; \
         cum++; \
@@ -113,11 +112,6 @@
         if (cum == 1) { \
                 CINTg0_2e_simd1(g, &bc, envs, 0); \
                 (*envs->f_gout_simd1)(gout, g, idx, envs); \
-                if (fp2c[0] == &CINTiprim_to_ctr_0) { \
-                        fp2c[0] = CINTprim_to_ctr_0; \
-                } else { \
-                        fp2c[0] = CINTprim_to_ctr_1; \
-                } \
         } else if (cum > 1) { \
                 r1 = MM_SET1(1.); \
                 for (i = 0; i < envs->nrys_roots; i++) { \
@@ -296,8 +290,6 @@ int CINT2c2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
         return !*kempty;
 }
 
-void CINTg0_2c2e_jl2d(double *g, Rys2eT *bc, CINTEnvVars *envs);
-void CINTg0_2c2e_jl2d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs);
 void CINTinit_int2c2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
                               int *atm, int natm, int *bas, int nbas, double *env)
 {
@@ -311,13 +303,17 @@ void CINTinit_int2c2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
         int i_sh = shls[0];
         int k_sh = shls[1];
         envs->i_l = bas(ANG_OF, i_sh);
+        envs->j_l = 0;
         envs->k_l = bas(ANG_OF, k_sh);
+        envs->l_l = 0;
         envs->x_ctr[0] = bas(NCTR_OF, i_sh);
         envs->x_ctr[1] = bas(NCTR_OF, k_sh);
         envs->x_ctr[2] = 1;
         envs->x_ctr[3] = 1;
         envs->nfi = (envs->i_l+1)*(envs->i_l+2)/2;
+        envs->nfj = 1;
         envs->nfk = (envs->k_l+1)*(envs->k_l+2)/2;
+        envs->nfl = 1;
         envs->nf = envs->nfi * envs->nfk;
         envs->common_factor = 1;
 
@@ -342,6 +338,7 @@ void CINTinit_int2c2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
         int dlk = envs->lk_ceil + 1;
         envs->g_stride_i = nroots;
         envs->g_stride_k = nroots * dli;
+        envs->g_stride_l = envs->g_stride_k;
         envs->g_size     = nroots * dli * dlk;
 
         MM_STORE(envs->aj, MM_SET1(0.));
@@ -363,10 +360,12 @@ void CINTinit_int2c2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
         envs->rx_in_rklrx = envs->rk;
         envs->rx_in_rijrx = envs->ri;
 
-        envs->f_g0_2d4d = &CINTg0_2c2e_jl2d;
-        envs->f_g0_2d4d_simd1 = &CINTg0_2c2e_jl2d_simd1;
+        envs->f_g0_2d4d = &CINTg0_2e_2d;
+        envs->f_g0_2d4d_simd1 = &CINTg0_2e_2d_simd1;
+        envs->f_g0_2e = &CINTg0_2e;
+        envs->f_g0_2e_simd1 = &CINTg0_2e_simd1;
 
-        // for CINTg2c_index_xyz
+        // for CINTg2c_index_xyz and c2s_sph_1e function
         envs->j_l = envs->k_l;
         envs->nfj = envs->nfk;
         envs->g_stride_j = envs->g_stride_k;
@@ -376,6 +375,9 @@ void CINTinit_int2c2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
 int CINT2c2e_cart_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
                       double *cache)
 {
+        if (out == NULL) {
+                return int1e_cache_size(envs);
+        }
         int *x_ctr = envs->x_ctr;
         int nc = envs->nf * x_ctr[0] * x_ctr[1];
         int n_comp = envs->ncomp_e1 * envs->ncomp_e2 * envs->ncomp_tensor;
@@ -421,6 +423,9 @@ int CINT2c2e_cart_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
 int CINT2c2e_spheric_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
                          double *cache)
 {
+        if (out == NULL) {
+                return int1e_cache_size(envs);
+        }
         int *x_ctr = envs->x_ctr;
         int nc = envs->nf * x_ctr[0] * x_ctr[1];
         int n_comp = envs->ncomp_e1 * envs->ncomp_e2 * envs->ncomp_tensor;
@@ -470,6 +475,9 @@ int CINT2c2e_spinor_drv(double complex *out, int *dims, CINTEnvVars *envs, CINTO
         if (envs->ncomp_e1 > 1 || envs->ncomp_e2 > 1) {
                 fprintf(stderr, "CINT2c2e_spinor_drv not implemented\n");
                 exit(1);
+        }
+        if (out == NULL) {
+                return int1e_cache_size(envs);
         }
         int *x_ctr = envs->x_ctr;
         int counts[4];
@@ -524,11 +532,7 @@ int int2c2e_sph(double *out, int *dims, int *shls, int *atm, int natm,
         CINTinit_int2c2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
         envs.f_gout = &CINTgout2e;
         envs.f_gout_simd1 = &CINTgout2e_simd1;
-        if (out == NULL) {
-                return int1e_cache_size(&envs);
-        } else {
-                return CINT2c2e_spheric_drv(out, dims, &envs, opt, cache);
-        }
+        return CINT2c2e_spheric_drv(out, dims, &envs, opt, cache);
 }
 void int2c2e_optimizer(CINTOpt **opt, int *atm, int natm,
                        int *bas, int nbas, double *env)
@@ -545,11 +549,7 @@ int int2c2e_cart(double *out, int *dims, int *shls, int *atm, int natm,
         CINTinit_int2c2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
         envs.f_gout = &CINTgout2e;
         envs.f_gout_simd1 = &CINTgout2e_simd1;
-        if (out == NULL) {
-                return int1e_cache_size(&envs);
-        } else {
-                return CINT2c2e_cart_drv(out, dims, &envs, opt, cache);
-        }
+        return CINT2c2e_cart_drv(out, dims, &envs, opt, cache);
 }
 
 int int2c2e_spinor(double complex *out, int *dims, int *shls, int *atm, int natm,
@@ -560,11 +560,7 @@ int int2c2e_spinor(double complex *out, int *dims, int *shls, int *atm, int natm
         CINTinit_int2c2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
         envs.f_gout = &CINTgout2e;
         envs.f_gout_simd1 = &CINTgout2e_simd1;
-        if (out == NULL) {
-                return int1e_cache_size(&envs);
-        } else {
-                return CINT2c2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_1e);
-        }
+        return CINT2c2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_1e);
 }
 
 

@@ -26,8 +26,10 @@
 #define PTR_COMMON_ORIG         1
 #define PTR_RINV_ORIG           4
 #define PTR_RINV_ZETA           7
-// omega parameter in range-separated coulomb operator
+// omega parameter in range-separated coulomb operator erf(omega*r12)/r12
 #define PTR_RANGE_OMEGA         8
+// Yukawa potential and slater-type geminal e^{-zeta r}
+#define PTR_F12_ZETA            9
 #define PTR_ENV_START           20
 
 // slots of atm
@@ -88,7 +90,7 @@
 #define TSRZZ       8
 
 // some other boundaries
-#define ANG_MAX         12 // l = 0.. 11
+#define ANG_MAX         12 // l = 0..11
 #define POINT_NUC       1
 #define GAUSSIAN_NUC    2
 
@@ -98,13 +100,19 @@
 #if !defined HAVE_DEFINED_CINTOPT_H
 #define HAVE_DEFINED_CINTOPT_H
 typedef struct {
+    double rij[3];
+    double eij;
+    int cceij;
+    int _padding;
+} PairData;
+typedef struct {
     int **index_xyz_array; // ANG_MAX**4 pointers to index_xyz
-    int *prim_offset;
-    int *non0ctr;
-    int **non0idx;
-    double **non0coeff;
-    double *maxci;
-    int tot_prim;
+    int **non0ctr;
+    int **sortedidx;
+    int nbas;
+
+    int *data_ptr;
+    PairData *data;
 } CINTOpt;
 #endif
 

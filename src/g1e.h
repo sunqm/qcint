@@ -71,6 +71,8 @@ typedef struct {
         double *rk;
         double *rl;
 
+        void (*f_g0_2e)();
+        void (*f_g0_2e_simd1)();
         void (*f_g0_2d4d)();
         void (*f_g0_2d4d_simd1)();
         void (*f_gout)();
@@ -123,6 +125,7 @@ void CINTiprim_to_ctr_0(double *gc, double *gp, double *coeff, int nf,
                         int nprim, int nctr, int non0ctr, int *sortedidx);
 void CINTiprim_to_ctr_1(double *gc, double *gp, double *coeff, int nf,
                         int nprim, int nctr, int non0ctr, int *sortedidx);
+void CINTsort_gout(double *sout, double *gout, int nf, int count);
 
 double CINTcommon_fac_sp(int l);
 
@@ -142,3 +145,28 @@ double CINTcommon_fac_sp(int l);
 #define G1E_R_I(f, g, li, lj, lk)   f = g + envs->g_stride_i * SIMDD
 #define G1E_R_J(f, g, li, lj, lk)   f = g + envs->g_stride_j * SIMDD
 #define G1E_R_K(f, g, li, lj, lk)   f = g + envs->g_stride_k * SIMDD
+
+
+#if (SIMDD == 8)
+
+#define DECLARE_GOUT \
+        __m256i vindex = _mm256_set_epi32( \
+                nfc*7, nfc*6, nfc*5, nfc*4, nfc*3, nfc*2, nfc*1,    0);
+
+#define GOUT_SCATTER(gout, n, r0) _mm512_i32scatter_pd(gout+n, vindex, r0, 8)
+
+#else
+
+#define DECLARE_GOUT \
+        ALIGNMM double gc[SIMDD*SIMDD]; \
+        double *RESTRICT gout1 = gout + nfc*1; \
+        double *RESTRICT gout2 = gout + nfc*2; \
+        double *RESTRICT gout3 = gout + nfc*3;
+
+#define GOUT_SCATTER(addr, n, r0) \
+        _mm256_store_pd(gc, r0); \
+        gout [(n)] = gc[0]; \
+        gout1[(n)] = gc[1]; \
+        gout2[(n)] = gc[2]; \
+        gout3[(n)] = gc[3];
+#endif

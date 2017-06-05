@@ -18,6 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "cint_const.h"
 #include "g1e.h"
 
 #ifndef HAVE_RYS2E
@@ -39,18 +40,38 @@ typedef struct {
 
 
 void CINTg4c_index_xyz(int *idx, CINTEnvVars *envs);
-void CINTg3c_index_xyz(int *idx, CINTEnvVars *envs);
 void CINTinit_int2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
                             int *atm, int natm, int *bas, int nbas, double *env);
 void CINTinit_int3c2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
                               int *atm, int natm, int *bas, int nbas, double *env);
 void CINTinit_int2c2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
                               int *atm, int natm, int *bas, int nbas, double *env);
+void CINTinit_int2e_coulerf_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
+                                    int *atm, int natm, int *bas, int nbas, double *env);
+void CINTinit_int2e_stg_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
+                                int *atm, int natm, int *bas, int nbas, double *env);
+void CINTinit_int2e_yp_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
+                               int *atm, int natm, int *bas, int nbas, double *env);
 
-void CINTg0_2e_2d(double *g, Rys2eT *bc, CINTEnvVars *envs);
-void CINTg0_2e_2d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs);
 void CINTg0_2e(double *g, Rys2eT *bc, CINTEnvVars *envs, int count);
 void CINTg0_2e_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd);
+void CINTg0_2e_2d(double *g, Rys2eT *bc, CINTEnvVars *envs);
+void CINTg0_2e_2d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs);
+void CINTg0_2e_lj2d4d(double *g, Rys2eT *bc, CINTEnvVars *envs);
+void CINTg0_2e_kj2d4d(double *g, Rys2eT *bc, CINTEnvVars *envs);
+void CINTg0_2e_il2d4d(double *g, Rys2eT *bc, CINTEnvVars *envs);
+void CINTg0_2e_ik2d4d(double *g, Rys2eT *bc, CINTEnvVars *envs);
+void CINTg0_2e_lj2d4d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs);
+void CINTg0_2e_kj2d4d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs);
+void CINTg0_2e_il2d4d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs);
+void CINTg0_2e_ik2d4d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs);
+
+void CINTinit_int2e_stg_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
+                                int *atm, int natm, int *bas, int nbas, double *env);
+void CINTinit_int2e_yp_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
+                               int *atm, int natm, int *bas, int nbas, double *env);
+void CINTinit_int2e_coulerf_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
+                                    int *atm, int natm, int *bas, int nbas, double *env);
 
 void CINTnabla1i_2e(double *f, double *g,
                     int li, int lj, int lk, int ll, CINTEnvVars *envs);
@@ -131,3 +152,4 @@ void CINTx1l_2e_simd1(double *f, double *g, double *rl,
 #define G2E_R_K_SIMD1(f, g, li, lj, lk, ll)   f = g + envs->g_stride_k
 #define G2E_R_L_SIMD1(f, g, li, lj, lk, ll)   f = g + envs->g_stride_l
 #define G2E_R_J_SIMD1(f, g, li, lj, lk, ll)   f = g + envs->g_stride_j
+

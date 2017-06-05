@@ -24,6 +24,7 @@
 /*
  * <ki|jl> = (ij|kl); i,j\in electron 1; k,l\in electron 2
  */
+#if (SIMDD == 8)
 void CINTgout2e(double *gout, double *g, int *idx, CINTEnvVars *envs)
 {
         int nf = envs->nf;
@@ -36,6 +37,8 @@ void CINTgout2e(double *gout, double *g, int *idx, CINTEnvVars *envs)
                 double *gx, *gy, *gz;
                 double *hx, *hy, *hz;
                 __MD r0, r1;
+                __m256i vindex = _mm256_set_epi32(
+                        nf*7, nf*6, nf*5, nf*4, nf*3, nf*2, nf*1,    0);
                 switch(nrys_roots) {
                 case 1:
                         for (n = 0; n < nf; n++) {
@@ -43,7 +46,7 @@ void CINTgout2e(double *gout, double *g, int *idx, CINTEnvVars *envs)
                                 gy = g + idx[1+n*3] * SIMDD;
                                 gz = g + idx[2+n*3] * SIMDD;
                                 r0 = MM_MUL(MM_MUL(MM_LOAD(gx), MM_LOAD(gy)), MM_LOAD(gz));
-                                MM_STORE(gout+n*SIMDD, r0);
+                                GOUT_SCATTER(gout, n, r0);
                         }
                         return;
                 case 2:
@@ -58,8 +61,8 @@ void CINTgout2e(double *gout, double *g, int *idx, CINTEnvVars *envs)
                                 r1 = MM_MUL(MM_MUL(MM_LOAD(hx      ), MM_LOAD(hy      )), MM_LOAD(hz      ));
                                 r0+= MM_MUL(MM_MUL(MM_LOAD(gx+SIMDD), MM_LOAD(gy+SIMDD)), MM_LOAD(gz+SIMDD));
                                 r1+= MM_MUL(MM_MUL(MM_LOAD(hx+SIMDD), MM_LOAD(hy+SIMDD)), MM_LOAD(hz+SIMDD));
-                                MM_STORE(gout+n*SIMDD      , r0);
-                                MM_STORE(gout+n*SIMDD+SIMDD, r1);
+                                GOUT_SCATTER(gout, n  , r0);
+                                GOUT_SCATTER(gout, n+1, r1);
                         }
                         break;
                 case 3:
@@ -76,8 +79,8 @@ void CINTgout2e(double *gout, double *g, int *idx, CINTEnvVars *envs)
                                 r1+= MM_MUL(MM_MUL(MM_LOAD(hx+  SIMDD), MM_LOAD(hy+  SIMDD)), MM_LOAD(hz+  SIMDD));
                                 r0+= MM_MUL(MM_MUL(MM_LOAD(gx+2*SIMDD), MM_LOAD(gy+2*SIMDD)), MM_LOAD(gz+2*SIMDD));
                                 r1+= MM_MUL(MM_MUL(MM_LOAD(hx+2*SIMDD), MM_LOAD(hy+2*SIMDD)), MM_LOAD(hz+2*SIMDD));
-                                MM_STORE(gout+n*SIMDD      , r0);
-                                MM_STORE(gout+n*SIMDD+SIMDD, r1);
+                                GOUT_SCATTER(gout, n  , r0);
+                                GOUT_SCATTER(gout, n+1, r1);
                         }
                         break;
                 case 4:
@@ -96,8 +99,8 @@ void CINTgout2e(double *gout, double *g, int *idx, CINTEnvVars *envs)
                                 r1+= MM_MUL(MM_MUL(MM_LOAD(hx+2*SIMDD), MM_LOAD(hy+2*SIMDD)), MM_LOAD(hz+2*SIMDD));
                                 r0+= MM_MUL(MM_MUL(MM_LOAD(gx+3*SIMDD), MM_LOAD(gy+3*SIMDD)), MM_LOAD(gz+3*SIMDD));
                                 r1+= MM_MUL(MM_MUL(MM_LOAD(hx+3*SIMDD), MM_LOAD(hy+3*SIMDD)), MM_LOAD(hz+3*SIMDD));
-                                MM_STORE(gout+n*SIMDD      , r0);
-                                MM_STORE(gout+n*SIMDD+SIMDD, r1);
+                                GOUT_SCATTER(gout, n  , r0);
+                                GOUT_SCATTER(gout, n+1, r1);
                         }
                         break;
                 case 5:
@@ -118,8 +121,8 @@ void CINTgout2e(double *gout, double *g, int *idx, CINTEnvVars *envs)
                                 r1+= MM_MUL(MM_MUL(MM_LOAD(hx+3*SIMDD), MM_LOAD(hy+3*SIMDD)), MM_LOAD(hz+3*SIMDD));
                                 r0+= MM_MUL(MM_MUL(MM_LOAD(gx+4*SIMDD), MM_LOAD(gy+4*SIMDD)), MM_LOAD(gz+4*SIMDD));
                                 r1+= MM_MUL(MM_MUL(MM_LOAD(hx+4*SIMDD), MM_LOAD(hy+4*SIMDD)), MM_LOAD(hz+4*SIMDD));
-                                MM_STORE(gout+n*SIMDD      , r0);
-                                MM_STORE(gout+n*SIMDD+SIMDD, r1);
+                                GOUT_SCATTER(gout, n  , r0);
+                                GOUT_SCATTER(gout, n+1, r1);
                         }
                         break;
                 case 6:
@@ -142,8 +145,8 @@ void CINTgout2e(double *gout, double *g, int *idx, CINTEnvVars *envs)
                                 r1+= MM_MUL(MM_MUL(MM_LOAD(hx+4*SIMDD), MM_LOAD(hy+4*SIMDD)), MM_LOAD(hz+4*SIMDD));
                                 r0+= MM_MUL(MM_MUL(MM_LOAD(gx+5*SIMDD), MM_LOAD(gy+5*SIMDD)), MM_LOAD(gz+5*SIMDD));
                                 r1+= MM_MUL(MM_MUL(MM_LOAD(hx+5*SIMDD), MM_LOAD(hy+5*SIMDD)), MM_LOAD(hz+5*SIMDD));
-                                MM_STORE(gout+n*SIMDD      , r0);
-                                MM_STORE(gout+n*SIMDD+SIMDD, r1);
+                                GOUT_SCATTER(gout, n  , r0);
+                                GOUT_SCATTER(gout, n+1, r1);
                         }
                         break;
                 case 7:
@@ -168,8 +171,8 @@ void CINTgout2e(double *gout, double *g, int *idx, CINTEnvVars *envs)
                                 r1+= MM_MUL(MM_MUL(MM_LOAD(hx+5*SIMDD), MM_LOAD(hy+5*SIMDD)), MM_LOAD(hz+5*SIMDD));
                                 r0+= MM_MUL(MM_MUL(MM_LOAD(gx+6*SIMDD), MM_LOAD(gy+6*SIMDD)), MM_LOAD(gz+6*SIMDD));
                                 r1+= MM_MUL(MM_MUL(MM_LOAD(hx+6*SIMDD), MM_LOAD(hy+6*SIMDD)), MM_LOAD(hz+6*SIMDD));
-                                MM_STORE(gout+n*SIMDD      , r0);
-                                MM_STORE(gout+n*SIMDD+SIMDD, r1);
+                                GOUT_SCATTER(gout, n  , r0);
+                                GOUT_SCATTER(gout, n+1, r1);
                         }
                         break;
                 default:
@@ -186,24 +189,18 @@ void CINTgout2e(double *gout, double *g, int *idx, CINTEnvVars *envs)
                                 r0 = MM_MUL(MM_MUL(MM_LOAD(gx), MM_LOAD(gy)), MM_LOAD(gz));
                                 r1 = MM_MUL(MM_MUL(MM_LOAD(hx), MM_LOAD(hy)), MM_LOAD(hz));
 
-                                for (i = 1; i < nrys_roots-1; i+=2) {
+                                for (i = 1; i < nrys_roots; i++) {
                                         //for (k = 0; k < SIMDD; k++) {
                                         //        gc[k]+= gx[i*SIMDD+k] * gy[i*SIMDD+k] * gz[i*SIMDD+k];
                                         //}
         r0+= MM_MUL(MM_MUL(MM_LOAD(gx+ i   *SIMDD), MM_LOAD(gy+ i   *SIMDD)), MM_LOAD(gz+ i   *SIMDD));
         r1+= MM_MUL(MM_MUL(MM_LOAD(hx+ i   *SIMDD), MM_LOAD(hy+ i   *SIMDD)), MM_LOAD(hz+ i   *SIMDD));
-        r0+= MM_MUL(MM_MUL(MM_LOAD(gx+(i+1)*SIMDD), MM_LOAD(gy+(i+1)*SIMDD)), MM_LOAD(gz+(i+1)*SIMDD));
-        r1+= MM_MUL(MM_MUL(MM_LOAD(hx+(i+1)*SIMDD), MM_LOAD(hy+(i+1)*SIMDD)), MM_LOAD(hz+(i+1)*SIMDD));
                                 }
-                                if (i < nrys_roots) {
-        r0+= MM_MUL(MM_MUL(MM_LOAD(gx+ i   *SIMDD), MM_LOAD(gy+ i   *SIMDD)), MM_LOAD(gz+ i   *SIMDD));
-        r1+= MM_MUL(MM_MUL(MM_LOAD(hx+ i   *SIMDD), MM_LOAD(hy+ i   *SIMDD)), MM_LOAD(hz+ i   *SIMDD));
-                                }
-                                MM_STORE(gout+n*SIMDD      , r0);
-                                MM_STORE(gout+n*SIMDD+SIMDD, r1);
+                                GOUT_SCATTER(gout, n  , r0);
+                                GOUT_SCATTER(gout, n+1, r1);
                         }
                 }
-                if (n < nf) {
+                for (; n < nf; n++) {
                         gx = g + idx[0+n*3] * SIMDD;
                         gy = g + idx[1+n*3] * SIMDD;
                         gz = g + idx[2+n*3] * SIMDD;
@@ -211,10 +208,526 @@ void CINTgout2e(double *gout, double *g, int *idx, CINTEnvVars *envs)
                         for (i = 1; i < nrys_roots; i++) {
                                 r0+= MM_MUL(MM_MUL(MM_LOAD(gx+i*SIMDD), MM_LOAD(gy+i*SIMDD)), MM_LOAD(gz+i*SIMDD));
                         }
-                        MM_STORE(gout+n*SIMDD, r0);
+                        GOUT_SCATTER(gout, n, r0);
                 }
         }
 }
+
+#elif __AVX2__
+#define collect \
+        MM_STORE(gc+2*SIMDD, r0); \
+        MM_STORE(gc+3*SIMDD, r1); \
+        MM_STOREU(gout +n, MM_GATHER(gc+0, vindex, 8)); \
+        MM_STOREU(gout1+n, MM_GATHER(gc+1, vindex, 8)); \
+        MM_STOREU(gout2+n, MM_GATHER(gc+2, vindex, 8)); \
+        MM_STOREU(gout3+n, MM_GATHER(gc+3, vindex, 8));
+
+void CINTgout2e(double *gout, double *g, int *idx, CINTEnvVars *envs)
+{
+        int nf = envs->nf;
+        if (nf == 1) {
+                double *gz = g + envs->g_size * 2 * SIMDD;
+                MM_STORE(gout, MM_LOAD(gz));
+        } else {
+                int nrys_roots = envs->nrys_roots;
+                int i, n;
+                double *gx, *gy, *gz;
+                double *hx, *hy, *hz;
+                __MD r0, r1;
+                ALIGNMM double gc[SIMDD*SIMDD];
+                double *RESTRICT gout1 = gout + nf*1;
+                double *RESTRICT gout2 = gout + nf*2;
+                double *RESTRICT gout3 = gout + nf*3;
+                __m128i vindex = _mm_set_epi32(3*SIMDD, 2*SIMDD, 1*SIMDD, 0);
+
+                switch(nrys_roots) {
+                case 1:
+                        for (n = 0; n < nf; n++) {
+                                gx = g + idx[0+n*3] * SIMDD;
+                                gy = g + idx[1+n*3] * SIMDD;
+                                gz = g + idx[2+n*3] * SIMDD;
+                                r0 = MM_MUL(MM_MUL(MM_LOAD(gx), MM_LOAD(gy)), MM_LOAD(gz));
+                                GOUT_SCATTER(gout, n, r0);
+                        }
+                        return;
+                case 2:
+                        for (n = 0; n < nf+1-SIMDD; n+=SIMDD) {
+                                gx = g + idx[0+n*3] * SIMDD;
+                                gy = g + idx[1+n*3] * SIMDD;
+                                gz = g + idx[2+n*3] * SIMDD;
+                                hx = g + idx[3+n*3] * SIMDD;
+                                hy = g + idx[4+n*3] * SIMDD;
+                                hz = g + idx[5+n*3] * SIMDD;
+                                r0 = MM_MUL(MM_MUL(MM_LOAD(gx      ), MM_LOAD(gy      )), MM_LOAD(gz      ));
+                                r1 = MM_MUL(MM_MUL(MM_LOAD(hx      ), MM_LOAD(hy      )), MM_LOAD(hz      ));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+SIMDD), MM_LOAD(gy+SIMDD)), MM_LOAD(gz+SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+SIMDD), MM_LOAD(hy+SIMDD)), MM_LOAD(hz+SIMDD));
+                                MM_STORE(gc+0*SIMDD, r0);
+                                MM_STORE(gc+1*SIMDD, r1);
+                                gx = g + idx[6 +n*3] * SIMDD;
+                                gy = g + idx[7 +n*3] * SIMDD;
+                                gz = g + idx[8 +n*3] * SIMDD;
+                                hx = g + idx[9 +n*3] * SIMDD;
+                                hy = g + idx[10+n*3] * SIMDD;
+                                hz = g + idx[11+n*3] * SIMDD;
+                                r0 = MM_MUL(MM_MUL(MM_LOAD(gx      ), MM_LOAD(gy      )), MM_LOAD(gz      ));
+                                r1 = MM_MUL(MM_MUL(MM_LOAD(hx      ), MM_LOAD(hy      )), MM_LOAD(hz      ));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+SIMDD), MM_LOAD(gy+SIMDD)), MM_LOAD(gz+SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+SIMDD), MM_LOAD(hy+SIMDD)), MM_LOAD(hz+SIMDD));
+                                collect;
+                        }
+                        break;
+                case 3:
+                        for (n = 0; n < nf+1-SIMDD; n+=SIMDD) {
+                                gx = g + idx[0+n*3] * SIMDD;
+                                gy = g + idx[1+n*3] * SIMDD;
+                                gz = g + idx[2+n*3] * SIMDD;
+                                hx = g + idx[3+n*3] * SIMDD;
+                                hy = g + idx[4+n*3] * SIMDD;
+                                hz = g + idx[5+n*3] * SIMDD;
+                                r0 = MM_MUL(MM_MUL(MM_LOAD(gx        ), MM_LOAD(gy        )), MM_LOAD(gz        ));
+                                r1 = MM_MUL(MM_MUL(MM_LOAD(hx        ), MM_LOAD(hy        )), MM_LOAD(hz        ));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+  SIMDD), MM_LOAD(gy+  SIMDD)), MM_LOAD(gz+  SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+  SIMDD), MM_LOAD(hy+  SIMDD)), MM_LOAD(hz+  SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+2*SIMDD), MM_LOAD(gy+2*SIMDD)), MM_LOAD(gz+2*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+2*SIMDD), MM_LOAD(hy+2*SIMDD)), MM_LOAD(hz+2*SIMDD));
+                                MM_STORE(gc+0*SIMDD, r0);
+                                MM_STORE(gc+1*SIMDD, r1);
+                                gx = g + idx[6 +n*3] * SIMDD;
+                                gy = g + idx[7 +n*3] * SIMDD;
+                                gz = g + idx[8 +n*3] * SIMDD;
+                                hx = g + idx[9 +n*3] * SIMDD;
+                                hy = g + idx[10+n*3] * SIMDD;
+                                hz = g + idx[11+n*3] * SIMDD;
+                                r0 = MM_MUL(MM_MUL(MM_LOAD(gx        ), MM_LOAD(gy        )), MM_LOAD(gz        ));
+                                r1 = MM_MUL(MM_MUL(MM_LOAD(hx        ), MM_LOAD(hy        )), MM_LOAD(hz        ));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+  SIMDD), MM_LOAD(gy+  SIMDD)), MM_LOAD(gz+  SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+  SIMDD), MM_LOAD(hy+  SIMDD)), MM_LOAD(hz+  SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+2*SIMDD), MM_LOAD(gy+2*SIMDD)), MM_LOAD(gz+2*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+2*SIMDD), MM_LOAD(hy+2*SIMDD)), MM_LOAD(hz+2*SIMDD));
+                                collect;
+                        }
+                        break;
+                case 4:
+                        for (n = 0; n < nf+1-SIMDD; n+=SIMDD) {
+                                gx = g + idx[0+n*3] * SIMDD;
+                                gy = g + idx[1+n*3] * SIMDD;
+                                gz = g + idx[2+n*3] * SIMDD;
+                                hx = g + idx[3+n*3] * SIMDD;
+                                hy = g + idx[4+n*3] * SIMDD;
+                                hz = g + idx[5+n*3] * SIMDD;
+                                r0 = MM_MUL(MM_MUL(MM_LOAD(gx        ), MM_LOAD(gy        )), MM_LOAD(gz        ));
+                                r1 = MM_MUL(MM_MUL(MM_LOAD(hx        ), MM_LOAD(hy        )), MM_LOAD(hz        ));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+  SIMDD), MM_LOAD(gy+  SIMDD)), MM_LOAD(gz+  SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+  SIMDD), MM_LOAD(hy+  SIMDD)), MM_LOAD(hz+  SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+2*SIMDD), MM_LOAD(gy+2*SIMDD)), MM_LOAD(gz+2*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+2*SIMDD), MM_LOAD(hy+2*SIMDD)), MM_LOAD(hz+2*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+3*SIMDD), MM_LOAD(gy+3*SIMDD)), MM_LOAD(gz+3*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+3*SIMDD), MM_LOAD(hy+3*SIMDD)), MM_LOAD(hz+3*SIMDD));
+                                MM_STORE(gc+0*SIMDD, r0);
+                                MM_STORE(gc+1*SIMDD, r1);
+                                gx = g + idx[6 +n*3] * SIMDD;
+                                gy = g + idx[7 +n*3] * SIMDD;
+                                gz = g + idx[8 +n*3] * SIMDD;
+                                hx = g + idx[9 +n*3] * SIMDD;
+                                hy = g + idx[10+n*3] * SIMDD;
+                                hz = g + idx[11+n*3] * SIMDD;
+                                r0 = MM_MUL(MM_MUL(MM_LOAD(gx        ), MM_LOAD(gy        )), MM_LOAD(gz        ));
+                                r1 = MM_MUL(MM_MUL(MM_LOAD(hx        ), MM_LOAD(hy        )), MM_LOAD(hz        ));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+  SIMDD), MM_LOAD(gy+  SIMDD)), MM_LOAD(gz+  SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+  SIMDD), MM_LOAD(hy+  SIMDD)), MM_LOAD(hz+  SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+2*SIMDD), MM_LOAD(gy+2*SIMDD)), MM_LOAD(gz+2*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+2*SIMDD), MM_LOAD(hy+2*SIMDD)), MM_LOAD(hz+2*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+3*SIMDD), MM_LOAD(gy+3*SIMDD)), MM_LOAD(gz+3*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+3*SIMDD), MM_LOAD(hy+3*SIMDD)), MM_LOAD(hz+3*SIMDD));
+                                collect;
+                        }
+                        break;
+                case 5:
+                        for (n = 0; n < nf+1-SIMDD; n+=SIMDD) {
+                                gx = g + idx[0+n*3] * SIMDD;
+                                gy = g + idx[1+n*3] * SIMDD;
+                                gz = g + idx[2+n*3] * SIMDD;
+                                hx = g + idx[3+n*3] * SIMDD;
+                                hy = g + idx[4+n*3] * SIMDD;
+                                hz = g + idx[5+n*3] * SIMDD;
+                                r0 = MM_MUL(MM_MUL(MM_LOAD(gx        ), MM_LOAD(gy        )), MM_LOAD(gz        ));
+                                r1 = MM_MUL(MM_MUL(MM_LOAD(hx        ), MM_LOAD(hy        )), MM_LOAD(hz        ));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+  SIMDD), MM_LOAD(gy+  SIMDD)), MM_LOAD(gz+  SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+  SIMDD), MM_LOAD(hy+  SIMDD)), MM_LOAD(hz+  SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+2*SIMDD), MM_LOAD(gy+2*SIMDD)), MM_LOAD(gz+2*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+2*SIMDD), MM_LOAD(hy+2*SIMDD)), MM_LOAD(hz+2*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+3*SIMDD), MM_LOAD(gy+3*SIMDD)), MM_LOAD(gz+3*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+3*SIMDD), MM_LOAD(hy+3*SIMDD)), MM_LOAD(hz+3*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+4*SIMDD), MM_LOAD(gy+4*SIMDD)), MM_LOAD(gz+4*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+4*SIMDD), MM_LOAD(hy+4*SIMDD)), MM_LOAD(hz+4*SIMDD));
+                                MM_STORE(gc+0*SIMDD, r0);
+                                MM_STORE(gc+1*SIMDD, r1);
+                                gx = g + idx[6 +n*3] * SIMDD;
+                                gy = g + idx[7 +n*3] * SIMDD;
+                                gz = g + idx[8 +n*3] * SIMDD;
+                                hx = g + idx[9 +n*3] * SIMDD;
+                                hy = g + idx[10+n*3] * SIMDD;
+                                hz = g + idx[11+n*3] * SIMDD;
+                                r0 = MM_MUL(MM_MUL(MM_LOAD(gx        ), MM_LOAD(gy        )), MM_LOAD(gz        ));
+                                r1 = MM_MUL(MM_MUL(MM_LOAD(hx        ), MM_LOAD(hy        )), MM_LOAD(hz        ));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+  SIMDD), MM_LOAD(gy+  SIMDD)), MM_LOAD(gz+  SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+  SIMDD), MM_LOAD(hy+  SIMDD)), MM_LOAD(hz+  SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+2*SIMDD), MM_LOAD(gy+2*SIMDD)), MM_LOAD(gz+2*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+2*SIMDD), MM_LOAD(hy+2*SIMDD)), MM_LOAD(hz+2*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+3*SIMDD), MM_LOAD(gy+3*SIMDD)), MM_LOAD(gz+3*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+3*SIMDD), MM_LOAD(hy+3*SIMDD)), MM_LOAD(hz+3*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+4*SIMDD), MM_LOAD(gy+4*SIMDD)), MM_LOAD(gz+4*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+4*SIMDD), MM_LOAD(hy+4*SIMDD)), MM_LOAD(hz+4*SIMDD));
+                                collect;
+                        }
+                        break;
+                case 6:
+                        for (n = 0; n < nf+1-SIMDD; n+=SIMDD) {
+                                gx = g + idx[0+n*3] * SIMDD;
+                                gy = g + idx[1+n*3] * SIMDD;
+                                gz = g + idx[2+n*3] * SIMDD;
+                                hx = g + idx[3+n*3] * SIMDD;
+                                hy = g + idx[4+n*3] * SIMDD;
+                                hz = g + idx[5+n*3] * SIMDD;
+                                r0 = MM_MUL(MM_MUL(MM_LOAD(gx        ), MM_LOAD(gy        )), MM_LOAD(gz        ));
+                                r1 = MM_MUL(MM_MUL(MM_LOAD(hx        ), MM_LOAD(hy        )), MM_LOAD(hz        ));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+  SIMDD), MM_LOAD(gy+  SIMDD)), MM_LOAD(gz+  SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+  SIMDD), MM_LOAD(hy+  SIMDD)), MM_LOAD(hz+  SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+2*SIMDD), MM_LOAD(gy+2*SIMDD)), MM_LOAD(gz+2*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+2*SIMDD), MM_LOAD(hy+2*SIMDD)), MM_LOAD(hz+2*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+3*SIMDD), MM_LOAD(gy+3*SIMDD)), MM_LOAD(gz+3*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+3*SIMDD), MM_LOAD(hy+3*SIMDD)), MM_LOAD(hz+3*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+4*SIMDD), MM_LOAD(gy+4*SIMDD)), MM_LOAD(gz+4*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+4*SIMDD), MM_LOAD(hy+4*SIMDD)), MM_LOAD(hz+4*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+5*SIMDD), MM_LOAD(gy+5*SIMDD)), MM_LOAD(gz+5*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+5*SIMDD), MM_LOAD(hy+5*SIMDD)), MM_LOAD(hz+5*SIMDD));
+                                MM_STORE(gc+0*SIMDD, r0);
+                                MM_STORE(gc+1*SIMDD, r1);
+                                gx = g + idx[6 +n*3] * SIMDD;
+                                gy = g + idx[7 +n*3] * SIMDD;
+                                gz = g + idx[8 +n*3] * SIMDD;
+                                hx = g + idx[9 +n*3] * SIMDD;
+                                hy = g + idx[10+n*3] * SIMDD;
+                                hz = g + idx[11+n*3] * SIMDD;
+                                r0 = MM_MUL(MM_MUL(MM_LOAD(gx        ), MM_LOAD(gy        )), MM_LOAD(gz        ));
+                                r1 = MM_MUL(MM_MUL(MM_LOAD(hx        ), MM_LOAD(hy        )), MM_LOAD(hz        ));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+  SIMDD), MM_LOAD(gy+  SIMDD)), MM_LOAD(gz+  SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+  SIMDD), MM_LOAD(hy+  SIMDD)), MM_LOAD(hz+  SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+2*SIMDD), MM_LOAD(gy+2*SIMDD)), MM_LOAD(gz+2*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+2*SIMDD), MM_LOAD(hy+2*SIMDD)), MM_LOAD(hz+2*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+3*SIMDD), MM_LOAD(gy+3*SIMDD)), MM_LOAD(gz+3*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+3*SIMDD), MM_LOAD(hy+3*SIMDD)), MM_LOAD(hz+3*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+4*SIMDD), MM_LOAD(gy+4*SIMDD)), MM_LOAD(gz+4*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+4*SIMDD), MM_LOAD(hy+4*SIMDD)), MM_LOAD(hz+4*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+5*SIMDD), MM_LOAD(gy+5*SIMDD)), MM_LOAD(gz+5*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+5*SIMDD), MM_LOAD(hy+5*SIMDD)), MM_LOAD(hz+5*SIMDD));
+                                collect;
+                        }
+                        break;
+                case 7:
+                        for (n = 0; n < nf+1-SIMDD; n+=SIMDD) {
+                                gx = g + idx[0+n*3] * SIMDD;
+                                gy = g + idx[1+n*3] * SIMDD;
+                                gz = g + idx[2+n*3] * SIMDD;
+                                hx = g + idx[3+n*3] * SIMDD;
+                                hy = g + idx[4+n*3] * SIMDD;
+                                hz = g + idx[5+n*3] * SIMDD;
+                                r0 = MM_MUL(MM_MUL(MM_LOAD(gx        ), MM_LOAD(gy        )), MM_LOAD(gz        ));
+                                r1 = MM_MUL(MM_MUL(MM_LOAD(hx        ), MM_LOAD(hy        )), MM_LOAD(hz        ));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+  SIMDD), MM_LOAD(gy+  SIMDD)), MM_LOAD(gz+  SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+  SIMDD), MM_LOAD(hy+  SIMDD)), MM_LOAD(hz+  SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+2*SIMDD), MM_LOAD(gy+2*SIMDD)), MM_LOAD(gz+2*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+2*SIMDD), MM_LOAD(hy+2*SIMDD)), MM_LOAD(hz+2*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+3*SIMDD), MM_LOAD(gy+3*SIMDD)), MM_LOAD(gz+3*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+3*SIMDD), MM_LOAD(hy+3*SIMDD)), MM_LOAD(hz+3*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+4*SIMDD), MM_LOAD(gy+4*SIMDD)), MM_LOAD(gz+4*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+4*SIMDD), MM_LOAD(hy+4*SIMDD)), MM_LOAD(hz+4*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+5*SIMDD), MM_LOAD(gy+5*SIMDD)), MM_LOAD(gz+5*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+5*SIMDD), MM_LOAD(hy+5*SIMDD)), MM_LOAD(hz+5*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+6*SIMDD), MM_LOAD(gy+6*SIMDD)), MM_LOAD(gz+6*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+6*SIMDD), MM_LOAD(hy+6*SIMDD)), MM_LOAD(hz+6*SIMDD));
+                                MM_STORE(gc+0*SIMDD, r0);
+                                MM_STORE(gc+1*SIMDD, r1);
+                                gx = g + idx[6 +n*3] * SIMDD;
+                                gy = g + idx[7 +n*3] * SIMDD;
+                                gz = g + idx[8 +n*3] * SIMDD;
+                                hx = g + idx[9 +n*3] * SIMDD;
+                                hy = g + idx[10+n*3] * SIMDD;
+                                hz = g + idx[11+n*3] * SIMDD;
+                                r0 = MM_MUL(MM_MUL(MM_LOAD(gx        ), MM_LOAD(gy        )), MM_LOAD(gz        ));
+                                r1 = MM_MUL(MM_MUL(MM_LOAD(hx        ), MM_LOAD(hy        )), MM_LOAD(hz        ));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+  SIMDD), MM_LOAD(gy+  SIMDD)), MM_LOAD(gz+  SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+  SIMDD), MM_LOAD(hy+  SIMDD)), MM_LOAD(hz+  SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+2*SIMDD), MM_LOAD(gy+2*SIMDD)), MM_LOAD(gz+2*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+2*SIMDD), MM_LOAD(hy+2*SIMDD)), MM_LOAD(hz+2*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+3*SIMDD), MM_LOAD(gy+3*SIMDD)), MM_LOAD(gz+3*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+3*SIMDD), MM_LOAD(hy+3*SIMDD)), MM_LOAD(hz+3*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+4*SIMDD), MM_LOAD(gy+4*SIMDD)), MM_LOAD(gz+4*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+4*SIMDD), MM_LOAD(hy+4*SIMDD)), MM_LOAD(hz+4*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+5*SIMDD), MM_LOAD(gy+5*SIMDD)), MM_LOAD(gz+5*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+5*SIMDD), MM_LOAD(hy+5*SIMDD)), MM_LOAD(hz+5*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+6*SIMDD), MM_LOAD(gy+6*SIMDD)), MM_LOAD(gz+6*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+6*SIMDD), MM_LOAD(hy+6*SIMDD)), MM_LOAD(hz+6*SIMDD));
+                                collect;
+                        }
+                        break;
+                default:
+                        for (n = 0; n < nf+1-SIMDD; n+=SIMDD) {
+                                gx = g + idx[0+n*3] * SIMDD;
+                                gy = g + idx[1+n*3] * SIMDD;
+                                gz = g + idx[2+n*3] * SIMDD;
+                                hx = g + idx[3+n*3] * SIMDD;
+                                hy = g + idx[4+n*3] * SIMDD;
+                                hz = g + idx[5+n*3] * SIMDD;
+                                //for (k = 0; k < SIMDD; k++) {
+                                //        gc[k] = gx[k] * gy[k] * gz[k];
+                                //}
+                                r0 = MM_MUL(MM_MUL(MM_LOAD(gx), MM_LOAD(gy)), MM_LOAD(gz));
+                                r1 = MM_MUL(MM_MUL(MM_LOAD(hx), MM_LOAD(hy)), MM_LOAD(hz));
+
+                                for (i = 1; i < nrys_roots; i++) {
+                                        //for (k = 0; k < SIMDD; k++) {
+                                        //        gc[k]+= gx[i*SIMDD+k] * gy[i*SIMDD+k] * gz[i*SIMDD+k];
+                                        //}
+        r0+= MM_MUL(MM_MUL(MM_LOAD(gx+ i   *SIMDD), MM_LOAD(gy+ i   *SIMDD)), MM_LOAD(gz+ i   *SIMDD));
+        r1+= MM_MUL(MM_MUL(MM_LOAD(hx+ i   *SIMDD), MM_LOAD(hy+ i   *SIMDD)), MM_LOAD(hz+ i   *SIMDD));
+                                }
+                                MM_STORE(gc+0*SIMDD, r0);
+                                MM_STORE(gc+1*SIMDD, r1);
+                                gx = g + idx[6 +n*3] * SIMDD;
+                                gy = g + idx[7 +n*3] * SIMDD;
+                                gz = g + idx[8 +n*3] * SIMDD;
+                                hx = g + idx[9 +n*3] * SIMDD;
+                                hy = g + idx[10+n*3] * SIMDD;
+                                hz = g + idx[11+n*3] * SIMDD;
+                                r0 = MM_MUL(MM_MUL(MM_LOAD(gx), MM_LOAD(gy)), MM_LOAD(gz));
+                                r1 = MM_MUL(MM_MUL(MM_LOAD(hx), MM_LOAD(hy)), MM_LOAD(hz));
+
+                                for (i = 1; i < nrys_roots; i++) {
+        r0+= MM_MUL(MM_MUL(MM_LOAD(gx+ i   *SIMDD), MM_LOAD(gy+ i   *SIMDD)), MM_LOAD(gz+ i   *SIMDD));
+        r1+= MM_MUL(MM_MUL(MM_LOAD(hx+ i   *SIMDD), MM_LOAD(hy+ i   *SIMDD)), MM_LOAD(hz+ i   *SIMDD));
+                                }
+                                collect;
+                        }
+                }
+                for (; n < nf; n++) {
+                        gx = g + idx[0+n*3] * SIMDD;
+                        gy = g + idx[1+n*3] * SIMDD;
+                        gz = g + idx[2+n*3] * SIMDD;
+                        r0 = MM_MUL(MM_MUL(MM_LOAD(gx), MM_LOAD(gy)), MM_LOAD(gz));
+                        for (i = 1; i < nrys_roots; i++) {
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+i*SIMDD), MM_LOAD(gy+i*SIMDD)), MM_LOAD(gz+i*SIMDD));
+                        }
+                        GOUT_SCATTER(gout, n, r0);
+                }
+        }
+}
+
+#else
+
+void CINTgout2e(double *gout, double *g, int *idx, CINTEnvVars *envs)
+{
+        int nf = envs->nf;
+        if (nf == 1) {
+                double *gz = g + envs->g_size * 2 * SIMDD;
+                MM_STORE(gout, MM_LOAD(gz));
+        } else {
+                int nrys_roots = envs->nrys_roots;
+                int i, n;
+                double *gx, *gy, *gz;
+                double *hx, *hy, *hz;
+                __MD r0, r1;
+
+                ALIGNMM double gc[SIMDD*SIMDD];
+                double *RESTRICT gout1 = gout + nf*1;
+                double *RESTRICT gout2 = gout + nf*2;
+                double *RESTRICT gout3 = gout + nf*3;
+
+                switch(nrys_roots) {
+                case 1:
+                        for (n = 0; n < nf; n++) {
+                                gx = g + idx[0+n*3] * SIMDD;
+                                gy = g + idx[1+n*3] * SIMDD;
+                                gz = g + idx[2+n*3] * SIMDD;
+                                r0 = MM_MUL(MM_MUL(MM_LOAD(gx), MM_LOAD(gy)), MM_LOAD(gz));
+                                GOUT_SCATTER(gout, n, r0);
+                        }
+                        return;
+                case 2:
+                        for (n = 0; n < nf-1; n+=2) {
+                                gx = g + idx[0+n*3] * SIMDD;
+                                gy = g + idx[1+n*3] * SIMDD;
+                                gz = g + idx[2+n*3] * SIMDD;
+                                hx = g + idx[3+n*3] * SIMDD;
+                                hy = g + idx[4+n*3] * SIMDD;
+                                hz = g + idx[5+n*3] * SIMDD;
+                                r0 = MM_MUL(MM_MUL(MM_LOAD(gx      ), MM_LOAD(gy      )), MM_LOAD(gz      ));
+                                r1 = MM_MUL(MM_MUL(MM_LOAD(hx      ), MM_LOAD(hy      )), MM_LOAD(hz      ));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+SIMDD), MM_LOAD(gy+SIMDD)), MM_LOAD(gz+SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+SIMDD), MM_LOAD(hy+SIMDD)), MM_LOAD(hz+SIMDD));
+                                GOUT_SCATTER(gout, n  , r0);
+                                GOUT_SCATTER(gout, n+1, r1);
+                        }
+                        break;
+                case 3:
+                        for (n = 0; n < nf-1; n+=2) {
+                                gx = g + idx[0+n*3] * SIMDD;
+                                gy = g + idx[1+n*3] * SIMDD;
+                                gz = g + idx[2+n*3] * SIMDD;
+                                hx = g + idx[3+n*3] * SIMDD;
+                                hy = g + idx[4+n*3] * SIMDD;
+                                hz = g + idx[5+n*3] * SIMDD;
+                                r0 = MM_MUL(MM_MUL(MM_LOAD(gx        ), MM_LOAD(gy        )), MM_LOAD(gz        ));
+                                r1 = MM_MUL(MM_MUL(MM_LOAD(hx        ), MM_LOAD(hy        )), MM_LOAD(hz        ));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+  SIMDD), MM_LOAD(gy+  SIMDD)), MM_LOAD(gz+  SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+  SIMDD), MM_LOAD(hy+  SIMDD)), MM_LOAD(hz+  SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+2*SIMDD), MM_LOAD(gy+2*SIMDD)), MM_LOAD(gz+2*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+2*SIMDD), MM_LOAD(hy+2*SIMDD)), MM_LOAD(hz+2*SIMDD));
+                                GOUT_SCATTER(gout, n  , r0);
+                                GOUT_SCATTER(gout, n+1, r1);
+                        }
+                        break;
+                case 4:
+                        for (n = 0; n < nf-1; n+=2) {
+                                gx = g + idx[0+n*3] * SIMDD;
+                                gy = g + idx[1+n*3] * SIMDD;
+                                gz = g + idx[2+n*3] * SIMDD;
+                                hx = g + idx[3+n*3] * SIMDD;
+                                hy = g + idx[4+n*3] * SIMDD;
+                                hz = g + idx[5+n*3] * SIMDD;
+                                r0 = MM_MUL(MM_MUL(MM_LOAD(gx        ), MM_LOAD(gy        )), MM_LOAD(gz        ));
+                                r1 = MM_MUL(MM_MUL(MM_LOAD(hx        ), MM_LOAD(hy        )), MM_LOAD(hz        ));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+  SIMDD), MM_LOAD(gy+  SIMDD)), MM_LOAD(gz+  SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+  SIMDD), MM_LOAD(hy+  SIMDD)), MM_LOAD(hz+  SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+2*SIMDD), MM_LOAD(gy+2*SIMDD)), MM_LOAD(gz+2*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+2*SIMDD), MM_LOAD(hy+2*SIMDD)), MM_LOAD(hz+2*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+3*SIMDD), MM_LOAD(gy+3*SIMDD)), MM_LOAD(gz+3*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+3*SIMDD), MM_LOAD(hy+3*SIMDD)), MM_LOAD(hz+3*SIMDD));
+                                GOUT_SCATTER(gout, n  , r0);
+                                GOUT_SCATTER(gout, n+1, r1);
+                        }
+                        break;
+                case 5:
+                        for (n = 0; n < nf-1; n+=2) {
+                                gx = g + idx[0+n*3] * SIMDD;
+                                gy = g + idx[1+n*3] * SIMDD;
+                                gz = g + idx[2+n*3] * SIMDD;
+                                hx = g + idx[3+n*3] * SIMDD;
+                                hy = g + idx[4+n*3] * SIMDD;
+                                hz = g + idx[5+n*3] * SIMDD;
+                                r0 = MM_MUL(MM_MUL(MM_LOAD(gx        ), MM_LOAD(gy        )), MM_LOAD(gz        ));
+                                r1 = MM_MUL(MM_MUL(MM_LOAD(hx        ), MM_LOAD(hy        )), MM_LOAD(hz        ));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+  SIMDD), MM_LOAD(gy+  SIMDD)), MM_LOAD(gz+  SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+  SIMDD), MM_LOAD(hy+  SIMDD)), MM_LOAD(hz+  SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+2*SIMDD), MM_LOAD(gy+2*SIMDD)), MM_LOAD(gz+2*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+2*SIMDD), MM_LOAD(hy+2*SIMDD)), MM_LOAD(hz+2*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+3*SIMDD), MM_LOAD(gy+3*SIMDD)), MM_LOAD(gz+3*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+3*SIMDD), MM_LOAD(hy+3*SIMDD)), MM_LOAD(hz+3*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+4*SIMDD), MM_LOAD(gy+4*SIMDD)), MM_LOAD(gz+4*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+4*SIMDD), MM_LOAD(hy+4*SIMDD)), MM_LOAD(hz+4*SIMDD));
+                                GOUT_SCATTER(gout, n  , r0);
+                                GOUT_SCATTER(gout, n+1, r1);
+                        }
+                        break;
+                case 6:
+                        for (n = 0; n < nf-1; n+=2) {
+                                gx = g + idx[0+n*3] * SIMDD;
+                                gy = g + idx[1+n*3] * SIMDD;
+                                gz = g + idx[2+n*3] * SIMDD;
+                                hx = g + idx[3+n*3] * SIMDD;
+                                hy = g + idx[4+n*3] * SIMDD;
+                                hz = g + idx[5+n*3] * SIMDD;
+                                r0 = MM_MUL(MM_MUL(MM_LOAD(gx        ), MM_LOAD(gy        )), MM_LOAD(gz        ));
+                                r1 = MM_MUL(MM_MUL(MM_LOAD(hx        ), MM_LOAD(hy        )), MM_LOAD(hz        ));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+  SIMDD), MM_LOAD(gy+  SIMDD)), MM_LOAD(gz+  SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+  SIMDD), MM_LOAD(hy+  SIMDD)), MM_LOAD(hz+  SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+2*SIMDD), MM_LOAD(gy+2*SIMDD)), MM_LOAD(gz+2*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+2*SIMDD), MM_LOAD(hy+2*SIMDD)), MM_LOAD(hz+2*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+3*SIMDD), MM_LOAD(gy+3*SIMDD)), MM_LOAD(gz+3*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+3*SIMDD), MM_LOAD(hy+3*SIMDD)), MM_LOAD(hz+3*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+4*SIMDD), MM_LOAD(gy+4*SIMDD)), MM_LOAD(gz+4*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+4*SIMDD), MM_LOAD(hy+4*SIMDD)), MM_LOAD(hz+4*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+5*SIMDD), MM_LOAD(gy+5*SIMDD)), MM_LOAD(gz+5*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+5*SIMDD), MM_LOAD(hy+5*SIMDD)), MM_LOAD(hz+5*SIMDD));
+                                GOUT_SCATTER(gout, n  , r0);
+                                GOUT_SCATTER(gout, n+1, r1);
+                        }
+                        break;
+                case 7:
+                        for (n = 0; n < nf-1; n+=2) {
+                                gx = g + idx[0+n*3] * SIMDD;
+                                gy = g + idx[1+n*3] * SIMDD;
+                                gz = g + idx[2+n*3] * SIMDD;
+                                hx = g + idx[3+n*3] * SIMDD;
+                                hy = g + idx[4+n*3] * SIMDD;
+                                hz = g + idx[5+n*3] * SIMDD;
+                                r0 = MM_MUL(MM_MUL(MM_LOAD(gx        ), MM_LOAD(gy        )), MM_LOAD(gz        ));
+                                r1 = MM_MUL(MM_MUL(MM_LOAD(hx        ), MM_LOAD(hy        )), MM_LOAD(hz        ));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+  SIMDD), MM_LOAD(gy+  SIMDD)), MM_LOAD(gz+  SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+  SIMDD), MM_LOAD(hy+  SIMDD)), MM_LOAD(hz+  SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+2*SIMDD), MM_LOAD(gy+2*SIMDD)), MM_LOAD(gz+2*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+2*SIMDD), MM_LOAD(hy+2*SIMDD)), MM_LOAD(hz+2*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+3*SIMDD), MM_LOAD(gy+3*SIMDD)), MM_LOAD(gz+3*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+3*SIMDD), MM_LOAD(hy+3*SIMDD)), MM_LOAD(hz+3*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+4*SIMDD), MM_LOAD(gy+4*SIMDD)), MM_LOAD(gz+4*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+4*SIMDD), MM_LOAD(hy+4*SIMDD)), MM_LOAD(hz+4*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+5*SIMDD), MM_LOAD(gy+5*SIMDD)), MM_LOAD(gz+5*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+5*SIMDD), MM_LOAD(hy+5*SIMDD)), MM_LOAD(hz+5*SIMDD));
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+6*SIMDD), MM_LOAD(gy+6*SIMDD)), MM_LOAD(gz+6*SIMDD));
+                                r1+= MM_MUL(MM_MUL(MM_LOAD(hx+6*SIMDD), MM_LOAD(hy+6*SIMDD)), MM_LOAD(hz+6*SIMDD));
+                                GOUT_SCATTER(gout, n  , r0);
+                                GOUT_SCATTER(gout, n+1, r1);
+                        }
+                        break;
+                default:
+                        for (n = 0; n < nf-1; n+=2) {
+                                gx = g + idx[0+n*3] * SIMDD;
+                                gy = g + idx[1+n*3] * SIMDD;
+                                gz = g + idx[2+n*3] * SIMDD;
+                                hx = g + idx[3+n*3] * SIMDD;
+                                hy = g + idx[4+n*3] * SIMDD;
+                                hz = g + idx[5+n*3] * SIMDD;
+                                //for (k = 0; k < SIMDD; k++) {
+                                //        gc[k] = gx[k] * gy[k] * gz[k];
+                                //}
+                                r0 = MM_MUL(MM_MUL(MM_LOAD(gx), MM_LOAD(gy)), MM_LOAD(gz));
+                                r1 = MM_MUL(MM_MUL(MM_LOAD(hx), MM_LOAD(hy)), MM_LOAD(hz));
+
+                                for (i = 1; i < nrys_roots; i++) {
+                                        //for (k = 0; k < SIMDD; k++) {
+                                        //        gc[k]+= gx[i*SIMDD+k] * gy[i*SIMDD+k] * gz[i*SIMDD+k];
+                                        //}
+        r0+= MM_MUL(MM_MUL(MM_LOAD(gx+ i   *SIMDD), MM_LOAD(gy+ i   *SIMDD)), MM_LOAD(gz+ i   *SIMDD));
+        r1+= MM_MUL(MM_MUL(MM_LOAD(hx+ i   *SIMDD), MM_LOAD(hy+ i   *SIMDD)), MM_LOAD(hz+ i   *SIMDD));
+                                }
+                                MM_STORE(gc+0*SIMDD, r0);
+                                MM_STORE(gc+1*SIMDD, r1);
+                                gx = g + idx[6 +n*3] * SIMDD;
+                                gy = g + idx[7 +n*3] * SIMDD;
+                                gz = g + idx[8 +n*3] * SIMDD;
+                                hx = g + idx[9 +n*3] * SIMDD;
+                                hy = g + idx[10+n*3] * SIMDD;
+                                hz = g + idx[11+n*3] * SIMDD;
+                                r0 = MM_MUL(MM_MUL(MM_LOAD(gx), MM_LOAD(gy)), MM_LOAD(gz));
+                                r1 = MM_MUL(MM_MUL(MM_LOAD(hx), MM_LOAD(hy)), MM_LOAD(hz));
+                                GOUT_SCATTER(gout, n  , r0);
+                                GOUT_SCATTER(gout, n+1, r1);
+                        }
+                }
+                for (; n < nf; n++) {
+                        gx = g + idx[0+n*3] * SIMDD;
+                        gy = g + idx[1+n*3] * SIMDD;
+                        gz = g + idx[2+n*3] * SIMDD;
+                        r0 = MM_MUL(MM_MUL(MM_LOAD(gx), MM_LOAD(gy)), MM_LOAD(gz));
+                        for (i = 1; i < nrys_roots; i++) {
+                                r0+= MM_MUL(MM_MUL(MM_LOAD(gx+i*SIMDD), MM_LOAD(gy+i*SIMDD)), MM_LOAD(gz+i*SIMDD));
+                        }
+                        GOUT_SCATTER(gout, n, r0);
+                }
+        }
+}
+#endif
 
 void CINTgout2e_simd1(double *gout, double *g, int *idx, CINTEnvVars *envs)
 {

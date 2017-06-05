@@ -37,8 +37,10 @@
 static void CINTgout2e_int2e_ig1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
+int nfc = nf * 3;
 int nrys_roots = envs->nrys_roots;
 int ix, iy, iz, i, n;
+DECLARE_GOUT;
 double *RESTRICT g0 = g;
 double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
 double rirj[3];
@@ -102,9 +104,9 @@ rs[0] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)
 rs[1] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
 rs[2] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
 } break;}
-r1 = - MM_SET1(c[1])*rs[2] + MM_SET1(c[2])*rs[1]; MM_STORE(gout+(n*3+0)*SIMDD, r1);
-r1 = - MM_SET1(c[2])*rs[0] + MM_SET1(c[0])*rs[2]; MM_STORE(gout+(n*3+1)*SIMDD, r1);
-r1 = - MM_SET1(c[0])*rs[1] + MM_SET1(c[1])*rs[0]; MM_STORE(gout+(n*3+2)*SIMDD, r1);
+r1 = - MM_SET1(c[1])*rs[2] + MM_SET1(c[2])*rs[1]; GOUT_SCATTER(gout, n*3+0, r1);
+r1 = - MM_SET1(c[2])*rs[0] + MM_SET1(c[0])*rs[2]; GOUT_SCATTER(gout, n*3+1, r1);
+r1 = - MM_SET1(c[0])*rs[1] + MM_SET1(c[1])*rs[0]; GOUT_SCATTER(gout, n*3+2, r1);
 }}
 static void CINTgout2e_int2e_ig1_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
@@ -171,16 +173,20 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_ig1;
 envs.f_gout_simd1 = &CINTgout2e_int2e_ig1_simd1;
 envs.common_factor *= 0.5;
-if (out == NULL) { return int2e_cache_size(&envs);
-} else {
-int i, nc;
+int i, nout;
+int counts[4];
 if (envs.shls[0] == envs.shls[1]) {
-nc = envs.nf * envs.x_ctr[0] * envs.x_ctr[1] * envs.x_ctr[2] * envs.x_ctr[3];
-int n_comp = envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor;
-for (i = 0; i < nc * n_comp; i++) { out[i] = 0; }
+counts[0] = envs.nfi * envs.x_ctr[0];
+counts[1] = envs.nfj * envs.x_ctr[1];
+counts[2] = envs.nfk * envs.x_ctr[2];
+counts[3] = envs.nfl * envs.x_ctr[3];
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2] * dims[3];
+for (i = 0; i < envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor; i++) {
+c2s_dset0(out+nout*i, dims, counts); }
 return 0; }
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
-}} // int2e_ig1_cart
+} // int2e_ig1_cart
 int int2e_ig1_sph(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 0, 0, 0, 1, 1, 1, 3};
@@ -189,17 +195,20 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_ig1;
 envs.f_gout_simd1 = &CINTgout2e_int2e_ig1_simd1;
 envs.common_factor *= 0.5;
-if (out == NULL) { return int2e_cache_size(&envs) + envs.nf*MAX(0, 3-SIMDD);
-} else {
-int i, nc;
+int i, nout;
+int counts[4];
 if (envs.shls[0] == envs.shls[1]) {
-nc = (envs.i_l*2+1) * (envs.j_l*2+1) * (envs.k_l*2+1) * (envs.l_l*2+1) *
-envs.x_ctr[0] * envs.x_ctr[1] * envs.x_ctr[2] * envs.x_ctr[3];
-int n_comp = envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor;
-for (i = 0; i < nc * n_comp; i++) { out[i] = 0; }
+counts[0] = (envs.i_l*2+1) * envs.x_ctr[0];
+counts[1] = (envs.j_l*2+1) * envs.x_ctr[1];
+counts[2] = (envs.k_l*2+1) * envs.x_ctr[2];
+counts[3] = (envs.l_l*2+1) * envs.x_ctr[3];
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2] * dims[3];
+for (i = 0; i < envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor; i++) {
+c2s_dset0(out+nout*i, dims, counts); }
 return 0; }
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
-}} // int2e_ig1_sph
+} // int2e_ig1_sph
 int int2e_ig1_spinor(double complex *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 0, 0, 0, 1, 1, 1, 3};
@@ -208,22 +217,20 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_ig1;
 envs.f_gout_simd1 = &CINTgout2e_int2e_ig1_simd1;
 envs.common_factor *= 0.5;
-if (out == NULL) {
-int n0 = int2e_cache_size(&envs);
-int n1 = CINTcgto_spinor(shls[0], bas) * envs.nfk * envs.x_ctr[2]
-* envs.nfl * envs.x_ctr[3] * CINTcgto_spinor(shls[1], bas);
-return MAX(n0, n0/2 + n1*envs.ncomp_e2*OF_CMPLX + envs.nf*20*OF_CMPLX);
-} else {
-int i, nc;
+int i, nout;
+int counts[4];
 if (envs.shls[0] == envs.shls[1]) {
-nc = CINTcgto_spinor(envs.shls[0], envs.bas)
-* CINTcgto_spinor(envs.shls[1], envs.bas)
-* CINTcgto_spinor(envs.shls[2], envs.bas)
-* CINTcgto_spinor(envs.shls[3], envs.bas);
-for (i = 0; i < nc * envs.ncomp_tensor; i++) { out[i] = 0; }
+counts[0] = CINTcgto_spinor(envs.shls[0], envs.bas);
+counts[1] = CINTcgto_spinor(envs.shls[1], envs.bas);
+counts[2] = CINTcgto_spinor(envs.shls[2], envs.bas);
+counts[3] = CINTcgto_spinor(envs.shls[3], envs.bas);
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2] * dims[3];
+for (i = 0; i < envs.ncomp_tensor; i++) {
+c2s_zset0(out+nout*i, dims, counts); }
 return 0; }
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_2e1, &c2s_sf_2e2);
-}} // int2e_ig1_spinor
+} // int2e_ig1_spinor
 ALL_CINT(int2e_ig1)
 //ALL_CINT_FORTRAN_(cint2e_ig1)
 /* <G k G i|R12 |j l> : i,j \in electron 1; k,l \in electron 2
@@ -231,8 +238,10 @@ ALL_CINT(int2e_ig1)
 static void CINTgout2e_int2e_ig1ig2(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
+int nfc = nf * 9;
 int nrys_roots = envs->nrys_roots;
 int ix, iy, iz, i, n;
+DECLARE_GOUT;
 double *RESTRICT g0 = g;
 double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
 double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
@@ -376,15 +385,15 @@ rs[6] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)
 rs[7] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
 rs[8] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
 } break;}
-r1 = + MM_SET1(c[4])*rs[8] - MM_SET1(c[7])*rs[5] - MM_SET1(c[5])*rs[7] + MM_SET1(c[8])*rs[4]; MM_STORE(gout+(n*9+0)*SIMDD, r1);
-r1 = + MM_SET1(c[5])*rs[6] - MM_SET1(c[8])*rs[3] - MM_SET1(c[3])*rs[8] + MM_SET1(c[6])*rs[5]; MM_STORE(gout+(n*9+1)*SIMDD, r1);
-r1 = + MM_SET1(c[3])*rs[7] - MM_SET1(c[6])*rs[4] - MM_SET1(c[4])*rs[6] + MM_SET1(c[7])*rs[3]; MM_STORE(gout+(n*9+2)*SIMDD, r1);
-r1 = + MM_SET1(c[7])*rs[2] - MM_SET1(c[1])*rs[8] - MM_SET1(c[8])*rs[1] + MM_SET1(c[2])*rs[7]; MM_STORE(gout+(n*9+3)*SIMDD, r1);
-r1 = + MM_SET1(c[8])*rs[0] - MM_SET1(c[2])*rs[6] - MM_SET1(c[6])*rs[2] + MM_SET1(c[0])*rs[8]; MM_STORE(gout+(n*9+4)*SIMDD, r1);
-r1 = + MM_SET1(c[6])*rs[1] - MM_SET1(c[0])*rs[7] - MM_SET1(c[7])*rs[0] + MM_SET1(c[1])*rs[6]; MM_STORE(gout+(n*9+5)*SIMDD, r1);
-r1 = + MM_SET1(c[1])*rs[5] - MM_SET1(c[4])*rs[2] - MM_SET1(c[2])*rs[4] + MM_SET1(c[5])*rs[1]; MM_STORE(gout+(n*9+6)*SIMDD, r1);
-r1 = + MM_SET1(c[2])*rs[3] - MM_SET1(c[5])*rs[0] - MM_SET1(c[0])*rs[5] + MM_SET1(c[3])*rs[2]; MM_STORE(gout+(n*9+7)*SIMDD, r1);
-r1 = + MM_SET1(c[0])*rs[4] - MM_SET1(c[3])*rs[1] - MM_SET1(c[1])*rs[3] + MM_SET1(c[4])*rs[0]; MM_STORE(gout+(n*9+8)*SIMDD, r1);
+r1 = + MM_SET1(c[4])*rs[8] - MM_SET1(c[7])*rs[5] - MM_SET1(c[5])*rs[7] + MM_SET1(c[8])*rs[4]; GOUT_SCATTER(gout, n*9+0, r1);
+r1 = + MM_SET1(c[5])*rs[6] - MM_SET1(c[8])*rs[3] - MM_SET1(c[3])*rs[8] + MM_SET1(c[6])*rs[5]; GOUT_SCATTER(gout, n*9+1, r1);
+r1 = + MM_SET1(c[3])*rs[7] - MM_SET1(c[6])*rs[4] - MM_SET1(c[4])*rs[6] + MM_SET1(c[7])*rs[3]; GOUT_SCATTER(gout, n*9+2, r1);
+r1 = + MM_SET1(c[7])*rs[2] - MM_SET1(c[1])*rs[8] - MM_SET1(c[8])*rs[1] + MM_SET1(c[2])*rs[7]; GOUT_SCATTER(gout, n*9+3, r1);
+r1 = + MM_SET1(c[8])*rs[0] - MM_SET1(c[2])*rs[6] - MM_SET1(c[6])*rs[2] + MM_SET1(c[0])*rs[8]; GOUT_SCATTER(gout, n*9+4, r1);
+r1 = + MM_SET1(c[6])*rs[1] - MM_SET1(c[0])*rs[7] - MM_SET1(c[7])*rs[0] + MM_SET1(c[1])*rs[6]; GOUT_SCATTER(gout, n*9+5, r1);
+r1 = + MM_SET1(c[1])*rs[5] - MM_SET1(c[4])*rs[2] - MM_SET1(c[2])*rs[4] + MM_SET1(c[5])*rs[1]; GOUT_SCATTER(gout, n*9+6, r1);
+r1 = + MM_SET1(c[2])*rs[3] - MM_SET1(c[5])*rs[0] - MM_SET1(c[0])*rs[5] + MM_SET1(c[3])*rs[2]; GOUT_SCATTER(gout, n*9+7, r1);
+r1 = + MM_SET1(c[0])*rs[4] - MM_SET1(c[3])*rs[1] - MM_SET1(c[1])*rs[3] + MM_SET1(c[4])*rs[0]; GOUT_SCATTER(gout, n*9+8, r1);
 }}
 static void CINTgout2e_int2e_ig1ig2_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
@@ -455,21 +464,30 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_ig1ig2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_ig1ig2_simd1;
 envs.common_factor *= -0.25;
-if (out == NULL) { return int2e_cache_size(&envs);
-} else {
-int i, nc;
+int i, nout;
+int counts[4];
 if (envs.shls[0] == envs.shls[1]) {
-nc = envs.nf * envs.x_ctr[0] * envs.x_ctr[1] * envs.x_ctr[2] * envs.x_ctr[3];
-int n_comp = envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor;
-for (i = 0; i < nc * n_comp; i++) { out[i] = 0; }
+counts[0] = envs.nfi * envs.x_ctr[0];
+counts[1] = envs.nfj * envs.x_ctr[1];
+counts[2] = envs.nfk * envs.x_ctr[2];
+counts[3] = envs.nfl * envs.x_ctr[3];
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2] * dims[3];
+for (i = 0; i < envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor; i++) {
+c2s_dset0(out+nout*i, dims, counts); }
 return 0; }
 if (envs.shls[2] == envs.shls[3]) {
-nc = envs.nf * envs.x_ctr[0] * envs.x_ctr[1] * envs.x_ctr[2] * envs.x_ctr[3];
-int n_comp = envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor;
-for (i = 0; i < nc * n_comp; i++) { out[i] = 0; }
+counts[0] = envs.nfi * envs.x_ctr[0];
+counts[1] = envs.nfj * envs.x_ctr[1];
+counts[2] = envs.nfk * envs.x_ctr[2];
+counts[3] = envs.nfl * envs.x_ctr[3];
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2] * dims[3];
+for (i = 0; i < envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor; i++) {
+c2s_dset0(out+nout*i, dims, counts); }
 return 0; }
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
-}} // int2e_ig1ig2_cart
+} // int2e_ig1ig2_cart
 int int2e_ig1ig2_sph(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 0, 1, 0, 2, 1, 1, 9};
@@ -478,23 +496,30 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_ig1ig2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_ig1ig2_simd1;
 envs.common_factor *= -0.25;
-if (out == NULL) { return int2e_cache_size(&envs) + envs.nf*MAX(0, 3-SIMDD);
-} else {
-int i, nc;
+int i, nout;
+int counts[4];
 if (envs.shls[0] == envs.shls[1]) {
-nc = (envs.i_l*2+1) * (envs.j_l*2+1) * (envs.k_l*2+1) * (envs.l_l*2+1) *
-envs.x_ctr[0] * envs.x_ctr[1] * envs.x_ctr[2] * envs.x_ctr[3];
-int n_comp = envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor;
-for (i = 0; i < nc * n_comp; i++) { out[i] = 0; }
+counts[0] = (envs.i_l*2+1) * envs.x_ctr[0];
+counts[1] = (envs.j_l*2+1) * envs.x_ctr[1];
+counts[2] = (envs.k_l*2+1) * envs.x_ctr[2];
+counts[3] = (envs.l_l*2+1) * envs.x_ctr[3];
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2] * dims[3];
+for (i = 0; i < envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor; i++) {
+c2s_dset0(out+nout*i, dims, counts); }
 return 0; }
 if (envs.shls[2] == envs.shls[3]) {
-nc = (envs.i_l*2+1) * (envs.j_l*2+1) * (envs.k_l*2+1) * (envs.l_l*2+1) *
-envs.x_ctr[0] * envs.x_ctr[1] * envs.x_ctr[2] * envs.x_ctr[3];
-int n_comp = envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor;
-for (i = 0; i < nc * n_comp; i++) { out[i] = 0; }
+counts[0] = (envs.i_l*2+1) * envs.x_ctr[0];
+counts[1] = (envs.j_l*2+1) * envs.x_ctr[1];
+counts[2] = (envs.k_l*2+1) * envs.x_ctr[2];
+counts[3] = (envs.l_l*2+1) * envs.x_ctr[3];
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2] * dims[3];
+for (i = 0; i < envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor; i++) {
+c2s_dset0(out+nout*i, dims, counts); }
 return 0; }
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
-}} // int2e_ig1ig2_sph
+} // int2e_ig1ig2_sph
 int int2e_ig1ig2_spinor(double complex *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 0, 1, 0, 2, 1, 1, 9};
@@ -503,28 +528,29 @@ CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_ig1ig2;
 envs.f_gout_simd1 = &CINTgout2e_int2e_ig1ig2_simd1;
 envs.common_factor *= -0.25;
-if (out == NULL) {
-int n0 = int2e_cache_size(&envs);
-int n1 = CINTcgto_spinor(shls[0], bas) * envs.nfk * envs.x_ctr[2]
-* envs.nfl * envs.x_ctr[3] * CINTcgto_spinor(shls[1], bas);
-return MAX(n0, n0/2 + n1*envs.ncomp_e2*OF_CMPLX + envs.nf*20*OF_CMPLX);
-} else {
-int i, nc;
+int i, nout;
+int counts[4];
 if (envs.shls[0] == envs.shls[1]) {
-nc = CINTcgto_spinor(envs.shls[0], envs.bas)
-* CINTcgto_spinor(envs.shls[1], envs.bas)
-* CINTcgto_spinor(envs.shls[2], envs.bas)
-* CINTcgto_spinor(envs.shls[3], envs.bas);
-for (i = 0; i < nc * envs.ncomp_tensor; i++) { out[i] = 0; }
+counts[0] = CINTcgto_spinor(envs.shls[0], envs.bas);
+counts[1] = CINTcgto_spinor(envs.shls[1], envs.bas);
+counts[2] = CINTcgto_spinor(envs.shls[2], envs.bas);
+counts[3] = CINTcgto_spinor(envs.shls[3], envs.bas);
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2] * dims[3];
+for (i = 0; i < envs.ncomp_tensor; i++) {
+c2s_zset0(out+nout*i, dims, counts); }
 return 0; }
 if (envs.shls[2] == envs.shls[3]) {
-nc = CINTcgto_spinor(envs.shls[0], envs.bas)
-* CINTcgto_spinor(envs.shls[1], envs.bas)
-* CINTcgto_spinor(envs.shls[2], envs.bas)
-* CINTcgto_spinor(envs.shls[3], envs.bas);
-for (i = 0; i < nc * envs.ncomp_tensor; i++) { out[i] = 0; }
+counts[0] = CINTcgto_spinor(envs.shls[0], envs.bas);
+counts[1] = CINTcgto_spinor(envs.shls[1], envs.bas);
+counts[2] = CINTcgto_spinor(envs.shls[2], envs.bas);
+counts[3] = CINTcgto_spinor(envs.shls[3], envs.bas);
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2] * dims[3];
+for (i = 0; i < envs.ncomp_tensor; i++) {
+c2s_zset0(out+nout*i, dims, counts); }
 return 0; }
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_2e1i, &c2s_sf_2e2i);
-}} // int2e_ig1ig2_spinor
+} // int2e_ig1ig2_spinor
 ALL_CINT(int2e_ig1ig2)
 //ALL_CINT_FORTRAN_(cint2e_ig1ig2)

@@ -25,6 +25,7 @@
 #include "cint_const.h"
 #include "simd.h"
 #include "rys_roots.h"
+#include "misc.h"
 #include "g2e.h"
 
 #define DEF_GXYZ(type, G, GX, GY, GZ) \
@@ -158,7 +159,7 @@ void CINTg0_2e_2d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs)
  * g0[i,k,l,j] = < ik | lj > = ( i j | k l )
  */
 /* 2d is based on l,j */
-static void CINTg0_lj_4d_simd1(double *g, CINTEnvVars *envs)
+void CINTg0_lj_4d_simd1(double *g, CINTEnvVars *envs)
 {
         int li = envs->li_ceil;
         int lk = envs->lk_ceil;
@@ -217,7 +218,7 @@ static void CINTg0_lj_4d_simd1(double *g, CINTEnvVars *envs)
         } } }
 }
 /* 2d is based on k,j */
-static void CINTg0_kj_4d_simd1(double *g, CINTEnvVars *envs)
+void CINTg0_kj_4d_simd1(double *g, CINTEnvVars *envs)
 {
         int li = envs->li_ceil;
         int ll = envs->ll_ceil;
@@ -276,7 +277,7 @@ static void CINTg0_kj_4d_simd1(double *g, CINTEnvVars *envs)
         } } }
 }
 /* 2d is based on i,l */
-static void CINTg0_il_4d_simd1(double *g, CINTEnvVars *envs)
+void CINTg0_il_4d_simd1(double *g, CINTEnvVars *envs)
 {
         int lk = envs->lk_ceil;
         int lj = envs->lj_ceil;
@@ -335,7 +336,7 @@ static void CINTg0_il_4d_simd1(double *g, CINTEnvVars *envs)
         } } }
 }
 /* 2d is based on i,k */
-static void CINTg0_ik_4d_simd1(double *g, CINTEnvVars *envs)
+void CINTg0_ik_4d_simd1(double *g, CINTEnvVars *envs)
 {
         int lj = envs->lj_ceil;
         int ll = envs->ll_ceil;
@@ -1305,121 +1306,13 @@ void CINTg0_2e_il2d4d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs)
         CINTg0_il_4d_simd1(g, envs);
 }
 
-void CINTg0_3c2e_kj2d3d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs)
+#ifdef WITH_F12
+void CINTg0_2e_stg_lj2d4d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        const int nmax = envs->li_ceil + envs->lj_ceil;
-        switch (nmax) {
-        case 0: switch(envs->lk_ceil) {
-                case 0: return;
-                case 1: _g0_lj_4d_0001(g, bc->c0px, bc->c0py, bc->c0pz, envs->rkrl); return;
-                case 2: _g0_lj_4d_0002(g, bc->c0px, bc->c0py, bc->c0pz, bc->b01, envs->rkrl); return;
-                case 3: _g0_lj_4d_0003(g, bc->c0px, bc->c0py, bc->c0pz, bc->b01, envs->rkrl); return;
-                default: goto _g0_4d_default; }
-        case 1: switch(envs->lk_ceil) {
-                case 0: switch (envs->li_ceil) {
-                        case 0: _g0_lj_4d_0001(g, bc->c00x, bc->c00y, bc->c00z, envs->rirj); return;
-                        case 1: _g0_lj_4d_1000(g, bc->c00x, bc->c00y, bc->c00z, envs->rirj); return;
-                        default: goto error; }
-                case 1: switch (envs->li_ceil) {
-                        case 0: _g0_lj_4d_0011(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, envs->rirj, envs->rkrl); return;
-                        case 1: _g0_lj_4d_1010(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, envs->rirj, envs->rkrl); return;
-                        default: goto error; }
-                case 2: switch (envs->li_ceil) {
-                        case 0: _g0_lj_4d_0021(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b01); return;
-                        case 1: _g0_lj_4d_1020(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b01, envs->rirj, envs->rkrl); return;
-                        default: goto error; }
-                default: goto _g0_4d_default; }
-        case 2: switch(envs->lk_ceil) {
-                case 0: switch (envs->li_ceil) {
-                        case 0: _g0_lj_4d_0002(g, bc->c00x, bc->c00y, bc->c00z, bc->b10, envs->rirj); return;
-                        case 1: _g0_lj_4d_1001(g, bc->c00x, bc->c00y, bc->c00z, bc->b10, envs->rirj); return;
-                        case 2: _g0_lj_4d_2000(g, bc->c00x, bc->c00y, bc->c00z, bc->b10, envs->rirj); return;
-                        default: goto error; }
-                case 1: switch (envs->li_ceil) {
-                        case 0: _g0_lj_4d_0012(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b10); return;
-                        case 1: _g0_lj_4d_1011(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b10, envs->rirj, envs->rkrl); return;
-                        case 2: _g0_lj_4d_2010(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b10, envs->rirj, envs->rkrl); return;
-                        default: goto error; }
-                default: goto _g0_4d_default; }
-        case 3: switch(envs->lk_ceil) {
-                case 0: switch (envs->li_ceil) {
-                        case 0: _g0_lj_4d_0003(g, bc->c00x, bc->c00y, bc->c00z, bc->b10, envs->rirj); return;
-                        case 1: _g0_lj_4d_1002(g, bc->c00x, bc->c00y, bc->c00z, bc->b10, envs->rirj); return;
-                        case 2: _g0_lj_4d_2001(g, bc->c00x, bc->c00y, bc->c00z, bc->b10, envs->rirj); return;
-                        case 3: _g0_lj_4d_3000(g, bc->c00x, bc->c00y, bc->c00z, bc->b10, envs->rirj); return;
-                        default: goto error; }
-                default: goto _g0_4d_default; }
-        default:
-_g0_4d_default:
-                CINTg0_2e_2d_simd1(g, bc, envs);
-                int li = envs->li_ceil;
-                if (li == 0) {
-                        return;
-                }
-                int nmax = envs->li_ceil + envs->lj_ceil;
-                int lk = envs->lk_ceil;
-                int nroots = envs->nrys_roots;
-                int i, j, k, ptr, n;
-                int di = envs->g_stride_i;
-                int dk = envs->g_stride_k;
-                int dj = envs->g_stride_j;
-                double *rirj = envs->rirj;
-                DEF_GXYZ(double, g, gx, gy, gz);
-                double *p1x, *p1y, *p1z, *p2x, *p2y, *p2z;
-
-                // g(i,...,j) = rirj * g(i-1,...,j) +  g(i-1,...,j+1)
-                p1x = gx  - di;
-                p1y = gy  - di;
-                p1z = gz  - di;
-                p2x = p1x + dj;
-                p2y = p1y + dj;
-                p2z = p1z + dj;
-                for (i = 1; i <= li; i++) {
-                for (j = 0; j <= nmax-i; j++) {
-                for (k = 0; k <= lk; k++) {
-                        ptr = j*dj + k*dk + i*di;
-                        for (n = ptr; n < ptr+nroots; n++) {
-                                gx[n] = rirj[0] * p1x[n] + p2x[n];
-                                gy[n] = rirj[1] * p1y[n] + p2y[n];
-                                gz[n] = rirj[2] * p1z[n] + p2z[n];
-                        }
-                } } }
-                return;
-        }
-error:
-        fprintf(stderr, "Dimension error for CINTg0_3c2e_kj2d3d_simd1: ikj = %d %d %d\n",
-                envs->li_ceil, envs->lk_ceil, envs->lj_ceil);
-        exit(1);
+        CINTg0_2e_2d_simd1(g, bc, envs);
+        CINTg0_lj_4d_simd1(g, envs);
 }
-
-
-void CINTg0_2c2e_jl2d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs)
-{
-        switch (envs->lk_ceil) {
-        case 0: switch(envs->li_ceil) {
-                case 0: return;
-                case 1: _g0_lj_4d_0001(g, bc->c00x, bc->c00y, bc->c00z, envs->rirj); return;
-                case 2: _g0_lj_4d_0002(g, bc->c00x, bc->c00y, bc->c00z, bc->b10, envs->rirj); return;
-                case 3: _g0_lj_4d_0003(g, bc->c00x, bc->c00y, bc->c00z, bc->b10, envs->rirj); return;
-                default: goto _g0_4d_default; }
-        case 1: switch(envs->li_ceil) {
-                case 0: _g0_lj_4d_0001(g, bc->c0px, bc->c0py, bc->c0pz, envs->rkrl); return;
-                case 1: _g0_lj_4d_0011(g, bc->c0px, bc->c0py, bc->c0pz, bc->c00x, bc->c00y, bc->c00z, bc->b00, envs->rkrl, envs->rirj); return;
-                case 2: _g0_lj_4d_0021(g, bc->c0px, bc->c0py, bc->c0pz, bc->c00x, bc->c00y, bc->c00z, bc->b00, bc->b10); return;
-                default: goto _g0_4d_default; }
-        case 2: switch(envs->li_ceil) {
-                case 0: _g0_lj_4d_0002(g, bc->c0px, bc->c0py, bc->c0pz, bc->b01, envs->rkrl); return;
-                case 1: _g0_lj_4d_0012(g, bc->c0px, bc->c0py, bc->c0pz, bc->c00x, bc->c00y, bc->c00z, bc->b00, bc->b01); return;
-                default: goto _g0_4d_default; }
-        case 3: switch(envs->li_ceil) {
-                case 0: _g0_lj_4d_0003(g, bc->c0px, bc->c0py, bc->c0pz, bc->b01, envs->rkrl); return;
-                default: goto _g0_4d_default; }
-        default:
-_g0_4d_default:
-                CINTg0_2e_2d_simd1(g, bc, envs);
-                return;
-        }
-}
+#endif
 
 
 /*
@@ -1444,12 +1337,18 @@ void CINTg0_2e_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
         a0 = a1 / (aij + akl);
         //fac1 = sqrt(a0 / (a1 * a1 * a1)) * envs->fac[idsimd];
         fac1 = envs->fac[idsimd] / (sqrt(aij+akl) * a1);
+#ifdef WITH_RANGE_COULOMB
+        double theta = 1;
+        if (omega > 0) {
+// For long-range part of range-separated Coulomb operator
+                theta = omega * omega / (omega * omega + a0);
+                a0 *= theta;
+        }
+#endif
         rijrkl[0] = rij[0*SIMDD+idsimd] - rkl[0*SIMDD+idsimd];
         rijrkl[1] = rij[1*SIMDD+idsimd] - rkl[1*SIMDD+idsimd];
         rijrkl[2] = rij[2*SIMDD+idsimd] - rkl[2*SIMDD+idsimd];
-        x[0] = a0 *(rijrkl[0] * rijrkl[0]
-               + rijrkl[1] * rijrkl[1]
-               + rijrkl[2] * rijrkl[2]);
+        x[0] = a0 * SQUARE(rijrkl);
         CINTrys_roots(envs->nrys_roots, x, u, w, 1);
 
         double *gx = g;
@@ -1460,6 +1359,17 @@ void CINTg0_2e_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
                 gy[i] = 1;
                 gz[i] = w[i*SIMDD] * fac1;
         }
+#ifdef WITH_RANGE_COULOMB
+        if (omega > 0) {
+                /* u[:] = tau^2 / (1 - tau^2)
+                 * transform u[:] to theta^-1 tau^2 / (theta^-1 - tau^2)
+                 * so the rest code can be reused.
+                 */
+                for (i = 0; i < nroots; i++) {
+                        u[i*SIMDD] /= u[i*SIMDD] + 1 - u[i*SIMDD] * theta;
+                }
+        }
+#endif
         if (envs->g_size == 1) {
                 return;
         }

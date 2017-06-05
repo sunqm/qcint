@@ -26,7 +26,6 @@
 #include "g2e.h"
 #include "optimizer.h"
 #include "cint2e.h"
-#include "fblas.h"
 #include "cart2sph.h"
 #include "c2f.h"
 
@@ -88,7 +87,7 @@
         } else { \
                 fp2c[np2c] = CINTiprim_to_ctr_1; \
         } \
-        gprim[np2c] = gout + cum; \
+        gprim[np2c] = gout + cum * ngp[0]; \
         iprim[np2c] = ip; \
         shltyp[np2c] = 0; \
         cum++; \
@@ -117,11 +116,6 @@
         if (cum == 1) { \
                 CINTg0_2e_simd1(g, &bc, envs, 0); \
                 (*envs->f_gout_simd1)(gout, g, idx, envs); \
-                if (fp2c[0] == &CINTiprim_to_ctr_0) { \
-                        fp2c[0] = CINTprim_to_ctr_0; \
-                } else { \
-                        fp2c[0] = CINTprim_to_ctr_1; \
-                } \
         } else if (cum > 1) { \
                 r1 = MM_SET1(1.); \
                 for (i = 0; i < envs->nrys_roots; i++) { \
@@ -240,7 +234,7 @@ int CINT3c2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
                 goto normal_end;
         }
 
-        CINTg3c_index_xyz(idx, envs);
+        CINTg4c_index_xyz(idx, envs);
         CINTOpt_non0coeff_byshell(non0idxi, non0ctri, coeff[0], i_prim, i_ctr);
         CINTOpt_non0coeff_byshell(non0idxj, non0ctrj, coeff[1], j_prim, j_ctr);
         CINTOpt_non0coeff_byshell(non0idxk, non0ctrk, coeff[2], k_prim, k_ctr);
@@ -416,9 +410,17 @@ int CINT3c2e_cart_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
         int *x_ctr = envs->x_ctr;
         int nc = envs->nf * x_ctr[0] * x_ctr[1] * x_ctr[2];
         int n_comp = envs->ncomp_e1 * envs->ncomp_e2 * envs->ncomp_tensor;
+        if (out == NULL) {
+                int leng = envs->g_size*3*((1<<envs->gbits)+1)*SIMDD;
+                int len0 = envs->nf*n_comp * SIMDD;
+                int cache_size = leng + len0 + nc*n_comp*2 + SIMDD*4;
+                return cache_size;
+        }
         double *stack = NULL;
         if (cache == NULL) {
-                int cache_size = int2e_cache_size(envs);
+                int leng = envs->g_size*3*((1<<envs->gbits)+1)*SIMDD;
+                int len0 = envs->nf*n_comp * SIMDD;
+                int cache_size = leng + len0 + nc*n_comp*2 + SIMDD*4;
                 stack = _mm_malloc(sizeof(double)*cache_size, sizeof(double)*SIMDD);
                 cache = stack;
         }
@@ -461,6 +463,12 @@ int CINT3c2e_spheric_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *opt
         int *x_ctr = envs->x_ctr;
         int nc = envs->nf * x_ctr[0] * x_ctr[1] * x_ctr[2];
         int n_comp = envs->ncomp_e1 * envs->ncomp_e2 * envs->ncomp_tensor;
+        if (out == NULL) {
+                int leng = envs->g_size*3*((1<<envs->gbits)+1)*SIMDD;
+                int len0 = envs->nf*n_comp * SIMDD;
+                int cache_size = MAX(leng+len0+nc*n_comp*2, nc*n_comp+envs->nf*3) + SIMDD*4;
+                return cache_size;
+        }
         double *stack = NULL;
         if (cache == NULL) {
                 int leng = envs->g_size*3*((1<<envs->gbits)+1)*SIMDD;
@@ -514,6 +522,13 @@ int CINT3c2e_spinor_drv(double complex *out, int *dims, CINTEnvVars *envs, CINTO
         counts[3] = 1;
         int nc = envs->nf * x_ctr[0] * x_ctr[1] * x_ctr[2];
         int n_comp = envs->ncomp_e1 * envs->ncomp_e2 * envs->ncomp_tensor;
+        if (out == NULL) {
+                int leng = envs->g_size*3*((1<<envs->gbits)+1)*SIMDD;
+                int len0 = envs->nf*n_comp * SIMDD;
+                int cache_size = MAX(leng+len0+nc*n_comp*2,
+                                     nc*n_comp + envs->nf*14*OF_CMPLX) + SIMDD*4;
+                return cache_size;
+        }
         double *stack = NULL;
         if (cache == NULL) {
                 int leng = envs->g_size*3*((1<<envs->gbits)+1)*SIMDD;
@@ -562,11 +577,7 @@ int int3c2e_sph(double *out, int *dims, int *shls, int *atm, int natm,
         CINTinit_int3c2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
         envs.f_gout = &CINTgout2e;
         envs.f_gout_simd1 = &CINTgout2e_simd1;
-        if (out == NULL) {
-                return int2e_cache_size(&envs) + envs.nf*MAX(0, 2-SIMDD);
-        } else {
-                return CINT3c2e_spheric_drv(out, dims, &envs, opt, cache);
-        }
+        return CINT3c2e_spheric_drv(out, dims, &envs, opt, cache);
 }
 void int3c2e_optimizer(CINTOpt **opt, int *atm, int natm,
                        int *bas, int nbas, double *env)
@@ -583,11 +594,7 @@ int int3c2e_cart(double *out, int *dims, int *shls, int *atm, int natm,
         CINTinit_int3c2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
         envs.f_gout = &CINTgout2e;
         envs.f_gout_simd1 = &CINTgout2e_simd1;
-        if (out == NULL) {
-                return int2e_cache_size(&envs);
-        } else {
-                return CINT3c2e_cart_drv(out, dims, &envs, opt, cache);
-        }
+        return CINT3c2e_cart_drv(out, dims, &envs, opt, cache);
 }
 
 int int3c2e_spinor(double complex *out, int *dims, int *shls, int *atm, int natm,
@@ -598,13 +605,7 @@ int int3c2e_spinor(double complex *out, int *dims, int *shls, int *atm, int natm
         CINTinit_int3c2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
         envs.f_gout = &CINTgout2e;
         envs.f_gout_simd1 = &CINTgout2e_simd1;
-        if (out == NULL) {
-                int n0 = int2e_cache_size(&envs);
-                return MAX(n0, n0/2 + envs.nf*14*OF_CMPLX);
-        } else {
-                return CINT3c2e_spinor_drv(out, dims, &envs, opt, cache,
-                                           &c2s_sf_3c2e1);
-        }
+        return CINT3c2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_3c2e1);
 }
 
 

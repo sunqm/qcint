@@ -72,3 +72,6 @@ void CINTall_2c2e_optimizer(CINTOpt **opt, int *ng,
                             int *atm, int natm, int *bas, int nbas, double *env);
 void CINTall_3c1e_optimizer(CINTOpt **opt, int *ng,
                             int *atm, int natm, int *bas, int nbas, double *env);
+
+void CINTall_2e_stg_optimizer(CINTOpt **opt, int *ng,
+                              int *atm, int natm, int *bas, int nbas, double *env);

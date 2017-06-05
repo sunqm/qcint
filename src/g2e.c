@@ -33,15 +33,6 @@
         type *GY = G + envs->g_size     * SIMDD; \
         type *GZ = G + envs->g_size * 2 * SIMDD
 
-void CINTg0_2e_lj2d4d(double *g, Rys2eT *bc, CINTEnvVars *envs);
-void CINTg0_2e_kj2d4d(double *g, Rys2eT *bc, CINTEnvVars *envs);
-void CINTg0_2e_il2d4d(double *g, Rys2eT *bc, CINTEnvVars *envs);
-void CINTg0_2e_ik2d4d(double *g, Rys2eT *bc, CINTEnvVars *envs);
-void CINTg0_2e_lj2d4d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs);
-void CINTg0_2e_kj2d4d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs);
-void CINTg0_2e_il2d4d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs);
-void CINTg0_2e_ik2d4d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs);
-
 
 void CINTinit_int2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
                             int *atm, int natm, int *bas, int nbas, double *env)
@@ -100,6 +91,26 @@ void CINTinit_int2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
                 kbase = 0;
         }
         if (kbase) {
+                if (ibase) {
+                        envs->f_g0_2d4d = &CINTg0_2e_ik2d4d;
+                        envs->f_g0_2d4d_simd1 = &CINTg0_2e_ik2d4d_simd1;
+                } else {
+                        envs->f_g0_2d4d = &CINTg0_2e_kj2d4d;
+                        envs->f_g0_2d4d_simd1 = &CINTg0_2e_kj2d4d_simd1;
+                }
+        } else {
+                if (ibase) {
+                        envs->f_g0_2d4d = &CINTg0_2e_il2d4d;
+                        envs->f_g0_2d4d_simd1 = &CINTg0_2e_il2d4d_simd1;
+                } else {
+                        envs->f_g0_2d4d = &CINTg0_2e_lj2d4d;
+                        envs->f_g0_2d4d_simd1 = &CINTg0_2e_lj2d4d_simd1;
+                }
+        }
+        envs->f_g0_2e = &CINTg0_2e;
+        envs->f_g0_2e_simd1 = &CINTg0_2e_simd1;
+
+        if (kbase) {
                 dlk = envs->lk_ceil + envs->ll_ceil + 1;
                 dll = envs->ll_ceil + 1;
         } else {
@@ -146,24 +157,6 @@ void CINTinit_int2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
                 envs->rirj[0] = envs->rj[0] - envs->ri[0];
                 envs->rirj[1] = envs->rj[1] - envs->ri[1];
                 envs->rirj[2] = envs->rj[2] - envs->ri[2];
-        }
-
-        if (kbase) {
-                if (ibase) {
-                        envs->f_g0_2d4d = &CINTg0_2e_ik2d4d;
-                        envs->f_g0_2d4d_simd1 = &CINTg0_2e_ik2d4d_simd1;
-                } else {
-                        envs->f_g0_2d4d = &CINTg0_2e_kj2d4d;
-                        envs->f_g0_2d4d_simd1 = &CINTg0_2e_kj2d4d_simd1;
-                }
-        } else {
-                if (ibase) {
-                        envs->f_g0_2d4d = &CINTg0_2e_il2d4d;
-                        envs->f_g0_2d4d_simd1 = &CINTg0_2e_il2d4d_simd1;
-                } else {
-                        envs->f_g0_2d4d = &CINTg0_2e_lj2d4d;
-                        envs->f_g0_2d4d_simd1 = &CINTg0_2e_lj2d4d_simd1;
-                }
         }
 }
 
@@ -446,7 +439,7 @@ MM_STORE(p0z+j*SIMDD, MM_LOAD(c00z+i*SIMDD) * MM_LOAD(gz+j*SIMDD) + r0 * MM_LOAD
  * g0[i,k,l,j] = < ik | lj > = ( i j | k l )
  */
 /* 2d is based on l,j */
-static void CINTg0_lj2d_4d(double *g, CINTEnvVars *envs)
+void CINTg0_lj2d_4d(double *g, CINTEnvVars *envs)
 {
         int li = envs->li_ceil;
         int lk = envs->lk_ceil;
@@ -521,7 +514,7 @@ MM_STORE(gz+n*SIMDD, MM_FMA(rz, MM_LOAD(p1z+n*SIMDD), MM_LOAD(p2z+n*SIMDD)));
         } } }
 }
 /* 2d is based on k,j */
-static void CINTg0_kj_4d(double *g, CINTEnvVars *envs)
+void CINTg0_kj_4d(double *g, CINTEnvVars *envs)
 {
         int li = envs->li_ceil;
         int ll = envs->ll_ceil;
@@ -596,7 +589,7 @@ MM_STORE(gz+n*SIMDD, MM_FMA(rz, MM_LOAD(p1z+n*SIMDD), MM_LOAD(p2z+n*SIMDD)));
         } } }
 }
 /* 2d is based on i,l */
-static void CINTg0_il_4d(double *g, CINTEnvVars *envs)
+void CINTg0_il_4d(double *g, CINTEnvVars *envs)
 {
         int lj = envs->lj_ceil;
         int lk = envs->lk_ceil;
@@ -671,7 +664,7 @@ MM_STORE(gz+n*SIMDD, MM_FMA(rz, MM_LOAD(p1z+n*SIMDD), MM_LOAD(p2z+n*SIMDD)));
         } } }
 }
 /* 2d is based on i,k */
-static void CINTg0_ik_4d(double *g, CINTEnvVars *envs)
+void CINTg0_ik_4d(double *g, CINTEnvVars *envs)
 {
         int lj = envs->lj_ceil;
         int ll = envs->ll_ceil;
@@ -1849,125 +1842,13 @@ void CINTg0_2e_il2d4d(double *g, Rys2eT *bc, CINTEnvVars *envs)
         CINTg0_il_4d(g, envs);
 }
 
-
-void CINTg0_3c2e_kj2d3d(double *g, Rys2eT *bc, CINTEnvVars *envs)
+#ifdef WITH_F12
+void CINTg0_2e_stg_lj2d4d(double *g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        int nmax = envs->li_ceil + envs->lj_ceil;
-        switch (nmax) {
-        case 0: switch(envs->lk_ceil) {
-                case 0: return;
-                case 1: _g0_lj_4d_0001(g, bc->c0px, bc->c0py, bc->c0pz, envs->rkrl); return;
-                case 2: _g0_lj_4d_0002(g, bc->c0px, bc->c0py, bc->c0pz, bc->b01, envs->rkrl); return;
-                case 3: _g0_lj_4d_0003(g, bc->c0px, bc->c0py, bc->c0pz, bc->b01, envs->rkrl); return;
-                default: goto _g0_4d_default; }
-        case 1: switch(envs->lk_ceil) {
-                case 0: switch (envs->li_ceil) {
-                        case 0: _g0_lj_4d_0001(g, bc->c00x, bc->c00y, bc->c00z, envs->rirj); return;
-                        case 1: _g0_lj_4d_1000(g, bc->c00x, bc->c00y, bc->c00z, envs->rirj); return;
-                        default: goto error; }
-                case 1: switch (envs->li_ceil) {
-                        case 0: _g0_lj_4d_0011(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, envs->rirj, envs->rkrl); return;
-                        case 1: _g0_lj_4d_1010(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, envs->rirj, envs->rkrl); return;
-                        default: goto error; }
-                case 2: switch (envs->li_ceil) {
-                        case 0: _g0_lj_4d_0021(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b01); return;
-                        case 1: _g0_lj_4d_1020(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b01, envs->rirj, envs->rkrl); return;
-                        default: goto error; }
-                default: goto _g0_4d_default; }
-        case 2: switch(envs->lk_ceil) {
-                case 0: switch (envs->li_ceil) {
-                        case 0: _g0_lj_4d_0002(g, bc->c00x, bc->c00y, bc->c00z, bc->b10, envs->rirj); return;
-                        case 1: _g0_lj_4d_1001(g, bc->c00x, bc->c00y, bc->c00z, bc->b10, envs->rirj); return;
-                        case 2: _g0_lj_4d_2000(g, bc->c00x, bc->c00y, bc->c00z, bc->b10, envs->rirj); return;
-                        default: goto error; }
-                case 1: switch (envs->li_ceil) {
-                        case 0: _g0_lj_4d_0012(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b10); return;
-                        case 1: _g0_lj_4d_1011(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b10, envs->rirj, envs->rkrl); return;
-                        case 2: _g0_lj_4d_2010(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b10, envs->rirj, envs->rkrl); return;
-                        default: goto error; }
-                default: goto _g0_4d_default; }
-        case 3: switch(envs->lk_ceil) {
-                case 0: switch (envs->li_ceil) {
-                        case 0: _g0_lj_4d_0003(g, bc->c00x, bc->c00y, bc->c00z, bc->b10, envs->rirj); return;
-                        case 1: _g0_lj_4d_1002(g, bc->c00x, bc->c00y, bc->c00z, bc->b10, envs->rirj); return;
-                        case 2: _g0_lj_4d_2001(g, bc->c00x, bc->c00y, bc->c00z, bc->b10, envs->rirj); return;
-                        case 3: _g0_lj_4d_3000(g, bc->c00x, bc->c00y, bc->c00z, bc->b10, envs->rirj); return;
-                        default: goto error; }
-                default: goto _g0_4d_default; }
-        default:
-_g0_4d_default:
-                CINTg0_2e_2d(g, bc, envs);
-                int li = envs->li_ceil;
-                if (li == 0) {
-                        return;
-                }
-                int nmax = envs->li_ceil + envs->lj_ceil;
-                int lk = envs->lk_ceil;
-                int nroots = envs->nrys_roots;
-                int i, j, k, ptr, n;
-                int di = envs->g_stride_i;
-                int dk = envs->g_stride_k;
-                int dj = envs->g_stride_j;
-                double *rirj = envs->rirj;
-                DEF_GXYZ(double, g, gx, gy, gz);
-                double *p1x, *p1y, *p1z, *p2x, *p2y, *p2z;
-                __MD rx = MM_SET1(rirj[0]);
-                __MD ry = MM_SET1(rirj[1]);
-                __MD rz = MM_SET1(rirj[2]);
-
-                // g(i,...,j) = rirj * g(i-1,...,j) +  g(i-1,...,j+1)
-                p1x = gx  - di * SIMDD;
-                p1y = gy  - di * SIMDD;
-                p1z = gz  - di * SIMDD;
-                p2x = p1x + dj * SIMDD;
-                p2y = p1y + dj * SIMDD;
-                p2z = p1z + dj * SIMDD;
-                for (i = 1; i <= li; i++) {
-                for (j = 0; j <= nmax-i; j++) {
-                for (k = 0; k <= lk; k++) {
-                        ptr = j*dj + k*dk + i*di;
-                        for (n = ptr; n < ptr+nroots; n++) {
-MM_STORE(gx+n*SIMDD, MM_FMA(rx, MM_LOAD(p1x+n*SIMDD), MM_LOAD(p2x+n*SIMDD)));
-MM_STORE(gy+n*SIMDD, MM_FMA(ry, MM_LOAD(p1y+n*SIMDD), MM_LOAD(p2y+n*SIMDD)));
-MM_STORE(gz+n*SIMDD, MM_FMA(rz, MM_LOAD(p1z+n*SIMDD), MM_LOAD(p2z+n*SIMDD)));
-                        }
-                } } }
-                return;
-        }
-error:
-        fprintf(stderr, "Dimension error for CINTg0_3c2e_kj2d3d: ikj = %d %d %d\n",
-                envs->li_ceil, envs->lk_ceil, envs->lj_ceil);
-        exit(1);
+        CINTg0_2e_2d(g, bc, envs);
+        CINTg0_lj2d_4d(g, envs);
 }
-
-
-void CINTg0_2c2e_jl2d(double *g, Rys2eT *bc, CINTEnvVars *envs)
-{
-        switch (envs->lk_ceil) {
-        case 0: switch(envs->li_ceil) {
-                case 0: return;
-                case 1: _g0_lj_4d_0001(g, bc->c00x, bc->c00y, bc->c00z, envs->rirj); return;
-                case 2: _g0_lj_4d_0002(g, bc->c00x, bc->c00y, bc->c00z, bc->b10, envs->rirj); return;
-                case 3: _g0_lj_4d_0003(g, bc->c00x, bc->c00y, bc->c00z, bc->b10, envs->rirj); return;
-                default: goto _g0_4d_default; }
-        case 1: switch(envs->li_ceil) {
-                case 0: _g0_lj_4d_0001(g, bc->c0px, bc->c0py, bc->c0pz, envs->rkrl); return;
-                case 1: _g0_lj_4d_0011(g, bc->c0px, bc->c0py, bc->c0pz, bc->c00x, bc->c00y, bc->c00z, bc->b00, envs->rkrl, envs->rirj); return;
-                case 2: _g0_lj_4d_0021(g, bc->c0px, bc->c0py, bc->c0pz, bc->c00x, bc->c00y, bc->c00z, bc->b00, bc->b10); return;
-                default: goto _g0_4d_default; }
-        case 2: switch(envs->li_ceil) {
-                case 0: _g0_lj_4d_0002(g, bc->c0px, bc->c0py, bc->c0pz, bc->b01, envs->rkrl); return;
-                case 1: _g0_lj_4d_0012(g, bc->c0px, bc->c0py, bc->c0pz, bc->c00x, bc->c00y, bc->c00z, bc->b00, bc->b01); return;
-                default: goto _g0_4d_default; }
-        case 3: switch(envs->li_ceil) {
-                case 0: _g0_lj_4d_0003(g, bc->c0px, bc->c0py, bc->c0pz, bc->b01, envs->rkrl); return;
-                default: goto _g0_4d_default; }
-        default:
-_g0_4d_default:
-                CINTg0_2e_2d(g, bc, envs);
-                return;
-        }
-}
+#endif
 
 
 /*
@@ -1990,8 +1871,9 @@ void CINTg0_2e(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
         double *u = bc->u;
         double *w = bc->w;
         __MD ra, r0, r1, r2, r3, r4, r5, r6, r7, r8;
-
+        int nroots = envs->nrys_roots;
         int i;
+
         //:for (int k = 0; k < count; k++) {
         //:        aij[k] = envs->ai[k] + envs->aj[k];
         //:        akl[k] = envs->ak[k] + envs->al[k];
@@ -2012,6 +1894,24 @@ void CINTg0_2e(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
         r0 = MM_DIV(r1, ra);
         MM_STORE(a0, r0);
         MM_STORE(fac1, MM_DIV(MM_LOAD(envs->fac), MM_MUL(MM_SQRT(ra), r1)));
+
+#ifdef WITH_RANGE_COULOMB
+// Not recommended to mix range-separated Coulomb with regular Coulomb operator.
+// Keep this for backward compatibility to cint2
+        const double omega = envs->env[PTR_RANGE_OMEGA];
+        ALIGNMM double theta[SIMDD];
+        if (omega > 0) {
+// For long-range part of range-separated Coulomb operator
+                //:theta = omega * omega / (omega * omega + a0);
+                //:a0 *= theta;
+                r0 = MM_SET1(omega);
+                r1 = MM_LOAD(a0);
+                r0 = MM_MUL(r0, r0);
+                r0 = MM_DIV(r0, MM_ADD(r0, r1));
+                MM_STORE(theta, r0);
+                MM_STORE(a0, MM_MUL(r0, r1));
+        }
+#endif
 
         r0 = MM_LOAD(rij+0*SIMDD);
         r1 = MM_LOAD(rij+1*SIMDD);
@@ -2046,22 +1946,22 @@ void CINTg0_2e(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
         MM_STORE(rklrx+1*SIMDD, MM_SUB(r4, MM_SET1(envs->rx_in_rklrx[1])));
         MM_STORE(rklrx+2*SIMDD, MM_SUB(r5, MM_SET1(envs->rx_in_rklrx[2])));
 
+//ABORT        ALIGNMM double erfx[SIMDD];
+//ABORT        if (envs->g_size == 1) {
+//ABORT                // gz = erf(sqrt(rr*aij*akl/(aij+akl)))/sqrt(rr)
+//ABORT                MM_STORE(erfx, MM_SQRT(MM_LOAD(x)));
+//ABORT                for (k = 0; k < count; k++) {
+//ABORT                        erfx[k] = erf(erfx[k]);
+//ABORT                }
+//ABORT                MM_STORE(gz, MM_DIV(MM_LOAD(erfx), MM_SQRT(MM_LOAD(x))));
+//ABORT                return;
+//ABORT        }
+        CINTrys_roots(nroots, x, u, w, count);
+
         double *gx = g;
         double *gy = gx + envs->g_size * SIMDD;
         double *gz = gy + envs->g_size * SIMDD;
-//FIXME        ALIGNMM double erfx[SIMDD];
-//FIXME        if (envs->g_size == 1) {
-//FIXME                // gz = erf(sqrt(rr*aij*akl/(aij+akl)))/sqrt(rr)
-//FIXME                MM_STORE(erfx, MM_SQRT(MM_LOAD(x)));
-//FIXME                for (k = 0; k < count; k++) {
-//FIXME                        erfx[k] = erf(erfx[k]);
-//FIXME                }
-//FIXME                MM_STORE(gz, MM_DIV(MM_LOAD(erfx), MM_SQRT(MM_LOAD(x))));
-//FIXME                return;
-//FIXME        }
-        CINTrys_roots(envs->nrys_roots, x, u, w, count);
-
-        //:for (i = 0; i < envs->nrys_roots; i++) {
+        //:for (i = 0; i < nroots; i++) {
         //:for (k = 0; k < count; k++) {
         //:        gx[i*SIMDD+k] = 1;
         //:        gy[i*SIMDD+k] = 1;
@@ -2069,7 +1969,7 @@ void CINTg0_2e(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
         //:} }
         r0 = MM_LOAD(fac1);
         r1 = MM_SET1(1.);
-        for (i = 0; i < envs->nrys_roots; i++) {
+        for (i = 0; i < nroots; i++) {
                 //MM_STORE(gx+i*SIMDD, r1);
                 //MM_STORE(gy+i*SIMDD, r1);
                 MM_STORE(gz+i*SIMDD, MM_MUL(MM_LOAD(w+i*SIMDD), r0));
@@ -2077,6 +1977,24 @@ void CINTg0_2e(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
         if (envs->g_size == 1) {
                 return;
         }
+#ifdef WITH_RANGE_COULOMB
+        if (omega > 0) {
+                /* u[:] = tau^2 / (1 - tau^2)
+                 * transform u[:] to theta^-1 tau^2 / (theta^-1 - tau^2)
+                 * so the rest code can be reused.
+                 */
+                //:for (irys = 0; irys < nroots; irys++) {
+                //:        u[irys] /= u[irys] + 1 - u[irys] * theta;
+                //:}
+                r0 = MM_LOAD(theta);
+                r1 = MM_SET1(1.);
+                for (i = 0; i < nroots; i++) {
+                        r2 = MM_LOAD(u+i*SIMDD);
+                        r3 = r2 + r1 - r2 * r0;
+                        MM_STORE(u+i*SIMDD, MM_DIV(r2, r3));
+                }
+        }
+#endif
 
         double *b00 = bc->b00;
         double *b10 = bc->b10;
@@ -2093,7 +2011,7 @@ void CINTg0_2e(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
         //:double u2[SIMDD];
         //:double tmp2, tmp3;
         //:double div[SIMDD];
-        //:for (i = 0; i < envs->nrys_roots; i++) {
+        //:for (i = 0; i < nroots; i++) {
         //:for (k = 0; k < count; k++) {
         //:        u2[k] = a0[k] * u[k+i*SIMDD];
         //:        div[k] = 1 / (u2[k] * aijkl[k] + a1[k]);
@@ -2118,17 +2036,17 @@ void CINTg0_2e(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
         r1 = MM_LOAD(a1);
         r2 = MM_SET1(.5);
         r3 = MM_SET1(2.);
-        for (i = 0; i < envs->nrys_roots; i++) {
+        for (i = 0; i < nroots; i++) {
                 r4 = MM_MUL(r0, MM_LOAD(u+i*SIMDD));
                 r5 = MM_DIV(r2, MM_FMA(r4, ra, r1));
                 MM_STORE(tmp4+i*SIMDD, r5);
                 r6 = MM_MUL(MM_MUL(r3, r4), r5);
                 MM_STORE(tmp1+i*SIMDD, r6);
         }
-        ra = r2;//MM_SET1(.5);
+        ra = MM_SET1(.5);
         r2 = MM_LOAD(akl);
         r3 = MM_LOAD(aij);
-        for (i = 0; i < envs->nrys_roots; i++) {
+        for (i = 0; i < nroots; i++) {
                 r0 = MM_MUL(ra, MM_LOAD(tmp1+i*SIMDD));
                 MM_STORE(b00+i*SIMDD, r0);
                 r1 = MM_LOAD(tmp4+i*SIMDD);
@@ -2142,7 +2060,7 @@ void CINTg0_2e(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
         r1 = MM_LOAD(rijrx+0*SIMDD);
         r2 = MM_LOAD(rijrx+1*SIMDD);
         r3 = MM_LOAD(rijrx+2*SIMDD);
-        for (i = 0; i < envs->nrys_roots; i++) {
+        for (i = 0; i < nroots; i++) {
                 r0 = MM_MUL(MM_LOAD(tmp1+i*SIMDD), ra);
                 MM_STORE(c00x+i*SIMDD, MM_FNMA(r0, r4, r1));
                 MM_STORE(c00y+i*SIMDD, MM_FNMA(r0, r5, r2));
@@ -2152,7 +2070,7 @@ void CINTg0_2e(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
         r1 = MM_LOAD(rklrx+0*SIMDD);
         r2 = MM_LOAD(rklrx+1*SIMDD);
         r3 = MM_LOAD(rklrx+2*SIMDD);
-        for (i = 0; i < envs->nrys_roots; i++) {
+        for (i = 0; i < nroots; i++) {
                 r0 = MM_MUL(MM_LOAD(tmp1+i*SIMDD), ra);
                 MM_STORE(c0px+i*SIMDD, MM_FMA (r0, r4, r1));
                 MM_STORE(c0py+i*SIMDD, MM_FMA (r0, r5, r2));

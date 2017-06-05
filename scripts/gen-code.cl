@@ -165,8 +165,8 @@
     (loop for s in assemb
           for gid from 0 do
           (if (equal s " 0")
-            (format fout "MM_STORE(gout+(n*~a+~a)*SIMDD, MM_SET1(0.));~%" comp gid)
-            (format fout "r1 =~a; MM_STORE(gout+(n*~a+~a)*SIMDD, r1);~%" s comp gid)))))
+            (format fout "GOUT_SCATTER(gout, n*~a+~a, MM_SET1(0.));~%" comp gid)
+            (format fout "r1 =~a; GOUT_SCATTER(gout, n*~a+~a, r1);~%" s comp gid)))))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; effective keys are p,r,ri,...
@@ -412,7 +412,9 @@
       (format fout "(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 CINTg1e_ovlp(g, envs, count);
 int nf = envs->nf;
-int ix, iy, iz, n;
+int nfc = nf * ~a;~%" goutinc)
+      (format fout "int ix, iy, iz, n;
+DECLARE_GOUT;
 double *RESTRICT g0 = g;~%")
       (loop
         for i in (range (1- (ash 1 tot-bits))) do
@@ -455,7 +457,8 @@ iz = idx[2+n*3];~%")
       (format fout "(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
-int nfc = nf * ~a;~%" goutinc)
+int nfc = nf * ~a;
+double *gout1 = gout + nfc*SIMDD;~%" goutinc)
       (format fout "int ix, iy, iz, ia, n, i;
 double *RESTRICT g0 = g;~%")
       (loop
@@ -466,7 +469,7 @@ double *RESTRICT g0 = g;~%")
       (dump-declare-giao-ij fout bra-i (append op ket-j))
       (format fout "__MD r1;
 __MD rs[~a];~%" (expt 3 tot-bits))
-      (format fout "for (n = 0; n < nfc*SIMDD; n++) { gout[n] = 0; }
+      (format fout "for (n = 0; n < nfc*SIMDD; n++) { gout1[n] = 0; }
 for (ia = 0; ia < envs->natm; ia++) {
 CINTg1e_nuc(g, envs, count, ia);~%")
       (let ((fmt-i "G2E_~aI(g~a, g~a, envs->i_l+~a, envs->j_l, 0, 0);~%")
@@ -487,10 +490,12 @@ for (i = 0; i < nrys_roots; i++) {~%" (expt 3 tot-bits))
         (loop for s in assemb
               for gid from 0 do
               (unless (equal s " 0")
-                (format fout "r1 = MM_LOAD(gout+(n*~a+~a)*SIMDD) +~a; " goutinc gid s)
-                (format fout "MM_STORE(gout+(n*~a+~a)*SIMDD, r1);~%" goutinc gid))))
+                (format fout "r1 = MM_LOAD(gout1+(n*~a+~a)*SIMDD) +~a; " goutinc gid s)
+                (format fout "MM_STORE(gout1+(n*~a+~a)*SIMDD, r1);~%" goutinc gid))))
       (format fout "}
-}}~%" goutinc)
+}
+CINTsort_gout(gout, gout1, nfc, SIMDD);
+}~%" goutinc)
       goutinc)))
 
 (defun gen-code-gout1e-rinv (fout intname raw-infix flat-script)
@@ -508,8 +513,10 @@ for (i = 0; i < nrys_roots; i++) {~%" (expt 3 tot-bits))
       (format fout "(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 CINTg1e_nuc(g, envs, count, -1);
 int nf = envs->nf;
-int nrys_roots = envs->nrys_roots;
+int nfc = nf * ~a;~%" goutinc)
+      (format fout "int nrys_roots = envs->nrys_roots;
 int ix, iy, iz, n, i;
+DECLARE_GOUT;
 double *RESTRICT g0 = g;~%")
       (if (member 'nabla-rinv raw-infix)
         (loop for i in (range (ash 1 tot-bits)) do
@@ -538,13 +545,6 @@ for (i = 0; i < nrys_roots; i++) {~%" (expt 3 tot-bits))
       (gen-c-block-avx fout flat-script)
       (format fout "}}~%")
       goutinc)))
-
-(defun dump-s-1e (fout tot-bits)
-  (format fout "for (n = 0; n < nf; n++) {
-ix = idx[0+n*3];
-iy = idx[1+n*3];
-iz = idx[2+n*3];~%")
-  (dump-s-for-nroots-avx fout tot-bits 1))
 
 (defun gen-code-int1e (fout intname raw-infix)
   (destructuring-bind (op bra-i ket-j bra-k ket-l)
@@ -592,52 +592,65 @@ iz = idx[2+n*3];~%")
       (format fout "int ~a_cart(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {~%" intname)
       (format fout envs-common)
-      (format fout "if (out == NULL) { return int1e_cache_size(&envs);
-} else {~%")
       (when (member 'g raw-infix)
-        (format fout "int i, nc;~%")
+        (format fout "int i, nout;
+int counts[4];~%")
         (when (or (member 'g bra-i) (member 'g ket-j))
           (format fout "if (envs.shls[0] == envs.shls[1]) {
-nc = envs.nf * envs.x_ctr[0] * envs.x_ctr[1];
-int n_comp = envs.ncomp_e1 * envs.ncomp_tensor;
-for (i = 0; i < nc * n_comp; i++) { out[i] = 0; }
+counts[0] = envs.nfi * envs.x_ctr[0];
+counts[1] = envs.nfj * envs.x_ctr[1];
+counts[2] = 1;
+counts[3] = 1;
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1];
+for (i = 0; i < envs.ncomp_e1 * envs.ncomp_tensor; i++) {
+c2s_dset0(out+nout*i, dims, counts); }
 return 0; }~%")))
       (format fout "return CINT1e_drv(out, dims, &envs, opt, cache, &c2s_cart_1e);
-}} // ~a_cart~%" intname)
+} // ~a_cart~%" intname)
 ;;; _sph
       (format fout "int ~a_sph(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {~%" intname)
       (format fout envs-common)
-      (format fout "if (out == NULL) { return int1e_cache_size(&envs);
-} else {~%")
       (when (member 'g raw-infix)
-        (format fout "int i, nc;~%")
+        (format fout "int i, nout;
+int counts[4];~%")
         (when (or (member 'g bra-i) (member 'g ket-j))
           (format fout "if (envs.shls[0] == envs.shls[1]) {
-nc = (envs.i_l*2+1) * (envs.j_l*2+1) * envs.x_ctr[0] * envs.x_ctr[1];
-int n_comp = envs.ncomp_e1 * envs.ncomp_tensor;
-for (i = 0; i < nc * n_comp; i++) { out[i] = 0; }
+counts[0] = (envs.i_l*2+1) * envs.x_ctr[0];
+counts[1] = (envs.j_l*2+1) * envs.x_ctr[1];
+counts[2] = 1;
+counts[3] = 1;
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1];
+for (i = 0; i < envs.ncomp_e1 * envs.ncomp_tensor; i++) {
+c2s_dset0(out+nout*i, dims, counts); }
 return 0; }~%")))
       (format fout "return CINT1e_drv(out, dims, &envs, opt, cache, &c2s_sph_1e);
-}} // ~a_sph~%" intname)
+} // ~a_sph~%" intname)
 ;;; _spinor
       (format fout "int ~a_spinor(double complex *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {~%" intname)
       (format fout envs-common)
-      (format fout "if (out == NULL) { return int1e_cache_size(&envs);
-} else {~%")
       (when (member 'g raw-infix)
-        (format fout "int i, nc;~%")
+        (format fout "int i, nout;
+int counts[4];~%")
         (when (or (member 'g bra-i) (member 'g ket-j))
           (format fout "if (envs.shls[0] == envs.shls[1]) {
-nc = CINTcgto_spinor(envs.shls[0], envs.bas) * CINTcgto_spinor(envs.shls[1], envs.bas);
-for (i = 0; i < nc * envs.ncomp_tensor; i++) { out[i] = 0; }
+counts[0] = CINTcgto_spinor(envs.shls[0], envs.bas);
+counts[1] = CINTcgto_spinor(envs.shls[1], envs.bas);
+counts[2] = 1;
+counts[3] = 1;
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1];
+for (i = 0; i < envs.ncomp_tensor; i++) {
+c2s_zset0(out+nout*i, dims, counts); }
 return 0; }~%")))
       (format fout "return CINT1e_spinor_drv(out, dims, &envs, opt, cache, ~a);
-}} // ~a_spinor~%" (name-c2sor "1e" 'spinor sf ts) intname)))
-;;; int2e -> cint2e
+} // ~a_spinor~%" (name-c2sor "1e" 'spinor sf ts) intname)))
+;;; int1e -> cint1e
   (format fout "ALL_CINT1E(~a)~%" intname)
-  (format fout "//ALL_CINT_FORTRAN_(c~a)~%" intname))
+  (format fout "//ALL_CINT1E_FORTRAN_(c~a)~%" intname))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun dump-declare-giao-ijkl (fout opi opj opk opl)
@@ -781,8 +794,10 @@ for (i = 0; i < nrys_roots; i++) {~%" (expt 3 tot-bits))
       (format fout "static void CINTgout2e_~a(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {~%" intname)
       (format fout "int nf = envs->nf;
-int nrys_roots = envs->nrys_roots;
+int nfc = nf * ~a;~%" goutinc)
+      (format fout "int nrys_roots = envs->nrys_roots;
 int ix, iy, iz, i, n;
+DECLARE_GOUT;
 double *RESTRICT g0 = g;~%")
       (if (breit-int? op)
         (loop for i in (range (ash 1 tot-bits)) do
@@ -941,76 +956,93 @@ for (ix = 0; ix < envs->g_size * 3 * SIMDD; ix++) {g~a[ix] += g~a[ix];}~%"))
       (format fout "int ~a_cart(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {~%" intname)
       (format fout envs-common)
-      (format fout "if (out == NULL) { return int2e_cache_size(&envs);
-} else {~%")
       (when (member 'g raw-infix)
-        (format fout "int i, nc;~%")
+        (format fout "int i, nout;
+int counts[4];~%")
         (when (or (member 'g bra-i) (member 'g ket-j))
           (format fout "if (envs.shls[0] == envs.shls[1]) {
-nc = envs.nf * envs.x_ctr[0] * envs.x_ctr[1] * envs.x_ctr[2] * envs.x_ctr[3];
-int n_comp = envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor;
-for (i = 0; i < nc * n_comp; i++) { out[i] = 0; }
+counts[0] = envs.nfi * envs.x_ctr[0];
+counts[1] = envs.nfj * envs.x_ctr[1];
+counts[2] = envs.nfk * envs.x_ctr[2];
+counts[3] = envs.nfl * envs.x_ctr[3];
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2] * dims[3];
+for (i = 0; i < envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor; i++) {
+c2s_dset0(out+nout*i, dims, counts); }
 return 0; }~%"))
         (when (or (member 'g bra-k) (member 'g ket-l))
           (format fout "if (envs.shls[2] == envs.shls[3]) {
-nc = envs.nf * envs.x_ctr[0] * envs.x_ctr[1] * envs.x_ctr[2] * envs.x_ctr[3];
-int n_comp = envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor;
-for (i = 0; i < nc * n_comp; i++) { out[i] = 0; }
+counts[0] = envs.nfi * envs.x_ctr[0];
+counts[1] = envs.nfj * envs.x_ctr[1];
+counts[2] = envs.nfk * envs.x_ctr[2];
+counts[3] = envs.nfl * envs.x_ctr[3];
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2] * dims[3];
+for (i = 0; i < envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor; i++) {
+c2s_dset0(out+nout*i, dims, counts); }
 return 0; }~%")))
-      (format fout "return CINT2e_cart_drv(out, dims, &envs, opt, cache);~%}} // ~a_cart~%" intname)
+      (format fout "return CINT2e_cart_drv(out, dims, &envs, opt, cache);~%} // ~a_cart~%" intname)
 ;;; _sph
       (format fout "int ~a_sph(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {~%" intname)
       (format fout envs-common)
-      (format fout "if (out == NULL) { return int2e_cache_size(&envs) + envs.nf*MAX(0, 3-SIMDD);
-} else {~%")
       (when (member 'g raw-infix)
-        (format fout "int i, nc;~%")
+        (format fout "int i, nout;
+int counts[4];~%")
         (when (or (member 'g bra-i) (member 'g ket-j))
           (format fout "if (envs.shls[0] == envs.shls[1]) {
-nc = (envs.i_l*2+1) * (envs.j_l*2+1) * (envs.k_l*2+1) * (envs.l_l*2+1) *
-envs.x_ctr[0] * envs.x_ctr[1] * envs.x_ctr[2] * envs.x_ctr[3];
-int n_comp = envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor;
-for (i = 0; i < nc * n_comp; i++) { out[i] = 0; }
+counts[0] = (envs.i_l*2+1) * envs.x_ctr[0];
+counts[1] = (envs.j_l*2+1) * envs.x_ctr[1];
+counts[2] = (envs.k_l*2+1) * envs.x_ctr[2];
+counts[3] = (envs.l_l*2+1) * envs.x_ctr[3];
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2] * dims[3];
+for (i = 0; i < envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor; i++) {
+c2s_dset0(out+nout*i, dims, counts); }
 return 0; }~%"))
         (when (or (member 'g bra-k) (member 'g ket-l))
           (format fout "if (envs.shls[2] == envs.shls[3]) {
-nc = (envs.i_l*2+1) * (envs.j_l*2+1) * (envs.k_l*2+1) * (envs.l_l*2+1) *
-envs.x_ctr[0] * envs.x_ctr[1] * envs.x_ctr[2] * envs.x_ctr[3];
-int n_comp = envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor;
-for (i = 0; i < nc * n_comp; i++) { out[i] = 0; }
+counts[0] = (envs.i_l*2+1) * envs.x_ctr[0];
+counts[1] = (envs.j_l*2+1) * envs.x_ctr[1];
+counts[2] = (envs.k_l*2+1) * envs.x_ctr[2];
+counts[3] = (envs.l_l*2+1) * envs.x_ctr[3];
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2] * dims[3];
+for (i = 0; i < envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor; i++) {
+c2s_dset0(out+nout*i, dims, counts); }
 return 0; }~%")))
-      (format fout "return CINT2e_spheric_drv(out, dims, &envs, opt, cache);~%}} // ~a_sph~%" intname)
+      (format fout "return CINT2e_spheric_drv(out, dims, &envs, opt, cache);~%} // ~a_sph~%" intname)
 ;;; _spinor
       (format fout "int ~a_spinor(double complex *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {~%" intname)
       (format fout envs-common)
-      (format fout "if (out == NULL) {
-int n0 = int2e_cache_size(&envs);
-int n1 = CINTcgto_spinor(shls[0], bas) * envs.nfk * envs.x_ctr[2]
-* envs.nfl * envs.x_ctr[3] * CINTcgto_spinor(shls[1], bas);
-return MAX(n0, n0/2 + n1*envs.ncomp_e2*OF_CMPLX + envs.nf*~a*OF_CMPLX);
-} else {~%" (if (eql sf1 'sf) 20 32))
       (when (member 'g raw-infix)
-        (format fout "int i, nc;~%")
+        (format fout "int i, nout;
+int counts[4];~%")
         (when (or (member 'g bra-i) (member 'g ket-j))
           (format fout "if (envs.shls[0] == envs.shls[1]) {
-nc = CINTcgto_spinor(envs.shls[0], envs.bas)
-* CINTcgto_spinor(envs.shls[1], envs.bas)
-* CINTcgto_spinor(envs.shls[2], envs.bas)
-* CINTcgto_spinor(envs.shls[3], envs.bas);
-for (i = 0; i < nc * envs.ncomp_tensor; i++) { out[i] = 0; }
+counts[0] = CINTcgto_spinor(envs.shls[0], envs.bas);
+counts[1] = CINTcgto_spinor(envs.shls[1], envs.bas);
+counts[2] = CINTcgto_spinor(envs.shls[2], envs.bas);
+counts[3] = CINTcgto_spinor(envs.shls[3], envs.bas);
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2] * dims[3];
+for (i = 0; i < envs.ncomp_tensor; i++) {
+c2s_zset0(out+nout*i, dims, counts); }
 return 0; }~%"))
         (when (or (member 'g bra-k) (member 'g ket-l))
           (format fout "if (envs.shls[2] == envs.shls[3]) {
-nc = CINTcgto_spinor(envs.shls[0], envs.bas)
-* CINTcgto_spinor(envs.shls[1], envs.bas)
-* CINTcgto_spinor(envs.shls[2], envs.bas)
-* CINTcgto_spinor(envs.shls[3], envs.bas);
-for (i = 0; i < nc * envs.ncomp_tensor; i++) { out[i] = 0; }
+counts[0] = CINTcgto_spinor(envs.shls[0], envs.bas);
+counts[1] = CINTcgto_spinor(envs.shls[1], envs.bas);
+counts[2] = CINTcgto_spinor(envs.shls[2], envs.bas);
+counts[3] = CINTcgto_spinor(envs.shls[3], envs.bas);
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2] * dims[3];
+for (i = 0; i < envs.ncomp_tensor; i++) {
+c2s_zset0(out+nout*i, dims, counts); }
 return 0; }~%")))
       (format fout "return CINT2e_spinor_drv(out, dims, &envs, opt, cache, ~a, ~a);
-}} // ~a_spinor~%" (name-c2sor "2e1" 'spinor sf1 ts1) (name-c2sor "2e2" 'spinor sf2 ts2) intname)))
+} // ~a_spinor~%" (name-c2sor "2e1" 'spinor sf1 ts1) (name-c2sor "2e2" 'spinor sf2 ts2) intname)))
 ;;; int2e -> cint2e
   (format fout "ALL_CINT(~a)~%" intname)
   (format fout "//ALL_CINT_FORTRAN_(c~a)~%" intname))
@@ -1029,11 +1061,13 @@ return 0; }~%")))
            (k-len (length k-rev))
            (tot-bits (+ i-len j-len op-len k-len))
            (goutinc (length flat-script)))
-      (format fout "static void CINTgout2e_~a(double *RESTRICT gout,
+      (format fout "void CINTgout2e_~a(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {~%" intname)
       (format fout "int nf = envs->nf;
-int nrys_roots = envs->nrys_roots;
+int nfc = nf * ~a;~%" goutinc)
+      (format fout "int nrys_roots = envs->nrys_roots;
 int ix, iy, iz, i, n;
+DECLARE_GOUT;
 double *RESTRICT g0 = g;~%")
       (if (breit-int? op)
         (loop for i in (range (ash 1 tot-bits)) do
@@ -1083,7 +1117,7 @@ for (ix = 0; ix < envs->g_size * 3 * SIMDD; ix++) {g~a[ix] += g~a[ix];}~%"))
            (k-len (length k-rev))
            (tot-bits (+ i-len j-len op-len k-len))
            (goutinc (length flat-script)))
-      (format fout "static void CINTgout2e_~a_simd1(double *RESTRICT gout,
+      (format fout "void CINTgout2e_~a_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {~%" intname)
       (format fout "int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
@@ -1169,52 +1203,60 @@ for (ix = 0; ix < envs->g_size * 3 * SIMDD; ix++) {g~a[ix] += g~a[ix];}~%"))
       (format fout "int ~a_cart(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {~%" intname)
       (format fout envs-common)
-      (format fout "if (out == NULL) { return int2e_cache_size(&envs);
-} else {~%")
       (when (member 'g raw-infix)
-        (format fout "int i, nc;~%")
+        (format fout "int i, nout;
+int counts[4];~%")
         (when (or (member 'g bra-i) (member 'g ket-j))
           (format fout "if (envs.shls[0] == envs.shls[1]) {
-nc = envs.nf * envs.x_ctr[0] * envs.x_ctr[1] * envs.x_ctr[2];
-int n_comp = envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor;
-for (i = 0; i < nc * n_comp; i++) { out[i] = 0; }
+counts[0] = envs.nfi * envs.x_ctr[0];
+counts[1] = envs.nfj * envs.x_ctr[1];
+counts[2] = envs.nfk * envs.x_ctr[2];
+counts[3] = 1;
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2];
+for (i = 0; i < envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor; i++) {
+c2s_dset0(out+nout*i, dims, counts); }
 return 0; }~%")))
-      (format fout "return CINT3c2e_cart_drv(out, dims, &envs, opt, cache);~%}} // ~a_cart~%" intname)
+      (format fout "return CINT3c2e_cart_drv(out, dims, &envs, opt, cache);~%} // ~a_cart~%" intname)
 ;;; _sph
       (format fout "int ~a_sph(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {~%" intname)
       (format fout envs-common)
-      (format fout "if (out == NULL) { return int2e_cache_size(&envs) + envs.nf*MAX(0, 2-SIMDD);
-} else {~%")
       (when (member 'g raw-infix)
-        (format fout "int i, nc;~%")
+        (format fout "int i, nout;
+int counts[4];~%")
         (when (or (member 'g bra-i) (member 'g ket-j))
           (format fout "if (envs.shls[0] == envs.shls[1]) {
-nc = (envs.i_l*2+1) * (envs.j_l*2+1) * (envs.k_l*2+1) *
-envs.x_ctr[0] * envs.x_ctr[1] * envs.x_ctr[2];
-int n_comp = envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor;
-for (i = 0; i < nc * n_comp; i++) { out[i] = 0; }
+counts[0] = (envs.i_l*2+1) * envs.x_ctr[0];
+counts[1] = (envs.j_l*2+1) * envs.x_ctr[1];
+counts[2] = (envs.k_l*2+1) * envs.x_ctr[2];
+counts[3] = 1;
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2];
+for (i = 0; i < envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor; i++) {
+c2s_dset0(out+nout*i, dims, counts); }
 return 0; }~%")))
-      (format fout "return CINT3c2e_spheric_drv(out, dims, &envs, opt, cache);~%}} // ~a_sph~%" intname)
+      (format fout "return CINT3c2e_spheric_drv(out, dims, &envs, opt, cache);~%} // ~a_sph~%" intname)
 ;;; _spinor
       (format fout "int ~a_spinor(double complex *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {~%" intname)
       (format fout envs-common)
-      (format fout "if (out == NULL) {
-int n0 = int2e_cache_size(&envs);
-return MAX(n0, n0/2 + envs.nf*14*OF_CMPLX);
-} else {~%")
       (when (member 'g raw-infix)
-        (format fout "int i, nc;~%")
+        (format fout "int i, nout;
+int counts[4];~%")
         (when (or (member 'g bra-i) (member 'g ket-j))
           (format fout "if (envs.shls[0] == envs.shls[1]) {
-nc = CINTcgto_spinor(envs.shls[0], envs.bas)
-* CINTcgto_spinor(envs.shls[1], envs.bas)
-* (envs.k_l*2+1) * envs.x_ctr[2];
-for (i = 0; i < nc * envs.ncomp_tensor; i++) { out[i] = 0; }
+counts[0] = CINTcgto_spinor(envs.shls[0], envs.bas);
+counts[1] = CINTcgto_spinor(envs.shls[1], envs.bas);
+counts[2] = (envs.k_l*2+1) * envs.x_ctr[2];
+counts[3] = 1;
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2];
+for (i = 0; i < envs.ncomp_tensor; i++) {
+c2s_zset0(out+nout*i, dims, counts); }
 return 0; }~%")))
       (format fout "return CINT3c2e_spinor_drv(out, dims, &envs, opt, cache, ~a);
-}} // ~a_spinor~%" (name-c2sor "3c2e1" 'spinor sf1 ts1) intname)))
+} // ~a_spinor~%" (name-c2sor "3c2e1" 'spinor sf1 ts1) intname)))
 ;;; int2e -> cint2e
   (format fout "ALL_CINT(~a)~%" intname)
   (format fout "//ALL_CINT_FORTRAN_(c~a)~%" intname))
@@ -1234,8 +1276,10 @@ return 0; }~%")))
       (format fout "static void CINTgout2e_~a(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {~%" intname)
       (format fout "int nf = envs->nf;
-int nrys_roots = envs->nrys_roots;
+int nfc = nf * ~a;~%" goutinc)
+      (format fout "int nrys_roots = envs->nrys_roots;
 int ix, iy, iz, i, n;
+DECLARE_GOUT;
 double *RESTRICT g0 = g;~%")
       (if (breit-int? op)
         (loop for i in (range (ash 1 tot-bits)) do
@@ -1359,22 +1403,19 @@ for (ix = 0; ix < envs->g_size * 3 * SIMDD; ix++) {g~a[ix] += g~a[ix];}~%"))
       (format fout "int ~a_cart(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {~%" intname)
       (format fout envs-common)
-      (format fout "if (out == NULL) { return int1e_cache_size(&envs);
-} else { return CINT2c2e_cart_drv(out, dims, &envs, opt, cache);~%}} // ~a_cart~%" intname)
+      (format fout "return CINT2c2e_cart_drv(out, dims, &envs, opt, cache);~%} // ~a_cart~%" intname)
 ;;; _sph
       (format fout "int ~a_sph(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {~%" intname)
       (format fout envs-common)
-      (format fout "if (out == NULL) { return int1e_cache_size(&envs) + envs.nf*MAX(0, 2-SIMDD);
-} else { return CINT2c2e_spheric_drv(out, dims, &envs, opt, cache);~%}} // ~a_sph~%" intname)
+      (format fout "return CINT2c2e_spheric_drv(out, dims, &envs, opt, cache);~%} // ~a_sph~%" intname)
 ;;; _spinor
       (format fout "int ~a_spinor(double complex *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {~%" intname)
       (format fout envs-common)
       ; c2s_ function is incorrect if e1/e2 are spin-included operators
-      (format fout "if (out == NULL) { return int1e_cache_size(&envs);
-} else { return CINT2c2e_spinor_drv(out, dims, &envs, opt, cache, ~a);
-}} // ~a_spinor~%" (name-c2sor "1e" 'spinor sf1 ts1) intname)))
+      (format fout "return CINT2c2e_spinor_drv(out, dims, &envs, opt, cache, ~a);
+} // ~a_spinor~%" (name-c2sor "1e" 'spinor sf1 ts1) intname)))
 ;;; int2e -> cint2e
   (format fout "ALL_CINT(~a)~%" intname)
   (format fout "//ALL_CINT_FORTRAN_(c~a)~%" intname))
@@ -1397,7 +1438,9 @@ int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs, int count) {~%" intname)
       (format fout "CINTg3c1e_ovlp(g, envs, count);
 int nf = envs->nf;
-int ix, iy, iz, n;
+int nfc = nf * ~a;~%" goutinc)
+      (format fout "int ix, iy, iz, n;
+DECLARE_GOUT;
 double *RESTRICT g0 = g;~%")
       (if (breit-int? op)
         (loop for i in (range (ash 1 tot-bits)) do
@@ -1477,52 +1520,60 @@ iz = idx[2+n*3];~%")
       (format fout "int ~a_cart(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {~%" intname)
       (format fout envs-common)
-      (format fout "if (out == NULL) { return int3c1e_cache_size(&envs);
-} else {~%")
       (when (member 'g raw-infix)
-        (format fout "int i, nc;~%")
+        (format fout "int i, nout;
+int counts[4];~%")
         (when (or (member 'g bra-i) (member 'g ket-j))
           (format fout "if (envs.shls[0] == envs.shls[1]) {
-nc = envs.nf * envs.x_ctr[0] * envs.x_ctr[1] * envs.x_ctr[2];
-int n_comp = envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor;
-for (i = 0; i < nc * n_comp; i++) { out[i] = 0; }
+counts[0] = envs.nfi * envs.x_ctr[0];
+counts[1] = envs.nfj * envs.x_ctr[1];
+counts[2] = envs.nfk * envs.x_ctr[2];
+counts[3] = 1;
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2];
+for (i = 0; i < envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor; i++) {
+c2s_dset0(out+nout*i, dims, counts); }
 return 0; }~%")))
-      (format fout "return CINT3c1e_cart_drv(out, dims, &envs, opt, cache);~%}} // ~a_cart~%" intname)
+      (format fout "return CINT3c1e_cart_drv(out, dims, &envs, opt, cache);~%} // ~a_cart~%" intname)
 ;;; _sph
       (format fout "int ~a_sph(double *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {~%" intname)
       (format fout envs-common)
-      (format fout "if (out == NULL) { return int3c1e_cache_size(&envs) + envs.nf*MAX(0, 2-SIMDD);
-} else {~%")
       (when (member 'g raw-infix)
-        (format fout "int i, nc;~%")
+        (format fout "int i, nout;
+int counts[4];~%")
         (when (or (member 'g bra-i) (member 'g ket-j))
           (format fout "if (envs.shls[0] == envs.shls[1]) {
-nc = (envs.i_l*2+1) * (envs.j_l*2+1) * (envs.k_l*2+1) *
-envs.x_ctr[0] * envs.x_ctr[1] * envs.x_ctr[2];
-int n_comp = envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor;
-for (i = 0; i < nc * n_comp; i++) { out[i] = 0; }
+counts[0] = (envs.i_l*2+1) * envs.x_ctr[0];
+counts[1] = (envs.j_l*2+1) * envs.x_ctr[1];
+counts[2] = (envs.k_l*2+1) * envs.x_ctr[2];
+counts[3] = 1;
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2];
+for (i = 0; i < envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor; i++) {
+c2s_dset0(out+nout*i, dims, counts); }
 return 0; }~%")))
-      (format fout "return CINT3c1e_spheric_drv(out, dims, &envs, opt, cache);~%}} // ~a_sph~%" intname)
+      (format fout "return CINT3c1e_spheric_drv(out, dims, &envs, opt, cache);~%} // ~a_sph~%" intname)
 ;;; _spinor
       (format fout "int ~a_spinor(double complex *out, int *dims, int *shls,
 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {~%" intname)
       (format fout envs-common)
-      (format fout "if (out == NULL) {
-int n0 = int3c1e_cache_size(&envs);
-return MAX(n0, n0/2 + envs.nf*14*OF_CMPLX);
-} else {~%")
       (when (member 'g raw-infix)
-        (format fout "int i, nc;~%")
+        (format fout "int i, nout;
+int counts[4];~%")
         (when (or (member 'g bra-i) (member 'g ket-j))
           (format fout "if (envs.shls[0] == envs.shls[1]) {
-nc = CINTcgto_spinor(envs.shls[0], envs.bas)
-* CINTcgto_spinor(envs.shls[1], envs.bas)
-* (envs.k_l*2+1) * envs.x_ctr[2];
-for (i = 0; i < nc * envs.ncomp_tensor; i++) { out[i] = 0; }
+counts[0] = CINTcgto_spinor(envs.shls[0], envs.bas);
+counts[1] = CINTcgto_spinor(envs.shls[1], envs.bas);
+counts[2] = (envs.k_l*2+1) * envs.x_ctr[2];
+counts[3] = 1;
+if (dims == NULL) { dims = counts; }
+nout = dims[0] * dims[1] * dims[2];
+for (i = 0; i < envs.ncomp_tensor; i++) {
+c2s_zset0(out+nout*i, dims, counts); }
 return 0; }~%")))
       (format fout "return CINT3c1e_spinor_drv(out, dims, &envs, opt, cache, ~a);
-}} // ~a_spinor~%" (name-c2sor "3c2e1" 'spinor sf ts) intname)))
+} // ~a_spinor~%" (name-c2sor "3c2e1" 'spinor sf ts) intname)))
   (format fout "ALL_CINT(~a)~%" intname)
   (format fout "//ALL_CINT_FORTRAN_(c~a)~%" intname))
 

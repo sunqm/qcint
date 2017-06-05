@@ -3391,6 +3391,48 @@ static void a_bra_cart2spinor_si(double complex *gsp, int nket,
                gcart+nf*nket, &nf, &Z1, gsp, &nd);
 }
 
+/*
+ * contract two-component vector with c2s transformation to get integral (scalar)
+ */
+static void a_ket_cart2spinor(double complex *gsp, int nbra,
+                              double complex *gcart, int kappa, int l)
+{
+        const double complex Z0 = 0;
+        const double complex Z1 = 1;
+        const char TRANS_N = 'N';
+        int nf = _len_cart[l];
+        int nf2 = nf * 2;
+        int nd = _len_spinor(kappa, l);
+        const double complex *coeff_c2s;
+
+        if (kappa < 0) { // j = l + 1/2
+                coeff_c2s = g_c2s[l].cart2j_gt_l;
+        } else {
+                coeff_c2s = g_c2s[l].cart2j_lt_l;
+        }
+        zgemm_(&TRANS_N, &TRANS_N, &nbra, &nd, &nf2,
+               &Z1, gcart, &nbra, coeff_c2s, &nf2, &Z0, gsp, &nbra);
+}
+// with phase "i"
+static void a_iket_cart2spinor(double complex *gsp, int nbra,
+                               double complex *gcart, int kappa, int l)
+{
+        const double complex Z0 = 0;
+        const double complex ZI = 0 + 1 * _Complex_I;
+        const char TRANS_N = 'N';
+        int nf = _len_cart[l];
+        int nf2 = nf * 2;
+        int nd = _len_spinor(kappa, l);
+        const double complex *coeff_c2s;
+
+        if (kappa < 0) { // j = l + 1/2
+                coeff_c2s = g_c2s[l].cart2j_gt_l;
+        } else {
+                coeff_c2s = g_c2s[l].cart2j_lt_l;
+        }
+        zgemm_(&TRANS_N, &TRANS_N, &nbra, &nd, &nf2,
+               &ZI, gcart, &nbra, coeff_c2s, &nf2, &Z0, gsp, &nbra);
+}
 
 // Zcoeff_c2s(X,Y) * Zgcart(Z)
 #define CRE(X,Y,L) creal(coeff_c2s[(X)+(Y)*(L+1)*(L+2)])
@@ -3435,6 +3477,30 @@ static void s_bra_cart2spinor_si(double complex *gsp, int nket,
         for (i = 0; i < nket; i++) {
                 gsp[i*2+0] = gcart1[i];
                 gsp[i*2+1] = gcart [i];
+        }
+}
+static void s_ket_cart2spinor(double complex *gsp, int nbra,
+                              double complex *gcart, int kappa, int l)
+{
+        //double *coeff_c2s = g_c2s[0].cart2j_lt_l;;
+        double complex *gsp1 = gsp + nbra;
+        double complex *gcart1 = gcart + nbra;
+        int i;
+        for (i = 0; i < nbra; i++) {
+                gsp [i] = gcart1[i];
+                gsp1[i] = gcart [i];
+        }
+}
+static void s_iket_cart2spinor(double complex *gsp, int nbra,
+                               double complex *gcart, int kappa, int l)
+{
+        //double *coeff_c2s = g_c2s[0].cart2j_lt_l;;
+        double complex *gsp1 = gsp + nbra;
+        double complex *gcart1 = gcart + nbra;
+        int i;
+        for (i = 0; i < nbra; i++) {
+                gsp [i] = gcart1[i] * _Complex_I;
+                gsp1[i] = gcart [i] * _Complex_I;
         }
 }
 
@@ -3558,6 +3624,74 @@ static void p_bra_cart2spinor_si(double complex *gsp, int nket,
                         gsp[i*nd+2]+= CRE(3,2,1)*Gre(1,3*i+0)
                                     - CIM(4,2,1)*Gim(1,3*i+1);
                         gsp[i*nd+3]+= 0;
+                }
+        }
+}
+static void p_ket_cart2spinor(double complex *gsp, int nbra,
+                              double complex *gcart, int kappa, int l)
+{
+        const double complex *coeff_c2s;
+        int i;
+
+        if (kappa >= 0) {
+                coeff_c2s = g_c2s[1].cart2j_lt_l;
+                for (i = 0; i < nbra; i++) {
+                        gsp[     i] = CRE(0,0,1)*GRE(nbra*0+i)
+                                    + CIM(1,0,1)*GIM(nbra*1+i)
+                                    + CRE(5,0,1)*GRE(nbra*5+i);
+                        gsp[nbra+i] = CRE(2,1,1)*GRE(nbra*2+i)
+                                    + CRE(3,1,1)*GRE(nbra*3+i)
+                                    + CIM(4,1,1)*GIM(nbra*4+i);
+                }
+                gsp += nbra * 2;
+        }
+        if (kappa <= 0) {
+                coeff_c2s = g_c2s[1].cart2j_gt_l;
+                for (i = 0; i < nbra; i++) {
+                        gsp[0*nbra+i] = CRE(3,0,1)*GRE(nbra*3+i)
+                                      + CIM(4,0,1)*GIM(nbra*4+i);
+                        gsp[1*nbra+i] = CRE(0,1,1)*GRE(nbra*0+i)
+                                      + CIM(1,1,1)*GIM(nbra*1+i)
+                                      + CRE(5,1,1)*GRE(nbra*5+i);
+                        gsp[2*nbra+i] = CRE(2,2,1)*GRE(nbra*2+i)
+                                      + CRE(3,2,1)*GRE(nbra*3+i)
+                                      + CIM(4,2,1)*GIM(nbra*4+i);
+                        gsp[3*nbra+i] = CRE(0,3,1)*GRE(nbra*0+i)
+                                      + CIM(1,3,1)*GIM(nbra*1+i);
+                }
+        }
+}
+static void p_iket_cart2spinor(double complex *gsp, int nbra,
+                               double complex *gcart, int kappa, int l)
+{
+        const double complex *coeff_c2s;
+        int i;
+
+        if (kappa >= 0) {
+                coeff_c2s = g_c2s[1].cart2j_lt_l;
+                for (i = 0; i < nbra; i++) {
+                        gsp[     i] = CRE(0,0,1)*GIM(nbra*0+i)
+                                    - CIM(1,0,1)*GRE(nbra*1+i)
+                                    + CRE(5,0,1)*GIM(nbra*5+i);
+                        gsp[nbra+i] = CRE(2,1,1)*GIM(nbra*2+i)
+                                    + CRE(3,1,1)*GIM(nbra*3+i)
+                                    - CIM(4,1,1)*GRE(nbra*4+i);
+                }
+                gsp += nbra * 2;
+        }
+        if (kappa <= 0) {
+                coeff_c2s = g_c2s[1].cart2j_gt_l;
+                for (i = 0; i < nbra; i++) {
+                        gsp[0*nbra+i] = CRE(3,0,1)*GIM(nbra*3+i)
+                                      - CIM(4,0,1)*GRE(nbra*4+i);
+                        gsp[1*nbra+i] = CRE(0,1,1)*GIM(nbra*0+i)
+                                      - CIM(1,1,1)*GRE(nbra*1+i)
+                                      + CRE(5,1,1)*GIM(nbra*5+i);
+                        gsp[2*nbra+i] = CRE(2,2,1)*GIM(nbra*2+i)
+                                      + CRE(3,2,1)*GIM(nbra*3+i)
+                                      - CIM(4,2,1)*GRE(nbra*4+i);
+                        gsp[3*nbra+i] = CRE(0,3,1)*GIM(nbra*0+i)
+                                      - CIM(1,3,1)*GRE(nbra*1+i);
                 }
         }
 }
@@ -3774,6 +3908,134 @@ static void d_bra_cart2spinor_si(double complex *gsp, int nket,
                                     + CRE( 9,4,2)*Gre(1,6*i+3)
                                     - CIM( 7,4,2)*Gim(1,6*i+1);
                         gsp[i*nd+5]+= 0;
+                }
+        }
+}
+static void d_ket_cart2spinor(double complex *gsp, int nbra,
+                              double complex *gcart, int kappa, int l)
+{
+        const double complex *coeff_c2s;
+        int i;
+
+        if (kappa >= 0) {
+                coeff_c2s = g_c2s[2].cart2j_lt_l;
+                for (i = 0; i < nbra; i++) {
+                        gsp[0*nbra+i] = CRE( 0,0,2)*GRE(nbra* 0+i)
+                                      + CRE( 3,0,2)*GRE(nbra* 3+i)
+                                      + CIM( 1,0,2)*GIM(nbra* 1+i)
+                                      + CRE( 8,0,2)*GRE(nbra* 8+i)
+                                      + CIM(10,0,2)*GIM(nbra*10+i);
+                        gsp[1*nbra+i] = CRE( 2,1,2)*GRE(nbra* 2+i)
+                                      + CIM( 4,1,2)*GIM(nbra* 4+i)
+                                      + CRE( 6,1,2)*GRE(nbra* 6+i)
+                                      + CRE( 9,1,2)*GRE(nbra* 9+i)
+                                      + CRE(11,1,2)*GRE(nbra*11+i);
+                        gsp[2*nbra+i] = CRE( 0,2,2)*GRE(nbra* 0+i)
+                                      + CRE( 3,2,2)*GRE(nbra* 3+i)
+                                      + CRE( 5,2,2)*GRE(nbra* 5+i)
+                                      + CRE( 8,2,2)*GRE(nbra* 8+i)
+                                      + CIM(10,2,2)*GIM(nbra*10+i);
+                        gsp[3*nbra+i] = CRE( 2,3,2)*GRE(nbra* 2+i)
+                                      + CIM( 4,3,2)*GIM(nbra* 4+i)
+                                      + CRE( 6,3,2)*GRE(nbra* 6+i)
+                                      + CRE( 9,3,2)*GRE(nbra* 9+i)
+                                      + CIM( 7,3,2)*GIM(nbra* 7+i);
+                }
+                gsp += nbra * 4;
+        }
+        if (kappa <= 0) {
+                coeff_c2s = g_c2s[2].cart2j_gt_l;
+                for (i = 0; i < nbra; i++) {
+                        gsp[0*nbra+i] = CRE( 6,0,2)*GRE(nbra* 6+i)
+                                      + CRE( 9,0,2)*GRE(nbra* 9+i)
+                                      + CIM( 7,0,2)*GIM(nbra* 7+i);
+                        gsp[1*nbra+i] = CRE( 0,1,2)*GRE(nbra* 0+i)
+                                      + CRE( 3,1,2)*GRE(nbra* 3+i)
+                                      + CIM( 1,1,2)*GIM(nbra* 1+i)
+                                      + CRE( 8,1,2)*GRE(nbra* 8+i)
+                                      + CIM(10,1,2)*GIM(nbra*10+i);
+                        gsp[2*nbra+i] = CRE( 2,2,2)*GRE(nbra* 2+i)
+                                      + CIM( 4,2,2)*GIM(nbra* 4+i)
+                                      + CRE( 6,2,2)*GRE(nbra* 6+i)
+                                      + CRE( 9,2,2)*GRE(nbra* 9+i)
+                                      + CRE(11,2,2)*GRE(nbra*11+i);
+                        gsp[3*nbra+i] = CRE( 0,3,2)*GRE(nbra* 0+i)
+                                      + CRE( 3,3,2)*GRE(nbra* 3+i)
+                                      + CRE( 5,3,2)*GRE(nbra* 5+i)
+                                      + CRE( 8,3,2)*GRE(nbra* 8+i)
+                                      + CIM(10,3,2)*GIM(nbra*10+i);
+                        gsp[4*nbra+i] = CRE( 2,4,2)*GRE(nbra* 2+i)
+                                      + CIM( 4,4,2)*GIM(nbra* 4+i)
+                                      + CRE( 6,4,2)*GRE(nbra* 6+i)
+                                      + CRE( 9,4,2)*GRE(nbra* 9+i)
+                                      + CIM( 7,4,2)*GIM(nbra* 7+i);
+                        gsp[5*nbra+i] = CRE( 0,5,2)*GRE(nbra* 0+i)
+                                      + CRE( 3,5,2)*GRE(nbra* 3+i)
+                                      + CIM( 1,5,2)*GIM(nbra* 1+i);
+                }
+        }
+}
+static void d_iket_cart2spinor(double complex *gsp, int nbra,
+                               double complex *gcart, int kappa, int l)
+{
+        const double complex *coeff_c2s;
+        int i;
+
+        if (kappa >= 0) {
+                coeff_c2s = g_c2s[2].cart2j_lt_l;
+                for (i = 0; i < nbra; i++) {
+                        gsp[0*nbra+i] = CRE( 0,0,2)*GIM(nbra* 0+i)
+                                      + CRE( 3,0,2)*GIM(nbra* 3+i)
+                                      - CIM( 1,0,2)*GRE(nbra* 1+i)
+                                      + CRE( 8,0,2)*GIM(nbra* 8+i)
+                                      - CIM(10,0,2)*GRE(nbra*10+i);
+                        gsp[1*nbra+i] = CRE( 2,1,2)*GIM(nbra* 2+i)
+                                      - CIM( 4,1,2)*GRE(nbra* 4+i)
+                                      + CRE( 6,1,2)*GIM(nbra* 6+i)
+                                      + CRE( 9,1,2)*GIM(nbra* 9+i)
+                                      + CRE(11,1,2)*GIM(nbra*11+i);
+                        gsp[2*nbra+i] = CRE( 0,2,2)*GIM(nbra* 0+i)
+                                      + CRE( 3,2,2)*GIM(nbra* 3+i)
+                                      + CRE( 5,2,2)*GIM(nbra* 5+i)
+                                      + CRE( 8,2,2)*GIM(nbra* 8+i)
+                                      - CIM(10,2,2)*GRE(nbra*10+i);
+                        gsp[3*nbra+i] = CRE( 2,3,2)*GIM(nbra* 2+i)
+                                      - CIM( 4,3,2)*GRE(nbra* 4+i)
+                                      + CRE( 6,3,2)*GIM(nbra* 6+i)
+                                      + CRE( 9,3,2)*GIM(nbra* 9+i)
+                                      - CIM( 7,3,2)*GRE(nbra* 7+i);
+                }
+                gsp += nbra * 4;
+        }
+        if (kappa <= 0) {
+                coeff_c2s = g_c2s[2].cart2j_gt_l;
+                for (i = 0; i < nbra; i++) {
+                        gsp[0*nbra+i] = CRE( 6,0,2)*GIM(nbra* 6+i)
+                                      + CRE( 9,0,2)*GIM(nbra* 9+i)
+                                      - CIM( 7,0,2)*GRE(nbra* 7+i);
+                        gsp[1*nbra+i] = CRE( 0,1,2)*GIM(nbra* 0+i)
+                                      + CRE( 3,1,2)*GIM(nbra* 3+i)
+                                      - CIM( 1,1,2)*GRE(nbra* 1+i)
+                                      + CRE( 8,1,2)*GIM(nbra* 8+i)
+                                      - CIM(10,1,2)*GRE(nbra*10+i);
+                        gsp[2*nbra+i] = CRE( 2,2,2)*GIM(nbra* 2+i)
+                                      - CIM( 4,2,2)*GRE(nbra* 4+i)
+                                      + CRE( 6,2,2)*GIM(nbra* 6+i)
+                                      + CRE( 9,2,2)*GIM(nbra* 9+i)
+                                      + CRE(11,2,2)*GIM(nbra*11+i);
+                        gsp[3*nbra+i] = CRE( 0,3,2)*GIM(nbra* 0+i)
+                                      + CRE( 3,3,2)*GIM(nbra* 3+i)
+                                      + CRE( 5,3,2)*GIM(nbra* 5+i)
+                                      + CRE( 8,3,2)*GIM(nbra* 8+i)
+                                      - CIM(10,3,2)*GRE(nbra*10+i);
+                        gsp[4*nbra+i] = CRE( 2,4,2)*GIM(nbra* 2+i)
+                                      - CIM( 4,4,2)*GRE(nbra* 4+i)
+                                      + CRE( 6,4,2)*GIM(nbra* 6+i)
+                                      + CRE( 9,4,2)*GIM(nbra* 9+i)
+                                      - CIM( 7,4,2)*GRE(nbra* 7+i);
+                        gsp[5*nbra+i] = CRE( 0,5,2)*GIM(nbra* 0+i)
+                                      + CRE( 3,5,2)*GIM(nbra* 3+i)
+                                      - CIM( 1,5,2)*GRE(nbra* 1+i);
                 }
         }
 }
@@ -4175,6 +4437,258 @@ static void f_bra_cart2spinor_si(double complex *gsp, int nket,
                                     + CRE(13,6,3)*Gre(1,10*i+3)
                                     - CIM(16,6,3)*Gim(1,10*i+6);
                         gsp[i*nd+7]+= 0;
+                }
+        }
+}
+static void f_ket_cart2spinor(double complex *gsp, int nbra,
+                              double complex *gcart, int kappa, int l)
+{
+        const double complex *coeff_c2s;
+        int i;
+
+        if (kappa >= 0) {
+                coeff_c2s = g_c2s[3].cart2j_lt_l;
+                for (i = 0; i < nbra; i++) {
+                        gsp[0*nbra+i] = CRE( 0,0,3)*GRE(nbra* 0+i)
+                                      + CIM( 1,0,3)*GIM(nbra* 1+i)
+                                      + CRE( 3,0,3)*GRE(nbra* 3+i)
+                                      + CIM( 6,0,3)*GIM(nbra* 6+i)
+                                      + CRE(12,0,3)*GRE(nbra*12+i)
+                                      + CIM(14,0,3)*GIM(nbra*14+i)
+                                      + CRE(17,0,3)*GRE(nbra*17+i);
+                        gsp[1*nbra+i] = CRE( 2,1,3)*GRE(nbra* 2+i)
+                                      + CIM( 4,1,3)*GIM(nbra* 4+i)
+                                      + CRE( 7,1,3)*GRE(nbra* 7+i)
+                                      + CRE(10,1,3)*GRE(nbra*10+i)
+                                      + CIM(11,1,3)*GIM(nbra*11+i)
+                                      + CRE(13,1,3)*GRE(nbra*13+i)
+                                      + CRE(15,1,3)*GRE(nbra*15+i)
+                                      + CIM(16,1,3)*GIM(nbra*16+i)
+                                      + CIM(18,1,3)*GIM(nbra*18+i);
+                        gsp[2*nbra+i] = CRE( 0,2,3)*GRE(nbra* 0+i)
+                                      + CIM( 1,2,3)*GIM(nbra* 1+i)
+                                      + CRE( 3,2,3)*GRE(nbra* 3+i)
+                                      + CRE( 5,2,3)*GRE(nbra* 5+i)
+                                      + CIM( 6,2,3)*GIM(nbra* 6+i)
+                                      + CIM( 8,2,3)*GIM(nbra* 8+i)
+                                      + CRE(12,2,3)*GRE(nbra*12+i)
+                                      + CRE(17,2,3)*GRE(nbra*17+i)
+                                      + CRE(19,2,3)*GRE(nbra*19+i);
+                        gsp[3*nbra+i] = CRE( 2,3,3)*GRE(nbra* 2+i)
+                                      + CRE( 7,3,3)*GRE(nbra* 7+i)
+                                      + CRE( 9,3,3)*GRE(nbra* 9+i)
+                                      + CRE(10,3,3)*GRE(nbra*10+i)
+                                      + CIM(11,3,3)*GIM(nbra*11+i)
+                                      + CRE(13,3,3)*GRE(nbra*13+i)
+                                      + CRE(15,3,3)*GRE(nbra*15+i)
+                                      + CIM(16,3,3)*GIM(nbra*16+i)
+                                      + CIM(18,3,3)*GIM(nbra*18+i);
+                        gsp[4*nbra+i] = CRE( 0,4,3)*GRE(nbra* 0+i)
+                                      + CIM( 1,4,3)*GIM(nbra* 1+i)
+                                      + CRE( 3,4,3)*GRE(nbra* 3+i)
+                                      + CRE( 5,4,3)*GRE(nbra* 5+i)
+                                      + CIM( 6,4,3)*GIM(nbra* 6+i)
+                                      + CIM( 8,4,3)*GIM(nbra* 8+i)
+                                      + CRE(12,4,3)*GRE(nbra*12+i)
+                                      + CIM(14,4,3)*GIM(nbra*14+i)
+                                      + CRE(17,4,3)*GRE(nbra*17+i);
+                        gsp[5*nbra+i] = CRE( 2,5,3)*GRE(nbra* 2+i)
+                                      + CIM( 4,5,3)*GIM(nbra* 4+i)
+                                      + CRE( 7,5,3)*GRE(nbra* 7+i)
+                                      + CRE(10,5,3)*GRE(nbra*10+i)
+                                      + CIM(11,5,3)*GIM(nbra*11+i)
+                                      + CRE(13,5,3)*GRE(nbra*13+i)
+                                      + CIM(16,5,3)*GIM(nbra*16+i);
+                }
+                gsp += nbra * 6;
+        }
+        if (kappa <= 0) {
+                coeff_c2s = g_c2s[3].cart2j_gt_l;
+                for (i = 0; i < nbra; i++) {
+                        gsp[0*nbra+i] = CRE(10,0,3)*GRE(nbra*10+i)
+                                      + CIM(11,0,3)*GIM(nbra*11+i)
+                                      + CRE(13,0,3)*GRE(nbra*13+i)
+                                      + CIM(16,0,3)*GIM(nbra*16+i);
+                        gsp[1*nbra+i] = CRE( 0,1,3)*GRE(nbra* 0+i)
+                                      + CIM( 1,1,3)*GIM(nbra* 1+i)
+                                      + CRE( 3,1,3)*GRE(nbra* 3+i)
+                                      + CIM( 6,1,3)*GIM(nbra* 6+i)
+                                      + CRE(12,1,3)*GRE(nbra*12+i)
+                                      + CIM(14,1,3)*GIM(nbra*14+i)
+                                      + CRE(17,1,3)*GRE(nbra*17+i);
+                        gsp[2*nbra+i] = CRE( 2,2,3)*GRE(nbra* 2+i)
+                                      + CIM( 4,2,3)*GIM(nbra* 4+i)
+                                      + CRE( 7,2,3)*GRE(nbra* 7+i)
+                                      + CRE(10,2,3)*GRE(nbra*10+i)
+                                      + CIM(11,2,3)*GIM(nbra*11+i)
+                                      + CRE(13,2,3)*GRE(nbra*13+i)
+                                      + CRE(15,2,3)*GRE(nbra*15+i)
+                                      + CIM(16,2,3)*GIM(nbra*16+i)
+                                      + CIM(18,2,3)*GIM(nbra*18+i);
+                        gsp[3*nbra+i] = CRE( 0,3,3)*GRE(nbra* 0+i)
+                                      + CIM( 1,3,3)*GIM(nbra* 1+i)
+                                      + CRE( 3,3,3)*GRE(nbra* 3+i)
+                                      + CRE( 5,3,3)*GRE(nbra* 5+i)
+                                      + CIM( 6,3,3)*GIM(nbra* 6+i)
+                                      + CIM( 8,3,3)*GIM(nbra* 8+i)
+                                      + CRE(12,3,3)*GRE(nbra*12+i)
+                                      + CRE(17,3,3)*GRE(nbra*17+i)
+                                      + CRE(19,3,3)*GRE(nbra*19+i);
+                        gsp[4*nbra+i] = CRE( 2,4,3)*GRE(nbra* 2+i)
+                                      + CRE( 7,4,3)*GRE(nbra* 7+i)
+                                      + CRE( 9,4,3)*GRE(nbra* 9+i)
+                                      + CRE(10,4,3)*GRE(nbra*10+i)
+                                      + CIM(11,4,3)*GIM(nbra*11+i)
+                                      + CRE(13,4,3)*GRE(nbra*13+i)
+                                      + CRE(15,4,3)*GRE(nbra*15+i)
+                                      + CIM(16,4,3)*GIM(nbra*16+i)
+                                      + CIM(18,4,3)*GIM(nbra*18+i);
+                        gsp[5*nbra+i] = CRE( 0,5,3)*GRE(nbra* 0+i)
+                                      + CIM( 1,5,3)*GIM(nbra* 1+i)
+                                      + CRE( 3,5,3)*GRE(nbra* 3+i)
+                                      + CRE( 5,5,3)*GRE(nbra* 5+i)
+                                      + CIM( 6,5,3)*GIM(nbra* 6+i)
+                                      + CIM( 8,5,3)*GIM(nbra* 8+i)
+                                      + CRE(12,5,3)*GRE(nbra*12+i)
+                                      + CIM(14,5,3)*GIM(nbra*14+i)
+                                      + CRE(17,5,3)*GRE(nbra*17+i);
+                        gsp[6*nbra+i] = CRE( 2,6,3)*GRE(nbra* 2+i)
+                                      + CIM( 4,6,3)*GIM(nbra* 4+i)
+                                      + CRE( 7,6,3)*GRE(nbra* 7+i)
+                                      + CRE(10,6,3)*GRE(nbra*10+i)
+                                      + CIM(11,6,3)*GIM(nbra*11+i)
+                                      + CRE(13,6,3)*GRE(nbra*13+i)
+                                      + CIM(16,6,3)*GIM(nbra*16+i);
+                        gsp[7*nbra+i] = CRE( 0,7,3)*GRE(nbra* 0+i)
+                                      + CIM( 1,7,3)*GIM(nbra* 1+i)
+                                      + CRE( 3,7,3)*GRE(nbra* 3+i)
+                                      + CIM( 6,7,3)*GIM(nbra* 6+i);
+                }
+        }
+}
+static void f_iket_cart2spinor(double complex *gsp, int nbra,
+                               double complex *gcart, int kappa, int l)
+{
+        const double complex *coeff_c2s;
+        int i;
+
+        if (kappa >= 0) {
+                coeff_c2s = g_c2s[3].cart2j_lt_l;
+                for (i = 0; i < nbra; i++) {
+                        gsp[0*nbra+i] = CRE( 0,0,3)*GIM(nbra* 0+i)
+                                      - CIM( 1,0,3)*GRE(nbra* 1+i)
+                                      + CRE( 3,0,3)*GIM(nbra* 3+i)
+                                      - CIM( 6,0,3)*GRE(nbra* 6+i)
+                                      + CRE(12,0,3)*GIM(nbra*12+i)
+                                      - CIM(14,0,3)*GRE(nbra*14+i)
+                                      + CRE(17,0,3)*GIM(nbra*17+i);
+                        gsp[1*nbra+i] = CRE( 2,1,3)*GIM(nbra* 2+i)
+                                      - CIM( 4,1,3)*GRE(nbra* 4+i)
+                                      + CRE( 7,1,3)*GIM(nbra* 7+i)
+                                      + CRE(10,1,3)*GIM(nbra*10+i)
+                                      - CIM(11,1,3)*GRE(nbra*11+i)
+                                      + CRE(13,1,3)*GIM(nbra*13+i)
+                                      + CRE(15,1,3)*GIM(nbra*15+i)
+                                      - CIM(16,1,3)*GRE(nbra*16+i)
+                                      - CIM(18,1,3)*GRE(nbra*18+i);
+                        gsp[2*nbra+i] = CRE( 0,2,3)*GIM(nbra* 0+i)
+                                      - CIM( 1,2,3)*GRE(nbra* 1+i)
+                                      + CRE( 3,2,3)*GIM(nbra* 3+i)
+                                      + CRE( 5,2,3)*GIM(nbra* 5+i)
+                                      - CIM( 6,2,3)*GRE(nbra* 6+i)
+                                      - CIM( 8,2,3)*GRE(nbra* 8+i)
+                                      + CRE(12,2,3)*GIM(nbra*12+i)
+                                      + CRE(17,2,3)*GIM(nbra*17+i)
+                                      + CRE(19,2,3)*GIM(nbra*19+i);
+                        gsp[3*nbra+i] = CRE( 2,3,3)*GIM(nbra* 2+i)
+                                      + CRE( 7,3,3)*GIM(nbra* 7+i)
+                                      + CRE( 9,3,3)*GIM(nbra* 9+i)
+                                      + CRE(10,3,3)*GIM(nbra*10+i)
+                                      - CIM(11,3,3)*GRE(nbra*11+i)
+                                      + CRE(13,3,3)*GIM(nbra*13+i)
+                                      + CRE(15,3,3)*GIM(nbra*15+i)
+                                      - CIM(16,3,3)*GRE(nbra*16+i)
+                                      - CIM(18,3,3)*GRE(nbra*18+i);
+                        gsp[4*nbra+i] = CRE( 0,4,3)*GIM(nbra* 0+i)
+                                      - CIM( 1,4,3)*GRE(nbra* 1+i)
+                                      + CRE( 3,4,3)*GIM(nbra* 3+i)
+                                      + CRE( 5,4,3)*GIM(nbra* 5+i)
+                                      - CIM( 6,4,3)*GRE(nbra* 6+i)
+                                      - CIM( 8,4,3)*GRE(nbra* 8+i)
+                                      + CRE(12,4,3)*GIM(nbra*12+i)
+                                      - CIM(14,4,3)*GRE(nbra*14+i)
+                                      + CRE(17,4,3)*GIM(nbra*17+i);
+                        gsp[5*nbra+i] = CRE( 2,5,3)*GIM(nbra* 2+i)
+                                      - CIM( 4,5,3)*GRE(nbra* 4+i)
+                                      + CRE( 7,5,3)*GIM(nbra* 7+i)
+                                      + CRE(10,5,3)*GIM(nbra*10+i)
+                                      - CIM(11,5,3)*GRE(nbra*11+i)
+                                      + CRE(13,5,3)*GIM(nbra*13+i)
+                                      - CIM(16,5,3)*GRE(nbra*16+i);
+                }
+                gsp += nbra * 6;
+        }
+        if (kappa <= 0) {
+                coeff_c2s = g_c2s[3].cart2j_gt_l;
+                for (i = 0; i < nbra; i++) {
+                        gsp[0*nbra+i] = CRE(10,0,3)*GIM(nbra*10+i)
+                                      - CIM(11,0,3)*GRE(nbra*11+i)
+                                      + CRE(13,0,3)*GIM(nbra*13+i)
+                                      - CIM(16,0,3)*GRE(nbra*16+i);
+                        gsp[1*nbra+i] = CRE( 0,1,3)*GIM(nbra* 0+i)
+                                      - CIM( 1,1,3)*GRE(nbra* 1+i)
+                                      + CRE( 3,1,3)*GIM(nbra* 3+i)
+                                      - CIM( 6,1,3)*GRE(nbra* 6+i)
+                                      + CRE(12,1,3)*GIM(nbra*12+i)
+                                      - CIM(14,1,3)*GRE(nbra*14+i)
+                                      + CRE(17,1,3)*GIM(nbra*17+i);
+                        gsp[2*nbra+i] = CRE( 2,2,3)*GIM(nbra* 2+i)
+                                      - CIM( 4,2,3)*GRE(nbra* 4+i)
+                                      + CRE( 7,2,3)*GIM(nbra* 7+i)
+                                      + CRE(10,2,3)*GIM(nbra*10+i)
+                                      - CIM(11,2,3)*GRE(nbra*11+i)
+                                      + CRE(13,2,3)*GIM(nbra*13+i)
+                                      + CRE(15,2,3)*GIM(nbra*15+i)
+                                      - CIM(16,2,3)*GRE(nbra*16+i)
+                                      - CIM(18,2,3)*GRE(nbra*18+i);
+                        gsp[3*nbra+i] = CRE( 0,3,3)*GIM(nbra* 0+i)
+                                      - CIM( 1,3,3)*GRE(nbra* 1+i)
+                                      + CRE( 3,3,3)*GIM(nbra* 3+i)
+                                      + CRE( 5,3,3)*GIM(nbra* 5+i)
+                                      - CIM( 6,3,3)*GRE(nbra* 6+i)
+                                      - CIM( 8,3,3)*GRE(nbra* 8+i)
+                                      + CRE(12,3,3)*GIM(nbra*12+i)
+                                      + CRE(17,3,3)*GIM(nbra*17+i)
+                                      + CRE(19,3,3)*GIM(nbra*19+i);
+                        gsp[4*nbra+i] = CRE( 2,4,3)*GIM(nbra* 2+i)
+                                      + CRE( 7,4,3)*GIM(nbra* 7+i)
+                                      + CRE( 9,4,3)*GIM(nbra* 9+i)
+                                      + CRE(10,4,3)*GIM(nbra*10+i)
+                                      - CIM(11,4,3)*GRE(nbra*11+i)
+                                      + CRE(13,4,3)*GIM(nbra*13+i)
+                                      + CRE(15,4,3)*GIM(nbra*15+i)
+                                      - CIM(16,4,3)*GRE(nbra*16+i)
+                                      - CIM(18,4,3)*GRE(nbra*18+i);
+                        gsp[5*nbra+i] = CRE( 0,5,3)*GIM(nbra* 0+i)
+                                      - CIM( 1,5,3)*GRE(nbra* 1+i)
+                                      + CRE( 3,5,3)*GIM(nbra* 3+i)
+                                      + CRE( 5,5,3)*GIM(nbra* 5+i)
+                                      - CIM( 6,5,3)*GRE(nbra* 6+i)
+                                      - CIM( 8,5,3)*GRE(nbra* 8+i)
+                                      + CRE(12,5,3)*GIM(nbra*12+i)
+                                      - CIM(14,5,3)*GRE(nbra*14+i)
+                                      + CRE(17,5,3)*GIM(nbra*17+i);
+                        gsp[6*nbra+i] = CRE( 2,6,3)*GIM(nbra* 2+i)
+                                      - CIM( 4,6,3)*GRE(nbra* 4+i)
+                                      + CRE( 7,6,3)*GIM(nbra* 7+i)
+                                      + CRE(10,6,3)*GIM(nbra*10+i)
+                                      - CIM(11,6,3)*GRE(nbra*11+i)
+                                      + CRE(13,6,3)*GIM(nbra*13+i)
+                                      - CIM(16,6,3)*GRE(nbra*16+i);
+                        gsp[7*nbra+i] = CRE( 0,7,3)*GIM(nbra* 0+i)
+                                      - CIM( 1,7,3)*GRE(nbra* 1+i)
+                                      + CRE( 3,7,3)*GIM(nbra* 3+i)
+                                      - CIM( 6,7,3)*GRE(nbra* 6+i);
                 }
         }
 }
@@ -4828,6 +5342,423 @@ static void g_bra_cart2spinor_si(double complex *gsp, int nket,
                 }
         }
 }
+static void g_ket_cart2spinor(double complex *gsp, int nbra,
+                              double complex *gcart, int kappa, int l)
+{
+        const double complex *coeff_c2s;
+        int i;
+
+        if (kappa >= 0) {
+                coeff_c2s = g_c2s[4].cart2j_lt_l;
+                for (i = 0; i < nbra; i++) {
+                        gsp[0*nbra+i] = CRE( 0,0,4) * GRE(nbra* 0+i)
+                                      + CIM( 1,0,4) * GIM(nbra* 1+i)
+                                      + CRE( 3,0,4) * GRE(nbra* 3+i)
+                                      + CIM( 6,0,4) * GIM(nbra* 6+i)
+                                      + CRE(10,0,4) * GRE(nbra*10+i)
+                                      + CRE(17,0,4) * GRE(nbra*17+i)
+                                      + CIM(19,0,4) * GIM(nbra*19+i)
+                                      + CRE(22,0,4) * GRE(nbra*22+i)
+                                      + CIM(26,0,4) * GIM(nbra*26+i);
+                        gsp[1*nbra+i] = CRE( 2,1,4) * GRE(nbra* 2+i)
+                                      + CIM( 4,1,4) * GIM(nbra* 4+i)
+                                      + CRE( 7,1,4) * GRE(nbra* 7+i)
+                                      + CIM(11,1,4) * GIM(nbra*11+i)
+                                      + CRE(15,1,4) * GRE(nbra*15+i)
+                                      + CIM(16,1,4) * GIM(nbra*16+i)
+                                      + CRE(20,1,4) * GRE(nbra*20+i)
+                                      + CIM(21,1,4) * GIM(nbra*21+i)
+                                      + CIM(23,1,4) * GIM(nbra*23+i)
+                                      + CRE(25,1,4) * GRE(nbra*25+i)
+                                      + CRE(27,1,4) * GRE(nbra*27+i);
+                        gsp[2*nbra+i] = CRE( 0,2,4) * GRE(nbra* 0+i)
+                                      + CIM( 1,2,4) * GIM(nbra* 1+i)
+                                      + CRE( 5,2,4) * GRE(nbra* 5+i)
+                                      + CIM( 6,2,4) * GIM(nbra* 6+i)
+                                      + CIM( 8,2,4) * GIM(nbra* 8+i)
+                                      + CRE(10,2,4) * GRE(nbra*10+i)
+                                      + CRE(12,2,4) * GRE(nbra*12+i)
+                                      + CRE(17,2,4) * GRE(nbra*17+i)
+                                      + CIM(19,2,4) * GIM(nbra*19+i)
+                                      + CRE(22,2,4) * GRE(nbra*22+i)
+                                      + CRE(24,2,4) * GRE(nbra*24+i)
+                                      + CIM(26,2,4) * GIM(nbra*26+i)
+                                      + CIM(28,2,4) * GIM(nbra*28+i);
+                        gsp[3*nbra+i] = CRE( 2,3,4) * GRE(nbra* 2+i)
+                                      + CIM( 4,3,4) * GIM(nbra* 4+i)
+                                      + CRE( 7,3,4) * GRE(nbra* 7+i)
+                                      + CRE( 9,3,4) * GRE(nbra* 9+i)
+                                      + CIM(11,3,4) * GIM(nbra*11+i)
+                                      + CIM(13,3,4) * GIM(nbra*13+i)
+                                      + CRE(15,3,4) * GRE(nbra*15+i)
+                                      + CRE(18,3,4) * GRE(nbra*18+i)
+                                      + CRE(20,3,4) * GRE(nbra*20+i)
+                                      + CRE(25,3,4) * GRE(nbra*25+i)
+                                      + CRE(27,3,4) * GRE(nbra*27+i)
+                                      + CRE(29,3,4) * GRE(nbra*29+i);
+                        gsp[4*nbra+i] = CRE( 0,4,4) * GRE(nbra* 0+i)
+                                      + CRE( 3,4,4) * GRE(nbra* 3+i)
+                                      + CRE( 5,4,4) * GRE(nbra* 5+i)
+                                      + CRE(10,4,4) * GRE(nbra*10+i)
+                                      + CRE(12,4,4) * GRE(nbra*12+i)
+                                      + CRE(14,4,4) * GRE(nbra*14+i)
+                                      + CRE(17,4,4) * GRE(nbra*17+i)
+                                      + CIM(19,4,4) * GIM(nbra*19+i)
+                                      + CRE(22,4,4) * GRE(nbra*22+i)
+                                      + CRE(24,4,4) * GRE(nbra*24+i)
+                                      + CIM(26,4,4) * GIM(nbra*26+i)
+                                      + CIM(28,4,4) * GIM(nbra*28+i);
+                        gsp[5*nbra+i] = CRE( 2,5,4) * GRE(nbra* 2+i)
+                                      + CIM( 4,5,4) * GIM(nbra* 4+i)
+                                      + CRE( 7,5,4) * GRE(nbra* 7+i)
+                                      + CRE( 9,5,4) * GRE(nbra* 9+i)
+                                      + CIM(11,5,4) * GIM(nbra*11+i)
+                                      + CIM(13,5,4) * GIM(nbra*13+i)
+                                      + CRE(15,5,4) * GRE(nbra*15+i)
+                                      + CIM(16,5,4) * GIM(nbra*16+i)
+                                      + CRE(20,5,4) * GRE(nbra*20+i)
+                                      + CIM(21,5,4) * GIM(nbra*21+i)
+                                      + CIM(23,5,4) * GIM(nbra*23+i)
+                                      + CRE(25,5,4) * GRE(nbra*25+i)
+                                      + CRE(27,5,4) * GRE(nbra*27+i);
+                        gsp[6*nbra+i] = CRE( 0,6,4) * GRE(nbra* 0+i)
+                                      + CIM( 1,6,4) * GIM(nbra* 1+i)
+                                      + CRE( 5,6,4) * GRE(nbra* 5+i)
+                                      + CIM( 6,6,4) * GIM(nbra* 6+i)
+                                      + CIM( 8,6,4) * GIM(nbra* 8+i)
+                                      + CRE(10,6,4) * GRE(nbra*10+i)
+                                      + CRE(12,6,4) * GRE(nbra*12+i)
+                                      + CRE(17,6,4) * GRE(nbra*17+i)
+                                      + CIM(19,6,4) * GIM(nbra*19+i)
+                                      + CRE(22,6,4) * GRE(nbra*22+i)
+                                      + CIM(26,6,4) * GIM(nbra*26+i);
+                        gsp[7*nbra+i] = CRE( 2,7,4) * GRE(nbra* 2+i)
+                                      + CIM( 4,7,4) * GIM(nbra* 4+i)
+                                      + CRE( 7,7,4) * GRE(nbra* 7+i)
+                                      + CIM(11,7,4) * GIM(nbra*11+i)
+                                      + CRE(15,7,4) * GRE(nbra*15+i)
+                                      + CIM(16,7,4) * GIM(nbra*16+i)
+                                      + CRE(18,7,4) * GRE(nbra*18+i)
+                                      + CIM(21,7,4) * GIM(nbra*21+i)
+                                      + CRE(25,7,4) * GRE(nbra*25+i);
+                };
+                gsp += nbra * 8;
+        }
+        if (kappa <= 0) {
+                coeff_c2s = g_c2s[4].cart2j_gt_l;
+                for (i = 0; i < nbra; i++) {
+                        gsp[0*nbra+i] = CRE(15,0,4) * GRE(nbra*15+i)
+                                      + CIM(16,0,4) * GIM(nbra*16+i)
+                                      + CRE(18,0,4) * GRE(nbra*18+i)
+                                      + CIM(21,0,4) * GIM(nbra*21+i)
+                                      + CRE(25,0,4) * GRE(nbra*25+i);
+                        gsp[1*nbra+i] = CRE( 0,1,4) * GRE(nbra* 0+i)
+                                      + CIM( 1,1,4) * GIM(nbra* 1+i)
+                                      + CRE( 3,1,4) * GRE(nbra* 3+i)
+                                      + CIM( 6,1,4) * GIM(nbra* 6+i)
+                                      + CRE(10,1,4) * GRE(nbra*10+i)
+                                      + CRE(17,1,4) * GRE(nbra*17+i)
+                                      + CIM(19,1,4) * GIM(nbra*19+i)
+                                      + CRE(22,1,4) * GRE(nbra*22+i)
+                                      + CIM(26,1,4) * GIM(nbra*26+i);
+                        gsp[2*nbra+i] = CRE( 2,2,4) * GRE(nbra* 2+i)
+                                      + CIM( 4,2,4) * GIM(nbra* 4+i)
+                                      + CRE( 7,2,4) * GRE(nbra* 7+i)
+                                      + CIM(11,2,4) * GIM(nbra*11+i)
+                                      + CRE(15,2,4) * GRE(nbra*15+i)
+                                      + CIM(16,2,4) * GIM(nbra*16+i)
+                                      + CRE(20,2,4) * GRE(nbra*20+i)
+                                      + CIM(21,2,4) * GIM(nbra*21+i)
+                                      + CIM(23,2,4) * GIM(nbra*23+i)
+                                      + CRE(25,2,4) * GRE(nbra*25+i)
+                                      + CRE(27,2,4) * GRE(nbra*27+i);
+                        gsp[3*nbra+i] = CRE( 0,3,4) * GRE(nbra* 0+i)
+                                      + CIM( 1,3,4) * GIM(nbra* 1+i)
+                                      + CRE( 5,3,4) * GRE(nbra* 5+i)
+                                      + CIM( 6,3,4) * GIM(nbra* 6+i)
+                                      + CIM( 8,3,4) * GIM(nbra* 8+i)
+                                      + CRE(10,3,4) * GRE(nbra*10+i)
+                                      + CRE(12,3,4) * GRE(nbra*12+i)
+                                      + CRE(17,3,4) * GRE(nbra*17+i)
+                                      + CIM(19,3,4) * GIM(nbra*19+i)
+                                      + CRE(22,3,4) * GRE(nbra*22+i)
+                                      + CRE(24,3,4) * GRE(nbra*24+i)
+                                      + CIM(26,3,4) * GIM(nbra*26+i)
+                                      + CIM(28,3,4) * GIM(nbra*28+i);
+                        gsp[4*nbra+i] = CRE( 2,4,4) * GRE(nbra* 2+i)
+                                      + CIM( 4,4,4) * GIM(nbra* 4+i)
+                                      + CRE( 7,4,4) * GRE(nbra* 7+i)
+                                      + CRE( 9,4,4) * GRE(nbra* 9+i)
+                                      + CIM(11,4,4) * GIM(nbra*11+i)
+                                      + CIM(13,4,4) * GIM(nbra*13+i)
+                                      + CRE(15,4,4) * GRE(nbra*15+i)
+                                      + CRE(18,4,4) * GRE(nbra*18+i)
+                                      + CRE(20,4,4) * GRE(nbra*20+i)
+                                      + CRE(25,4,4) * GRE(nbra*25+i)
+                                      + CRE(27,4,4) * GRE(nbra*27+i)
+                                      + CRE(29,4,4) * GRE(nbra*29+i);
+                        gsp[5*nbra+i] = CRE( 0,5,4) * GRE(nbra* 0+i)
+                                      + CRE( 3,5,4) * GRE(nbra* 3+i)
+                                      + CRE( 5,5,4) * GRE(nbra* 5+i)
+                                      + CRE(10,5,4) * GRE(nbra*10+i)
+                                      + CRE(12,5,4) * GRE(nbra*12+i)
+                                      + CRE(14,5,4) * GRE(nbra*14+i)
+                                      + CRE(17,5,4) * GRE(nbra*17+i)
+                                      + CIM(19,5,4) * GIM(nbra*19+i)
+                                      + CRE(22,5,4) * GRE(nbra*22+i)
+                                      + CRE(24,5,4) * GRE(nbra*24+i)
+                                      + CIM(26,5,4) * GIM(nbra*26+i)
+                                      + CIM(28,5,4) * GIM(nbra*28+i);
+                        gsp[6*nbra+i] = CRE( 2,6,4) * GRE(nbra* 2+i)
+                                      + CIM( 4,6,4) * GIM(nbra* 4+i)
+                                      + CRE( 7,6,4) * GRE(nbra* 7+i)
+                                      + CRE( 9,6,4) * GRE(nbra* 9+i)
+                                      + CIM(11,6,4) * GIM(nbra*11+i)
+                                      + CIM(13,6,4) * GIM(nbra*13+i)
+                                      + CRE(15,6,4) * GRE(nbra*15+i)
+                                      + CIM(16,6,4) * GIM(nbra*16+i)
+                                      + CRE(20,6,4) * GRE(nbra*20+i)
+                                      + CIM(21,6,4) * GIM(nbra*21+i)
+                                      + CIM(23,6,4) * GIM(nbra*23+i)
+                                      + CRE(25,6,4) * GRE(nbra*25+i)
+                                      + CRE(27,6,4) * GRE(nbra*27+i);
+                        gsp[7*nbra+i] = CRE( 0,7,4) * GRE(nbra* 0+i)
+                                      + CIM( 1,7,4) * GIM(nbra* 1+i)
+                                      + CRE( 5,7,4) * GRE(nbra* 5+i)
+                                      + CIM( 6,7,4) * GIM(nbra* 6+i)
+                                      + CIM( 8,7,4) * GIM(nbra* 8+i)
+                                      + CRE(10,7,4) * GRE(nbra*10+i)
+                                      + CRE(12,7,4) * GRE(nbra*12+i)
+                                      + CRE(17,7,4) * GRE(nbra*17+i)
+                                      + CIM(19,7,4) * GIM(nbra*19+i)
+                                      + CRE(22,7,4) * GRE(nbra*22+i)
+                                      + CIM(26,7,4) * GIM(nbra*26+i);
+                        gsp[8*nbra+i] = CRE( 2,8,4) * GRE(nbra* 2+i)
+                                      + CIM( 4,8,4) * GIM(nbra* 4+i)
+                                      + CRE( 7,8,4) * GRE(nbra* 7+i)
+                                      + CIM(11,8,4) * GIM(nbra*11+i)
+                                      + CRE(15,8,4) * GRE(nbra*15+i)
+                                      + CIM(16,8,4) * GIM(nbra*16+i)
+                                      + CRE(18,8,4) * GRE(nbra*18+i)
+                                      + CIM(21,8,4) * GIM(nbra*21+i)
+                                      + CRE(25,8,4) * GRE(nbra*25+i);
+                        gsp[9*nbra+i] = CRE( 0,9,4) * GRE(nbra* 0+i)
+                                      + CIM( 1,9,4) * GIM(nbra* 1+i)
+                                      + CRE( 3,9,4) * GRE(nbra* 3+i)
+                                      + CIM( 6,9,4) * GIM(nbra* 6+i)
+                                      + CRE(10,9,4) * GRE(nbra*10+i);
+                }
+        }
+}
+
+static void g_iket_cart2spinor(double complex *gsp, int nbra,
+                               double complex *gcart, int kappa, int l)
+{
+        const double complex *coeff_c2s;
+        int i;
+
+        if (kappa >= 0) {
+                coeff_c2s = g_c2s[4].cart2j_lt_l;
+                for (i = 0; i < nbra; i++) {
+                        gsp[0*nbra+i] = CRE( 0,0,4) * GIM(nbra* 0+i)
+                                      - CIM( 1,0,4) * GRE(nbra* 1+i)
+                                      + CRE( 3,0,4) * GIM(nbra* 3+i)
+                                      - CIM( 6,0,4) * GRE(nbra* 6+i)
+                                      + CRE(10,0,4) * GIM(nbra*10+i)
+                                      + CRE(17,0,4) * GIM(nbra*17+i)
+                                      - CIM(19,0,4) * GRE(nbra*19+i)
+                                      + CRE(22,0,4) * GIM(nbra*22+i)
+                                      - CIM(26,0,4) * GRE(nbra*26+i);
+                        gsp[1*nbra+i] = CRE( 2,1,4) * GIM(nbra* 2+i)
+                                      - CIM( 4,1,4) * GRE(nbra* 4+i)
+                                      + CRE( 7,1,4) * GIM(nbra* 7+i)
+                                      - CIM(11,1,4) * GRE(nbra*11+i)
+                                      + CRE(15,1,4) * GIM(nbra*15+i)
+                                      - CIM(16,1,4) * GRE(nbra*16+i)
+                                      + CRE(20,1,4) * GIM(nbra*20+i)
+                                      - CIM(21,1,4) * GRE(nbra*21+i)
+                                      - CIM(23,1,4) * GRE(nbra*23+i)
+                                      + CRE(25,1,4) * GIM(nbra*25+i)
+                                      + CRE(27,1,4) * GIM(nbra*27+i);
+                        gsp[2*nbra+i] = CRE( 0,2,4) * GIM(nbra* 0+i)
+                                      - CIM( 1,2,4) * GRE(nbra* 1+i)
+                                      + CRE( 5,2,4) * GIM(nbra* 5+i)
+                                      - CIM( 6,2,4) * GRE(nbra* 6+i)
+                                      - CIM( 8,2,4) * GRE(nbra* 8+i)
+                                      + CRE(10,2,4) * GIM(nbra*10+i)
+                                      + CRE(12,2,4) * GIM(nbra*12+i)
+                                      + CRE(17,2,4) * GIM(nbra*17+i)
+                                      - CIM(19,2,4) * GRE(nbra*19+i)
+                                      + CRE(22,2,4) * GIM(nbra*22+i)
+                                      + CRE(24,2,4) * GIM(nbra*24+i)
+                                      - CIM(26,2,4) * GRE(nbra*26+i)
+                                      - CIM(28,2,4) * GRE(nbra*28+i);
+                        gsp[3*nbra+i] = CRE( 2,3,4) * GIM(nbra* 2+i)
+                                      - CIM( 4,3,4) * GRE(nbra* 4+i)
+                                      + CRE( 7,3,4) * GIM(nbra* 7+i)
+                                      + CRE( 9,3,4) * GIM(nbra* 9+i)
+                                      - CIM(11,3,4) * GRE(nbra*11+i)
+                                      - CIM(13,3,4) * GRE(nbra*13+i)
+                                      + CRE(15,3,4) * GIM(nbra*15+i)
+                                      + CRE(18,3,4) * GIM(nbra*18+i)
+                                      + CRE(20,3,4) * GIM(nbra*20+i)
+                                      + CRE(25,3,4) * GIM(nbra*25+i)
+                                      + CRE(27,3,4) * GIM(nbra*27+i)
+                                      + CRE(29,3,4) * GIM(nbra*29+i);
+                        gsp[4*nbra+i] = CRE( 0,4,4) * GIM(nbra* 0+i)
+                                      + CRE( 3,4,4) * GIM(nbra* 3+i)
+                                      + CRE( 5,4,4) * GIM(nbra* 5+i)
+                                      + CRE(10,4,4) * GIM(nbra*10+i)
+                                      + CRE(12,4,4) * GIM(nbra*12+i)
+                                      + CRE(14,4,4) * GIM(nbra*14+i)
+                                      + CRE(17,4,4) * GIM(nbra*17+i)
+                                      - CIM(19,4,4) * GRE(nbra*19+i)
+                                      + CRE(22,4,4) * GIM(nbra*22+i)
+                                      + CRE(24,4,4) * GIM(nbra*24+i)
+                                      - CIM(26,4,4) * GRE(nbra*26+i)
+                                      - CIM(28,4,4) * GRE(nbra*28+i);
+                        gsp[5*nbra+i] = CRE( 2,5,4) * GIM(nbra* 2+i)
+                                      - CIM( 4,5,4) * GRE(nbra* 4+i)
+                                      + CRE( 7,5,4) * GIM(nbra* 7+i)
+                                      + CRE( 9,5,4) * GIM(nbra* 9+i)
+                                      - CIM(11,5,4) * GRE(nbra*11+i)
+                                      - CIM(13,5,4) * GRE(nbra*13+i)
+                                      + CRE(15,5,4) * GIM(nbra*15+i)
+                                      - CIM(16,5,4) * GRE(nbra*16+i)
+                                      + CRE(20,5,4) * GIM(nbra*20+i)
+                                      - CIM(21,5,4) * GRE(nbra*21+i)
+                                      - CIM(23,5,4) * GRE(nbra*23+i)
+                                      + CRE(25,5,4) * GIM(nbra*25+i)
+                                      + CRE(27,5,4) * GIM(nbra*27+i);
+                        gsp[6*nbra+i] = CRE( 0,6,4) * GIM(nbra* 0+i)
+                                      - CIM( 1,6,4) * GRE(nbra* 1+i)
+                                      + CRE( 5,6,4) * GIM(nbra* 5+i)
+                                      - CIM( 6,6,4) * GRE(nbra* 6+i)
+                                      - CIM( 8,6,4) * GRE(nbra* 8+i)
+                                      + CRE(10,6,4) * GIM(nbra*10+i)
+                                      + CRE(12,6,4) * GIM(nbra*12+i)
+                                      + CRE(17,6,4) * GIM(nbra*17+i)
+                                      - CIM(19,6,4) * GRE(nbra*19+i)
+                                      + CRE(22,6,4) * GIM(nbra*22+i)
+                                      - CIM(26,6,4) * GRE(nbra*26+i);
+                        gsp[7*nbra+i] = CRE( 2,7,4) * GIM(nbra* 2+i)
+                                      - CIM( 4,7,4) * GRE(nbra* 4+i)
+                                      + CRE( 7,7,4) * GIM(nbra* 7+i)
+                                      - CIM(11,7,4) * GRE(nbra*11+i)
+                                      + CRE(15,7,4) * GIM(nbra*15+i)
+                                      - CIM(16,7,4) * GRE(nbra*16+i)
+                                      + CRE(18,7,4) * GIM(nbra*18+i)
+                                      - CIM(21,7,4) * GRE(nbra*21+i)
+                                      + CRE(25,7,4) * GIM(nbra*25+i);
+                };
+                gsp += nbra * 8;
+        }
+        if (kappa <= 0) {
+                coeff_c2s = g_c2s[4].cart2j_gt_l;
+                for (i = 0; i < nbra; i++) {
+                        gsp[0*nbra+i] = CRE(15,0,4) * GIM(nbra*15+i)
+                                      - CIM(16,0,4) * GRE(nbra*16+i)
+                                      + CRE(18,0,4) * GIM(nbra*18+i)
+                                      - CIM(21,0,4) * GRE(nbra*21+i)
+                                      + CRE(25,0,4) * GIM(nbra*25+i);
+                        gsp[1*nbra+i] = CRE( 0,1,4) * GIM(nbra* 0+i)
+                                      - CIM( 1,1,4) * GRE(nbra* 1+i)
+                                      + CRE( 3,1,4) * GIM(nbra* 3+i)
+                                      - CIM( 6,1,4) * GRE(nbra* 6+i)
+                                      + CRE(10,1,4) * GIM(nbra*10+i)
+                                      + CRE(17,1,4) * GIM(nbra*17+i)
+                                      - CIM(19,1,4) * GRE(nbra*19+i)
+                                      + CRE(22,1,4) * GIM(nbra*22+i)
+                                      - CIM(26,1,4) * GRE(nbra*26+i);
+                        gsp[2*nbra+i] = CRE( 2,2,4) * GIM(nbra* 2+i)
+                                      - CIM( 4,2,4) * GRE(nbra* 4+i)
+                                      + CRE( 7,2,4) * GIM(nbra* 7+i)
+                                      - CIM(11,2,4) * GRE(nbra*11+i)
+                                      + CRE(15,2,4) * GIM(nbra*15+i)
+                                      - CIM(16,2,4) * GRE(nbra*16+i)
+                                      + CRE(20,2,4) * GIM(nbra*20+i)
+                                      - CIM(21,2,4) * GRE(nbra*21+i)
+                                      - CIM(23,2,4) * GRE(nbra*23+i)
+                                      + CRE(25,2,4) * GIM(nbra*25+i)
+                                      + CRE(27,2,4) * GIM(nbra*27+i);
+                        gsp[3*nbra+i] = CRE( 0,3,4) * GIM(nbra* 0+i)
+                                      - CIM( 1,3,4) * GRE(nbra* 1+i)
+                                      + CRE( 5,3,4) * GIM(nbra* 5+i)
+                                      - CIM( 6,3,4) * GRE(nbra* 6+i)
+                                      - CIM( 8,3,4) * GRE(nbra* 8+i)
+                                      + CRE(10,3,4) * GIM(nbra*10+i)
+                                      + CRE(12,3,4) * GIM(nbra*12+i)
+                                      + CRE(17,3,4) * GIM(nbra*17+i)
+                                      - CIM(19,3,4) * GRE(nbra*19+i)
+                                      + CRE(22,3,4) * GIM(nbra*22+i)
+                                      + CRE(24,3,4) * GIM(nbra*24+i)
+                                      - CIM(26,3,4) * GRE(nbra*26+i)
+                                      - CIM(28,3,4) * GRE(nbra*28+i);
+                        gsp[4*nbra+i] = CRE( 2,4,4) * GIM(nbra* 2+i)
+                                      - CIM( 4,4,4) * GRE(nbra* 4+i)
+                                      + CRE( 7,4,4) * GIM(nbra* 7+i)
+                                      + CRE( 9,4,4) * GIM(nbra* 9+i)
+                                      - CIM(11,4,4) * GRE(nbra*11+i)
+                                      - CIM(13,4,4) * GRE(nbra*13+i)
+                                      + CRE(15,4,4) * GIM(nbra*15+i)
+                                      + CRE(18,4,4) * GIM(nbra*18+i)
+                                      + CRE(20,4,4) * GIM(nbra*20+i)
+                                      + CRE(25,4,4) * GIM(nbra*25+i)
+                                      + CRE(27,4,4) * GIM(nbra*27+i)
+                                      + CRE(29,4,4) * GIM(nbra*29+i);
+                        gsp[5*nbra+i] = CRE( 0,5,4) * GIM(nbra* 0+i)
+                                      + CRE( 3,5,4) * GIM(nbra* 3+i)
+                                      + CRE( 5,5,4) * GIM(nbra* 5+i)
+                                      + CRE(10,5,4) * GIM(nbra*10+i)
+                                      + CRE(12,5,4) * GIM(nbra*12+i)
+                                      + CRE(14,5,4) * GIM(nbra*14+i)
+                                      + CRE(17,5,4) * GIM(nbra*17+i)
+                                      - CIM(19,5,4) * GRE(nbra*19+i)
+                                      + CRE(22,5,4) * GIM(nbra*22+i)
+                                      + CRE(24,5,4) * GIM(nbra*24+i)
+                                      - CIM(26,5,4) * GRE(nbra*26+i)
+                                      - CIM(28,5,4) * GRE(nbra*28+i);
+                        gsp[6*nbra+i] = CRE( 2,6,4) * GIM(nbra* 2+i)
+                                      - CIM( 4,6,4) * GRE(nbra* 4+i)
+                                      + CRE( 7,6,4) * GIM(nbra* 7+i)
+                                      + CRE( 9,6,4) * GIM(nbra* 9+i)
+                                      - CIM(11,6,4) * GRE(nbra*11+i)
+                                      - CIM(13,6,4) * GRE(nbra*13+i)
+                                      + CRE(15,6,4) * GIM(nbra*15+i)
+                                      - CIM(16,6,4) * GRE(nbra*16+i)
+                                      + CRE(20,6,4) * GIM(nbra*20+i)
+                                      - CIM(21,6,4) * GRE(nbra*21+i)
+                                      - CIM(23,6,4) * GRE(nbra*23+i)
+                                      + CRE(25,6,4) * GIM(nbra*25+i)
+                                      + CRE(27,6,4) * GIM(nbra*27+i);
+                        gsp[7*nbra+i] = CRE( 0,7,4) * GIM(nbra* 0+i)
+                                      - CIM( 1,7,4) * GRE(nbra* 1+i)
+                                      + CRE( 5,7,4) * GIM(nbra* 5+i)
+                                      - CIM( 6,7,4) * GRE(nbra* 6+i)
+                                      - CIM( 8,7,4) * GRE(nbra* 8+i)
+                                      + CRE(10,7,4) * GIM(nbra*10+i)
+                                      + CRE(12,7,4) * GIM(nbra*12+i)
+                                      + CRE(17,7,4) * GIM(nbra*17+i)
+                                      - CIM(19,7,4) * GRE(nbra*19+i)
+                                      + CRE(22,7,4) * GIM(nbra*22+i)
+                                      - CIM(26,7,4) * GRE(nbra*26+i);
+                        gsp[8*nbra+i] = CRE( 2,8,4) * GIM(nbra* 2+i)
+                                      - CIM( 4,8,4) * GRE(nbra* 4+i)
+                                      + CRE( 7,8,4) * GIM(nbra* 7+i)
+                                      - CIM(11,8,4) * GRE(nbra*11+i)
+                                      + CRE(15,8,4) * GIM(nbra*15+i)
+                                      - CIM(16,8,4) * GRE(nbra*16+i)
+                                      + CRE(18,8,4) * GIM(nbra*18+i)
+                                      - CIM(21,8,4) * GRE(nbra*21+i)
+                                      + CRE(25,8,4) * GIM(nbra*25+i);
+                        gsp[9*nbra+i] = CRE( 0,9,4) * GIM(nbra* 0+i)
+                                      - CIM( 1,9,4) * GRE(nbra* 1+i)
+                                      + CRE( 3,9,4) * GIM(nbra* 3+i)
+                                      - CIM( 6,9,4) * GRE(nbra* 6+i)
+                                      + CRE(10,9,4) * GIM(nbra*10+i);
+                }
+        }
+}
 
 void (*c2s_bra_spinor_e1sf[])() = {
         s_bra_cart2spinor_e1sf,
@@ -4849,6 +5780,28 @@ void (*c2s_bra_spinor_sf[])() = {
         a_bra_cart2spinor_sf,
         a_bra_cart2spinor_sf,
         a_bra_cart2spinor_sf,
+};
+
+void (*c2s_ket_spinor[])() = {
+        s_ket_cart2spinor,
+        p_ket_cart2spinor,
+        d_ket_cart2spinor,
+        f_ket_cart2spinor,
+        g_ket_cart2spinor,
+        a_ket_cart2spinor,
+        a_ket_cart2spinor,
+        a_ket_cart2spinor,
+};
+
+void (*c2s_iket_spinor[])() = {
+        s_iket_cart2spinor,
+        p_iket_cart2spinor,
+        d_iket_cart2spinor,
+        f_iket_cart2spinor,
+        g_iket_cart2spinor,
+        a_iket_cart2spinor,
+        a_iket_cart2spinor,
+        a_iket_cart2spinor,
 };
 
 void (*c2s_bra_spinor_si[])() = {
@@ -4940,48 +5893,6 @@ static void a_ket_cart2spinor_si(double complex *gspa, double complex *gspb,
         zgemm_(&TRANS_N, &TRANS_N, &nbra, &nd, &nf2,
                &Z1, gcart1, &nbra, coeff_c2s, &nf2, &Z0, gspb, &lds);
 }
-/*
- * contract two-component vector with c2s transformation to get integral (scalar)
- */
-static void a_ket_cart2spinor(double complex *gsp, int nbra,
-                              double complex *gcart, int kappa, int l)
-{
-        const double complex Z0 = 0;
-        const double complex Z1 = 1;
-        const char TRANS_N = 'N';
-        int nf = _len_cart[l];
-        int nf2 = nf * 2;
-        int nd = _len_spinor(kappa, l);
-        const double complex *coeff_c2s;
-
-        if (kappa < 0) { // j = l + 1/2
-                coeff_c2s = g_c2s[l].cart2j_gt_l;
-        } else {
-                coeff_c2s = g_c2s[l].cart2j_lt_l;
-        }
-        zgemm_(&TRANS_N, &TRANS_N, &nbra, &nd, &nf2,
-               &Z1, gcart, &nbra, coeff_c2s, &nf2, &Z0, gsp, &nbra);
-}
-// with phase "i"
-static void a_iket_cart2spinor(double complex *gsp, int nbra,
-                               double complex *gcart, int kappa, int l)
-{
-        const double complex Z0 = 0;
-        const double complex ZI = 0 + 1 * _Complex_I;
-        const char TRANS_N = 'N';
-        int nf = _len_cart[l];
-        int nf2 = nf * 2;
-        int nd = _len_spinor(kappa, l);
-        const double complex *coeff_c2s;
-
-        if (kappa < 0) { // j = l + 1/2
-                coeff_c2s = g_c2s[l].cart2j_gt_l;
-        } else {
-                coeff_c2s = g_c2s[l].cart2j_lt_l;
-        }
-        zgemm_(&TRANS_N, &TRANS_N, &nbra, &nd, &nf2,
-               &ZI, gcart, &nbra, coeff_c2s, &nf2, &Z0, gsp, &nbra);
-}
 
 static void s_ket_cart2spinor_e1sf(double complex *gspa, double complex *gspb,
                                    double *gcart,
@@ -5021,30 +5932,6 @@ static void s_ket_cart2spinor_si(double complex *gspa, double complex *gspb,
                 gspa[lds+i] = gcart11[i];
                 gspb[    i] = gcart22[i];
                 gspb[lds+i] = gcart21[i];
-        }
-}
-static void s_ket_cart2spinor(double complex *gsp, int nbra,
-                              double complex *gcart, int kappa, int l)
-{
-        //double *coeff_c2s = g_c2s[0].cart2j_lt_l;;
-        double complex *gsp1 = gsp + nbra;
-        double complex *gcart1 = gcart + nbra;
-        int i;
-        for (i = 0; i < nbra; i++) {
-                gsp [i] = gcart1[i];
-                gsp1[i] = gcart [i];
-        }
-}
-static void s_iket_cart2spinor(double complex *gsp, int nbra,
-                               double complex *gcart, int kappa, int l)
-{
-        //double *coeff_c2s = g_c2s[0].cart2j_lt_l;;
-        double complex *gsp1 = gsp + nbra;
-        double complex *gcart1 = gcart + nbra;
-        int i;
-        for (i = 0; i < nbra; i++) {
-                gsp [i] = gcart1[i] * _Complex_I;
-                gsp1[i] = gcart [i] * _Complex_I;
         }
 }
 
@@ -5174,74 +6061,6 @@ static void p_ket_cart2spinor_si(double complex *gspa, double complex *gspb,
                                       + cimag(coeff_c2s[16])*gcart1[nbra*4+i]*_Complex_I;
                         gspb[3*lds+i] = creal(coeff_c2s[18])*gcart1[nbra*0+i]
                                       + cimag(coeff_c2s[19])*gcart1[nbra*1+i]*_Complex_I;
-                }
-        }
-}
-static void p_ket_cart2spinor(double complex *gsp, int nbra,
-                              double complex *gcart, int kappa, int l)
-{
-        const double complex *coeff_c2s;
-        int i;
-
-        if (kappa >= 0) {
-                coeff_c2s = g_c2s[1].cart2j_lt_l;
-                for (i = 0; i < nbra; i++) {
-                        gsp[     i] = CRE(0,0,1)*GRE(nbra*0+i)
-                                    + CIM(1,0,1)*GIM(nbra*1+i)
-                                    + CRE(5,0,1)*GRE(nbra*5+i);
-                        gsp[nbra+i] = CRE(2,1,1)*GRE(nbra*2+i)
-                                    + CRE(3,1,1)*GRE(nbra*3+i)
-                                    + CIM(4,1,1)*GIM(nbra*4+i);
-                }
-                gsp += nbra * 2;
-        }
-        if (kappa <= 0) {
-                coeff_c2s = g_c2s[1].cart2j_gt_l;
-                for (i = 0; i < nbra; i++) {
-                        gsp[0*nbra+i] = CRE(3,0,1)*GRE(nbra*3+i)
-                                      + CIM(4,0,1)*GIM(nbra*4+i);
-                        gsp[1*nbra+i] = CRE(0,1,1)*GRE(nbra*0+i)
-                                      + CIM(1,1,1)*GIM(nbra*1+i)
-                                      + CRE(5,1,1)*GRE(nbra*5+i);
-                        gsp[2*nbra+i] = CRE(2,2,1)*GRE(nbra*2+i)
-                                      + CRE(3,2,1)*GRE(nbra*3+i)
-                                      + CIM(4,2,1)*GIM(nbra*4+i);
-                        gsp[3*nbra+i] = CRE(0,3,1)*GRE(nbra*0+i)
-                                      + CIM(1,3,1)*GIM(nbra*1+i);
-                }
-        }
-}
-static void p_iket_cart2spinor(double complex *gsp, int nbra,
-                               double complex *gcart, int kappa, int l)
-{
-        const double complex *coeff_c2s;
-        int i;
-
-        if (kappa >= 0) {
-                coeff_c2s = g_c2s[1].cart2j_lt_l;
-                for (i = 0; i < nbra; i++) {
-                        gsp[     i] = CRE(0,0,1)*GIM(nbra*0+i)
-                                    - CIM(1,0,1)*GRE(nbra*1+i)
-                                    + CRE(5,0,1)*GIM(nbra*5+i);
-                        gsp[nbra+i] = CRE(2,1,1)*GIM(nbra*2+i)
-                                    + CRE(3,1,1)*GIM(nbra*3+i)
-                                    - CIM(4,1,1)*GRE(nbra*4+i);
-                }
-                gsp += nbra * 2;
-        }
-        if (kappa <= 0) {
-                coeff_c2s = g_c2s[1].cart2j_gt_l;
-                for (i = 0; i < nbra; i++) {
-                        gsp[0*nbra+i] = CRE(3,0,1)*GIM(nbra*3+i)
-                                      - CIM(4,0,1)*GRE(nbra*4+i);
-                        gsp[1*nbra+i] = CRE(0,1,1)*GIM(nbra*0+i)
-                                      - CIM(1,1,1)*GRE(nbra*1+i)
-                                      + CRE(5,1,1)*GIM(nbra*5+i);
-                        gsp[2*nbra+i] = CRE(2,2,1)*GIM(nbra*2+i)
-                                      + CRE(3,2,1)*GIM(nbra*3+i)
-                                      - CIM(4,2,1)*GRE(nbra*4+i);
-                        gsp[3*nbra+i] = CRE(0,3,1)*GIM(nbra*0+i)
-                                      - CIM(1,3,1)*GRE(nbra*1+i);
                 }
         }
 }
@@ -5495,134 +6314,6 @@ static void d_ket_cart2spinor_si(double complex *gspa, double complex *gspb,
                         gspb[5*lds+i] = creal(coeff_c2s[60])*gcart1[nbra* 0+i]
                                       + creal(coeff_c2s[63])*gcart1[nbra* 3+i]
                                       + cimag(coeff_c2s[61])*gcart1[nbra* 1+i]*_Complex_I;
-                }
-        }
-}
-static void d_ket_cart2spinor(double complex *gsp, int nbra,
-                              double complex *gcart, int kappa, int l)
-{
-        const double complex *coeff_c2s;
-        int i;
-
-        if (kappa >= 0) {
-                coeff_c2s = g_c2s[2].cart2j_lt_l;
-                for (i = 0; i < nbra; i++) {
-                        gsp[0*nbra+i] = CRE( 0,0,2)*GRE(nbra* 0+i)
-                                      + CRE( 3,0,2)*GRE(nbra* 3+i)
-                                      + CIM( 1,0,2)*GIM(nbra* 1+i)
-                                      + CRE( 8,0,2)*GRE(nbra* 8+i)
-                                      + CIM(10,0,2)*GIM(nbra*10+i);
-                        gsp[1*nbra+i] = CRE( 2,1,2)*GRE(nbra* 2+i)
-                                      + CIM( 4,1,2)*GIM(nbra* 4+i)
-                                      + CRE( 6,1,2)*GRE(nbra* 6+i)
-                                      + CRE( 9,1,2)*GRE(nbra* 9+i)
-                                      + CRE(11,1,2)*GRE(nbra*11+i);
-                        gsp[2*nbra+i] = CRE( 0,2,2)*GRE(nbra* 0+i)
-                                      + CRE( 3,2,2)*GRE(nbra* 3+i)
-                                      + CRE( 5,2,2)*GRE(nbra* 5+i)
-                                      + CRE( 8,2,2)*GRE(nbra* 8+i)
-                                      + CIM(10,2,2)*GIM(nbra*10+i);
-                        gsp[3*nbra+i] = CRE( 2,3,2)*GRE(nbra* 2+i)
-                                      + CIM( 4,3,2)*GIM(nbra* 4+i)
-                                      + CRE( 6,3,2)*GRE(nbra* 6+i)
-                                      + CRE( 9,3,2)*GRE(nbra* 9+i)
-                                      + CIM( 7,3,2)*GIM(nbra* 7+i);
-                }
-                gsp += nbra * 4;
-        }
-        if (kappa <= 0) {
-                coeff_c2s = g_c2s[2].cart2j_gt_l;
-                for (i = 0; i < nbra; i++) {
-                        gsp[0*nbra+i] = CRE( 6,0,2)*GRE(nbra* 6+i)
-                                      + CRE( 9,0,2)*GRE(nbra* 9+i)
-                                      + CIM( 7,0,2)*GIM(nbra* 7+i);
-                        gsp[1*nbra+i] = CRE( 0,1,2)*GRE(nbra* 0+i)
-                                      + CRE( 3,1,2)*GRE(nbra* 3+i)
-                                      + CIM( 1,1,2)*GIM(nbra* 1+i)
-                                      + CRE( 8,1,2)*GRE(nbra* 8+i)
-                                      + CIM(10,1,2)*GIM(nbra*10+i);
-                        gsp[2*nbra+i] = CRE( 2,2,2)*GRE(nbra* 2+i)
-                                      + CIM( 4,2,2)*GIM(nbra* 4+i)
-                                      + CRE( 6,2,2)*GRE(nbra* 6+i)
-                                      + CRE( 9,2,2)*GRE(nbra* 9+i)
-                                      + CRE(11,2,2)*GRE(nbra*11+i);
-                        gsp[3*nbra+i] = CRE( 0,3,2)*GRE(nbra* 0+i)
-                                      + CRE( 3,3,2)*GRE(nbra* 3+i)
-                                      + CRE( 5,3,2)*GRE(nbra* 5+i)
-                                      + CRE( 8,3,2)*GRE(nbra* 8+i)
-                                      + CIM(10,3,2)*GIM(nbra*10+i);
-                        gsp[4*nbra+i] = CRE( 2,4,2)*GRE(nbra* 2+i)
-                                      + CIM( 4,4,2)*GIM(nbra* 4+i)
-                                      + CRE( 6,4,2)*GRE(nbra* 6+i)
-                                      + CRE( 9,4,2)*GRE(nbra* 9+i)
-                                      + CIM( 7,4,2)*GIM(nbra* 7+i);
-                        gsp[5*nbra+i] = CRE( 0,5,2)*GRE(nbra* 0+i)
-                                      + CRE( 3,5,2)*GRE(nbra* 3+i)
-                                      + CIM( 1,5,2)*GIM(nbra* 1+i);
-                }
-        }
-}
-static void d_iket_cart2spinor(double complex *gsp, int nbra,
-                               double complex *gcart, int kappa, int l)
-{
-        const double complex *coeff_c2s;
-        int i;
-
-        if (kappa >= 0) {
-                coeff_c2s = g_c2s[2].cart2j_lt_l;
-                for (i = 0; i < nbra; i++) {
-                        gsp[0*nbra+i] = CRE( 0,0,2)*GIM(nbra* 0+i)
-                                      + CRE( 3,0,2)*GIM(nbra* 3+i)
-                                      - CIM( 1,0,2)*GRE(nbra* 1+i)
-                                      + CRE( 8,0,2)*GIM(nbra* 8+i)
-                                      - CIM(10,0,2)*GRE(nbra*10+i);
-                        gsp[1*nbra+i] = CRE( 2,1,2)*GIM(nbra* 2+i)
-                                      - CIM( 4,1,2)*GRE(nbra* 4+i)
-                                      + CRE( 6,1,2)*GIM(nbra* 6+i)
-                                      + CRE( 9,1,2)*GIM(nbra* 9+i)
-                                      + CRE(11,1,2)*GIM(nbra*11+i);
-                        gsp[2*nbra+i] = CRE( 0,2,2)*GIM(nbra* 0+i)
-                                      + CRE( 3,2,2)*GIM(nbra* 3+i)
-                                      + CRE( 5,2,2)*GIM(nbra* 5+i)
-                                      + CRE( 8,2,2)*GIM(nbra* 8+i)
-                                      - CIM(10,2,2)*GRE(nbra*10+i);
-                        gsp[3*nbra+i] = CRE( 2,3,2)*GIM(nbra* 2+i)
-                                      - CIM( 4,3,2)*GRE(nbra* 4+i)
-                                      + CRE( 6,3,2)*GIM(nbra* 6+i)
-                                      + CRE( 9,3,2)*GIM(nbra* 9+i)
-                                      - CIM( 7,3,2)*GRE(nbra* 7+i);
-                }
-                gsp += nbra * 4;
-        }
-        if (kappa <= 0) {
-                coeff_c2s = g_c2s[2].cart2j_gt_l;
-                for (i = 0; i < nbra; i++) {
-                        gsp[0*nbra+i] = CRE( 6,0,2)*GIM(nbra* 6+i)
-                                      + CRE( 9,0,2)*GIM(nbra* 9+i)
-                                      - CIM( 7,0,2)*GRE(nbra* 7+i);
-                        gsp[1*nbra+i] = CRE( 0,1,2)*GIM(nbra* 0+i)
-                                      + CRE( 3,1,2)*GIM(nbra* 3+i)
-                                      - CIM( 1,1,2)*GRE(nbra* 1+i)
-                                      + CRE( 8,1,2)*GIM(nbra* 8+i)
-                                      - CIM(10,1,2)*GRE(nbra*10+i);
-                        gsp[2*nbra+i] = CRE( 2,2,2)*GIM(nbra* 2+i)
-                                      - CIM( 4,2,2)*GRE(nbra* 4+i)
-                                      + CRE( 6,2,2)*GIM(nbra* 6+i)
-                                      + CRE( 9,2,2)*GIM(nbra* 9+i)
-                                      + CRE(11,2,2)*GIM(nbra*11+i);
-                        gsp[3*nbra+i] = CRE( 0,3,2)*GIM(nbra* 0+i)
-                                      + CRE( 3,3,2)*GIM(nbra* 3+i)
-                                      + CRE( 5,3,2)*GIM(nbra* 5+i)
-                                      + CRE( 8,3,2)*GIM(nbra* 8+i)
-                                      - CIM(10,3,2)*GRE(nbra*10+i);
-                        gsp[4*nbra+i] = CRE( 2,4,2)*GIM(nbra* 2+i)
-                                      - CIM( 4,4,2)*GRE(nbra* 4+i)
-                                      + CRE( 6,4,2)*GIM(nbra* 6+i)
-                                      + CRE( 9,4,2)*GIM(nbra* 9+i)
-                                      - CIM( 7,4,2)*GRE(nbra* 7+i);
-                        gsp[5*nbra+i] = CRE( 0,5,2)*GIM(nbra* 0+i)
-                                      + CRE( 3,5,2)*GIM(nbra* 3+i)
-                                      - CIM( 1,5,2)*GRE(nbra* 1+i);
                 }
         }
 }
@@ -6121,258 +6812,6 @@ static void f_ket_cart2spinor_si(double complex *gspa, double complex *gspb,
                                       + cimag(coeff_c2s[141])*gcart1[nbra* 1+i]*_Complex_I
                                       + creal(coeff_c2s[143])*gcart1[nbra* 3+i]
                                       + cimag(coeff_c2s[146])*gcart1[nbra* 6+i]*_Complex_I;
-                }
-        }
-}
-static void f_ket_cart2spinor(double complex *gsp, int nbra,
-                              double complex *gcart, int kappa, int l)
-{
-        const double complex *coeff_c2s;
-        int i;
-
-        if (kappa >= 0) {
-                coeff_c2s = g_c2s[3].cart2j_lt_l;
-                for (i = 0; i < nbra; i++) {
-                        gsp[0*nbra+i] = CRE( 0,0,3)*GRE(nbra* 0+i)
-                                      + CIM( 1,0,3)*GIM(nbra* 1+i)
-                                      + CRE( 3,0,3)*GRE(nbra* 3+i)
-                                      + CIM( 6,0,3)*GIM(nbra* 6+i)
-                                      + CRE(12,0,3)*GRE(nbra*12+i)
-                                      + CIM(14,0,3)*GIM(nbra*14+i)
-                                      + CRE(17,0,3)*GRE(nbra*17+i);
-                        gsp[1*nbra+i] = CRE( 2,1,3)*GRE(nbra* 2+i)
-                                      + CIM( 4,1,3)*GIM(nbra* 4+i)
-                                      + CRE( 7,1,3)*GRE(nbra* 7+i)
-                                      + CRE(10,1,3)*GRE(nbra*10+i)
-                                      + CIM(11,1,3)*GIM(nbra*11+i)
-                                      + CRE(13,1,3)*GRE(nbra*13+i)
-                                      + CRE(15,1,3)*GRE(nbra*15+i)
-                                      + CIM(16,1,3)*GIM(nbra*16+i)
-                                      + CIM(18,1,3)*GIM(nbra*18+i);
-                        gsp[2*nbra+i] = CRE( 0,2,3)*GRE(nbra* 0+i)
-                                      + CIM( 1,2,3)*GIM(nbra* 1+i)
-                                      + CRE( 3,2,3)*GRE(nbra* 3+i)
-                                      + CRE( 5,2,3)*GRE(nbra* 5+i)
-                                      + CIM( 6,2,3)*GIM(nbra* 6+i)
-                                      + CIM( 8,2,3)*GIM(nbra* 8+i)
-                                      + CRE(12,2,3)*GRE(nbra*12+i)
-                                      + CRE(17,2,3)*GRE(nbra*17+i)
-                                      + CRE(19,2,3)*GRE(nbra*19+i);
-                        gsp[3*nbra+i] = CRE( 2,3,3)*GRE(nbra* 2+i)
-                                      + CRE( 7,3,3)*GRE(nbra* 7+i)
-                                      + CRE( 9,3,3)*GRE(nbra* 9+i)
-                                      + CRE(10,3,3)*GRE(nbra*10+i)
-                                      + CIM(11,3,3)*GIM(nbra*11+i)
-                                      + CRE(13,3,3)*GRE(nbra*13+i)
-                                      + CRE(15,3,3)*GRE(nbra*15+i)
-                                      + CIM(16,3,3)*GIM(nbra*16+i)
-                                      + CIM(18,3,3)*GIM(nbra*18+i);
-                        gsp[4*nbra+i] = CRE( 0,4,3)*GRE(nbra* 0+i)
-                                      + CIM( 1,4,3)*GIM(nbra* 1+i)
-                                      + CRE( 3,4,3)*GRE(nbra* 3+i)
-                                      + CRE( 5,4,3)*GRE(nbra* 5+i)
-                                      + CIM( 6,4,3)*GIM(nbra* 6+i)
-                                      + CIM( 8,4,3)*GIM(nbra* 8+i)
-                                      + CRE(12,4,3)*GRE(nbra*12+i)
-                                      + CIM(14,4,3)*GIM(nbra*14+i)
-                                      + CRE(17,4,3)*GRE(nbra*17+i);
-                        gsp[5*nbra+i] = CRE( 2,5,3)*GRE(nbra* 2+i)
-                                      + CIM( 4,5,3)*GIM(nbra* 4+i)
-                                      + CRE( 7,5,3)*GRE(nbra* 7+i)
-                                      + CRE(10,5,3)*GRE(nbra*10+i)
-                                      + CIM(11,5,3)*GIM(nbra*11+i)
-                                      + CRE(13,5,3)*GRE(nbra*13+i)
-                                      + CIM(16,5,3)*GIM(nbra*16+i);
-                }
-                gsp += nbra * 6;
-        }
-        if (kappa <= 0) {
-                coeff_c2s = g_c2s[3].cart2j_gt_l;
-                for (i = 0; i < nbra; i++) {
-                        gsp[0*nbra+i] = CRE(10,0,3)*GRE(nbra*10+i)
-                                      + CIM(11,0,3)*GIM(nbra*11+i)
-                                      + CRE(13,0,3)*GRE(nbra*13+i)
-                                      + CIM(16,0,3)*GIM(nbra*16+i);
-                        gsp[1*nbra+i] = CRE( 0,1,3)*GRE(nbra* 0+i)
-                                      + CIM( 1,1,3)*GIM(nbra* 1+i)
-                                      + CRE( 3,1,3)*GRE(nbra* 3+i)
-                                      + CIM( 6,1,3)*GIM(nbra* 6+i)
-                                      + CRE(12,1,3)*GRE(nbra*12+i)
-                                      + CIM(14,1,3)*GIM(nbra*14+i)
-                                      + CRE(17,1,3)*GRE(nbra*17+i);
-                        gsp[2*nbra+i] = CRE( 2,2,3)*GRE(nbra* 2+i)
-                                      + CIM( 4,2,3)*GIM(nbra* 4+i)
-                                      + CRE( 7,2,3)*GRE(nbra* 7+i)
-                                      + CRE(10,2,3)*GRE(nbra*10+i)
-                                      + CIM(11,2,3)*GIM(nbra*11+i)
-                                      + CRE(13,2,3)*GRE(nbra*13+i)
-                                      + CRE(15,2,3)*GRE(nbra*15+i)
-                                      + CIM(16,2,3)*GIM(nbra*16+i)
-                                      + CIM(18,2,3)*GIM(nbra*18+i);
-                        gsp[3*nbra+i] = CRE( 0,3,3)*GRE(nbra* 0+i)
-                                      + CIM( 1,3,3)*GIM(nbra* 1+i)
-                                      + CRE( 3,3,3)*GRE(nbra* 3+i)
-                                      + CRE( 5,3,3)*GRE(nbra* 5+i)
-                                      + CIM( 6,3,3)*GIM(nbra* 6+i)
-                                      + CIM( 8,3,3)*GIM(nbra* 8+i)
-                                      + CRE(12,3,3)*GRE(nbra*12+i)
-                                      + CRE(17,3,3)*GRE(nbra*17+i)
-                                      + CRE(19,3,3)*GRE(nbra*19+i);
-                        gsp[4*nbra+i] = CRE( 2,4,3)*GRE(nbra* 2+i)
-                                      + CRE( 7,4,3)*GRE(nbra* 7+i)
-                                      + CRE( 9,4,3)*GRE(nbra* 9+i)
-                                      + CRE(10,4,3)*GRE(nbra*10+i)
-                                      + CIM(11,4,3)*GIM(nbra*11+i)
-                                      + CRE(13,4,3)*GRE(nbra*13+i)
-                                      + CRE(15,4,3)*GRE(nbra*15+i)
-                                      + CIM(16,4,3)*GIM(nbra*16+i)
-                                      + CIM(18,4,3)*GIM(nbra*18+i);
-                        gsp[5*nbra+i] = CRE( 0,5,3)*GRE(nbra* 0+i)
-                                      + CIM( 1,5,3)*GIM(nbra* 1+i)
-                                      + CRE( 3,5,3)*GRE(nbra* 3+i)
-                                      + CRE( 5,5,3)*GRE(nbra* 5+i)
-                                      + CIM( 6,5,3)*GIM(nbra* 6+i)
-                                      + CIM( 8,5,3)*GIM(nbra* 8+i)
-                                      + CRE(12,5,3)*GRE(nbra*12+i)
-                                      + CIM(14,5,3)*GIM(nbra*14+i)
-                                      + CRE(17,5,3)*GRE(nbra*17+i);
-                        gsp[6*nbra+i] = CRE( 2,6,3)*GRE(nbra* 2+i)
-                                      + CIM( 4,6,3)*GIM(nbra* 4+i)
-                                      + CRE( 7,6,3)*GRE(nbra* 7+i)
-                                      + CRE(10,6,3)*GRE(nbra*10+i)
-                                      + CIM(11,6,3)*GIM(nbra*11+i)
-                                      + CRE(13,6,3)*GRE(nbra*13+i)
-                                      + CIM(16,6,3)*GIM(nbra*16+i);
-                        gsp[7*nbra+i] = CRE( 0,7,3)*GRE(nbra* 0+i)
-                                      + CIM( 1,7,3)*GIM(nbra* 1+i)
-                                      + CRE( 3,7,3)*GRE(nbra* 3+i)
-                                      + CIM( 6,7,3)*GIM(nbra* 6+i);
-                }
-        }
-}
-static void f_iket_cart2spinor(double complex *gsp, int nbra,
-                               double complex *gcart, int kappa, int l)
-{
-        const double complex *coeff_c2s;
-        int i;
-
-        if (kappa >= 0) {
-                coeff_c2s = g_c2s[3].cart2j_lt_l;
-                for (i = 0; i < nbra; i++) {
-                        gsp[0*nbra+i] = CRE( 0,0,3)*GIM(nbra* 0+i)
-                                      - CIM( 1,0,3)*GRE(nbra* 1+i)
-                                      + CRE( 3,0,3)*GIM(nbra* 3+i)
-                                      - CIM( 6,0,3)*GRE(nbra* 6+i)
-                                      + CRE(12,0,3)*GIM(nbra*12+i)
-                                      - CIM(14,0,3)*GRE(nbra*14+i)
-                                      + CRE(17,0,3)*GIM(nbra*17+i);
-                        gsp[1*nbra+i] = CRE( 2,1,3)*GIM(nbra* 2+i)
-                                      - CIM( 4,1,3)*GRE(nbra* 4+i)
-                                      + CRE( 7,1,3)*GIM(nbra* 7+i)
-                                      + CRE(10,1,3)*GIM(nbra*10+i)
-                                      - CIM(11,1,3)*GRE(nbra*11+i)
-                                      + CRE(13,1,3)*GIM(nbra*13+i)
-                                      + CRE(15,1,3)*GIM(nbra*15+i)
-                                      - CIM(16,1,3)*GRE(nbra*16+i)
-                                      - CIM(18,1,3)*GRE(nbra*18+i);
-                        gsp[2*nbra+i] = CRE( 0,2,3)*GIM(nbra* 0+i)
-                                      - CIM( 1,2,3)*GRE(nbra* 1+i)
-                                      + CRE( 3,2,3)*GIM(nbra* 3+i)
-                                      + CRE( 5,2,3)*GIM(nbra* 5+i)
-                                      - CIM( 6,2,3)*GRE(nbra* 6+i)
-                                      - CIM( 8,2,3)*GRE(nbra* 8+i)
-                                      + CRE(12,2,3)*GIM(nbra*12+i)
-                                      + CRE(17,2,3)*GIM(nbra*17+i)
-                                      + CRE(19,2,3)*GIM(nbra*19+i);
-                        gsp[3*nbra+i] = CRE( 2,3,3)*GIM(nbra* 2+i)
-                                      + CRE( 7,3,3)*GIM(nbra* 7+i)
-                                      + CRE( 9,3,3)*GIM(nbra* 9+i)
-                                      + CRE(10,3,3)*GIM(nbra*10+i)
-                                      - CIM(11,3,3)*GRE(nbra*11+i)
-                                      + CRE(13,3,3)*GIM(nbra*13+i)
-                                      + CRE(15,3,3)*GIM(nbra*15+i)
-                                      - CIM(16,3,3)*GRE(nbra*16+i)
-                                      - CIM(18,3,3)*GRE(nbra*18+i);
-                        gsp[4*nbra+i] = CRE( 0,4,3)*GIM(nbra* 0+i)
-                                      - CIM( 1,4,3)*GRE(nbra* 1+i)
-                                      + CRE( 3,4,3)*GIM(nbra* 3+i)
-                                      + CRE( 5,4,3)*GIM(nbra* 5+i)
-                                      - CIM( 6,4,3)*GRE(nbra* 6+i)
-                                      - CIM( 8,4,3)*GRE(nbra* 8+i)
-                                      + CRE(12,4,3)*GIM(nbra*12+i)
-                                      - CIM(14,4,3)*GRE(nbra*14+i)
-                                      + CRE(17,4,3)*GIM(nbra*17+i);
-                        gsp[5*nbra+i] = CRE( 2,5,3)*GIM(nbra* 2+i)
-                                      - CIM( 4,5,3)*GRE(nbra* 4+i)
-                                      + CRE( 7,5,3)*GIM(nbra* 7+i)
-                                      + CRE(10,5,3)*GIM(nbra*10+i)
-                                      - CIM(11,5,3)*GRE(nbra*11+i)
-                                      + CRE(13,5,3)*GIM(nbra*13+i)
-                                      - CIM(16,5,3)*GRE(nbra*16+i);
-                }
-                gsp += nbra * 6;
-        }
-        if (kappa <= 0) {
-                coeff_c2s = g_c2s[3].cart2j_gt_l;
-                for (i = 0; i < nbra; i++) {
-                        gsp[0*nbra+i] = CRE(10,0,3)*GIM(nbra*10+i)
-                                      - CIM(11,0,3)*GRE(nbra*11+i)
-                                      + CRE(13,0,3)*GIM(nbra*13+i)
-                                      - CIM(16,0,3)*GRE(nbra*16+i);
-                        gsp[1*nbra+i] = CRE( 0,1,3)*GIM(nbra* 0+i)
-                                      - CIM( 1,1,3)*GRE(nbra* 1+i)
-                                      + CRE( 3,1,3)*GIM(nbra* 3+i)
-                                      - CIM( 6,1,3)*GRE(nbra* 6+i)
-                                      + CRE(12,1,3)*GIM(nbra*12+i)
-                                      - CIM(14,1,3)*GRE(nbra*14+i)
-                                      + CRE(17,1,3)*GIM(nbra*17+i);
-                        gsp[2*nbra+i] = CRE( 2,2,3)*GIM(nbra* 2+i)
-                                      - CIM( 4,2,3)*GRE(nbra* 4+i)
-                                      + CRE( 7,2,3)*GIM(nbra* 7+i)
-                                      + CRE(10,2,3)*GIM(nbra*10+i)
-                                      - CIM(11,2,3)*GRE(nbra*11+i)
-                                      + CRE(13,2,3)*GIM(nbra*13+i)
-                                      + CRE(15,2,3)*GIM(nbra*15+i)
-                                      - CIM(16,2,3)*GRE(nbra*16+i)
-                                      - CIM(18,2,3)*GRE(nbra*18+i);
-                        gsp[3*nbra+i] = CRE( 0,3,3)*GIM(nbra* 0+i)
-                                      - CIM( 1,3,3)*GRE(nbra* 1+i)
-                                      + CRE( 3,3,3)*GIM(nbra* 3+i)
-                                      + CRE( 5,3,3)*GIM(nbra* 5+i)
-                                      - CIM( 6,3,3)*GRE(nbra* 6+i)
-                                      - CIM( 8,3,3)*GRE(nbra* 8+i)
-                                      + CRE(12,3,3)*GIM(nbra*12+i)
-                                      + CRE(17,3,3)*GIM(nbra*17+i)
-                                      + CRE(19,3,3)*GIM(nbra*19+i);
-                        gsp[4*nbra+i] = CRE( 2,4,3)*GIM(nbra* 2+i)
-                                      + CRE( 7,4,3)*GIM(nbra* 7+i)
-                                      + CRE( 9,4,3)*GIM(nbra* 9+i)
-                                      + CRE(10,4,3)*GIM(nbra*10+i)
-                                      - CIM(11,4,3)*GRE(nbra*11+i)
-                                      + CRE(13,4,3)*GIM(nbra*13+i)
-                                      + CRE(15,4,3)*GIM(nbra*15+i)
-                                      - CIM(16,4,3)*GRE(nbra*16+i)
-                                      - CIM(18,4,3)*GRE(nbra*18+i);
-                        gsp[5*nbra+i] = CRE( 0,5,3)*GIM(nbra* 0+i)
-                                      - CIM( 1,5,3)*GRE(nbra* 1+i)
-                                      + CRE( 3,5,3)*GIM(nbra* 3+i)
-                                      + CRE( 5,5,3)*GIM(nbra* 5+i)
-                                      - CIM( 6,5,3)*GRE(nbra* 6+i)
-                                      - CIM( 8,5,3)*GRE(nbra* 8+i)
-                                      + CRE(12,5,3)*GIM(nbra*12+i)
-                                      - CIM(14,5,3)*GRE(nbra*14+i)
-                                      + CRE(17,5,3)*GIM(nbra*17+i);
-                        gsp[6*nbra+i] = CRE( 2,6,3)*GIM(nbra* 2+i)
-                                      - CIM( 4,6,3)*GRE(nbra* 4+i)
-                                      + CRE( 7,6,3)*GIM(nbra* 7+i)
-                                      + CRE(10,6,3)*GIM(nbra*10+i)
-                                      - CIM(11,6,3)*GRE(nbra*11+i)
-                                      + CRE(13,6,3)*GIM(nbra*13+i)
-                                      - CIM(16,6,3)*GRE(nbra*16+i);
-                        gsp[7*nbra+i] = CRE( 0,7,3)*GIM(nbra* 0+i)
-                                      - CIM( 1,7,3)*GRE(nbra* 1+i)
-                                      + CRE( 3,7,3)*GIM(nbra* 3+i)
-                                      - CIM( 6,7,3)*GRE(nbra* 6+i);
                 }
         }
 }
@@ -7202,423 +7641,6 @@ static void g_ket_cart2spinor_si(double complex *gspa, double complex *gspb,
                 }
         }
 }
-static void g_ket_cart2spinor(double complex *gsp, int nbra,
-                              double complex *gcart, int kappa, int l)
-{
-        const double complex *coeff_c2s;
-        int i;
-
-        if (kappa >= 0) {
-                coeff_c2s = g_c2s[4].cart2j_lt_l;
-                for (i = 0; i < nbra; i++) {
-                        gsp[0*nbra+i] = CRE( 0,0,4) * GRE(nbra* 0+i)
-                                      + CIM( 1,0,4) * GIM(nbra* 1+i)
-                                      + CRE( 3,0,4) * GRE(nbra* 3+i)
-                                      + CIM( 6,0,4) * GIM(nbra* 6+i)
-                                      + CRE(10,0,4) * GRE(nbra*10+i)
-                                      + CRE(17,0,4) * GRE(nbra*17+i)
-                                      + CIM(19,0,4) * GIM(nbra*19+i)
-                                      + CRE(22,0,4) * GRE(nbra*22+i)
-                                      + CIM(26,0,4) * GIM(nbra*26+i);
-                        gsp[1*nbra+i] = CRE( 2,1,4) * GRE(nbra* 2+i)
-                                      + CIM( 4,1,4) * GIM(nbra* 4+i)
-                                      + CRE( 7,1,4) * GRE(nbra* 7+i)
-                                      + CIM(11,1,4) * GIM(nbra*11+i)
-                                      + CRE(15,1,4) * GRE(nbra*15+i)
-                                      + CIM(16,1,4) * GIM(nbra*16+i)
-                                      + CRE(20,1,4) * GRE(nbra*20+i)
-                                      + CIM(21,1,4) * GIM(nbra*21+i)
-                                      + CIM(23,1,4) * GIM(nbra*23+i)
-                                      + CRE(25,1,4) * GRE(nbra*25+i)
-                                      + CRE(27,1,4) * GRE(nbra*27+i);
-                        gsp[2*nbra+i] = CRE( 0,2,4) * GRE(nbra* 0+i)
-                                      + CIM( 1,2,4) * GIM(nbra* 1+i)
-                                      + CRE( 5,2,4) * GRE(nbra* 5+i)
-                                      + CIM( 6,2,4) * GIM(nbra* 6+i)
-                                      + CIM( 8,2,4) * GIM(nbra* 8+i)
-                                      + CRE(10,2,4) * GRE(nbra*10+i)
-                                      + CRE(12,2,4) * GRE(nbra*12+i)
-                                      + CRE(17,2,4) * GRE(nbra*17+i)
-                                      + CIM(19,2,4) * GIM(nbra*19+i)
-                                      + CRE(22,2,4) * GRE(nbra*22+i)
-                                      + CRE(24,2,4) * GRE(nbra*24+i)
-                                      + CIM(26,2,4) * GIM(nbra*26+i)
-                                      + CIM(28,2,4) * GIM(nbra*28+i);
-                        gsp[3*nbra+i] = CRE( 2,3,4) * GRE(nbra* 2+i)
-                                      + CIM( 4,3,4) * GIM(nbra* 4+i)
-                                      + CRE( 7,3,4) * GRE(nbra* 7+i)
-                                      + CRE( 9,3,4) * GRE(nbra* 9+i)
-                                      + CIM(11,3,4) * GIM(nbra*11+i)
-                                      + CIM(13,3,4) * GIM(nbra*13+i)
-                                      + CRE(15,3,4) * GRE(nbra*15+i)
-                                      + CRE(18,3,4) * GRE(nbra*18+i)
-                                      + CRE(20,3,4) * GRE(nbra*20+i)
-                                      + CRE(25,3,4) * GRE(nbra*25+i)
-                                      + CRE(27,3,4) * GRE(nbra*27+i)
-                                      + CRE(29,3,4) * GRE(nbra*29+i);
-                        gsp[4*nbra+i] = CRE( 0,4,4) * GRE(nbra* 0+i)
-                                      + CRE( 3,4,4) * GRE(nbra* 3+i)
-                                      + CRE( 5,4,4) * GRE(nbra* 5+i)
-                                      + CRE(10,4,4) * GRE(nbra*10+i)
-                                      + CRE(12,4,4) * GRE(nbra*12+i)
-                                      + CRE(14,4,4) * GRE(nbra*14+i)
-                                      + CRE(17,4,4) * GRE(nbra*17+i)
-                                      + CIM(19,4,4) * GIM(nbra*19+i)
-                                      + CRE(22,4,4) * GRE(nbra*22+i)
-                                      + CRE(24,4,4) * GRE(nbra*24+i)
-                                      + CIM(26,4,4) * GIM(nbra*26+i)
-                                      + CIM(28,4,4) * GIM(nbra*28+i);
-                        gsp[5*nbra+i] = CRE( 2,5,4) * GRE(nbra* 2+i)
-                                      + CIM( 4,5,4) * GIM(nbra* 4+i)
-                                      + CRE( 7,5,4) * GRE(nbra* 7+i)
-                                      + CRE( 9,5,4) * GRE(nbra* 9+i)
-                                      + CIM(11,5,4) * GIM(nbra*11+i)
-                                      + CIM(13,5,4) * GIM(nbra*13+i)
-                                      + CRE(15,5,4) * GRE(nbra*15+i)
-                                      + CIM(16,5,4) * GIM(nbra*16+i)
-                                      + CRE(20,5,4) * GRE(nbra*20+i)
-                                      + CIM(21,5,4) * GIM(nbra*21+i)
-                                      + CIM(23,5,4) * GIM(nbra*23+i)
-                                      + CRE(25,5,4) * GRE(nbra*25+i)
-                                      + CRE(27,5,4) * GRE(nbra*27+i);
-                        gsp[6*nbra+i] = CRE( 0,6,4) * GRE(nbra* 0+i)
-                                      + CIM( 1,6,4) * GIM(nbra* 1+i)
-                                      + CRE( 5,6,4) * GRE(nbra* 5+i)
-                                      + CIM( 6,6,4) * GIM(nbra* 6+i)
-                                      + CIM( 8,6,4) * GIM(nbra* 8+i)
-                                      + CRE(10,6,4) * GRE(nbra*10+i)
-                                      + CRE(12,6,4) * GRE(nbra*12+i)
-                                      + CRE(17,6,4) * GRE(nbra*17+i)
-                                      + CIM(19,6,4) * GIM(nbra*19+i)
-                                      + CRE(22,6,4) * GRE(nbra*22+i)
-                                      + CIM(26,6,4) * GIM(nbra*26+i);
-                        gsp[7*nbra+i] = CRE( 2,7,4) * GRE(nbra* 2+i)
-                                      + CIM( 4,7,4) * GIM(nbra* 4+i)
-                                      + CRE( 7,7,4) * GRE(nbra* 7+i)
-                                      + CIM(11,7,4) * GIM(nbra*11+i)
-                                      + CRE(15,7,4) * GRE(nbra*15+i)
-                                      + CIM(16,7,4) * GIM(nbra*16+i)
-                                      + CRE(18,7,4) * GRE(nbra*18+i)
-                                      + CIM(21,7,4) * GIM(nbra*21+i)
-                                      + CRE(25,7,4) * GRE(nbra*25+i);
-                };
-                gsp += nbra * 8;
-        }
-        if (kappa <= 0) {
-                coeff_c2s = g_c2s[4].cart2j_gt_l;
-                for (i = 0; i < nbra; i++) {
-                        gsp[0*nbra+i] = CRE(15,0,4) * GRE(nbra*15+i)
-                                      + CIM(16,0,4) * GIM(nbra*16+i)
-                                      + CRE(18,0,4) * GRE(nbra*18+i)
-                                      + CIM(21,0,4) * GIM(nbra*21+i)
-                                      + CRE(25,0,4) * GRE(nbra*25+i);
-                        gsp[1*nbra+i] = CRE( 0,1,4) * GRE(nbra* 0+i)
-                                      + CIM( 1,1,4) * GIM(nbra* 1+i)
-                                      + CRE( 3,1,4) * GRE(nbra* 3+i)
-                                      + CIM( 6,1,4) * GIM(nbra* 6+i)
-                                      + CRE(10,1,4) * GRE(nbra*10+i)
-                                      + CRE(17,1,4) * GRE(nbra*17+i)
-                                      + CIM(19,1,4) * GIM(nbra*19+i)
-                                      + CRE(22,1,4) * GRE(nbra*22+i)
-                                      + CIM(26,1,4) * GIM(nbra*26+i);
-                        gsp[2*nbra+i] = CRE( 2,2,4) * GRE(nbra* 2+i)
-                                      + CIM( 4,2,4) * GIM(nbra* 4+i)
-                                      + CRE( 7,2,4) * GRE(nbra* 7+i)
-                                      + CIM(11,2,4) * GIM(nbra*11+i)
-                                      + CRE(15,2,4) * GRE(nbra*15+i)
-                                      + CIM(16,2,4) * GIM(nbra*16+i)
-                                      + CRE(20,2,4) * GRE(nbra*20+i)
-                                      + CIM(21,2,4) * GIM(nbra*21+i)
-                                      + CIM(23,2,4) * GIM(nbra*23+i)
-                                      + CRE(25,2,4) * GRE(nbra*25+i)
-                                      + CRE(27,2,4) * GRE(nbra*27+i);
-                        gsp[3*nbra+i] = CRE( 0,3,4) * GRE(nbra* 0+i)
-                                      + CIM( 1,3,4) * GIM(nbra* 1+i)
-                                      + CRE( 5,3,4) * GRE(nbra* 5+i)
-                                      + CIM( 6,3,4) * GIM(nbra* 6+i)
-                                      + CIM( 8,3,4) * GIM(nbra* 8+i)
-                                      + CRE(10,3,4) * GRE(nbra*10+i)
-                                      + CRE(12,3,4) * GRE(nbra*12+i)
-                                      + CRE(17,3,4) * GRE(nbra*17+i)
-                                      + CIM(19,3,4) * GIM(nbra*19+i)
-                                      + CRE(22,3,4) * GRE(nbra*22+i)
-                                      + CRE(24,3,4) * GRE(nbra*24+i)
-                                      + CIM(26,3,4) * GIM(nbra*26+i)
-                                      + CIM(28,3,4) * GIM(nbra*28+i);
-                        gsp[4*nbra+i] = CRE( 2,4,4) * GRE(nbra* 2+i)
-                                      + CIM( 4,4,4) * GIM(nbra* 4+i)
-                                      + CRE( 7,4,4) * GRE(nbra* 7+i)
-                                      + CRE( 9,4,4) * GRE(nbra* 9+i)
-                                      + CIM(11,4,4) * GIM(nbra*11+i)
-                                      + CIM(13,4,4) * GIM(nbra*13+i)
-                                      + CRE(15,4,4) * GRE(nbra*15+i)
-                                      + CRE(18,4,4) * GRE(nbra*18+i)
-                                      + CRE(20,4,4) * GRE(nbra*20+i)
-                                      + CRE(25,4,4) * GRE(nbra*25+i)
-                                      + CRE(27,4,4) * GRE(nbra*27+i)
-                                      + CRE(29,4,4) * GRE(nbra*29+i);
-                        gsp[5*nbra+i] = CRE( 0,5,4) * GRE(nbra* 0+i)
-                                      + CRE( 3,5,4) * GRE(nbra* 3+i)
-                                      + CRE( 5,5,4) * GRE(nbra* 5+i)
-                                      + CRE(10,5,4) * GRE(nbra*10+i)
-                                      + CRE(12,5,4) * GRE(nbra*12+i)
-                                      + CRE(14,5,4) * GRE(nbra*14+i)
-                                      + CRE(17,5,4) * GRE(nbra*17+i)
-                                      + CIM(19,5,4) * GIM(nbra*19+i)
-                                      + CRE(22,5,4) * GRE(nbra*22+i)
-                                      + CRE(24,5,4) * GRE(nbra*24+i)
-                                      + CIM(26,5,4) * GIM(nbra*26+i)
-                                      + CIM(28,5,4) * GIM(nbra*28+i);
-                        gsp[6*nbra+i] = CRE( 2,6,4) * GRE(nbra* 2+i)
-                                      + CIM( 4,6,4) * GIM(nbra* 4+i)
-                                      + CRE( 7,6,4) * GRE(nbra* 7+i)
-                                      + CRE( 9,6,4) * GRE(nbra* 9+i)
-                                      + CIM(11,6,4) * GIM(nbra*11+i)
-                                      + CIM(13,6,4) * GIM(nbra*13+i)
-                                      + CRE(15,6,4) * GRE(nbra*15+i)
-                                      + CIM(16,6,4) * GIM(nbra*16+i)
-                                      + CRE(20,6,4) * GRE(nbra*20+i)
-                                      + CIM(21,6,4) * GIM(nbra*21+i)
-                                      + CIM(23,6,4) * GIM(nbra*23+i)
-                                      + CRE(25,6,4) * GRE(nbra*25+i)
-                                      + CRE(27,6,4) * GRE(nbra*27+i);
-                        gsp[7*nbra+i] = CRE( 0,7,4) * GRE(nbra* 0+i)
-                                      + CIM( 1,7,4) * GIM(nbra* 1+i)
-                                      + CRE( 5,7,4) * GRE(nbra* 5+i)
-                                      + CIM( 6,7,4) * GIM(nbra* 6+i)
-                                      + CIM( 8,7,4) * GIM(nbra* 8+i)
-                                      + CRE(10,7,4) * GRE(nbra*10+i)
-                                      + CRE(12,7,4) * GRE(nbra*12+i)
-                                      + CRE(17,7,4) * GRE(nbra*17+i)
-                                      + CIM(19,7,4) * GIM(nbra*19+i)
-                                      + CRE(22,7,4) * GRE(nbra*22+i)
-                                      + CIM(26,7,4) * GIM(nbra*26+i);
-                        gsp[8*nbra+i] = CRE( 2,8,4) * GRE(nbra* 2+i)
-                                      + CIM( 4,8,4) * GIM(nbra* 4+i)
-                                      + CRE( 7,8,4) * GRE(nbra* 7+i)
-                                      + CIM(11,8,4) * GIM(nbra*11+i)
-                                      + CRE(15,8,4) * GRE(nbra*15+i)
-                                      + CIM(16,8,4) * GIM(nbra*16+i)
-                                      + CRE(18,8,4) * GRE(nbra*18+i)
-                                      + CIM(21,8,4) * GIM(nbra*21+i)
-                                      + CRE(25,8,4) * GRE(nbra*25+i);
-                        gsp[9*nbra+i] = CRE( 0,9,4) * GRE(nbra* 0+i)
-                                      + CIM( 1,9,4) * GIM(nbra* 1+i)
-                                      + CRE( 3,9,4) * GRE(nbra* 3+i)
-                                      + CIM( 6,9,4) * GIM(nbra* 6+i)
-                                      + CRE(10,9,4) * GRE(nbra*10+i);
-                }
-        }
-}
-
-static void g_iket_cart2spinor(double complex *gsp, int nbra,
-                               double complex *gcart, int kappa, int l)
-{
-        const double complex *coeff_c2s;
-        int i;
-
-        if (kappa >= 0) {
-                coeff_c2s = g_c2s[4].cart2j_lt_l;
-                for (i = 0; i < nbra; i++) {
-                        gsp[0*nbra+i] = CRE( 0,0,4) * GIM(nbra* 0+i)
-                                      - CIM( 1,0,4) * GRE(nbra* 1+i)
-                                      + CRE( 3,0,4) * GIM(nbra* 3+i)
-                                      - CIM( 6,0,4) * GRE(nbra* 6+i)
-                                      + CRE(10,0,4) * GIM(nbra*10+i)
-                                      + CRE(17,0,4) * GIM(nbra*17+i)
-                                      - CIM(19,0,4) * GRE(nbra*19+i)
-                                      + CRE(22,0,4) * GIM(nbra*22+i)
-                                      - CIM(26,0,4) * GRE(nbra*26+i);
-                        gsp[1*nbra+i] = CRE( 2,1,4) * GIM(nbra* 2+i)
-                                      - CIM( 4,1,4) * GRE(nbra* 4+i)
-                                      + CRE( 7,1,4) * GIM(nbra* 7+i)
-                                      - CIM(11,1,4) * GRE(nbra*11+i)
-                                      + CRE(15,1,4) * GIM(nbra*15+i)
-                                      - CIM(16,1,4) * GRE(nbra*16+i)
-                                      + CRE(20,1,4) * GIM(nbra*20+i)
-                                      - CIM(21,1,4) * GRE(nbra*21+i)
-                                      - CIM(23,1,4) * GRE(nbra*23+i)
-                                      + CRE(25,1,4) * GIM(nbra*25+i)
-                                      + CRE(27,1,4) * GIM(nbra*27+i);
-                        gsp[2*nbra+i] = CRE( 0,2,4) * GIM(nbra* 0+i)
-                                      - CIM( 1,2,4) * GRE(nbra* 1+i)
-                                      + CRE( 5,2,4) * GIM(nbra* 5+i)
-                                      - CIM( 6,2,4) * GRE(nbra* 6+i)
-                                      - CIM( 8,2,4) * GRE(nbra* 8+i)
-                                      + CRE(10,2,4) * GIM(nbra*10+i)
-                                      + CRE(12,2,4) * GIM(nbra*12+i)
-                                      + CRE(17,2,4) * GIM(nbra*17+i)
-                                      - CIM(19,2,4) * GRE(nbra*19+i)
-                                      + CRE(22,2,4) * GIM(nbra*22+i)
-                                      + CRE(24,2,4) * GIM(nbra*24+i)
-                                      - CIM(26,2,4) * GRE(nbra*26+i)
-                                      - CIM(28,2,4) * GRE(nbra*28+i);
-                        gsp[3*nbra+i] = CRE( 2,3,4) * GIM(nbra* 2+i)
-                                      - CIM( 4,3,4) * GRE(nbra* 4+i)
-                                      + CRE( 7,3,4) * GIM(nbra* 7+i)
-                                      + CRE( 9,3,4) * GIM(nbra* 9+i)
-                                      - CIM(11,3,4) * GRE(nbra*11+i)
-                                      - CIM(13,3,4) * GRE(nbra*13+i)
-                                      + CRE(15,3,4) * GIM(nbra*15+i)
-                                      + CRE(18,3,4) * GIM(nbra*18+i)
-                                      + CRE(20,3,4) * GIM(nbra*20+i)
-                                      + CRE(25,3,4) * GIM(nbra*25+i)
-                                      + CRE(27,3,4) * GIM(nbra*27+i)
-                                      + CRE(29,3,4) * GIM(nbra*29+i);
-                        gsp[4*nbra+i] = CRE( 0,4,4) * GIM(nbra* 0+i)
-                                      + CRE( 3,4,4) * GIM(nbra* 3+i)
-                                      + CRE( 5,4,4) * GIM(nbra* 5+i)
-                                      + CRE(10,4,4) * GIM(nbra*10+i)
-                                      + CRE(12,4,4) * GIM(nbra*12+i)
-                                      + CRE(14,4,4) * GIM(nbra*14+i)
-                                      + CRE(17,4,4) * GIM(nbra*17+i)
-                                      - CIM(19,4,4) * GRE(nbra*19+i)
-                                      + CRE(22,4,4) * GIM(nbra*22+i)
-                                      + CRE(24,4,4) * GIM(nbra*24+i)
-                                      - CIM(26,4,4) * GRE(nbra*26+i)
-                                      - CIM(28,4,4) * GRE(nbra*28+i);
-                        gsp[5*nbra+i] = CRE( 2,5,4) * GIM(nbra* 2+i)
-                                      - CIM( 4,5,4) * GRE(nbra* 4+i)
-                                      + CRE( 7,5,4) * GIM(nbra* 7+i)
-                                      + CRE( 9,5,4) * GIM(nbra* 9+i)
-                                      - CIM(11,5,4) * GRE(nbra*11+i)
-                                      - CIM(13,5,4) * GRE(nbra*13+i)
-                                      + CRE(15,5,4) * GIM(nbra*15+i)
-                                      - CIM(16,5,4) * GRE(nbra*16+i)
-                                      + CRE(20,5,4) * GIM(nbra*20+i)
-                                      - CIM(21,5,4) * GRE(nbra*21+i)
-                                      - CIM(23,5,4) * GRE(nbra*23+i)
-                                      + CRE(25,5,4) * GIM(nbra*25+i)
-                                      + CRE(27,5,4) * GIM(nbra*27+i);
-                        gsp[6*nbra+i] = CRE( 0,6,4) * GIM(nbra* 0+i)
-                                      - CIM( 1,6,4) * GRE(nbra* 1+i)
-                                      + CRE( 5,6,4) * GIM(nbra* 5+i)
-                                      - CIM( 6,6,4) * GRE(nbra* 6+i)
-                                      - CIM( 8,6,4) * GRE(nbra* 8+i)
-                                      + CRE(10,6,4) * GIM(nbra*10+i)
-                                      + CRE(12,6,4) * GIM(nbra*12+i)
-                                      + CRE(17,6,4) * GIM(nbra*17+i)
-                                      - CIM(19,6,4) * GRE(nbra*19+i)
-                                      + CRE(22,6,4) * GIM(nbra*22+i)
-                                      - CIM(26,6,4) * GRE(nbra*26+i);
-                        gsp[7*nbra+i] = CRE( 2,7,4) * GIM(nbra* 2+i)
-                                      - CIM( 4,7,4) * GRE(nbra* 4+i)
-                                      + CRE( 7,7,4) * GIM(nbra* 7+i)
-                                      - CIM(11,7,4) * GRE(nbra*11+i)
-                                      + CRE(15,7,4) * GIM(nbra*15+i)
-                                      - CIM(16,7,4) * GRE(nbra*16+i)
-                                      + CRE(18,7,4) * GIM(nbra*18+i)
-                                      - CIM(21,7,4) * GRE(nbra*21+i)
-                                      + CRE(25,7,4) * GIM(nbra*25+i);
-                };
-                gsp += nbra * 8;
-        }
-        if (kappa <= 0) {
-                coeff_c2s = g_c2s[4].cart2j_gt_l;
-                for (i = 0; i < nbra; i++) {
-                        gsp[0*nbra+i] = CRE(15,0,4) * GIM(nbra*15+i)
-                                      - CIM(16,0,4) * GRE(nbra*16+i)
-                                      + CRE(18,0,4) * GIM(nbra*18+i)
-                                      - CIM(21,0,4) * GRE(nbra*21+i)
-                                      + CRE(25,0,4) * GIM(nbra*25+i);
-                        gsp[1*nbra+i] = CRE( 0,1,4) * GIM(nbra* 0+i)
-                                      - CIM( 1,1,4) * GRE(nbra* 1+i)
-                                      + CRE( 3,1,4) * GIM(nbra* 3+i)
-                                      - CIM( 6,1,4) * GRE(nbra* 6+i)
-                                      + CRE(10,1,4) * GIM(nbra*10+i)
-                                      + CRE(17,1,4) * GIM(nbra*17+i)
-                                      - CIM(19,1,4) * GRE(nbra*19+i)
-                                      + CRE(22,1,4) * GIM(nbra*22+i)
-                                      - CIM(26,1,4) * GRE(nbra*26+i);
-                        gsp[2*nbra+i] = CRE( 2,2,4) * GIM(nbra* 2+i)
-                                      - CIM( 4,2,4) * GRE(nbra* 4+i)
-                                      + CRE( 7,2,4) * GIM(nbra* 7+i)
-                                      - CIM(11,2,4) * GRE(nbra*11+i)
-                                      + CRE(15,2,4) * GIM(nbra*15+i)
-                                      - CIM(16,2,4) * GRE(nbra*16+i)
-                                      + CRE(20,2,4) * GIM(nbra*20+i)
-                                      - CIM(21,2,4) * GRE(nbra*21+i)
-                                      - CIM(23,2,4) * GRE(nbra*23+i)
-                                      + CRE(25,2,4) * GIM(nbra*25+i)
-                                      + CRE(27,2,4) * GIM(nbra*27+i);
-                        gsp[3*nbra+i] = CRE( 0,3,4) * GIM(nbra* 0+i)
-                                      - CIM( 1,3,4) * GRE(nbra* 1+i)
-                                      + CRE( 5,3,4) * GIM(nbra* 5+i)
-                                      - CIM( 6,3,4) * GRE(nbra* 6+i)
-                                      - CIM( 8,3,4) * GRE(nbra* 8+i)
-                                      + CRE(10,3,4) * GIM(nbra*10+i)
-                                      + CRE(12,3,4) * GIM(nbra*12+i)
-                                      + CRE(17,3,4) * GIM(nbra*17+i)
-                                      - CIM(19,3,4) * GRE(nbra*19+i)
-                                      + CRE(22,3,4) * GIM(nbra*22+i)
-                                      + CRE(24,3,4) * GIM(nbra*24+i)
-                                      - CIM(26,3,4) * GRE(nbra*26+i)
-                                      - CIM(28,3,4) * GRE(nbra*28+i);
-                        gsp[4*nbra+i] = CRE( 2,4,4) * GIM(nbra* 2+i)
-                                      - CIM( 4,4,4) * GRE(nbra* 4+i)
-                                      + CRE( 7,4,4) * GIM(nbra* 7+i)
-                                      + CRE( 9,4,4) * GIM(nbra* 9+i)
-                                      - CIM(11,4,4) * GRE(nbra*11+i)
-                                      - CIM(13,4,4) * GRE(nbra*13+i)
-                                      + CRE(15,4,4) * GIM(nbra*15+i)
-                                      + CRE(18,4,4) * GIM(nbra*18+i)
-                                      + CRE(20,4,4) * GIM(nbra*20+i)
-                                      + CRE(25,4,4) * GIM(nbra*25+i)
-                                      + CRE(27,4,4) * GIM(nbra*27+i)
-                                      + CRE(29,4,4) * GIM(nbra*29+i);
-                        gsp[5*nbra+i] = CRE( 0,5,4) * GIM(nbra* 0+i)
-                                      + CRE( 3,5,4) * GIM(nbra* 3+i)
-                                      + CRE( 5,5,4) * GIM(nbra* 5+i)
-                                      + CRE(10,5,4) * GIM(nbra*10+i)
-                                      + CRE(12,5,4) * GIM(nbra*12+i)
-                                      + CRE(14,5,4) * GIM(nbra*14+i)
-                                      + CRE(17,5,4) * GIM(nbra*17+i)
-                                      - CIM(19,5,4) * GRE(nbra*19+i)
-                                      + CRE(22,5,4) * GIM(nbra*22+i)
-                                      + CRE(24,5,4) * GIM(nbra*24+i)
-                                      - CIM(26,5,4) * GRE(nbra*26+i)
-                                      - CIM(28,5,4) * GRE(nbra*28+i);
-                        gsp[6*nbra+i] = CRE( 2,6,4) * GIM(nbra* 2+i)
-                                      - CIM( 4,6,4) * GRE(nbra* 4+i)
-                                      + CRE( 7,6,4) * GIM(nbra* 7+i)
-                                      + CRE( 9,6,4) * GIM(nbra* 9+i)
-                                      - CIM(11,6,4) * GRE(nbra*11+i)
-                                      - CIM(13,6,4) * GRE(nbra*13+i)
-                                      + CRE(15,6,4) * GIM(nbra*15+i)
-                                      - CIM(16,6,4) * GRE(nbra*16+i)
-                                      + CRE(20,6,4) * GIM(nbra*20+i)
-                                      - CIM(21,6,4) * GRE(nbra*21+i)
-                                      - CIM(23,6,4) * GRE(nbra*23+i)
-                                      + CRE(25,6,4) * GIM(nbra*25+i)
-                                      + CRE(27,6,4) * GIM(nbra*27+i);
-                        gsp[7*nbra+i] = CRE( 0,7,4) * GIM(nbra* 0+i)
-                                      - CIM( 1,7,4) * GRE(nbra* 1+i)
-                                      + CRE( 5,7,4) * GIM(nbra* 5+i)
-                                      - CIM( 6,7,4) * GRE(nbra* 6+i)
-                                      - CIM( 8,7,4) * GRE(nbra* 8+i)
-                                      + CRE(10,7,4) * GIM(nbra*10+i)
-                                      + CRE(12,7,4) * GIM(nbra*12+i)
-                                      + CRE(17,7,4) * GIM(nbra*17+i)
-                                      - CIM(19,7,4) * GRE(nbra*19+i)
-                                      + CRE(22,7,4) * GIM(nbra*22+i)
-                                      - CIM(26,7,4) * GRE(nbra*26+i);
-                        gsp[8*nbra+i] = CRE( 2,8,4) * GIM(nbra* 2+i)
-                                      - CIM( 4,8,4) * GRE(nbra* 4+i)
-                                      + CRE( 7,8,4) * GIM(nbra* 7+i)
-                                      - CIM(11,8,4) * GRE(nbra*11+i)
-                                      + CRE(15,8,4) * GIM(nbra*15+i)
-                                      - CIM(16,8,4) * GRE(nbra*16+i)
-                                      + CRE(18,8,4) * GIM(nbra*18+i)
-                                      - CIM(21,8,4) * GRE(nbra*21+i)
-                                      + CRE(25,8,4) * GIM(nbra*25+i);
-                        gsp[9*nbra+i] = CRE( 0,9,4) * GIM(nbra* 0+i)
-                                      - CIM( 1,9,4) * GRE(nbra* 1+i)
-                                      + CRE( 3,9,4) * GIM(nbra* 3+i)
-                                      - CIM( 6,9,4) * GRE(nbra* 6+i)
-                                      + CRE(10,9,4) * GIM(nbra*10+i);
-                }
-        }
-}
 
 void (*c2s_ket_spinor_e1sf[])() = {
         s_ket_cart2spinor_e1sf,
@@ -7651,28 +7673,6 @@ void (*c2s_ket_spinor_si[])() = {
         a_ket_cart2spinor_si,
         a_ket_cart2spinor_si,
         a_ket_cart2spinor_si,
-};
-
-void (*c2s_ket_spinor[])() = {
-        s_ket_cart2spinor,
-        p_ket_cart2spinor,
-        d_ket_cart2spinor,
-        f_ket_cart2spinor,
-        g_ket_cart2spinor,
-        a_ket_cart2spinor,
-        a_ket_cart2spinor,
-        a_ket_cart2spinor,
-};
-
-void (*c2s_iket_spinor[])() = {
-        s_iket_cart2spinor,
-        p_iket_cart2spinor,
-        d_iket_cart2spinor,
-        f_iket_cart2spinor,
-        g_iket_cart2spinor,
-        a_iket_cart2spinor,
-        a_iket_cart2spinor,
-        a_iket_cart2spinor,
 };
 
 /*************************************************
@@ -8895,7 +8895,6 @@ void c2s_cart_3c2e1(double *bufijk, double *gctr, int *dims,
                 dcopy_iklj(pijk, gctr, ni, nj, nk, 1, nfi, nfj, nfk, 1);
                 gctr += nf;
         } } }
-
 }
 
 /*
@@ -8974,11 +8973,11 @@ void c2s_sf_3c2e1(double complex *opijk, double *gctr, int *dims,
         int d_i = di * dk;
         int d_j = dk * nfj;
         int ic, jc, kc;
-        int buflen = ALIGN_UP(nfi*dk*nfj, SIMDD);
+        int buflen = nfi*dk*nfj;
         double *buf, *pbuf;
+        MALLOC_INSTACK(buf, buflen);
         int len1 = di*dk*nf2j;
         int len2 = di*dk*dj;
-        MALLOC_INSTACK(buf, buflen);
         double complex *tmp1, *tmp2;
         MALLOC_INSTACK(tmp1, len1);
         MALLOC_INSTACK(tmp2, len2);
@@ -9027,11 +9026,11 @@ void c2s_sf_3c2e1i(double complex *opijk, double *gctr, int *dims,
         int d_i = di * dk;
         int d_j = dk * nfj;
         int ic, jc, kc;
-        int buflen = ALIGN_UP(nfi*dk*nfj, SIMDD);
+        int buflen = nfi*dk*nfj;
         double *buf, *pbuf;
+        MALLOC_INSTACK(buf, buflen);
         int len1 = di*dk*nf2j;
         int len2 = di*dk*dj;
-        MALLOC_INSTACK(buf, buflen);
         double complex *tmp1, *tmp2;
         MALLOC_INSTACK(tmp1, len1);
         MALLOC_INSTACK(tmp2, len2);
@@ -9503,8 +9502,8 @@ void CINTc2s_bra_spinor_si(double complex *gsp, int nket,
 void CINTc2s_ket_spinor_sf1(double complex *gspa, double complex *gspb, double *gcart,
                             int lds, int ldc, int nctr, int kappa, int l)
 {
-        const int nf = (l+1)*(l+2)/2;
-        const int deg = _len_spinor(kappa, l);
+        int nf = (l+1)*(l+2)/2;
+        int deg = _len_spinor(kappa, l);
         int k;
         for (k = 0; k < nctr; k++) {
                 (c2s_ket_spinor_e1sf[l])(gspa, gspb, gcart, lds, ldc, kappa, l);
@@ -9516,8 +9515,8 @@ void CINTc2s_ket_spinor_sf1(double complex *gspa, double complex *gspb, double *
 void CINTc2s_iket_spinor_sf1(double complex *gspa, double complex *gspb, double *gcart,
                              int lds, int ldc, int nctr, int kappa, int l)
 {
-        const int nf = (l+1)*(l+2)/2;
-        const int deg = _len_spinor(kappa, l);
+        int nf = (l+1)*(l+2)/2;
+        int deg = _len_spinor(kappa, l);
         int k;
         for (k = 0; k < nctr; k++) {
                 (c2s_iket_spinor_e1sf[l])(gspa, gspb, gcart, lds, ldc, kappa, l);
@@ -9529,13 +9528,13 @@ void CINTc2s_iket_spinor_sf1(double complex *gspa, double complex *gspb, double 
 void CINTc2s_ket_spinor_si1(double complex *gspa, double complex *gspb, double *gcart,
                             int lds, int ldc, int nctr, int kappa, int l)
 {
-        const int nf = (l+1)*(l+2)/2;
-        const int deg = _len_spinor(kappa, l);
-        const int ngc = nf * ldc;
-        const double *gc_x = gcart;
-        const double *gc_y = gc_x + nctr*ngc;
-        const double *gc_z = gc_y + nctr*ngc;
-        const double *gc_1 = gc_z + nctr*ngc;
+        int nf = _len_cart[l];
+        int deg = _len_spinor(kappa, l);
+        int ngc = nf * ldc;
+        double *gc_x = gcart;
+        double *gc_y = gc_x + nctr*ngc;
+        double *gc_z = gc_y + nctr*ngc;
+        double *gc_1 = gc_z + nctr*ngc;
         double complex *tmp = malloc(sizeof(double complex)*ngc*4);
         int k;
 
@@ -9557,13 +9556,13 @@ void CINTc2s_ket_spinor_si1(double complex *gspa, double complex *gspb, double *
 void CINTc2s_iket_spinor_si1(double complex *gspa, double complex *gspb, double *gcart,
                              int lds, int ldc, int nctr, int kappa, int l)
 {
-        const int nf = (l+1)*(l+2)/2;
-        const int deg = _len_spinor(kappa, l);
-        const int ngc = nf * ldc;
-        const double *gc_x = gcart;
-        const double *gc_y = gc_x + nctr*ngc;
-        const double *gc_z = gc_y + nctr*ngc;
-        const double *gc_1 = gc_z + nctr*ngc;
+        int nf = _len_cart[l];
+        int deg = _len_spinor(kappa, l);
+        int ngc = nf * ldc;
+        double *gc_x = gcart;
+        double *gc_y = gc_x + nctr*ngc;
+        double *gc_z = gc_y + nctr*ngc;
+        double *gc_1 = gc_z + nctr*ngc;
         double complex *tmp = malloc(sizeof(double complex)*ngc*4);
         int k;
 
@@ -9593,8 +9592,8 @@ double *CINTs2c_bra_sph(double *gsph, int nket, double *gcart, int l)
         const double D0 = 0;
         const double D1 = 1;
         const char TRANS_N = 'N';
-        const int nf = (l+1)*(l+2)/2;
-        const int nd = l * 2 + 1;
+        int nf = _len_cart[l];
+        int nd = l * 2 + 1;
         dgemm_(&TRANS_N, &TRANS_N, &nf, &nket, &nd,
                &D1, g_c2s[l].cart2sph, &nf, gsph, &nd,
                &D0, gcart, &nf);
@@ -9606,8 +9605,8 @@ double *CINTs2c_ket_sph(double *gsph, int nbra, double *gcart, int l)
         const double D1 = 1;
         const char TRANS_T = 'T';
         const char TRANS_N = 'N';
-        const int nf = (l+1)*(l+2)/2;
-        const int nd = l * 2 + 1;
+        int nf = _len_cart[l];
+        int nd = l * 2 + 1;
         dgemm_(&TRANS_N, &TRANS_T, &nbra, &nf, &nd,
                &D1, gsph, &nbra, g_c2s[l].cart2sph, &nf,
                &D0, gcart, &nbra);
