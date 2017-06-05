@@ -163,6 +163,16 @@ static int _make_fakebas(int *fakebas, int *bas, int nbas, double *env)
         }
         return max_l;
 }
+static void _allocate_index_xyz(CINTOpt *opt)
+{
+        int i;
+        int n = ANG_MAX + 1;
+        n = n * n * n * n;
+        opt->index_xyz_array = malloc(sizeof(int*) * n);
+        for (i = 0; i < n; i++) {
+                opt->index_xyz_array[i] = NULL;
+        }
+}
 
 /* len(ng) = 8. The first 4 items are the increment adding to envs.li_ceil
  * ... envs.ll_ceil for shell i, j, k, l */
@@ -170,12 +180,7 @@ void CINTOpt_4cindex_xyz(CINTOpt *opt, int *ng, int *atm, int natm,
                          int *bas, int nbas, double *env)
 {
         int i, j, k, l, ptr;
-        int n = ANG_MAX*ANG_MAX*ANG_MAX*ANG_MAX;
-        opt->index_xyz_array = malloc(sizeof(int*) * n);
-        for (i = 0; i < n; i++) {
-                opt->index_xyz_array[i] = NULL;
-        }
-
+        _allocate_index_xyz(opt);
         int fakebas[BAS_SLOTS*ANG_MAX];
         int max_l = _make_fakebas(fakebas, bas, nbas, env);
         int fakenbas = max_l+1;
@@ -201,12 +206,7 @@ void CINTOpt_3cindex_xyz(CINTOpt *opt, int *ng, int *atm, int natm,
                          int *bas, int nbas, double *env)
 {
         int i, j, k, ptr;
-        int n = ANG_MAX*ANG_MAX*ANG_MAX;
-        opt->index_xyz_array = malloc(sizeof(int*) * n);
-        for (i = 0; i < n; i++) {
-                opt->index_xyz_array[i] = NULL;
-        }
-
+        _allocate_index_xyz(opt);
         int fakebas[BAS_SLOTS*ANG_MAX];
         int max_l = _make_fakebas(fakebas, bas, nbas, env);
         int fakenbas = max_l+1;
@@ -228,12 +228,7 @@ void CINTOpt_2cindex_xyz(CINTOpt *opt, int *ng, int *atm, int natm,
                          int *bas, int nbas, double *env)
 {
         int i, j, ptr;
-        int n = ANG_MAX*ANG_MAX;
-        opt->index_xyz_array = malloc(sizeof(int*) * n);
-        for (i = 0; i < n; i++) {
-                opt->index_xyz_array[i] = NULL;
-        }
-
+        _allocate_index_xyz(opt);
         int fakebas[BAS_SLOTS*ANG_MAX];
         int max_l = _make_fakebas(fakebas, bas, nbas, env);
         int fakenbas = max_l+1;
@@ -254,12 +249,7 @@ void CINTOpt_3c1eindex_xyz(CINTOpt *opt, int *ng, int *atm, int natm,
                          int *bas, int nbas, double *env)
 {
         int i, j, k, ptr;
-        int n = ANG_MAX*ANG_MAX*ANG_MAX;
-        opt->index_xyz_array = malloc(sizeof(int*) * n);
-        for (i = 0; i < n; i++) {
-                opt->index_xyz_array[i] = NULL;
-        }
-
+        _allocate_index_xyz(opt);
         int fakebas[BAS_SLOTS*ANG_MAX];
         int max_l = _make_fakebas(fakebas, bas, nbas, env);
         int fakenbas = max_l+1;
@@ -284,12 +274,7 @@ void CINTOpt_stg_4cindex_xyz(CINTOpt *opt, int *ng, int *atm, int natm,
                              int *bas, int nbas, double *env)
 {
         int i, j, k, l, ptr;
-        int n = ANG_MAX*ANG_MAX*ANG_MAX*ANG_MAX;
-        opt->index_xyz_array = malloc(sizeof(int*) * n);
-        for (i = 0; i < n; i++) {
-                opt->index_xyz_array[i] = NULL;
-        }
-
+        _allocate_index_xyz(opt);
         int fakebas[BAS_SLOTS*ANG_MAX];
         int max_l = _make_fakebas(fakebas, bas, nbas, env);
         int fakenbas = max_l+1;
