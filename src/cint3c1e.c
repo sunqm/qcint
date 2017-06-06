@@ -166,11 +166,14 @@ int CINT3c1e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
         double *gout, *g, *g1;
         double *gctr[3];
         if (n_comp == 1) {
-                MALLOC_INSTACK(g1, lenk);
+                // patch SIMDD for leni, lenj with s functions
+                MALLOC_INSTACK(g1, lenk+SIMDD);
                 gctr[SHLTYPk] = out;
         } else {
-                MALLOC_INSTACK(gctr[SHLTYPk], lenk);
+                // enlarge out by SIMDD, for leni, lenj with s functions
+                cache += SIMDD;
                 g1 = out;  // Use out as cache for gctrk, gctrj, gctri
+                MALLOC_INSTACK(gctr[SHLTYPk], lenk);
         }
         ALIAS_ADDR_IF_EQUAL(j, k);
         ALIAS_ADDR_IF_EQUAL(i, j);
@@ -303,11 +306,14 @@ int CINT3c1e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
         double *gout, *g, *g1;
         double *gctr[3];
         if (n_comp == 1) {
-                MALLOC_INSTACK(g1, lenk);
+                // patch SIMDD for leni, lenj with s functions
+                MALLOC_INSTACK(g1, lenk+SIMDD);
                 gctr[SHLTYPk] = out;
         } else {
-                MALLOC_INSTACK(gctr[SHLTYPk], lenk);
+                // enlarge out by SIMDD, for leni, lenj with s functions
+                cache += SIMDD;
                 g1 = out;  // Use out as cache for gctrk, gctrj, gctri
+                MALLOC_INSTACK(gctr[SHLTYPk], lenk);
         }
         ALIAS_ADDR_IF_EQUAL(j, k);
         ALIAS_ADDR_IF_EQUAL(i, j);
