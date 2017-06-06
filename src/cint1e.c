@@ -228,9 +228,6 @@ int CINT1e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
         int *shls  = envs->shls;
         int i_sh = shls[0];
         int j_sh = shls[1];
-        if (opt->data_ptr[i_sh*envs->nbas+j_sh] == NOVALUE) {
-                return 0;
-        }
         int *bas = envs->bas;
         double *env = envs->env;
         int i_ctr  = envs->x_ctr[0];
@@ -244,6 +241,8 @@ int CINT1e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
         double *ci = env + bas(PTR_COEFF, i_sh);
         double *cj = env + bas(PTR_COEFF, j_sh);
         double *coeff[2] = {ci, cj};
+        double *ri = envs->ri;
+        double *rj = envs->rj;
         int n_comp = envs->ncomp_e1 * envs->ncomp_tensor;
         int nf = envs->nf;
         double fac1i, fac1j;
@@ -276,13 +275,16 @@ int CINT1e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
         double common_factor = envs->common_factor
                 * CINTcommon_fac_sp(envs->i_l) * CINTcommon_fac_sp(envs->j_l);
 
+        double rr_ij = SQUARE(envs->rirj);
+        double log_rr_ij = (envs->li_ceil+envs->lj_ceil+1)*approx_log(rr_ij+1)/2;
+        double aij, eij, cceij;
+        double rij[4];
         int *idx = opt->index_xyz_array[envs->i_l*LMAX1+envs->j_l];
         int *non0ctr[2] = {opt->non0ctr[i_sh], opt->non0ctr[j_sh]};
         int *non0idx[2] = {opt->sortedidx[i_sh], opt->sortedidx[j_sh]};
 
         INITSIMD;
 
-        PairData *pdata_ij = opt->data + opt->data_ptr[i_sh*envs->nbas+j_sh];
         for (jp = 0; jp < j_prim; jp++) {
                 if (j_ctr == 1) {
                         fac1j = common_factor * cj[jp];
@@ -290,11 +292,17 @@ int CINT1e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
                         fac1j = common_factor;
                         *iempty = 1;
                 }
-                for (ip = 0; ip < i_prim; ip++, pdata_ij++) {
-                        if (pdata_ij->cceij > CUTOFF15) {
+                for (ip = 0; ip < i_prim; ip++) {
+                        aij = 1 / (ai[ip] + aj[jp]);
+                        eij = rr_ij * ai[ip] * aj[jp] * aij;
+                        cceij = eij - log_rr_ij;
+                        if (cceij > CUTOFF15) {
                                 goto i_contracted;
                         }
-                        PUSH(pdata_ij->rij, pdata_ij->eij);
+                        for (i = 0; i < 3; i++) {
+                                rij[i] = (ai[ip]*ri[i] + aj[jp]*rj[i]) * aij;
+                        }
+                        PUSH(rij, exp(-eij));
 i_contracted: ;
                 } // end loop i_prim
                 if (!*iempty) {

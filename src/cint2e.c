@@ -431,6 +431,12 @@ int CINT2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
                                        +envs->j_l*LMAX1*LMAX1
                                        +envs->k_l*LMAX1
                                        +envs->l_l];
+        int allocated_idx = 0;
+        if (idx == NULL) {
+                idx = malloc(sizeof(int) * nf * 3);
+                CINTg4c_index_xyz(idx, envs);
+                allocated_idx = 1;
+        }
         int *non0ctri = opt->non0ctr[i_sh];
         int *non0ctrj = opt->non0ctr[j_sh];
         int *non0ctrk = opt->non0ctr[k_sh];
@@ -484,6 +490,9 @@ k_contracted: ;
         if (n_comp > 1 && !*lempty) {
                 int nc = i_ctr * j_ctr * k_ctr * l_ctr;
                 CINTdmat_transpose(out, gctr[SHLTYPl], nf*nc, n_comp);
+        }
+        if (allocated_idx) {
+                free(idx);
         }
         return !*lempty;
 }

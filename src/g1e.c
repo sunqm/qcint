@@ -280,7 +280,7 @@ void CINTg1e_nuc(double *g, CINTEnvVars *envs, int count, int nuc_id)
         double *cr, *p0x, *p0y, *p0z, *p1x, *p1y, *p1z;
         int i, j, k, n, ptr;
         __MD crij[3];
-        __MD r0, r1, rt2, fac1, aij;
+        __MD r0, r1, r2, rt2, fac1, aij;
 
         aij = MM_LOAD(envs->ai) + MM_LOAD(envs->aj);
         MM_STORE(tau, aij);
@@ -319,10 +319,11 @@ void CINTg1e_nuc(double *g, CINTEnvVars *envs, int count, int nuc_id)
                 return;
         }
 
-        r1 = MM_SET1(1.) * MM_LOAD(tau) * MM_LOAD(tau);
+        r2 = MM_LOAD(tau) * MM_LOAD(tau);
+        r1 = MM_SET1(1.);
         r0 = MM_SET1(0.5);
         for (i = 0; i < nrys_roots; i++) {
-                rt2 = MM_DIV(r1 * MM_LOAD(u+i*SIMDD), r1 + MM_LOAD(u+i*SIMDD));
+                rt2 = MM_DIV(r2 * MM_LOAD(u+i*SIMDD), r1 + MM_LOAD(u+i*SIMDD));
                 MM_STORE(ri0x+i*SIMDD, MM_SET1(ri[0]) - (MM_LOAD(rij+0*SIMDD) + rt2 * crij[0]));
                 MM_STORE(ri0y+i*SIMDD, MM_SET1(ri[1]) - (MM_LOAD(rij+1*SIMDD) + rt2 * crij[1]));
                 MM_STORE(ri0z+i*SIMDD, MM_SET1(ri[2]) - (MM_LOAD(rij+2*SIMDD) + rt2 * crij[2]));
