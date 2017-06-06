@@ -622,10 +622,9 @@ int CINT2e_spinor_drv(double complex *out, int *dims, CINTEnvVars *envs, CINTOpt
         if (out == NULL) {
                 int leng = envs->g_size*3*((1<<envs->gbits)+1)*SIMDD;
                 int len0 = envs->nf*n_comp * SIMDD;
-                int n2 = (f_e1_c2s == &c2s_sf_2e1 || f_e1_c2s == &c2s_sf_2e1i) ? 20 : 32;
                 int cache_size = MAX(leng+len0+nc*n_comp*2,
                                      nc*n_comp + n1*envs->ncomp_e2*OF_CMPLX
-                                     + envs->nf*n2*OF_CMPLX) + SIMDD*4;
+                                     + envs->nf*32*OF_CMPLX) + SIMDD*4;
                 return cache_size;
         }
         double *stack = NULL;
