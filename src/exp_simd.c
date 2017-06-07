@@ -58,7 +58,7 @@ void CINTexp_cephes(double *expx, double *x)
         ALIGNMM double a[SIMDD];
         __MD xx, px, qx;
         __MD rx = MM_LOAD(x);
-        ALIGNMM ieee754 u[4] = {0,};
+        ALIGNMM ieee754 u[SIMDD] = {0,};
 
         /* n = round(x / log 2) */
         MM_STORE(a, MM_SET1(LOG2E) * rx + MM_SET1(0.5));
