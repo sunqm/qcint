@@ -54,6 +54,7 @@ set(cintSrc
   src/cint2e.c src/cint3c1e.c src/cint3c2e.c src/cint_bas.c src/fblas.c
   src/g1e.c src/g2e.c src/g2e_simd1.c src/g3c1e.c src/g3c2e.c
   src/gout2e.c src/misc.c src/optimizer.c src/rys_roots.c src/exp_simd.c
+  src/cint1e_a.c src/cint3c1e_a.c
   src/autocode/breit1.c src/autocode/dkb.c src/autocode/gaunt1.c
   src/autocode/grad1.c src/autocode/grad2.c src/autocode/hess.c
   src/autocode/int3c1e.c src/autocode/int3c2e.c src/autocode/intor1.c

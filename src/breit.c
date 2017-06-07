@@ -90,7 +90,7 @@ BREIT0(ssp1sps2);
 BREIT0(sps1ssp2);
 BREIT0(sps1sps2);
 
-/* modfied from
+/* based on
  * '("int2e_breit_r1p2"  ( nabla \, r0 \| dot nabla-r12 \| \, nabla ))
  */
 static void CINTgout2e_int2e_breit_r1p2(double *RESTRICT gout, double *RESTRICT g,
@@ -235,7 +235,7 @@ int int2e_breit_r1p2_spinor(double complex *out, int *dims, int *shls,
 ALL_CINT(int2e_breit_r1p2)
 //ALL_CINT_FORTRAN_(cint2e_breit_r1p2)
 
-/* modfied from
+/* based on
  * '("int2e_breit_r2p2"  ( nabla \, r0 \| dot nabla-r12 \| \, nabla ))
  */
 static void CINTgout2e_int2e_breit_r2p2(double *RESTRICT gout, double *RESTRICT g,
