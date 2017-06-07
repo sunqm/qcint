@@ -9,6 +9,7 @@
 #include "cint_bas.h"
 #include "misc.h"
 #include "g1e.h"
+#include "g2e.h"
 
 #define DEF_GXYZ(type, G, GX, GY, GZ) \
         type *GX = G; \
