@@ -52,13 +52,6 @@ void CINTOpt_non0coeff_byshell(int *sortedidx, int *non0ctr, double *ci,
 void CINTOpt_set_non0coeff(CINTOpt *opt, int *atm, int natm,
                            int *bas, int nbas, double *env);
 
-void CINTOpt_2cindex_xyz(CINTOpt *opt, int *ng, int *atm, int natm,
-                         int *bas, int nbas, double *env);
-void CINTOpt_3cindex_xyz(CINTOpt *opt, int *ng, int *atm, int natm,
-                         int *bas, int nbas, double *env);
-void CINTOpt_4cindex_xyz(CINTOpt *opt, int *ng, int *atm, int natm,
-                         int *bas, int nbas, double *env);
-
 // optimizer examples
 void CINTno_optimizer(CINTOpt **opt, int *atm, int natm,
                       int *bas, int nbas, double *env);

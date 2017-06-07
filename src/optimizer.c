@@ -95,51 +95,6 @@ void CINTno_optimizer(CINTOpt **opt, int *atm, int natm,
         *opt = NULL;
 }
 
-void CINTall_1e_optimizer(CINTOpt **opt, int *ng,
-                          int *atm, int natm, int *bas, int nbas, double *env)
-{
-        CINTinit_2e_optimizer(opt, atm, natm, bas, nbas, env);
-        CINTOpt_set_non0coeff(*opt, atm, natm, bas, nbas, env);
-        CINTOpt_2cindex_xyz(*opt, ng, atm, natm, bas, nbas, env);
-}
-
-void CINTall_2e_optimizer(CINTOpt **opt, int *ng,
-                          int *atm, int natm, int *bas, int nbas, double *env)
-{
-        CINTinit_2e_optimizer(opt, atm, natm, bas, nbas, env);
-        CINTOpt_setij(*opt, ng, atm, natm, bas, nbas, env);
-        CINTOpt_set_non0coeff(*opt, atm, natm, bas, nbas, env);
-        CINTOpt_4cindex_xyz(*opt, ng, atm, natm, bas, nbas, env);
-}
-
-void CINTall_3c2e_optimizer(CINTOpt **opt, int *ng,
-                            int *atm, int natm, int *bas, int nbas, double *env)
-{
-        CINTinit_2e_optimizer(opt, atm, natm, bas, nbas, env);
-        CINTOpt_setij(*opt, ng, atm, natm, bas, nbas, env);
-        CINTOpt_set_non0coeff(*opt, atm, natm, bas, nbas, env);
-        CINTOpt_3cindex_xyz(*opt, ng, atm, natm, bas, nbas, env);
-}
-
-void CINTall_2c2e_optimizer(CINTOpt **opt, int *ng,
-                            int *atm, int natm, int *bas, int nbas, double *env)
-{
-        CINTinit_2e_optimizer(opt, atm, natm, bas, nbas, env);
-        CINTOpt_set_non0coeff(*opt, atm, natm, bas, nbas, env);
-        CINTOpt_2cindex_xyz(*opt, ng, atm, natm, bas, nbas, env);
-}
-
-void CINTOpt_3c1eindex_xyz(CINTOpt *opt, int *ng, int *atm, int natm,
-                         int *bas, int nbas, double *env);
-void CINTall_3c1e_optimizer(CINTOpt **opt, int *ng,
-                            int *atm, int natm, int *bas, int nbas, double *env)
-{
-        CINTinit_2e_optimizer(opt, atm, natm, bas, nbas, env);
-        CINTOpt_setij(*opt, ng, atm, natm, bas, nbas, env);
-        CINTOpt_set_non0coeff(*opt, atm, natm, bas, nbas, env);
-        CINTOpt_3c1eindex_xyz(*opt, ng, atm, natm, bas, nbas, env);
-}
-
 static int _make_fakebas(int *fakebas, int *bas, int nbas, double *env)
 {
         int i;
@@ -178,148 +133,142 @@ static int *_allocate_index_xyz(CINTOpt *opt, int max_l, int order)
         opt->index_xyz_array = ppbuf;
         return buf;
 }
+static void gen_idx(CINTOpt *opt, void (*finit)(), int order, int max_l, int *ng,
+                    int *atm, int natm, int *bas, int nbas, double *env)
+{
+        int i, j, k, l, ptr;
+        int fakebas[BAS_SLOTS*LMAX1];
+        int max_l1 = _make_fakebas(fakebas, bas, nbas, env);
+        if (max_l == 0) {
+                max_l = max_l1;
+        } else {
+                max_l = MIN(max_l, max_l1);
+        }
+        int fakenbas = max_l+1;
+        int *buf = _allocate_index_xyz(opt, max_l, order);
+
+        CINTEnvVars envs;
+        int shls[4];
+        if (order == 2) {
+                for (i = 0; i <= max_l; i++) {
+                for (j = 0; j <= max_l; j++) {
+                        shls[0] = i; shls[1] = j;
+                        (*finit)(&envs, ng, shls, atm, natm, fakebas, fakenbas, env);
+                        ptr = i*LMAX1 + j;
+                        opt->index_xyz_array[ptr] = buf;
+                        CINTg2c_index_xyz(opt->index_xyz_array[ptr], &envs);
+                        buf += envs.nf * 3;
+                } }
+
+        } else if (order == 3) {
+                for (i = 0; i <= max_l; i++) {
+                for (j = 0; j <= max_l; j++) {
+                for (k = 0; k <= max_l; k++) {
+                        shls[0] = i; shls[1] = j; shls[2] = k;
+                        (*finit)(&envs, ng, shls, atm, natm, fakebas, fakenbas, env);
+                        ptr = i*LMAX1*LMAX1 + j*LMAX1 + k;
+                        opt->index_xyz_array[ptr] = buf;
+                        CINTg4c_index_xyz(opt->index_xyz_array[ptr], &envs);
+                        buf += envs.nf * 3;
+                } } }
+
+        } else {
+                for (i = 0; i <= max_l; i++) {
+                for (j = 0; j <= max_l; j++) {
+                for (k = 0; k <= max_l; k++) {
+                for (l = 0; l <= max_l; l++) {
+                        shls[0] = i; shls[1] = j; shls[2] = k; shls[3] = l;
+                        (*finit)(&envs, ng, shls, atm, natm, fakebas, fakenbas, env);
+                        ptr = i*LMAX1*LMAX1*LMAX1
+                            + j*LMAX1*LMAX1
+                            + k*LMAX1
+                            + l;
+                        opt->index_xyz_array[ptr] = buf;
+                        CINTg4c_index_xyz(opt->index_xyz_array[ptr], &envs);
+                        buf += envs.nf * 3;
+                } } } }
+        }
+}
 
 /* len(ng) = 8. The first 4 items are the increment adding to envs.li_ceil
  * ... envs.ll_ceil for shell i, j, k, l */
 void CINTOpt_4cindex_xyz(CINTOpt *opt, int *ng, int *atm, int natm,
                          int *bas, int nbas, double *env)
 {
-        int i, j, k, l, ptr;
-        int fakebas[BAS_SLOTS*LMAX1];
-        int max_l = _make_fakebas(fakebas, bas, nbas, env);
-        // limit max_l size, to avoid consuming too much memory
-        max_l = MIN(6, max_l);
-        int fakenbas = max_l+1;
-        int *buf = _allocate_index_xyz(opt, max_l, 4);
-
-        CINTEnvVars envs;
-        int shls[4];
-        for (i = 0; i <= max_l; i++) {
-        for (j = 0; j <= max_l; j++) {
-        for (k = 0; k <= max_l; k++) {
-        for (l = 0; l <= max_l; l++) {
-                shls[0] = i; shls[1] = j; shls[2] = k; shls[3] = l;
-                CINTinit_int2e_EnvVars(&envs, ng, shls,
-                                       atm, natm, fakebas, fakenbas, env);
-                ptr = i*LMAX1*LMAX1*LMAX1
-                    + j*LMAX1*LMAX1
-                    + k*LMAX1
-                    + l;
-                opt->index_xyz_array[ptr] = buf;
-                CINTg4c_index_xyz(opt->index_xyz_array[ptr], &envs);
-                buf += envs.nf * 3;
-        } } } }
+        gen_idx(opt, &CINTinit_int2e_EnvVars, 4, 6, ng,
+                atm, natm, bas, nbas, env);
 }
 
 void CINTOpt_3cindex_xyz(CINTOpt *opt, int *ng, int *atm, int natm,
                          int *bas, int nbas, double *env)
 {
-        int i, j, k, ptr;
-        int fakebas[BAS_SLOTS*LMAX1];
-        int max_l = _make_fakebas(fakebas, bas, nbas, env);
-        int fakenbas = max_l+1;
-        int *buf = _allocate_index_xyz(opt, max_l, 3);
-
-        CINTEnvVars envs;
-        int shls[3];
-        for (i = 0; i <= max_l; i++) {
-        for (j = 0; j <= max_l; j++) {
-        for (k = 0; k <= max_l; k++) {
-                shls[0] = i; shls[1] = j; shls[2] = k;
-                CINTinit_int3c2e_EnvVars(&envs, ng, shls,
-                                         atm, natm, fakebas, fakenbas, env);
-                ptr = i*LMAX1*LMAX1 + j*LMAX1 + k;
-                opt->index_xyz_array[ptr] = buf;
-                CINTg4c_index_xyz(opt->index_xyz_array[ptr], &envs);
-                buf += envs.nf * 3;
-        } } }
+        gen_idx(opt, &CINTinit_int3c2e_EnvVars, 3, 0, ng,
+                atm, natm, bas, nbas, env);
 }
 
-void CINTOpt_2cindex_xyz(CINTOpt *opt, int *ng, int *atm, int natm,
+void CINTOpt_1eindex_xyz(CINTOpt *opt, int *ng, int *atm, int natm,
                          int *bas, int nbas, double *env)
 {
-        int i, j, ptr;
-        int fakebas[BAS_SLOTS*LMAX1];
-        int max_l = _make_fakebas(fakebas, bas, nbas, env);
-        int fakenbas = max_l+1;
-        int *buf = _allocate_index_xyz(opt, max_l, 2);
-
-        CINTEnvVars envs;
-        int shls[2];
-        for (i = 0; i <= max_l; i++) {
-        for (j = 0; j <= max_l; j++) {
-                shls[0] = i; shls[1] = j;
-                CINTinit_int1e_EnvVars(&envs, ng, shls,
-                                       atm, natm, fakebas, fakenbas, env);
-                ptr = i*LMAX1 + j;
-                opt->index_xyz_array[ptr] = buf;
-                CINTg2c_index_xyz(opt->index_xyz_array[ptr], &envs);
-                buf += envs.nf * 3;
-        } }
+        gen_idx(opt, &CINTinit_int1e_EnvVars, 2, 0, ng,
+                atm, natm, bas, nbas, env);
 }
 
-void CINTOpt_3c1eindex_xyz(CINTOpt *opt, int *ng, int *atm, int natm,
-                           int *bas, int nbas, double *env)
+void CINTall_1e_optimizer(CINTOpt **opt, int *ng,
+                          int *atm, int natm, int *bas, int nbas, double *env)
 {
-        int i, j, k, ptr;
-        int fakebas[BAS_SLOTS*LMAX1];
-        int max_l = _make_fakebas(fakebas, bas, nbas, env);
-        int fakenbas = max_l+1;
-        int *buf = _allocate_index_xyz(opt, max_l, 3);
+        CINTinit_2e_optimizer(opt, atm, natm, bas, nbas, env);
+        CINTOpt_set_non0coeff(*opt, atm, natm, bas, nbas, env);
+        CINTOpt_1eindex_xyz(*opt, ng, atm, natm, bas, nbas, env);
+}
 
-        CINTEnvVars envs;
-        int shls[3];
-        for (i = 0; i <= max_l; i++) {
-        for (j = 0; j <= max_l; j++) {
-        for (k = 0; k <= max_l; k++) {
-                shls[0] = i; shls[1] = j; shls[2] = k;
-                CINTinit_int3c1e_EnvVars(&envs, ng, shls,
-                                         atm, natm, fakebas, fakenbas, env);
-                ptr = i*LMAX1*LMAX1 + j*LMAX1 + k;
-                opt->index_xyz_array[ptr] = buf;
-                CINTg4c_index_xyz(opt->index_xyz_array[ptr], &envs);
-                buf += envs.nf * 3;
-        } } }
+void CINTall_2e_optimizer(CINTOpt **opt, int *ng,
+                          int *atm, int natm, int *bas, int nbas, double *env)
+{
+        CINTinit_2e_optimizer(opt, atm, natm, bas, nbas, env);
+        CINTOpt_setij(*opt, ng, atm, natm, bas, nbas, env);
+        CINTOpt_set_non0coeff(*opt, atm, natm, bas, nbas, env);
+        CINTOpt_4cindex_xyz(*opt, ng, atm, natm, bas, nbas, env);
+}
+
+void CINTall_3c2e_optimizer(CINTOpt **opt, int *ng,
+                            int *atm, int natm, int *bas, int nbas, double *env)
+{
+        CINTinit_2e_optimizer(opt, atm, natm, bas, nbas, env);
+        CINTOpt_setij(*opt, ng, atm, natm, bas, nbas, env);
+        CINTOpt_set_non0coeff(*opt, atm, natm, bas, nbas, env);
+        CINTOpt_3cindex_xyz(*opt, ng, atm, natm, bas, nbas, env);
+}
+
+void CINTall_2c2e_optimizer(CINTOpt **opt, int *ng,
+                            int *atm, int natm, int *bas, int nbas, double *env)
+{
+        CINTinit_2e_optimizer(opt, atm, natm, bas, nbas, env);
+        CINTOpt_set_non0coeff(*opt, atm, natm, bas, nbas, env);
+        gen_idx(*opt, &CINTinit_int2c2e_EnvVars, 2, 0, ng,
+                atm, natm, bas, nbas, env);
+}
+
+void CINTall_3c1e_optimizer(CINTOpt **opt, int *ng,
+                            int *atm, int natm, int *bas, int nbas, double *env)
+{
+        CINTinit_2e_optimizer(opt, atm, natm, bas, nbas, env);
+        CINTOpt_setij(*opt, ng, atm, natm, bas, nbas, env);
+        CINTOpt_set_non0coeff(*opt, atm, natm, bas, nbas, env);
+        gen_idx(*opt, &CINTinit_int3c1e_EnvVars, 3, 0, ng,
+                atm, natm, bas, nbas, env);
 }
 
 #ifdef WITH_F12
 void CINTinit_int2e_stg_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
                                 int *atm, int natm, int *bas, int nbas, double *env);
-void CINTOpt_stg_4cindex_xyz(CINTOpt *opt, int *ng, int *atm, int natm,
-                             int *bas, int nbas, double *env)
-{
-        int i, j, k, l, ptr;
-        int fakebas[BAS_SLOTS*LMAX1];
-        int max_l = _make_fakebas(fakebas, bas, nbas, env);
-        int fakenbas = max_l+1;
-        int *buf = _allocate_index_xyz(opt, max_l, 4);
-
-        CINTEnvVars envs;
-        int shls[4];
-        for (i = 0; i <= max_l; i++) {
-        for (j = 0; j <= max_l; j++) {
-        for (k = 0; k <= max_l; k++) {
-        for (l = 0; l <= max_l; l++) {
-                shls[0] = i; shls[1] = j; shls[2] = k; shls[3] = l;
-                CINTinit_int2e_stg_EnvVars(&envs, ng, shls,
-                                           atm, natm, fakebas, fakenbas, env);
-                ptr = i*LMAX1*LMAX1*LMAX1
-                    + j*LMAX1*LMAX1
-                    + k*LMAX1
-                    + l;
-                opt->index_xyz_array[ptr] = buf;
-                CINTg4c_index_xyz(opt->index_xyz_array[ptr], &envs);
-                buf += envs.nf * 3;
-        } } } }
-}
-
 void CINTall_2e_stg_optimizer(CINTOpt **opt, int *ng,
                               int *atm, int natm, int *bas, int nbas, double *env)
 {
         CINTinit_2e_optimizer(opt, atm, natm, bas, nbas, env);
         CINTOpt_setij(*opt, ng, atm, natm, bas, nbas, env);
         CINTOpt_set_non0coeff(*opt, atm, natm, bas, nbas, env);
-        CINTOpt_stg_4cindex_xyz(*opt, ng, atm, natm, bas, nbas, env);
+        gen_idx(*opt, &CINTinit_int2e_stg_EnvVars, 4, 6, ng,
+                atm, natm, bas, nbas, env);
 }
 #endif
 
