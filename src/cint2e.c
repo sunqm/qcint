@@ -54,6 +54,7 @@
         } else { \
                 fac1##y = (fac) * c##y[y##p+y##_prim*non0idx##y[y##p*y##_ctr]]; \
                 gctr[SHLTYP##x] = gctr[SHLTYP##y] + ngp[SHLTYP##y] * non0idx##y[y##p*y##_ctr]; \
+                *x##empty = *y##empty; \
         }
 
 #define PRIM2CTR(psymb, csymb) \
