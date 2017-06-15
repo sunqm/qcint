@@ -203,9 +203,9 @@ int CINT1e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
                         if (cceij > CUTOFF15) {
                                 goto i_contracted;
                         }
-                        for (i = 0; i < 3; i++) {
-                                rij[i] = (ai[ip]*ri[i] + aj[jp]*rj[i]) * aij;
-                        }
+                        rij[0] = (ai[ip]*ri[0] + aj[jp]*rj[0]) * aij;
+                        rij[1] = (ai[ip]*ri[1] + aj[jp]*rj[1]) * aij;
+                        rij[2] = (ai[ip]*ri[2] + aj[jp]*rj[2]) * aij;
                         PUSH(rij, exp(-eij));
 i_contracted: ;
                 } // end loop i_prim

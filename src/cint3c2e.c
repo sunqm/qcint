@@ -127,20 +127,6 @@
         } \
         POP_PRIM2CTR
 
-// little endian on x86
-//typedef union {
-//    double d;
-//    unsigned short s[4];
-//} type_IEEE754;
-static double approx_log(double x)
-{
-        //type_IEEE754 y;
-        //y.d = x;
-        //return ((double)(y.s[3] >> 4) - 1023) * 0.7;
-        //return log(x);
-        return 2.5;
-}
-
 int CINT3c2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
 {
         int *shls = envs->shls;
@@ -164,12 +150,10 @@ int CINT3c2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
         double *cj = env + bas(PTR_COEFF, j_sh);
         double *ck = env + bas(PTR_COEFF, k_sh);
         double *coeff[3] = {ci, cj, ck};
-        double *ri = envs->ri;
-        double *rj = envs->rj;
         int n_comp = envs->ncomp_e1 * envs->ncomp_e2 * envs->ncomp_tensor;
         int nf = envs->nf;
         double fac1i, fac1j, fac1k;
-        int ip, jp, kp, ij, i, it, im;
+        int ip, jp, kp, i, it, im;
         int empty[3] = {1, 1, 1};
         int *iempty = empty + 0;
         int *jempty = empty + 1;
@@ -203,12 +187,7 @@ int CINT3c2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
         g = gout + len0;  // for gx, gy, gz
 
         ALIGNMM Rys2eT bc;
-        int len_ijprim = i_prim * j_prim;
-        double rr_ij = SQUARE(envs->rirj);
-        double log_rr_ij = (envs->li_ceil+envs->lj_ceil+1)*approx_log(rr_ij+1)/2;
-        double aij, eij;
-        ALIGNMM double rij[len_ijprim*4];  // rij[::4] is exp(-eij)
-        double cceij[len_ijprim];
+        PairData pdata[i_prim*j_prim];
         int idx[nf*3];
         int non0ctri[i_prim];
         int non0ctrj[j_prim];
@@ -217,22 +196,9 @@ int CINT3c2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
         int non0idxj[j_prim*j_ctr];
         int non0idxk[k_prim*k_ctr];
 
-        *kempty = 1;
-        for (ij = 0, jp = 0; jp < j_prim; jp++) {
-                for (ip = 0; ip < i_prim; ip++, ij++) {
-                        aij = 1/(ai[ip] + aj[jp]);
-                        eij = rr_ij * ai[ip] * aj[jp] * aij;
-                        for (i = 0; i < 3; i++) {
-                                rij[ij*4+i] = (ai[ip]*ri[i] +
-                                               aj[jp]*rj[i]) * aij;
-                        }
-                        cceij[ij] = eij - log_rr_ij;
-                        if (cceij[ij] <= CUTOFF15) {
-                                *kempty = 0;
-                                rij[ij*4+3] = exp(-eij);
-                        }
-                }
-        }
+        *kempty = CINTset_pairdata(pdata, ai, aj, envs->ri, envs->rj,
+                                   envs->li_ceil, envs->lj_ceil,
+                                   i_prim, j_prim, SQUARE(envs->rirj));
         if (*kempty) {
                 goto normal_end;
         }
@@ -248,6 +214,7 @@ int CINT3c2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
                 * CINTcommon_fac_sp(envs->k_l);
         INITSIMD;
 
+        PairData *pdata_ij;
         *kempty = 1;
         for (kp = 0; kp < k_prim; kp++) {
                 if (k_ctr == 1) {
@@ -257,20 +224,18 @@ int CINT3c2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
                         *jempty = 1;
                 }
 
-                for (ij = 0, jp = 0; jp < j_prim; jp++) {
+                pdata_ij = pdata;
+                for (jp = 0; jp < j_prim; jp++) {
                         if (j_ctr == 1) {
                                 fac1j = fac1k * cj[jp];
                         } else {
                                 fac1j = fac1k;
                                 *iempty = 1;
                         }
-                        for (ip = 0; ip < i_prim; ip++, ij++) {
-                                if (cceij[ij] > CUTOFF15) {
-                                        goto i_contracted;
+                        for (ip = 0; ip < i_prim; ip++, pdata_ij++) {
+                                if (pdata_ij->cceij < CUTOFF15) {
+                                        PUSH(pdata_ij->rij, pdata_ij->eij);
                                 }
-                                eij = rij[ij*4+3];
-                                PUSH(rij+ij*4, eij);
-i_contracted: ;
                         } // end loop i_prim
                         if (!*iempty) {
                                 PRIM2CTR(j, gctr[SHLTYPi]);
@@ -297,7 +262,8 @@ int CINT3c2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
         int i_sh = shls[0];
         int j_sh = shls[1];
         int k_sh = shls[2];
-        if (opt->data_ptr[i_sh*opt->nbas+j_sh] == NOVALUE) {
+        if (opt->data_ptr != NULL &&
+            opt->data_ptr[i_sh*opt->nbas+j_sh] == NOVALUE) {
                 return 0;
         }
         int *bas = envs->bas;
@@ -373,7 +339,19 @@ int CINT3c2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
 
         INITSIMD;
 
-        PairData *pdata_ij;
+        PairData pdata[i_prim*j_prim];
+        PairData *pdata_base, *pdata_ij;
+        if (opt->data_ptr == NULL) {
+                *kempty = CINTset_pairdata(pdata, ai, aj, envs->ri, envs->rj,
+                                           envs->li_ceil, envs->lj_ceil,
+                                           i_prim, j_prim, SQUARE(envs->rirj));
+                if (*kempty) {
+                        goto normal_end;
+                }
+                pdata_base = pdata;
+        } else {
+                pdata_base = opt->data + opt->data_ptr[i_sh*opt->nbas+j_sh];
+        }
         *kempty = 1;
         for (kp = 0; kp < k_prim; kp++) {
                 if (k_ctr == 1) {
@@ -383,7 +361,7 @@ int CINT3c2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
                         *jempty = 1;
                 }
 
-                pdata_ij = opt->data + opt->data_ptr[i_sh*opt->nbas+j_sh];
+                pdata_ij = pdata_base;
                 for (jp = 0; jp < j_prim; jp++) {
                         if (j_ctr == 1) {
                                 fac1j = fac1k * cj[jp];
@@ -392,11 +370,9 @@ int CINT3c2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
                                 *iempty = 1;
                         }
                         for (ip = 0; ip < i_prim; ip++, pdata_ij++) {
-                                if (pdata_ij->cceij > CUTOFF15) {
-                                        goto i_contracted;
+                                if (pdata_ij->cceij < CUTOFF15) {
+                                        PUSH(pdata_ij->rij, pdata_ij->eij);
                                 }
-                                PUSH(pdata_ij->rij, pdata_ij->eij);
-i_contracted: ;
                         } // end loop i_prim
                         if (!*iempty) {
                                 PRIM2CTR(j, gctr[SHLTYPi]);
@@ -412,6 +388,7 @@ i_contracted: ;
                 int nc = i_ctr * j_ctr * k_ctr;
                 CINTdmat_transpose(out, gctr[SHLTYPk], nf*nc, n_comp);
         }
+normal_end:
         if (allocated_idx) {
                 free(idx);
         }

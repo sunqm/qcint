@@ -413,3 +413,44 @@ void CINTOpt_set_non0coeff(CINTOpt *opt, int *atm, int natm,
         }
 }
 
+
+
+// little endian on x86
+//typedef union {
+//    double d;
+//    unsigned short s[4];
+//} type_IEEE754;
+static double approx_log(double x)
+{
+        //type_IEEE754 y;
+        //y.d = x;
+        //return ((double)(y.s[3] >> 4) - 1023) * 0.7;
+        //return log(x);
+        return 2.5;
+}
+
+int CINTset_pairdata(PairData *pdata, double *ai, double *aj, double *ri, double *rj,
+                     int li_ceil, int lj_ceil, int iprim, int jprim, double rr_ij)
+{
+        int ip, jp, cceij;
+        double aij, eij;
+        double log_rr_ij = (li_ceil+lj_ceil+1)*approx_log(rr_ij+1)/2;
+
+        int empty = 1;
+        for (jp = 0; jp < jprim; jp++) {
+                for (ip = 0; ip < iprim; ip++, pdata++) {
+                        aij = 1/(ai[ip] + aj[jp]);
+                        eij = rr_ij * ai[ip] * aj[jp] * aij;
+                        pdata->rij[0] = (ai[ip]*ri[0] + aj[jp]*rj[0]) * aij;
+                        pdata->rij[1] = (ai[ip]*ri[1] + aj[jp]*rj[1]) * aij;
+                        pdata->rij[2] = (ai[ip]*ri[2] + aj[jp]*rj[2]) * aij;
+                        cceij = (int)(eij - log_rr_ij);
+                        pdata->cceij = cceij;
+                        if (cceij <= CUTOFF15) {
+                                empty = 0;
+                                pdata->eij = exp(-eij);
+                        }
+                }
+        }
+        return empty;
+}

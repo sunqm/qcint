@@ -197,14 +197,12 @@ int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
         double *ck = env + bas(PTR_COEFF, k_sh);
         double *cl = env + bas(PTR_COEFF, l_sh);
         double *coeff[4] = {ci, cj, ck, cl};
-        double *ri = envs->ri;
-        double *rj = envs->rj;
         double *rk = envs->rk;
         double *rl = envs->rl;
         int n_comp = envs->ncomp_e1 * envs->ncomp_e2 * envs->ncomp_tensor;
         int nf = envs->nf;
         double fac1i, fac1j, fac1k, fac1l;
-        int ip, jp, kp, lp, ij, i, it, im;
+        int ip, jp, kp, lp, i, it, im;
         int empty[4] = {1, 1, 1, 1};
         int *iempty = empty + 0;
         int *jempty = empty + 1;
@@ -244,15 +242,11 @@ int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
         g = gout + len0;  // for gx, gy, gz
 
         ALIGNMM Rys2eT bc;
-        int len_ijprim = i_prim * j_prim;
-        double rr_ij = SQUARE(envs->rirj);
         double rr_kl = SQUARE(envs->rkrl);
-        double log_rr_ij = (envs->li_ceil+envs->lj_ceil+1)*approx_log(rr_ij+1)/2;
         double log_rr_kl = (envs->lk_ceil+envs->ll_ceil+1)*approx_log(rr_kl+1)/2;
-        double aij, akl, eij, ekl, ccekl, expijkl;
-        ALIGNMM double rij[len_ijprim*4];  // rij[::4] is exp(-eij)
+        double aij, akl, eij, ekl, expijkl;
+        int ccekl;
         ALIGNMM double rkl[4];
-        double cceij[len_ijprim];
         int non0ctri[i_prim];
         int non0ctrj[j_prim];
         int non0ctrk[k_prim];
@@ -262,22 +256,11 @@ int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
         int non0idxk[k_prim*k_ctr];
         int non0idxl[l_prim*l_ctr];
 
-        *lempty = 1;
-        for (ij = 0, jp = 0; jp < j_prim; jp++) {
-                for (ip = 0; ip < i_prim; ip++, ij++) {
-                        aij = 1/(ai[ip] + aj[jp]);
-                        eij = rr_ij * ai[ip] * aj[jp] * aij;
-                        for (i = 0; i < 3; i++) {
-                                rij[ij*4+i] = (ai[ip]*ri[i] +
-                                               aj[jp]*rj[i]) * aij;
-                        }
-                        cceij[ij] = eij - log_rr_ij;
-                        if (cceij[ij] <= CUTOFF15) {
-                                *lempty = 0;
-                                rij[ij*4+3] = exp(-eij);
-                        }
-                }
-        }
+        PairData pdata_base[i_prim*j_prim];
+        PairData *pdata_ij;
+        *lempty = CINTset_pairdata(pdata_base, ai, aj, envs->ri, envs->rj,
+                                   envs->li_ceil, envs->lj_ceil,
+                                   i_prim, j_prim, SQUARE(envs->rirj));
         if (*lempty) {
                 goto normal_end;
         }
@@ -301,26 +284,26 @@ int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
                 for (kp = 0; kp < k_prim; kp++) {
                         akl = 1 / (ak[kp] + al[lp]);
                         ekl = rr_kl * ak[kp] * al[lp] * akl;
-                        ccekl = ekl - log_rr_kl;
+                        ccekl = (int)(ekl - log_rr_kl);
                         if (ccekl > CUTOFF15) {
                                 goto k_contracted;
                         }
-                        for (i = 0; i < 3; i++) {
-                                rkl[i] = (ak[kp]*rk[i] + al[lp]*rl[i]) * akl;
-                        }
+                        rkl[0] = (ak[kp]*rk[0] + al[lp]*rl[0]) * akl;
+                        rkl[1] = (ak[kp]*rk[1] + al[lp]*rl[1]) * akl;
+                        rkl[2] = (ak[kp]*rk[2] + al[lp]*rl[2]) * akl;
                         INIT_GCTR_ADDR(j, k, fac1l);
                         ekl = exp(-ekl);
 
-                        for (ij = 0, jp = 0; jp < j_prim; jp++) {
+                        pdata_ij = pdata_base;
+                        for (jp = 0; jp < j_prim; jp++) {
                                 INIT_GCTR_ADDR(i, j, fac1k);
-                                for (ip = 0; ip < i_prim; ip++, ij++) {
-                                        if (cceij[ij] > CUTOFF15 ||
-                                            cceij[ij]+ccekl > CUTOFF15) {
+                                for (ip = 0; ip < i_prim; ip++, pdata_ij++) {
+                                        if (pdata_ij->cceij > CUTOFF15 ||
+                                            pdata_ij->cceij+ccekl > CUTOFF15) {
                                                 goto i_contracted;
                                         }
-                                        eij = rij[ij*4+3];
-                                        expijkl = eij * ekl;
-                                        PUSH(rij+ij*4, rkl);
+                                        expijkl = pdata_ij->eij * ekl;
+                                        PUSH(pdata_ij->rij, rkl);
 i_contracted: ;
                                 } // end loop i_prim
                                 if (!*iempty) {

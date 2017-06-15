@@ -260,9 +260,10 @@ int CINT3c1e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
         int i_sh = shls[0];
         int j_sh = shls[1];
         int k_sh = shls[2];
-        if (opt->data_ptr[i_sh*opt->nbas+j_sh] == NOVALUE ||
-            opt->data_ptr[i_sh*opt->nbas+k_sh] == NOVALUE ||
-            opt->data_ptr[j_sh*opt->nbas+k_sh] == NOVALUE) {
+        if (opt->data_ptr != NULL &&
+            (opt->data_ptr[i_sh*opt->nbas+j_sh] == NOVALUE ||
+             opt->data_ptr[i_sh*opt->nbas+k_sh] == NOVALUE ||
+             opt->data_ptr[j_sh*opt->nbas+k_sh] == NOVALUE)) {
                 return 0;
         }
         int *bas = envs->bas;
@@ -340,8 +341,6 @@ int CINT3c1e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
 
         INITSIMD;
 
-        PairData *pdata_ij;
-        PairData *pdata_jk = opt->data + opt->data_ptr[j_sh*opt->nbas+k_sh];
         *kempty = 1;
         for (kp = 0; kp < k_prim; kp++) {
                 if (k_ctr == 1) {
@@ -351,22 +350,15 @@ int CINT3c1e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
                         *jempty = 1;
                 }
 
-                for (jp = 0; jp < j_prim; jp++, pdata_jk++) {
+                for (jp = 0; jp < j_prim; jp++) {
                         if (j_ctr == 1) {
                                 fac1j = fac1k * cj[jp];
                         } else {
                                 fac1j = fac1k;
                                 *iempty = 1;
                         }
-                        if (pdata_jk->cceij > CUTOFF15) {
-                                goto j_contracted;
-                        }
                         ajakrr = aj[jp] * ak[kp] * rr_jk;
-                        pdata_ij = opt->data + opt->data_ptr[i_sh*opt->nbas+j_sh] + jp*i_prim;
-                        for (ip = 0; ip < i_prim; ip++, pdata_ij++) {
-                                if (pdata_ij->cceij > CUTOFF15) {
-                                        goto i_contracted;
-                                }
+                        for (ip = 0; ip < i_prim; ip++) {
                                 aijk = ai[ip] + aj[jp] + ak[kp];
                                 aiakrr = ai[ip] * ak[kp] * rr_ik;
                                 aiajrr = ai[ip] * aj[jp] * rr_ij;
@@ -380,7 +372,6 @@ i_contracted: ;
                         if (!*iempty) {
                                 PRIM2CTR(j, gctr[SHLTYPi]);
                         }
-j_contracted: ;
                 } // end loop j_prim
                 if (!*jempty) {
                         PRIM2CTR(k, gctr[SHLTYPj]);
