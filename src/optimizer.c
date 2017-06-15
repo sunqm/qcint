@@ -68,10 +68,9 @@ void CINTdel_2e_optimizer(CINTOpt **opt)
         }
 
         if (opt0->non0ctr != NULL) {
-                for (i = 0; i < opt0->nbas; i++) {
-                        free(opt0->non0ctr[i]);
-                }
+                free(opt0->sortedidx[0]);
                 free(opt0->sortedidx);
+                free(opt0->non0ctr[0]);
                 free(opt0->non0ctr);
         }
 
