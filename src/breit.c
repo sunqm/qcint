@@ -202,12 +202,12 @@ static void CINTgout2e_int2e_breit_r1p2_simd1(double *RESTRICT gout, double *RES
         }
 }
 void int2e_breit_r1p2_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
-        int ng[] = {2, 2, 0, 1, 4, 1, 1, 9};
+        int ng[] = {2, 2, 0, 1, 4, 1, 1, 1};
         CINTall_2e_optimizer(opt, ng, atm, natm, bas, nbas, env);
 }
 int int2e_breit_r1p2_cart(double *out, int *dims, int *shls,
                 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
-        int ng[] = {2, 2, 0, 1, 4, 1, 1, 9};
+        int ng[] = {2, 2, 0, 1, 4, 1, 1, 1};
         CINTEnvVars envs;
         CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
         envs.f_gout = &CINTgout2e_int2e_breit_r1p2;
@@ -216,7 +216,7 @@ int int2e_breit_r1p2_cart(double *out, int *dims, int *shls,
 } // int2e_breit_r1p2_cart
 int int2e_breit_r1p2_sph(double *out, int *dims, int *shls,
                 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
-        int ng[] = {2, 2, 0, 1, 4, 1, 1, 9};
+        int ng[] = {2, 2, 0, 1, 4, 1, 1, 1};
         CINTEnvVars envs;
         CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
         envs.f_gout = &CINTgout2e_int2e_breit_r1p2;
@@ -225,7 +225,7 @@ int int2e_breit_r1p2_sph(double *out, int *dims, int *shls,
 } // int2e_breit_r1p2_sph
 int int2e_breit_r1p2_spinor(double complex *out, int *dims, int *shls,
                 int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
-        int ng[] = {2, 2, 0, 1, 4, 1, 1, 9};
+        int ng[] = {2, 2, 0, 1, 4, 1, 1, 1};
         CINTEnvVars envs;
         CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
         envs.f_gout = &CINTgout2e_int2e_breit_r1p2;
