@@ -41,7 +41,7 @@ void CINTinit_2e_optimizer(CINTOpt **opt, int *atm, int natm,
         opt0->index_xyz_array = NULL;
         opt0->non0ctr = NULL;
         opt0->sortedidx = NULL;
-        opt0->nbas = 0;
+        opt0->nbas = nbas;
 
         opt0->data_ptr = NULL;
         opt0->data = NULL;
@@ -69,7 +69,6 @@ void CINTdel_2e_optimizer(CINTOpt **opt)
 
         if (opt0->non0ctr != NULL) {
                 for (i = 0; i < opt0->nbas; i++) {
-                        free(opt0->sortedidx[i]);
                         free(opt0->non0ctr[i]);
                 }
                 free(opt0->sortedidx);
@@ -291,7 +290,7 @@ void CINTOpt_setij(CINTOpt *opt, int *ng,
 
         size_t stack_size = 0;
         double eij, aij, rr, maxci, maxcj, rirj_g4d, min_cceij;
-        PairData *pdata;
+        PairData *pdata, *pdata0;
         for (i = 0; i < nbas; i++) {
                 ri = env + atm(PTR_COORD,bas(ATOM_OF,i));
                 ai = env + bas(PTR_EXP,i);
@@ -301,7 +300,7 @@ void CINTOpt_setij(CINTOpt *opt, int *ng,
                 li = bas(ANG_OF,i);
 // For derivative/dipole operator, the l-value in g2e is virtually increased
 
-                for (j = 0; j < nbas; j++) {
+                for (j = 0; j <= i; j++) {
                         rj = env + atm(PTR_COORD,bas(ATOM_OF,j));
                         aj = env + bas(PTR_EXP,j);
                         jprim = bas(NPRIM_OF,j);
@@ -350,9 +349,22 @@ void CINTOpt_setij(CINTOpt *opt, int *ng,
                         }
                         if (min_cceij > CUTOFF15) { // very small pair-density
                                 opt->data_ptr[i*nbas+j] = NOVALUE;
+                                opt->data_ptr[j*nbas+i] = NOVALUE;
                         } else {
                                 opt->data_ptr[i*nbas+j] = stack_size;
                                 stack_size += iprim * jprim;
+
+                                if (i != j) {
+                                        pdata0 = opt->data + opt->data_ptr[i*nbas+j];
+                                        pdata  = opt->data + stack_size;
+                                        for (ip = 0; ip < iprim; ip++) {
+                                        for (jp = 0; jp < jprim; jp++, pdata++) {
+                                                memcpy(pdata, pdata0+jp*iprim+ip,
+                                                       sizeof(PairData));
+                                        } }
+                                        opt->data_ptr[j*nbas+i] = stack_size;
+                                        stack_size += iprim * jprim;
+                                }
                         }
                 }
         }
@@ -394,8 +406,8 @@ void CINTOpt_set_non0coeff(CINTOpt *opt, int *atm, int natm,
                 iprim = bas(NPRIM_OF,i);
                 ictr = bas(NCTR_OF,i);
                 ci = env + bas(PTR_COEFF,i);
-                opt->sortedidx[i] = malloc(sizeof(int) * iprim*ictr);
-                opt->non0ctr[i] = malloc(sizeof(int) * iprim);
+                opt->non0ctr[i] = malloc(sizeof(int) * iprim*(ictr+1));
+                opt->sortedidx[i] = opt->non0ctr[i] + iprim;
                 CINTOpt_non0coeff_byshell(opt->sortedidx[i], opt->non0ctr[i],
                                           ci, iprim, ictr);
         }

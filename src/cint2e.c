@@ -355,8 +355,8 @@ int CINT2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
         int j_sh = shls[1];
         int k_sh = shls[2];
         int l_sh = shls[3];
-        if ((opt->data_ptr[i_sh*envs->nbas+j_sh] == NOVALUE) ||
-            (opt->data_ptr[k_sh*envs->nbas+l_sh] == NOVALUE)) {
+        if ((opt->data_ptr[i_sh*opt->nbas+j_sh] == NOVALUE) ||
+            (opt->data_ptr[k_sh*opt->nbas+l_sh] == NOVALUE)) {
                 return 0;
         }
         int *bas = envs->bas;
@@ -452,7 +452,7 @@ int CINT2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
         INITSIMD;
 
         PairData *pdata_kl, *pdata_ij;
-        pdata_kl = opt->data + opt->data_ptr[k_sh*envs->nbas+l_sh];
+        pdata_kl = opt->data + opt->data_ptr[k_sh*opt->nbas+l_sh];
         for (lp = 0; lp < l_prim; lp++) {
                 INIT_GCTR_ADDR(k, l, common_factor);
                 for (kp = 0; kp < k_prim; kp++, pdata_kl++) {
@@ -461,7 +461,7 @@ int CINT2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
                         }
                         INIT_GCTR_ADDR(j, k, fac1l);
 
-                        pdata_ij = opt->data + opt->data_ptr[i_sh*envs->nbas+j_sh];
+                        pdata_ij = opt->data + opt->data_ptr[i_sh*opt->nbas+j_sh];
                         for (jp = 0; jp < j_prim; jp++) {
                                 INIT_GCTR_ADDR(i, j, fac1k);
                                 for (ip = 0; ip < i_prim; ip++, pdata_ij++) {

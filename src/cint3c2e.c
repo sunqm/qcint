@@ -297,7 +297,7 @@ int CINT3c2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
         int i_sh = shls[0];
         int j_sh = shls[1];
         int k_sh = shls[2];
-        if (opt->data_ptr[i_sh*envs->nbas+j_sh] == NOVALUE) {
+        if (opt->data_ptr[i_sh*opt->nbas+j_sh] == NOVALUE) {
                 return 0;
         }
         int *bas = envs->bas;
@@ -362,6 +362,12 @@ int CINT3c2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
         int *idx = opt->index_xyz_array[envs->i_l*LMAX1*LMAX1
                                        +envs->j_l*LMAX1
                                        +envs->k_l];
+        int allocated_idx = 0;
+        if (idx == NULL) {
+                idx = malloc(sizeof(int) * nf * 3);
+                CINTg4c_index_xyz(idx, envs);
+                allocated_idx = 1;
+        }
         int *non0ctr[3] = {opt->non0ctr[i_sh], opt->non0ctr[j_sh], opt->non0ctr[k_sh]};
         int *non0idx[3] = {opt->sortedidx[i_sh], opt->sortedidx[j_sh], opt->sortedidx[k_sh]};
 
@@ -377,7 +383,7 @@ int CINT3c2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
                         *jempty = 1;
                 }
 
-                pdata_ij = opt->data + opt->data_ptr[i_sh*envs->nbas+j_sh];
+                pdata_ij = opt->data + opt->data_ptr[i_sh*opt->nbas+j_sh];
                 for (jp = 0; jp < j_prim; jp++) {
                         if (j_ctr == 1) {
                                 fac1j = fac1k * cj[jp];
@@ -405,6 +411,9 @@ i_contracted: ;
         if (n_comp > 1 && !*kempty) {
                 int nc = i_ctr * j_ctr * k_ctr;
                 CINTdmat_transpose(out, gctr[SHLTYPk], nf*nc, n_comp);
+        }
+        if (allocated_idx) {
+                free(idx);
         }
         return !*kempty;
 }
