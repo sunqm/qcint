@@ -403,23 +403,20 @@ void CINTOpt_set_non0coeff(CINTOpt *opt, int *atm, int natm,
         size_t tot_prim_ctr = 0;
         for (i = 0; i < nbas; i++) {
                 tot_prim += bas(NPRIM_OF, i);
-                tot_prim_ctr = bas(NPRIM_OF, i) * bas(NCTR_OF,i);
+                tot_prim_ctr += bas(NPRIM_OF, i) * bas(NCTR_OF,i);
         }
 
         opt->non0ctr = malloc(sizeof(int *) * nbas);
         opt->sortedidx = malloc(sizeof(int *) * nbas);
-        opt->non0ctr[0] = malloc(sizeof(int) * tot_prim);
-        opt->sortedidx[0] = malloc(sizeof(int) * tot_prim_ctr);
-        int *pnon0ctr = opt->non0ctr[0];
-        int *psortedidx = opt->sortedidx[0];
+        int *pnon0ctr = malloc(sizeof(int) * tot_prim*10);
+        int *psortedidx = malloc(sizeof(int) * tot_prim_ctr*10);
         for (i = 0; i < nbas; i++) {
                 iprim = bas(NPRIM_OF,i);
                 ictr = bas(NCTR_OF,i);
                 ci = env + bas(PTR_COEFF,i);
                 opt->non0ctr[i] = pnon0ctr;
                 opt->sortedidx[i] = psortedidx;
-                CINTOpt_non0coeff_byshell(opt->sortedidx[i], opt->non0ctr[i],
-                                          ci, iprim, ictr);
+                CINTOpt_non0coeff_byshell(psortedidx, pnon0ctr, ci, iprim, ictr);
                 pnon0ctr += iprim;
                 psortedidx += iprim * ictr;
         }
