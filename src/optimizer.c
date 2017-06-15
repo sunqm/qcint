@@ -466,7 +466,7 @@ int CINTset_pairdata(PairData *pdata, double *ai, double *aj, double *ri, double
 
 void CINTdel_pairdata_optimizer(CINTOpt *cintopt)
 {
-        if (cintopt->data_ptr != NULL) {
+        if (cintopt != NULL && cintopt->data_ptr != NULL) {
                 free(cintopt->data);
                 free(cintopt->data_ptr);
                 cintopt->data = NULL;
