@@ -176,7 +176,7 @@ envs.common_factor *= 0.5;
 envs.common_factor *= 0.5;
 int i, nout;
 int counts[4];
-if (envs.shls[0] == envs.shls[1]) {
+if (out != NULL && envs.shls[0] == envs.shls[1]) {
 counts[0] = envs.nfi * envs.x_ctr[0];
 counts[1] = envs.nfj * envs.x_ctr[1];
 counts[2] = envs.nfk * envs.x_ctr[2];
@@ -199,7 +199,7 @@ envs.common_factor *= 0.5;
 envs.common_factor *= 0.5;
 int i, nout;
 int counts[4];
-if (envs.shls[0] == envs.shls[1]) {
+if (out != NULL && envs.shls[0] == envs.shls[1]) {
 counts[0] = (envs.i_l*2+1) * envs.x_ctr[0];
 counts[1] = (envs.j_l*2+1) * envs.x_ctr[1];
 counts[2] = (envs.k_l*2+1) * envs.x_ctr[2];
@@ -221,7 +221,7 @@ envs.f_gout_simd1 = &CINTgout2e_int2e_ig1_simd1;
 envs.common_factor *= 0.5;
 int i, nout;
 int counts[4];
-if (envs.shls[0] == envs.shls[1]) {
+if (out != NULL && envs.shls[0] == envs.shls[1]) {
 counts[0] = CINTcgto_spinor(envs.shls[0], envs.bas);
 counts[1] = CINTcgto_spinor(envs.shls[1], envs.bas);
 counts[2] = CINTcgto_spinor(envs.shls[2], envs.bas);
@@ -469,7 +469,7 @@ envs.common_factor *= -0.25;
 envs.common_factor *= -0.25;
 int i, nout;
 int counts[4];
-if (envs.shls[0] == envs.shls[1]) {
+if (out != NULL && envs.shls[0] == envs.shls[1]) {
 counts[0] = envs.nfi * envs.x_ctr[0];
 counts[1] = envs.nfj * envs.x_ctr[1];
 counts[2] = envs.nfk * envs.x_ctr[2];
@@ -479,7 +479,7 @@ nout = dims[0] * dims[1] * dims[2] * dims[3];
 for (i = 0; i < envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor; i++) {
 c2s_dset0(out+nout*i, dims, counts); }
 return 0; }
-if (envs.shls[2] == envs.shls[3]) {
+if (out != NULL && envs.shls[2] == envs.shls[3]) {
 counts[0] = envs.nfi * envs.x_ctr[0];
 counts[1] = envs.nfj * envs.x_ctr[1];
 counts[2] = envs.nfk * envs.x_ctr[2];
@@ -502,7 +502,7 @@ envs.common_factor *= -0.25;
 envs.common_factor *= -0.25;
 int i, nout;
 int counts[4];
-if (envs.shls[0] == envs.shls[1]) {
+if (out != NULL && envs.shls[0] == envs.shls[1]) {
 counts[0] = (envs.i_l*2+1) * envs.x_ctr[0];
 counts[1] = (envs.j_l*2+1) * envs.x_ctr[1];
 counts[2] = (envs.k_l*2+1) * envs.x_ctr[2];
@@ -512,7 +512,7 @@ nout = dims[0] * dims[1] * dims[2] * dims[3];
 for (i = 0; i < envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor; i++) {
 c2s_dset0(out+nout*i, dims, counts); }
 return 0; }
-if (envs.shls[2] == envs.shls[3]) {
+if (out != NULL && envs.shls[2] == envs.shls[3]) {
 counts[0] = (envs.i_l*2+1) * envs.x_ctr[0];
 counts[1] = (envs.j_l*2+1) * envs.x_ctr[1];
 counts[2] = (envs.k_l*2+1) * envs.x_ctr[2];
@@ -534,7 +534,7 @@ envs.f_gout_simd1 = &CINTgout2e_int2e_ig1ig2_simd1;
 envs.common_factor *= -0.25;
 int i, nout;
 int counts[4];
-if (envs.shls[0] == envs.shls[1]) {
+if (out != NULL && envs.shls[0] == envs.shls[1]) {
 counts[0] = CINTcgto_spinor(envs.shls[0], envs.bas);
 counts[1] = CINTcgto_spinor(envs.shls[1], envs.bas);
 counts[2] = CINTcgto_spinor(envs.shls[2], envs.bas);
@@ -544,7 +544,7 @@ nout = dims[0] * dims[1] * dims[2] * dims[3];
 for (i = 0; i < envs.ncomp_tensor; i++) {
 c2s_zset0(out+nout*i, dims, counts); }
 return 0; }
-if (envs.shls[2] == envs.shls[3]) {
+if (out != NULL && envs.shls[2] == envs.shls[3]) {
 counts[0] = CINTcgto_spinor(envs.shls[0], envs.bas);
 counts[1] = CINTcgto_spinor(envs.shls[1], envs.bas);
 counts[2] = CINTcgto_spinor(envs.shls[2], envs.bas);

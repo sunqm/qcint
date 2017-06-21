@@ -596,7 +596,7 @@ int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache
         (format fout "int i, nout;
 int counts[4];~%")
         (when (or (member 'g bra-i) (member 'g ket-j))
-          (format fout "if (envs.shls[0] == envs.shls[1]) {
+          (format fout "if (out != NULL && envs.shls[0] == envs.shls[1]) {
 counts[0] = envs.nfi * envs.x_ctr[0];
 counts[1] = envs.nfj * envs.x_ctr[1];
 counts[2] = 1;
@@ -616,7 +616,7 @@ int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache
         (format fout "int i, nout;
 int counts[4];~%")
         (when (or (member 'g bra-i) (member 'g ket-j))
-          (format fout "if (envs.shls[0] == envs.shls[1]) {
+          (format fout "if (out != NULL && envs.shls[0] == envs.shls[1]) {
 counts[0] = (envs.i_l*2+1) * envs.x_ctr[0];
 counts[1] = (envs.j_l*2+1) * envs.x_ctr[1];
 counts[2] = 1;
@@ -636,7 +636,7 @@ int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache
         (format fout "int i, nout;
 int counts[4];~%")
         (when (or (member 'g bra-i) (member 'g ket-j))
-          (format fout "if (envs.shls[0] == envs.shls[1]) {
+          (format fout "if (out != NULL && envs.shls[0] == envs.shls[1]) {
 counts[0] = CINTcgto_spinor(envs.shls[0], envs.bas);
 counts[1] = CINTcgto_spinor(envs.shls[1], envs.bas);
 counts[2] = 1;
@@ -964,7 +964,7 @@ int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache
         (format fout "int i, nout;
 int counts[4];~%")
         (when (or (member 'g bra-i) (member 'g ket-j))
-          (format fout "if (envs.shls[0] == envs.shls[1]) {
+          (format fout "if (out != NULL && envs.shls[0] == envs.shls[1]) {
 counts[0] = envs.nfi * envs.x_ctr[0];
 counts[1] = envs.nfj * envs.x_ctr[1];
 counts[2] = envs.nfk * envs.x_ctr[2];
@@ -975,7 +975,7 @@ for (i = 0; i < envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor; i++) {
 c2s_dset0(out+nout*i, dims, counts); }
 return 0; }~%"))
         (when (or (member 'g bra-k) (member 'g ket-l))
-          (format fout "if (envs.shls[2] == envs.shls[3]) {
+          (format fout "if (out != NULL && envs.shls[2] == envs.shls[3]) {
 counts[0] = envs.nfi * envs.x_ctr[0];
 counts[1] = envs.nfj * envs.x_ctr[1];
 counts[2] = envs.nfk * envs.x_ctr[2];
@@ -998,7 +998,7 @@ int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache
         (format fout "int i, nout;
 int counts[4];~%")
         (when (or (member 'g bra-i) (member 'g ket-j))
-          (format fout "if (envs.shls[0] == envs.shls[1]) {
+          (format fout "if (out != NULL && envs.shls[0] == envs.shls[1]) {
 counts[0] = (envs.i_l*2+1) * envs.x_ctr[0];
 counts[1] = (envs.j_l*2+1) * envs.x_ctr[1];
 counts[2] = (envs.k_l*2+1) * envs.x_ctr[2];
@@ -1009,7 +1009,7 @@ for (i = 0; i < envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor; i++) {
 c2s_dset0(out+nout*i, dims, counts); }
 return 0; }~%"))
         (when (or (member 'g bra-k) (member 'g ket-l))
-          (format fout "if (envs.shls[2] == envs.shls[3]) {
+          (format fout "if (out != NULL && envs.shls[2] == envs.shls[3]) {
 counts[0] = (envs.i_l*2+1) * envs.x_ctr[0];
 counts[1] = (envs.j_l*2+1) * envs.x_ctr[1];
 counts[2] = (envs.k_l*2+1) * envs.x_ctr[2];
@@ -1028,7 +1028,7 @@ int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache
         (format fout "int i, nout;
 int counts[4];~%")
         (when (or (member 'g bra-i) (member 'g ket-j))
-          (format fout "if (envs.shls[0] == envs.shls[1]) {
+          (format fout "if (out != NULL && envs.shls[0] == envs.shls[1]) {
 counts[0] = CINTcgto_spinor(envs.shls[0], envs.bas);
 counts[1] = CINTcgto_spinor(envs.shls[1], envs.bas);
 counts[2] = CINTcgto_spinor(envs.shls[2], envs.bas);
@@ -1039,7 +1039,7 @@ for (i = 0; i < envs.ncomp_tensor; i++) {
 c2s_zset0(out+nout*i, dims, counts); }
 return 0; }~%"))
         (when (or (member 'g bra-k) (member 'g ket-l))
-          (format fout "if (envs.shls[2] == envs.shls[3]) {
+          (format fout "if (out != NULL && envs.shls[2] == envs.shls[3]) {
 counts[0] = CINTcgto_spinor(envs.shls[0], envs.bas);
 counts[1] = CINTcgto_spinor(envs.shls[1], envs.bas);
 counts[2] = CINTcgto_spinor(envs.shls[2], envs.bas);
@@ -1215,7 +1215,7 @@ int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache
         (format fout "int i, nout;
 int counts[4];~%")
         (when (or (member 'g bra-i) (member 'g ket-j))
-          (format fout "if (envs.shls[0] == envs.shls[1]) {
+          (format fout "if (out != NULL && envs.shls[0] == envs.shls[1]) {
 counts[0] = envs.nfi * envs.x_ctr[0];
 counts[1] = envs.nfj * envs.x_ctr[1];
 counts[2] = envs.nfk * envs.x_ctr[2];
@@ -1234,7 +1234,7 @@ int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache
         (format fout "int i, nout;
 int counts[4];~%")
         (when (or (member 'g bra-i) (member 'g ket-j))
-          (format fout "if (envs.shls[0] == envs.shls[1]) {
+          (format fout "if (out != NULL && envs.shls[0] == envs.shls[1]) {
 counts[0] = (envs.i_l*2+1) * envs.x_ctr[0];
 counts[1] = (envs.j_l*2+1) * envs.x_ctr[1];
 counts[2] = (envs.k_l*2+1) * envs.x_ctr[2];
@@ -1253,7 +1253,7 @@ int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache
         (format fout "int i, nout;
 int counts[4];~%")
         (when (or (member 'g bra-i) (member 'g ket-j))
-          (format fout "if (envs.shls[0] == envs.shls[1]) {
+          (format fout "if (out != NULL && envs.shls[0] == envs.shls[1]) {
 counts[0] = CINTcgto_spinor(envs.shls[0], envs.bas);
 counts[1] = CINTcgto_spinor(envs.shls[1], envs.bas);
 counts[2] = (envs.k_l*2+1) * envs.x_ctr[2];
@@ -1532,7 +1532,7 @@ int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache
         (format fout "int i, nout;
 int counts[4];~%")
         (when (or (member 'g bra-i) (member 'g ket-j))
-          (format fout "if (envs.shls[0] == envs.shls[1]) {
+          (format fout "if (out != NULL && envs.shls[0] == envs.shls[1]) {
 counts[0] = envs.nfi * envs.x_ctr[0];
 counts[1] = envs.nfj * envs.x_ctr[1];
 counts[2] = envs.nfk * envs.x_ctr[2];
@@ -1551,7 +1551,7 @@ int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache
         (format fout "int i, nout;
 int counts[4];~%")
         (when (or (member 'g bra-i) (member 'g ket-j))
-          (format fout "if (envs.shls[0] == envs.shls[1]) {
+          (format fout "if (out != NULL && envs.shls[0] == envs.shls[1]) {
 counts[0] = (envs.i_l*2+1) * envs.x_ctr[0];
 counts[1] = (envs.j_l*2+1) * envs.x_ctr[1];
 counts[2] = (envs.k_l*2+1) * envs.x_ctr[2];
@@ -1570,7 +1570,7 @@ int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache
         (format fout "int i, nout;
 int counts[4];~%")
         (when (or (member 'g bra-i) (member 'g ket-j))
-          (format fout "if (envs.shls[0] == envs.shls[1]) {
+          (format fout "if (out != NULL && envs.shls[0] == envs.shls[1]) {
 counts[0] = CINTcgto_spinor(envs.shls[0], envs.bas);
 counts[1] = CINTcgto_spinor(envs.shls[1], envs.bas);
 counts[2] = (envs.k_l*2+1) * envs.x_ctr[2];
