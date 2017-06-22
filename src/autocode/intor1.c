@@ -2263,7 +2263,6 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_p1vxp1;
 envs.f_gout_simd1 = &CINTgout2e_int2e_p1vxp1_simd1;
-envs.common_factor *= 1;
 return CINT2e_cart_drv(out, dims, &envs, opt, cache);
 } // int2e_p1vxp1_cart
 int int2e_p1vxp1_sph(double *out, int *dims, int *shls,
@@ -2273,7 +2272,6 @@ CINTEnvVars envs;
 CINTinit_int2e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout2e_int2e_p1vxp1;
 envs.f_gout_simd1 = &CINTgout2e_int2e_p1vxp1_simd1;
-envs.common_factor *= 1;
 return CINT2e_spheric_drv(out, dims, &envs, opt, cache);
 } // int2e_p1vxp1_sph
 int int2e_p1vxp1_spinor(double complex *out, int *dims, int *shls,
