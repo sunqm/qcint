@@ -33,16 +33,24 @@
   ; cross to the next p
   '("int1e_prinvxp"             (p* \| rinv cross p \| ))
   '("int1e_pnucxp"              (p* \| nuc cross p \| ))
-  '("int2e_p1vxp1"              ( p* \, cross p \| \, )) ; SSO
+  '("int2e_p1vxp1"              (p* \, cross p \| \, )) ; SSO
 )
 
 (gen-cint "intor2.c"
   ;'("int2e"                     ( \, \| \, ))
   '("int2e_ig1"                 (#C(0 1) g \, \| \, ))
   '("int2e_ig1ig2"              (-1 g \, \| g \, ))
+  '("int2e_ip1v_rc1"            ( \, rc \| nabla-r12 \| \, ))
+  '("int2e_ip1v_r1"             ( \, r  \| nabla-r12 \| \, ))
+  '("int2e_ipvg1_xp1"           (g \, \| nabla-r12 cross p \| \, ))
+  '("int2e_ipvg2_xp1"           (  \, \| nabla-r12 cross p \| g \, ))
+  '("int1e_inuc_rcxp"           (#C(0 1) \| nuc \| rc cross p ))
+  '("int1e_inuc_rxp"            (#C(0 1) \| nuc \| r cross p ))
 )
 
 (gen-cint "intor3.c"
+  '("int1e_sigma"               ( \| sigma ))
+  '("int1e_spsigmasp"           (sigma dot p \| sigma sigma dot p))
   '("int1e_srsr"                (sigma dot r \| sigma dot r))
   '("int1e_sr"                  (sigma dot r \|))
   '("int1e_srsp"                (sigma dot r \| sigma dot p))
@@ -163,6 +171,11 @@
   '("int3c2e_spsp1"             (sigma dot p \, sigma dot p \| ))
   '("int3c2e_ipspsp1"           (nabla sigma dot p \, sigma dot p \| ))
   '("int3c2e_spsp1ip2"          (sigma dot p \, sigma dot p \| nabla ))
+;
+  '("int3c2e_ipip1"             ( nabla nabla \, \| ))
+  '("int3c2e_ipvip1"            ( nabla \, nabla \| ))
+  '("int3c2e_ip1ip2"            ( nabla \, \| nabla ))
+  '("int2c2e_ip1ip2"            ( nabla \| r12 \| nabla))
 )
 
 (gen-cint "int3c1e.c"
