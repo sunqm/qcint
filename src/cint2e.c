@@ -244,7 +244,7 @@ int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
         ALIGNMM Rys2eT bc;
         double rr_kl = SQUARE(envs->rkrl);
         double log_rr_kl = (envs->lk_ceil+envs->ll_ceil+1)*approx_log(rr_kl+1)/2;
-        double aij, akl, eij, ekl, expijkl;
+        double akl, ekl, expijkl;
         int ccekl;
         ALIGNMM double rkl[4];
         int non0ctri[i_prim];

@@ -60,8 +60,6 @@ void CINTdel_2e_optimizer(CINTOpt **opt)
                 return;
         }
 
-        int i;
-
         if (opt0->index_xyz_array != NULL) {
                 free(opt0->index_xyz_array[0]);
                 free(opt0->index_xyz_array);
