@@ -179,8 +179,36 @@ static void rys_root1(double X, double *F1, double *E)
         } \
         MM_STORE(S  , r1); \
         MM_STORE(S+4, r2);
-#else
 
+#elif (SIMDD == 2) // SSE3
+#define POLYSUM4(S, POLY, X, COUNT) \
+        r0 = MM_SET1(X); \
+        r1 = MM_LOAD(POLY); \
+        r2 = MM_LOAD(POLY+2); \
+        for (n = 1; n < COUNT; n++) { \
+                r1 = MM_FMA(r1, r0, MM_LOAD(POLY+n*4)); \
+                r2 = MM_FMA(r2, r0, MM_LOAD(POLY+n*4+2)); \
+        } \
+        MM_STORE(S, r1); \
+        MM_STORE(S+2, r2);
+#define POLYSUM8(S, POLY, X, COUNT) \
+        r0 = MM_SET1(X); \
+        r1 = MM_LOAD(POLY); \
+        r2 = MM_LOAD(POLY+2); \
+        r3 = MM_LOAD(POLY+4); \
+        r4 = MM_LOAD(POLY+6); \
+        for (n = 1; n < COUNT; n++) { \
+                r1 = MM_FMA(r1, r0, MM_LOAD(POLY+n*8  )); \
+                r2 = MM_FMA(r2, r0, MM_LOAD(POLY+n*8+2)); \
+                r3 = MM_FMA(r3, r0, MM_LOAD(POLY+n*8+4)); \
+                r4 = MM_FMA(r4, r0, MM_LOAD(POLY+n*8+6)); \
+        } \
+        MM_STORE(S  , r1); \
+        MM_STORE(S+2, r2); \
+        MM_STORE(S+4, r2); \
+        MM_STORE(S+6, r2);
+
+#else // AVX-512
 #define POLYSUM4(S, POLY, X, COUNT) \
         r0 = _mm256_set1_pd(X); \
         r1 = _mm256_load_pd(POLY); \
@@ -290,7 +318,11 @@ static void rys_root2(double X, double *roots, double *weights)
         double F1, E, Y, X1;
         ALIGNMM double s[4];
         ALIGNMM double s1[4];
+#if (SIMDD == 2)
+        __m128d r0, r1, r2;
+#else
         __m256d r0, r1;
+#endif
         E = roots[0];
 
         const double R12  = 2.75255128608411E-01;
@@ -533,7 +565,11 @@ static void rys_root3(double X, double *roots, double *weights)
         int n;
         ALIGNMM double s[4];
         ALIGNMM double s1[4];
+#if (SIMDD == 2)
+        __m128d r0, r1, r2;
+#else
         __m256d r0, r1;
+#endif
         E = roots[0];
 
         const double R13 = 1.90163509193487E-01;
@@ -866,6 +902,8 @@ static void rys_root4(double X, double roots[], double weights[])
         ALIGNMM double s1[8];
 #if (SIMDD == 4)
         __m256d r0, r1, r2;
+#elif (SIMDD == 2)
+        __m128d r0, r1, r2, r3, r4;
 #else
         __m512d r10, r11;
 #endif
@@ -1293,6 +1331,8 @@ static void rys_root5(double X, double roots[], double weights[])
         ALIGNMM double s1[4];
 #if (SIMDD == 4)
         __m256d r0, r1, r2;
+#elif (SIMDD == 2)
+        __m128d r0, r1, r2, r3, r4;
 #else
         __m256d r0, r1;
         __m512d r10, r11;

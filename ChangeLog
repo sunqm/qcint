@@ -1,3 +1,6 @@
+Version 3.0.1  (2017-09-25):
+	* Add supports to SSE3 instructions
+
 Version 3.0.0  (2017-09-20):
 	* Change github master branch to the 3.0 version
 

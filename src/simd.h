@@ -71,6 +71,32 @@
 #define MM_CMP(a,b,c)   _mm256_movemask_pd(_mm256_cmp_pd(a,b,c))
 #define MM_EXPN(y,x,rx) y[0] = exp(-x[0]); y[1] = exp(-x[1]); y[2] = exp(-x[2]); y[3] = exp(-x[3])
 
+#elif __SSE3__
+#define SIMDD   2
+#define __MD            __m128d
+#define MM_LOAD         _mm_load_pd
+#define MM_LOADU        _mm_loadu_pd
+#define MM_MUL          _mm_mul_pd
+#define MM_ADD          _mm_add_pd
+#define MM_SUB          _mm_sub_pd
+#define MM_DIV          _mm_div_pd
+#define MM_SQRT         _mm_sqrt_pd
+#define MM_SET1         _mm_set1_pd
+#define MM_STORE        _mm_store_pd
+#define MM_STOREU       _mm_storeu_pd
+#define MM_GATHER       _mm_i32gather_pd
+#ifdef __FMA__
+#define MM_FMA          _mm_fmadd_pd
+#define MM_FNMA         _mm_fnmadd_pd
+#else
+#define MM_FMA(a,b,c)   _mm_add_pd(_mm_mul_pd(a, b), c)
+#define MM_FNMA(a,b,c)  _mm_sub_pd(c, _mm_mul_pd(a, b))
+#endif
+#ifdef __SSE4_2__
+#define MM_CMP(a,b,c)   _mm_movemask_pd(_mm_cmp_pd(a,b,c))
+#endif
+#define MM_EXPN(y,x,rx) y[0] = exp(-x[0]); y[1] = exp(-x[1])
+
 #endif
 
 #if defined(__GNUC__)

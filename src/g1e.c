@@ -1094,7 +1094,7 @@ void CINTsort_gout(double *sout, double *gout, int nf, int count)
 #endif
         }
 
-#else // AVX
+#else // AVX or SSE3
         switch (count) {
         case 1:
                 for (i = 0; i < nf; i++) {
@@ -1107,6 +1107,7 @@ void CINTsort_gout(double *sout, double *gout, int nf, int count)
                         sout[1*nf+i] = gout[i*SIMDD+1];
                 }
                 break;
+#if (SIMDD > 2)
         case 3:
                 for (i = 0; i < nf; i++) {
                         sout[0*nf+i] = gout[i*SIMDD+0];
@@ -1121,6 +1122,7 @@ void CINTsort_gout(double *sout, double *gout, int nf, int count)
                         sout[2*nf+i] = gout[i*SIMDD+2];
                         sout[3*nf+i] = gout[i*SIMDD+3];
                 }
+#endif
         }
 #endif
 }

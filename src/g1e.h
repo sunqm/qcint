@@ -156,7 +156,7 @@ double CINTcommon_fac_sp(int l);
 
 #define GOUT_SCATTER(gout, n, r0) _mm512_i32scatter_pd(gout+n, vindex, r0, 8)
 
-#else
+#elif (SIMDD == 4)
 
 #define DECLARE_GOUT \
         ALIGNMM double gc[SIMDD*SIMDD]; \
@@ -170,4 +170,15 @@ double CINTcommon_fac_sp(int l);
         gout1[(n)] = gc[1]; \
         gout2[(n)] = gc[2]; \
         gout3[(n)] = gc[3];
+
+#else // SSE3
+
+#define DECLARE_GOUT \
+        ALIGNMM double gc[SIMDD*SIMDD]; \
+        double *RESTRICT gout1 = gout + nfc*1; \
+
+#define GOUT_SCATTER(addr, n, r0) \
+        _mm_store_pd(gc, r0); \
+        gout [(n)] = gc[0]; \
+        gout1[(n)] = gc[1];
 #endif
