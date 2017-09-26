@@ -1335,8 +1335,6 @@ void CINTg0_2e_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
         akl = envs->ak[idsimd] + envs->al[idsimd];
         a1 = aij * akl;
         a0 = a1 / (aij + akl);
-        //fac1 = sqrt(a0 / (a1 * a1 * a1)) * envs->fac[idsimd];
-        fac1 = envs->fac[idsimd] / (sqrt(aij+akl) * a1);
 #ifdef WITH_RANGE_COULOMB
         const double omega = envs->env[PTR_RANGE_OMEGA];
         double theta = 1;
@@ -1346,6 +1344,8 @@ void CINTg0_2e_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
                 a0 *= theta;
         }
 #endif
+        fac1 = sqrt(a0 / (a1 * a1 * a1)) * envs->fac[idsimd];
+
         rijrkl[0] = rij[0*SIMDD+idsimd] - rkl[0*SIMDD+idsimd];
         rijrkl[1] = rij[1*SIMDD+idsimd] - rkl[1*SIMDD+idsimd];
         rijrkl[2] = rij[2*SIMDD+idsimd] - rkl[2*SIMDD+idsimd];

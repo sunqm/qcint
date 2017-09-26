@@ -192,7 +192,6 @@ void CINTg0_2e_coulerf(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
         MM_STORE(aijkl, ra);
         r0 = MM_DIV(r1, ra);
         MM_STORE(a0, r0);
-        MM_STORE(fac1, MM_DIV(MM_LOAD(envs->fac), MM_MUL(MM_SQRT(ra), r1)));
 
         ALIGNMM double theta[SIMDD];
         if (omega > 0) {
@@ -206,6 +205,9 @@ void CINTg0_2e_coulerf(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
                 MM_STORE(theta, r0);
                 MM_STORE(a0, MM_MUL(r0, r1));
         }
+        r1 = MM_LOAD(a1);
+        r0 = MM_DIV(MM_LOAD(a0), MM_MUL(r1, MM_MUL(r1, r1)));
+        MM_STORE(fac1, MM_MUL(MM_SQRT(r0), MM_LOAD(envs->fac)));
 
         r0 = MM_LOAD(rij+0*SIMDD);
         r1 = MM_LOAD(rij+1*SIMDD);
@@ -238,6 +240,9 @@ void CINTg0_2e_coulerf(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
                 //MM_STORE(gy+i*SIMDD, r1);
                 MM_STORE(gz+i*SIMDD, MM_MUL(MM_LOAD(w+i*SIMDD), r0));
         }
+        if (envs->g_size == 1) {
+                return;
+        }
 
         if (omega > 0) {
                 /* u[:] = tau^2 / (1 - tau^2)
@@ -254,9 +259,6 @@ void CINTg0_2e_coulerf(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
                         r3 = r2 + r1 - r2 * r0;
                         MM_STORE(u+i*SIMDD, MM_DIV(r2, r3));
                 }
-        }
-        if (envs->g_size == 1) {
-                return;
         }
 
         double *b00 = bc->b00;
@@ -340,8 +342,6 @@ void CINTg0_2e_coulerf_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsim
         akl = envs->ak[idsimd] + envs->al[idsimd];
         a1 = aij * akl;
         a0 = a1 / (aij + akl);
-        //fac1 = sqrt(a0 / (a1 * a1 * a1)) * envs->fac[idsimd];
-        fac1 = envs->fac[idsimd] / (sqrt(aij+akl) * a1);
 
         double theta = 0;
         if (omega > 0) {
@@ -349,6 +349,7 @@ void CINTg0_2e_coulerf_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsim
                 theta = omega * omega / (omega * omega + a0);
                 a0 *= theta;
         }
+        fac1 = sqrt(a0 / (a1 * a1 * a1)) * envs->fac[idsimd];
 
         rijrkl[0] = rij[0*SIMDD+idsimd] - rkl[0*SIMDD+idsimd];
         rijrkl[1] = rij[1*SIMDD+idsimd] - rkl[1*SIMDD+idsimd];
@@ -367,6 +368,7 @@ void CINTg0_2e_coulerf_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsim
         if (envs->g_size == 1) {
                 return;
         }
+
         if (omega > 0) {
                 /* u[:] = tau^2 / (1 - tau^2)
                  * transform u[:] to theta^-1 tau^2 / (theta^-1 - tau^2)

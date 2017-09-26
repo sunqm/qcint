@@ -164,7 +164,7 @@ void CINTinit_int2e_stg_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
 {
         CINTinit_int2e_yp_EnvVars(envs, ng, shls, atm, natm, bas, nbas, env);
         envs->f_g0_2e = &CINTg0_2e_stg;
-        envs->f_g0_2e = &CINTg0_2e_stg_simd1;
+        envs->f_g0_2e_simd1 = &CINTg0_2e_stg_simd1;
 }
 
 void CINTg0_2e_yp(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
@@ -231,6 +231,15 @@ void CINTg0_2e_yp(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
         double *gz = gy + envs->g_size * SIMDD;
         if (zeta > 0) {
                 CINTstg_roots(nroots, x, ua, u, w, count);
+                //:w *= t;
+                //:uu = t/(1-t);
+                r1 = MM_SET1(1.);
+                for (i = 0; i < nroots; i++) {
+                        r0 = MM_LOAD(u+i*SIMDD);
+                        r2 = MM_LOAD(w+i*SIMDD);
+                        MM_STORE(w+i*SIMDD, MM_MUL(r0, r2));
+                        MM_STORE(u+i*SIMDD, MM_DIV(r0, r1 - r0));
+                }
         } else {
                 CINTrys_roots(nroots, x, u, w, count);
         }
@@ -243,17 +252,6 @@ void CINTg0_2e_yp(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
                 MM_STORE(gz+i*SIMDD, MM_MUL(MM_LOAD(w+i*SIMDD), r0));
         }
 
-        if (zeta > 0) {
-                //:w *= t;
-                //:uu = t/(1-t);
-                r1 = MM_SET1(1.);
-                for (i = 0; i < nroots; i++) {
-                        r0 = MM_LOAD(u+i*SIMDD);
-                        r2 = MM_LOAD(w+i*SIMDD);
-                        MM_STORE(w+i*SIMDD, MM_MUL(r0, r2));
-                        MM_STORE(u+i*SIMDD, MM_DIV(r0, r1 - r0));
-                }
-        }
         if (envs->g_size == 1) {
                 return;
         }
@@ -354,6 +352,12 @@ void CINTg0_2e_yp_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
         x[0] = a0 * SQUARE(rijrkl);
         if (zeta > 0) {
                 CINTstg_roots(nroots, x, ua, u, w, 1);
+                //:w *= t;
+                //:uu = t/(1-t);
+                for (i = 0; i < nroots; i++) {
+                        w[i*SIMDD] *= u[i*SIMDD];
+                        u[i*SIMDD] = u[i*SIMDD] / (1 - u[i*SIMDD]);
+                }
         } else {
                 CINTrys_roots(nroots, x, u, w, 1);
         }
@@ -367,14 +371,6 @@ void CINTg0_2e_yp_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
                 gz[i] = w[i*SIMDD] * fac1;
         }
 
-        if (zeta > 0) {
-                //:w *= t;
-                //:uu = t/(1-t);
-                for (i = 0; i < nroots; i++) {
-                        w[i] *= u[i];
-                        u[i] = u[i] / (1 - u[i]);
-                }
-        }
         if (envs->g_size == 1) {
                 return;
         }
@@ -484,6 +480,17 @@ void CINTg0_2e_stg(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
         if (zeta > 0) {
                 // T = x, U = ua, rr = u
                 CINTstg_roots(nroots, x, ua, u, w, count);
+                //:w *= (1-t) * 2*ua/zeta;
+                //:uu = t/(1-t);
+                r1 = MM_SET1(1.);
+                r2 = MM_DIV(MM_LOAD(ua) * MM_SET1(2.), MM_SET1(zeta));
+                for (i = 0; i < nroots; i++) {
+                        r0 = MM_LOAD(u+i*SIMDD);
+                        r3 = r1 - r0;
+                        r4 = MM_LOAD(w+i*SIMDD);
+                        MM_STORE(w+i*SIMDD, r4 * r3 * r2);
+                        MM_STORE(u+i*SIMDD, MM_DIV(r0, r3));
+                }
         } else {
                 CINTrys_roots(nroots, x, u, w, count);
         }
@@ -499,19 +506,6 @@ void CINTg0_2e_stg(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
                 MM_STORE(gz+i*SIMDD, MM_MUL(MM_LOAD(w+i*SIMDD), r0));
         }
 
-        if (zeta > 0) {
-                //:w *= (1-t) * 2*ua/zeta;
-                //:uu = t/(1-t);
-                r1 = MM_SET1(1.);
-                r2 = MM_DIV(MM_LOAD(ua) * MM_SET1(2.), MM_SET1(zeta));
-                for (i = 0; i < nroots; i++) {
-                        r0 = MM_LOAD(u+i*SIMDD);
-                        r3 = r1 - r0;
-                        r4 = MM_LOAD(w+i*SIMDD);
-                        MM_STORE(w+i*SIMDD, r4 * r3 * r2);
-                        MM_STORE(u+i*SIMDD, MM_DIV(r0, r3));
-                }
-        }
         if (envs->g_size == 1) {
                 return;
         }
@@ -612,6 +606,13 @@ void CINTg0_2e_stg_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
         x[0] = a0 * SQUARE(rijrkl);
         if (zeta > 0) {
                 CINTstg_roots(nroots, x, ua, u, w, 1);
+                //:w *= (1-t) * 2*ua/zeta;
+                //:uu = t/(1-t);
+                double ua2 = 2. * ua[0] / zeta;
+                for (i = 0; i < nroots; i++) {
+                        w[i*SIMDD] *= (1-u[i*SIMDD]) * ua2;
+                        u[i*SIMDD] = u[i*SIMDD] / (1 - u[i*SIMDD]);
+                }
         } else {
                 CINTrys_roots(nroots, x, u, w, 1);
         }
@@ -625,15 +626,6 @@ void CINTg0_2e_stg_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
                 gz[i] = w[i*SIMDD] * fac1;
         }
 
-        if (zeta > 0) {
-                //:w *= (1-t) * 2*ua/zeta;
-                //:uu = t/(1-t);
-                double ua2 = 2. * ua[0] / zeta;
-                for (i = 0; i < nroots; i++) {
-                        w[i] *= (1-u[i]) * ua2;
-                        u[i] = u[i] / (1 - u[i]);
-                }
-        }
         if (envs->g_size == 1) {
                 return;
         }

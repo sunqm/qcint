@@ -1893,7 +1893,6 @@ void CINTg0_2e(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
         MM_STORE(aijkl, ra);
         r0 = MM_DIV(r1, ra);
         MM_STORE(a0, r0);
-        MM_STORE(fac1, MM_DIV(MM_LOAD(envs->fac), MM_MUL(MM_SQRT(ra), r1)));
 
 #ifdef WITH_RANGE_COULOMB
 // Not recommended to mix range-separated Coulomb with regular Coulomb operator.
@@ -1911,6 +1910,11 @@ void CINTg0_2e(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
                 MM_STORE(theta, r0);
                 MM_STORE(a0, MM_MUL(r0, r1));
         }
+        r1 = MM_LOAD(a1);
+        r0 = MM_DIV(MM_LOAD(a0), MM_MUL(r1, MM_MUL(r1, r1)));
+        MM_STORE(fac1, MM_MUL(MM_SQRT(r0), MM_LOAD(envs->fac)));
+#else
+        MM_STORE(fac1, MM_DIV(MM_LOAD(envs->fac), MM_MUL(MM_SQRT(ra), r1)));
 #endif
 
         r0 = MM_LOAD(rij+0*SIMDD);
