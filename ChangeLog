@@ -1,3 +1,6 @@
+Version 3.0.2  (2017-09-25):
+	* Fix bugs in F12 integrals
+
 Version 3.0.1  (2017-09-25):
 	* Add supports to SSE3 instructions
 
