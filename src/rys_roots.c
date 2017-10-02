@@ -1729,30 +1729,38 @@ static void R_qnode(__float128 *a, __float128 *rt, int order)
                         p0 = p1init;
                 }
                 // interpolate/extrapolate between [x0,x1]
-                if (p0 == p1) {
-                        xi = x0;
+                if (p0 == 0) {
+                        rt[m] = x0;
+                        continue;
+                } else if (p1 == 0) {
+                        rt[m] = x1;
+                        continue;
                 } else {
                         xi = x0 + (x0 - x1) / (p1 - p0) * p0;
                 }
                 n = 0;
                 while (fabs(x1-x0) > accrt) {
                         n++;
-                        if (n > 200) {
+                        if (n > 600) {
                                 fprintf(stderr, "libcint::rys_roots NO CONV. IN R_qnode\n");
                                 exit(1);
                         }
                         POLYNOMIAL_VALUE1(pi, xi);
-                        if (p0 * pi <= 0) {
+                        if (pi == 0) {
+                                break;
+                        } else if (p0 * pi <= 0) {
                                 x1 = xi;
                                 p1 = pi;
-                                xi = x0 * .125q + xi * .875q;
+                                xi = x0 * .25q + xi * .75q;
                         } else {
                                 x0 = xi;
                                 p0 = pi;
-                                xi = xi * .875q + x1 * .125q;
+                                xi = xi * .75q + x1 * .25q;
                         }
                         POLYNOMIAL_VALUE1(pi, xi);
-                        if (p0 * pi <= 0) {
+                        if (pi == 0) {
+                                break;
+                        } else if (p0 * pi <= 0) {
                                 x1 = xi;
                                 p1 = pi;
                         } else {
@@ -1760,11 +1768,7 @@ static void R_qnode(__float128 *a, __float128 *rt, int order)
                                 p0 = pi;
                         }
 
-                        if (p0 == p1) {
-                                xi = x0;
-                        } else {
-                                xi = x0 + (x0 - x1) / (p1 - p0) * p0;
-                        }
+                        xi = x0 + (x0 - x1) / (p1 - p0) * p0;
                 }
                 rt[m] = xi;
         }
