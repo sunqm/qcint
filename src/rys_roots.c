@@ -1703,7 +1703,7 @@ for (i = 1; i <= order; i++) { \
 }
 static void R_qnode(__float128 *a, __float128 *rt, int order)
 {
-        const __float128 accrt = 1e-32q;
+        const __float128 accrt = 1e-20q;
         __float128 x0, x1, xi, x1init, p0, p1, pi, p1init;
         int i, m, n;
 
@@ -1739,7 +1739,7 @@ static void R_qnode(__float128 *a, __float128 *rt, int order)
                         xi = x0 + (x0 - x1) / (p1 - p0) * p0;
                 }
                 n = 0;
-                while (fabs(x1-x0) > accrt) {
+                while (x1 > accrt+x0 || x0 > x1+accrt) {
                         n++;
                         if (n > 600) {
                                 fprintf(stderr, "libcint::rys_roots NO CONV. IN R_qnode\n");
