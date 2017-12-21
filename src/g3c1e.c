@@ -195,8 +195,6 @@ void CINTg3c1e_nuc(double *g, CINTEnvVars *envs, int count, int nuc_id)
         int lk = envs->lk_ceil;
         int nmax = li + lj + lk;
         int mmax = lj + lk;
-        fprintf(stderr, "3c1e_nuc function is not implemented in qcint\n");
-        exit(1);
         int nrys_roots = envs->nrys_roots;
         int *atm = envs->atm;
         double *env = envs->env;
@@ -229,10 +227,10 @@ void CINTg3c1e_nuc(double *g, CINTEnvVars *envs, int count, int nuc_id)
         }
 
         if (nuc_id < 0) {
-                fac1 = 2*M_PI * MM_LOAD(envs->fac) * MM_LOAD(tau) / aijk;
+                fac1 = 2./SQRTPI * MM_LOAD(envs->fac) * MM_LOAD(tau) / aijk;
                 cr = env + PTR_RINV_ORIG;
         } else {
-                fac1 = 2*M_PI * MM_SET1(-fabs(atm[CHARGE_OF+nuc_id*ATM_SLOTS]));
+                fac1 = 2./SQRTPI * MM_SET1(-fabs(atm[CHARGE_OF+nuc_id*ATM_SLOTS]));
                 fac1 = fac1 * MM_LOAD(envs->fac) * MM_LOAD(tau) / aijk;
                 cr = env + atm(PTR_COORD, nuc_id);
         }
@@ -274,10 +272,6 @@ void CINTg3c1e_nuc(double *g, CINTEnvVars *envs, int count, int nuc_id)
                 MM_STORE(t2+i*SIMDD, MM_DIV(r0 - r0 * rt2, aijk));
         }
 
-        MM_STORE(gx+dj*SIMDD, r0 * MM_LOAD(gx+0));
-        MM_STORE(gy+dj*SIMDD, r1 * MM_LOAD(gy+0));
-        MM_STORE(gz+dj*SIMDD, r2 * MM_LOAD(gz+0));
-
         p0x = gx + dj * SIMDD;
         p0y = gy + dj * SIMDD;
         p0z = gz + dj * SIMDD;
@@ -293,7 +287,6 @@ MM_STORE(p0z+n*SIMDD, MM_LOAD(r0jz+n*SIMDD) * MM_LOAD(gz+n*SIMDD));
         p1x = gx - dj * SIMDD;
         p1y = gy - dj * SIMDD;
         p1z = gz - dj * SIMDD;
-        aijk = MM_SET1(.5) / aijk;
         for (j = 1; j < nmax; j++) {
                 ptr = j * dj;
                 for (n = 0; n < nrys_roots; n++) {

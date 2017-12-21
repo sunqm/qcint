@@ -95,7 +95,7 @@ ALL_CINT(int3c1e_p2)
 //ALL_CINT_FORTRAN_(cint3c1e_p2)
 static void CINTgout1e_int3c1e_iprinv(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs, int count) {
-CINTg1e_nuc(g, envs, count, -1);
+CINTg3c1e_nuc(g, envs, count, -1);
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
 int nfc = nf * 3;

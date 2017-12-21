@@ -102,6 +102,7 @@ void CINTg2c_index_xyz(int *idx, CINTEnvVars *envs);
 void CINTg1e_ovlp(double *g, CINTEnvVars *envs, int count);
 void CINTg1e_nuc(double *g, CINTEnvVars *envs, int count, int nuc_id);
 void CINTg3c1e_ovlp(double *g, CINTEnvVars *envs, int count);
+double CINTnuc_mod(double aij, int nuc_id, int *atm, double *env);
 
 void CINTnabla1i_1e(double *f, double *g,
                     int li, int lj, int lk, CINTEnvVars *envs);

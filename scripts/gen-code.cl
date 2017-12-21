@@ -1557,7 +1557,7 @@ CINTsort_gout(gout, gout1, nfc, SIMDD);
       (format fout "static void CINTgout1e_~a" intname)
       (format fout "(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs, int count) {
-CINTg1e_nuc(g, envs, count, -1);
+CINTg3c1e_nuc(g, envs, count, -1);
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
 int nfc = nf * ~a;~%" goutinc)

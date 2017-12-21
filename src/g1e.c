@@ -239,7 +239,7 @@ MM_STORE(gz+n*SIMDD, MM_LOAD(p1z+n*SIMDD) + MM_SET1(rirj[2]) * MM_LOAD(p0z+n*SIM
  * For given charge distribution, calculate temporary parameter tau.
  * The charge parameter zeta is defined as    rho(r) = Norm * exp(-zeta*r^2)
  */
-static double CINTnuc_mod(double aij, int nuc_id, int *atm, double *env)
+double CINTnuc_mod(double aij, int nuc_id, int *atm, double *env)
 {
         double zeta;
         if (nuc_id < 0) {
