@@ -701,16 +701,6 @@ void CINTgout2e(double *gout, double *g, int *idx, CINTEnvVars *envs)
         r0+= MM_MUL(MM_MUL(MM_LOAD(gx+ i   *SIMDD), MM_LOAD(gy+ i   *SIMDD)), MM_LOAD(gz+ i   *SIMDD));
         r1+= MM_MUL(MM_MUL(MM_LOAD(hx+ i   *SIMDD), MM_LOAD(hy+ i   *SIMDD)), MM_LOAD(hz+ i   *SIMDD));
                                 }
-                                MM_STORE(gc+0*SIMDD, r0);
-                                MM_STORE(gc+1*SIMDD, r1);
-                                gx = g + idx[6 +n*3] * SIMDD;
-                                gy = g + idx[7 +n*3] * SIMDD;
-                                gz = g + idx[8 +n*3] * SIMDD;
-                                hx = g + idx[9 +n*3] * SIMDD;
-                                hy = g + idx[10+n*3] * SIMDD;
-                                hz = g + idx[11+n*3] * SIMDD;
-                                r0 = MM_MUL(MM_MUL(MM_LOAD(gx), MM_LOAD(gy)), MM_LOAD(gz));
-                                r1 = MM_MUL(MM_MUL(MM_LOAD(hx), MM_LOAD(hy)), MM_LOAD(hz));
                                 GOUT_SCATTER(gout, n  , r0);
                                 GOUT_SCATTER(gout, n+1, r1);
                         }

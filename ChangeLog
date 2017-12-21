@@ -1,5 +1,6 @@
 Version 3.0.6  (2017-12-20):
 	* Add integrals for X2C graidents and hessian
+	* Fix bug in SSE3/AVX inner-contraction code for l=4 (or higher) GTOs
 Version 3.0.5  (2017-12-11):
 	* Use cmake policy for OSX rpath
 Version 3.0.2  (2017-09-25):
