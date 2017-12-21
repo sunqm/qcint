@@ -18,6 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdio.h>
 #include <string.h>
 #include <math.h>
 #include <assert.h>
@@ -120,14 +121,15 @@ void CINTg3c1e_ovlp(double *g, CINTEnvVars *envs, int count)
         double *rk = envs->rk;
         double *rirj = envs->rirj;
         double *rjrk = envs->rkrl;
-        __MD r0, r1, r2;
+        __MD r0, r1, r2, rt;
 
+        rt = MM_SET1(1.) / aijk;
         r0 = MM_SET1(rj[0]);
         r1 = MM_SET1(rj[1]);
         r2 = MM_SET1(rj[2]);
-        r0 = (MM_LOAD(envs->ai) * MM_SET1(ri[0]) + MM_LOAD(envs->aj) * r0 + MM_LOAD(envs->ak) * MM_SET1(rk[0])) / aijk - r0;
-        r1 = (MM_LOAD(envs->ai) * MM_SET1(ri[1]) + MM_LOAD(envs->aj) * r1 + MM_LOAD(envs->ak) * MM_SET1(rk[1])) / aijk - r1;
-        r2 = (MM_LOAD(envs->ai) * MM_SET1(ri[2]) + MM_LOAD(envs->aj) * r2 + MM_LOAD(envs->ak) * MM_SET1(rk[2])) / aijk - r2;
+        r0 = (MM_LOAD(envs->ai) * MM_SET1(ri[0]) + MM_LOAD(envs->aj) * r0 + MM_LOAD(envs->ak) * MM_SET1(rk[0])) * rt - r0;
+        r1 = (MM_LOAD(envs->ai) * MM_SET1(ri[1]) + MM_LOAD(envs->aj) * r1 + MM_LOAD(envs->ak) * MM_SET1(rk[1])) * rt - r1;
+        r2 = (MM_LOAD(envs->ai) * MM_SET1(ri[2]) + MM_LOAD(envs->aj) * r2 + MM_LOAD(envs->ak) * MM_SET1(rk[2])) * rt - r2;
 
         MM_STORE(gx+dj*SIMDD, r0 * MM_LOAD(gx+0));
         MM_STORE(gy+dj*SIMDD, r1 * MM_LOAD(gy+0));
@@ -186,143 +188,166 @@ void CINTg3c1e_ovlp(double *g, CINTEnvVars *envs, int count)
 }
 
 
-//FIXME
-//void CINTg3c1e_nuc(double *g, CINTEnvVars *envs, int count, int nuc_id)
-//{
-//        int nmax = envs->li_ceil + envs->lj_ceil;
-//        int lj = envs->lj_ceil;
-//        int di = envs->g_stride_i;
-//        int dj = envs->g_stride_j;
-//        int nrys_roots = envs->nrys_roots;
-//        int *atm = envs->atm;
-//        double *env = envs->env;
-//        double *RESTRICT ri = envs->ri;
-//        double *RESTRICT rij = envs->rij;
-//        double *RESTRICT rirj = envs->rirj;
-//        ALIGNMM double tau[SIMDD];
-//        ALIGNMM double x[SIMDD];
-//        ALIGNMM double u[MXRYSROOTS*SIMDD];
-//        ALIGNMM double w[MXRYSROOTS*SIMDD];
-//        ALIGNMM double t2[MXRYSROOTS*SIMDD];
-//        ALIGNMM double ri0x[MXRYSROOTS*SIMDD];
-//        ALIGNMM double ri0y[MXRYSROOTS*SIMDD];
-//        ALIGNMM double ri0z[MXRYSROOTS*SIMDD];
-//        double *cr, *p0x, *p0y, *p0z, *p1x, *p1y, *p1z, *p2x, *p2y, *p2z;
-//        int i, j, k, n, ptr, off;
-//        __MD crij[3];
-//        __MD r0, r1, rt2, fac1, aijk;
-//
-//        aijk = MM_LOAD(envs->ai) + MM_LOAD(envs->aj) + MM_LOAD(envs->ak);
-//        MM_STORE(tau, aijk);
-//        for (k = 0; k < count; k++) {
-//                tau[k] = CINTnuc_mod(tau[k], nuc_id, atm, env);
-//        }
-//
-//        if (nuc_id < 0) {
-//                fac1 = 2*M_PI * MM_LOAD(envs->fac) * MM_LOAD(tau) / aijk;
-//                cr = env + PTR_RINV_ORIG;
-//        } else {
-//                fac1 = 2*M_PI * MM_SET1(-fabs(atm[CHARGE_OF+nuc_id*ATM_SLOTS]));
-//                fac1 = fac1 * MM_LOAD(envs->fac) * MM_LOAD(tau) / aijk;
-//                cr = env + atm(PTR_COORD, nuc_id);
-//        }
-//        crij[0] = cr[0] - MM_LOAD(rij+0*SIMDD);
-//        crij[1] = cr[1] - MM_LOAD(rij+1*SIMDD);
-//        crij[2] = cr[2] - MM_LOAD(rij+2*SIMDD);
-//        MM_STORE(x, aijk * MM_LOAD(tau) * MM_LOAD(tau) * SQUARE(crij));
-//        for (i = 0; i < nrys_roots*SIMDD; i++) {
-//                u[i] = 0;
-//                w[i] = 0;
-//        }
-//        CINTrys_roots(nrys_roots, x, u, w, count);
-//
-//        double *gx = g;
-//        double *gy = g + envs->g_size     * SIMDD;
-//        double *gz = g + envs->g_size * 2 * SIMDD;
-//        r1 = MM_SET1(1.);
-//        for (i = 0; i < nrys_roots; i++) {
-//                MM_STORE(gx+i*SIMDD, r1);
-//                MM_STORE(gy+i*SIMDD, r1);
-//                MM_STORE(gz+i*SIMDD, fac1 * MM_LOAD(w+i*SIMDD));
-//        }
-//        if (envs->g_size == 1) {
-//                return;
-//        }
-//
-//        r1 = MM_SET1(1.) * MM_LOAD(tau) * MM_LOAD(tau);
-//        r0 = MM_SET1(0.5);
-//        for (i = 0; i < nrys_roots; i++) {
-//                rt2 = MM_DIV(r1 * MM_LOAD(u+i*SIMDD), r1 + MM_LOAD(u+i*SIMDD));
-//                MM_STORE(ri0x+i*SIMDD, ri[0] - (MM_LOAD(rij+0*SIMDD) + rt2 * crij[0]));
-//                MM_STORE(ri0y+i*SIMDD, ri[1] - (MM_LOAD(rij+1*SIMDD) + rt2 * crij[1]));
-//                MM_STORE(ri0z+i*SIMDD, ri[2] - (MM_LOAD(rij+2*SIMDD) + rt2 * crij[2]));
-//                MM_STORE(t2+i*SIMDD, MM_DIV(r0 - r0 * rt2, aijk));
-//        }
-//
-//        double *p0x, *p0y, *p0z;
-//        double *p1x, *p1y, *p1z;
-//        double *p2x, *p2y, *p2z;
-//        p0x = gx + dj * SIMDD;
-//        p0y = gy + dj * SIMDD;
-//        p0z = gz + dj * SIMDD;
-//        p1x = gx - dj * SIMDD;
-//        p1y = gy - dj * SIMDD;
-//        p1z = gz - dj * SIMDD;
-//
-//        aijk = MM_SET1(.5) / aijk;
-//        for (j = 1; j < nmax; j++) {
-//                ptr = j * dj;
-//                for (n = ptr; n < ptr+nroots; n++) {
-//                        MM_STORE(p0x+n*SIMDD, aijk * MM_SET1(j) * MM_LOAD(p1x+n*SIMDD) + r0 * MM_LOAD(gx+n*SIMDD));
-//                        MM_STORE(p0y+n*SIMDD, aijk * MM_SET1(j) * MM_LOAD(p1y+n*SIMDD) + r1 * MM_LOAD(gy+n*SIMDD));
-//                        MM_STORE(p0z+n*SIMDD, aijk * MM_SET1(j) * MM_LOAD(p1z+n*SIMDD) + r2 * MM_LOAD(gz+n*SIMDD));
-//                }
-//        }
-//
-//        r0 = MM_SET1(rirj[0]);
-//        r1 = MM_SET1(rirj[1]);
-//        r2 = MM_SET1(rirj[2]);
-//
-//        for (i = 1; i <= li; i++) {
-//        for (j = 0; j <= nmax-i; j++) { // upper limit lj+lk
-//                off = i * di + j * dj;
-//                p0x = gx + off * SIMDD;
-//                p0y = gy + off * SIMDD;
-//                p0z = gz + off * SIMDD;
-//                p2x = p0x - di * SIMDD;
-//                p2y = p0y - di * SIMDD;
-//                p2z = p0z - di * SIMDD;
-//                p1x = p2x + dj * SIMDD;
-//                p1y = p2y + dj * SIMDD;
-//                p1z = p2z + dj * SIMDD;
-//                for (n = 0; n < nroots; n++) {
-//                        MM_STORE(p0x+n*SIMDD, MM_LOAD(p1x+n*SIMDD) - r0 * MM_LOAD(p2x+n*SIMDD));
-//                        MM_STORE(p0y+n*SIMDD, MM_LOAD(p1y+n*SIMDD) - r1 * MM_LOAD(p2y+n*SIMDD));
-//                        MM_STORE(p0z+n*SIMDD, MM_LOAD(p1z+n*SIMDD) - r2 * MM_LOAD(p2z+n*SIMDD));
-//                }
-//        } }
-//
-//        r0 = MM_SET1(rjrk[0]);
-//        r1 = MM_SET1(rjrk[1]);
-//        r2 = MM_SET1(rjrk[2]);
-//        for (k = 1; k <= lk; k++) {
-//        for (j = 0; j <= mmax-k; j++) {
-//                off = k * dk + j * dj;
-//                p0x = gx + off * SIMDD;
-//                p0y = gy + off * SIMDD;
-//                p0z = gz + off * SIMDD;
-//                p2x = p0x - dk * SIMDD;
-//                p2y = p0y - dk * SIMDD;
-//                p2z = p0z - dk * SIMDD;
-//                p1x = p2x + dj * SIMDD;
-//                p1y = p2y + dj * SIMDD;
-//                p1z = p2z + dj * SIMDD;
-//                for (i = 0; i <= li; i++) {
-//                for (n = i*di; n < i*di+nroots; n++) {
-//                        MM_STORE(p0x+n*SIMDD, MM_LOAD(p1x+n*SIMDD) + r0 * MM_LOAD(p2x+n*SIMDD));
-//                        MM_STORE(p0y+n*SIMDD, MM_LOAD(p1y+n*SIMDD) + r1 * MM_LOAD(p2y+n*SIMDD));
-//                        MM_STORE(p0z+n*SIMDD, MM_LOAD(p1z+n*SIMDD) + r2 * MM_LOAD(p2z+n*SIMDD));
-//                } }
-//        } }
-//}
+void CINTg3c1e_nuc(double *g, CINTEnvVars *envs, int count, int nuc_id)
+{
+        int li = envs->li_ceil;
+        int lj = envs->lj_ceil;
+        int lk = envs->lk_ceil;
+        int nmax = li + lj + lk;
+        int mmax = lj + lk;
+        fprintf(stderr, "3c1e_nuc function is not implemented in qcint\n");
+        exit(1);
+        int nrys_roots = envs->nrys_roots;
+        int *atm = envs->atm;
+        double *env = envs->env;
+        int di = envs->g_stride_i;
+        int dj = envs->g_stride_j;
+        int dk = envs->g_stride_k;
+        double *ri = envs->ri;
+        double *rj = envs->rj;
+        double *rk = envs->rk;
+        double *rirj = envs->rirj;
+        double *rjrk = envs->rkrl;
+        ALIGNMM double tau[SIMDD];
+        ALIGNMM double x[SIMDD];
+        ALIGNMM double u[MXRYSROOTS*SIMDD];
+        ALIGNMM double w[MXRYSROOTS*SIMDD];
+        ALIGNMM double t2[MXRYSROOTS*SIMDD];
+        ALIGNMM double r0jx[MXRYSROOTS*SIMDD];
+        ALIGNMM double r0jy[MXRYSROOTS*SIMDD];
+        ALIGNMM double r0jz[MXRYSROOTS*SIMDD];
+        ALIGNMM double rijk[3*SIMDD];
+        double *cr, *p0x, *p0y, *p0z, *p1x, *p1y, *p1z, *p2x, *p2y, *p2z;
+        int i, j, k, n, ptr, off;
+        __MD crijk[3];
+        __MD r0, r1, r2, rt2, fac1, aijk;
+
+        aijk = MM_LOAD(envs->ai) + MM_LOAD(envs->aj) + MM_LOAD(envs->ak);
+        MM_STORE(tau, aijk);
+        for (k = 0; k < count; k++) {
+                tau[k] = CINTnuc_mod(tau[k], nuc_id, atm, env);
+        }
+
+        if (nuc_id < 0) {
+                fac1 = 2*M_PI * MM_LOAD(envs->fac) * MM_LOAD(tau) / aijk;
+                cr = env + PTR_RINV_ORIG;
+        } else {
+                fac1 = 2*M_PI * MM_SET1(-fabs(atm[CHARGE_OF+nuc_id*ATM_SLOTS]));
+                fac1 = fac1 * MM_LOAD(envs->fac) * MM_LOAD(tau) / aijk;
+                cr = env + atm(PTR_COORD, nuc_id);
+        }
+
+        r0 = MM_LOAD(envs->ai) * MM_SET1(ri[0]) + MM_LOAD(envs->aj) * MM_SET1(rj[0]) + MM_LOAD(envs->ak) * MM_SET1(rk[0]);
+        r1 = MM_LOAD(envs->ai) * MM_SET1(ri[1]) + MM_LOAD(envs->aj) * MM_SET1(rj[1]) + MM_LOAD(envs->ak) * MM_SET1(rk[1]);
+        r2 = MM_LOAD(envs->ai) * MM_SET1(ri[2]) + MM_LOAD(envs->aj) * MM_SET1(rj[2]) + MM_LOAD(envs->ak) * MM_SET1(rk[2]);
+        rt2 = MM_SET1(1.) / aijk;
+        crijk[0] = cr[0] - r0 * rt2;
+        crijk[1] = cr[1] - r1 * rt2;
+        crijk[2] = cr[2] - r2 * rt2;
+        MM_STORE(x, aijk * MM_LOAD(tau) * MM_LOAD(tau) * SQUARE(crijk));
+        for (i = 0; i < nrys_roots*SIMDD; i++) {
+                u[i] = 0;
+                w[i] = 0;
+        }
+        CINTrys_roots(nrys_roots, x, u, w, count);
+
+        double *gx = g;
+        double *gy = g + envs->g_size     * SIMDD;
+        double *gz = g + envs->g_size * 2 * SIMDD;
+        r1 = MM_SET1(1.);
+        for (i = 0; i < nrys_roots; i++) {
+                MM_STORE(gx+i*SIMDD, r1);
+                MM_STORE(gy+i*SIMDD, r1);
+                MM_STORE(gz+i*SIMDD, fac1 * MM_LOAD(w+i*SIMDD));
+        }
+        if (envs->g_size == 1) {
+                return;
+        }
+
+        r1 = MM_SET1(1.) * MM_LOAD(tau) * MM_LOAD(tau);
+        r0 = MM_SET1(0.5);
+        for (i = 0; i < nrys_roots; i++) {
+                rt2 = MM_DIV(r1 * MM_LOAD(u+i*SIMDD), r1 + MM_LOAD(u+i*SIMDD));
+                MM_STORE(r0jx+i*SIMDD, MM_LOAD(rijk+0*SIMDD) + rt2 * crijk[0] - MM_SET1(rj[0]));
+                MM_STORE(r0jy+i*SIMDD, MM_LOAD(rijk+1*SIMDD) + rt2 * crijk[1] - MM_SET1(rj[1]));
+                MM_STORE(r0jz+i*SIMDD, MM_LOAD(rijk+2*SIMDD) + rt2 * crijk[2] - MM_SET1(rj[2]));
+                MM_STORE(t2+i*SIMDD, MM_DIV(r0 - r0 * rt2, aijk));
+        }
+
+        MM_STORE(gx+dj*SIMDD, r0 * MM_LOAD(gx+0));
+        MM_STORE(gy+dj*SIMDD, r1 * MM_LOAD(gy+0));
+        MM_STORE(gz+dj*SIMDD, r2 * MM_LOAD(gz+0));
+
+        p0x = gx + dj * SIMDD;
+        p0y = gy + dj * SIMDD;
+        p0z = gz + dj * SIMDD;
+        for (n = 0; n < nrys_roots; n++) {
+MM_STORE(p0x+n*SIMDD, MM_LOAD(r0jx+n*SIMDD) * MM_LOAD(gx+n*SIMDD));
+MM_STORE(p0y+n*SIMDD, MM_LOAD(r0jy+n*SIMDD) * MM_LOAD(gy+n*SIMDD));
+MM_STORE(p0z+n*SIMDD, MM_LOAD(r0jz+n*SIMDD) * MM_LOAD(gz+n*SIMDD));
+        }
+
+        p0x = gx + dj * SIMDD;
+        p0y = gy + dj * SIMDD;
+        p0z = gz + dj * SIMDD;
+        p1x = gx - dj * SIMDD;
+        p1y = gy - dj * SIMDD;
+        p1z = gz - dj * SIMDD;
+        aijk = MM_SET1(.5) / aijk;
+        for (j = 1; j < nmax; j++) {
+                ptr = j * dj;
+                for (n = 0; n < nrys_roots; n++) {
+                        r1 = MM_LOAD(t2+n*SIMDD) * MM_SET1(j);
+MM_STORE(p0x+(ptr+n)*SIMDD, r1 * MM_LOAD(p1x+(ptr+n)*SIMDD) + MM_LOAD(r0jx+n*SIMDD) * MM_LOAD(gx+(ptr+n)*SIMDD));
+MM_STORE(p0y+(ptr+n)*SIMDD, r1 * MM_LOAD(p1y+(ptr+n)*SIMDD) + MM_LOAD(r0jy+n*SIMDD) * MM_LOAD(gy+(ptr+n)*SIMDD));
+MM_STORE(p0z+(ptr+n)*SIMDD, r1 * MM_LOAD(p1z+(ptr+n)*SIMDD) + MM_LOAD(r0jz+n*SIMDD) * MM_LOAD(gz+(ptr+n)*SIMDD));
+                }
+        }
+
+        r0 = MM_SET1(rirj[0]);
+        r1 = MM_SET1(rirj[1]);
+        r2 = MM_SET1(rirj[2]);
+        
+        for (i = 1; i <= li; i++) {
+        for (j = 0; j <= nmax-i; j++) { // upper limit lj+lk
+                off = i * di + j * dj;
+                p0x = gx + off * SIMDD;
+                p0y = gy + off * SIMDD;
+                p0z = gz + off * SIMDD;
+                p2x = p0x - di * SIMDD;
+                p2y = p0y - di * SIMDD;
+                p2z = p0z - di * SIMDD;
+                p1x = p2x + dj * SIMDD;
+                p1y = p2y + dj * SIMDD;
+                p1z = p2z + dj * SIMDD;
+                for (n = 0; n < nrys_roots; n++) {
+                        MM_STORE(p0x+n*SIMDD, MM_LOAD(p1x+n*SIMDD) - r0 * MM_LOAD(p2x+n*SIMDD));
+                        MM_STORE(p0y+n*SIMDD, MM_LOAD(p1y+n*SIMDD) - r1 * MM_LOAD(p2y+n*SIMDD));
+                        MM_STORE(p0z+n*SIMDD, MM_LOAD(p1z+n*SIMDD) - r2 * MM_LOAD(p2z+n*SIMDD));
+                }
+        } }
+
+        r0 = MM_SET1(rjrk[0]);
+        r1 = MM_SET1(rjrk[1]);
+        r2 = MM_SET1(rjrk[2]);
+        for (k = 1; k <= lk; k++) {
+        for (j = 0; j <= mmax-k; j++) {
+                off = k * dk + j * dj;
+                p0x = gx + off * SIMDD;
+                p0y = gy + off * SIMDD;
+                p0z = gz + off * SIMDD;
+                p2x = p0x - dk * SIMDD;
+                p2y = p0y - dk * SIMDD;
+                p2z = p0z - dk * SIMDD;
+                p1x = p2x + dj * SIMDD;
+                p1y = p2y + dj * SIMDD;
+                p1z = p2z + dj * SIMDD;
+                for (i = 0; i <= li; i++) {
+                for (n = i*di; n < i*di+nrys_roots; n++) {
+                        MM_STORE(p0x+n*SIMDD, MM_LOAD(p1x+n*SIMDD) + r0 * MM_LOAD(p2x+n*SIMDD));
+                        MM_STORE(p0y+n*SIMDD, MM_LOAD(p1y+n*SIMDD) + r1 * MM_LOAD(p2y+n*SIMDD));
+                        MM_STORE(p0z+n*SIMDD, MM_LOAD(p1z+n*SIMDD) + r2 * MM_LOAD(p2z+n*SIMDD));
+                } }
+        } }
+}
 

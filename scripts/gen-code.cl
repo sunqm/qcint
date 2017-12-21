@@ -1479,6 +1479,120 @@ iz = idx[2+n*3];~%")
       (format fout "}}~%")
       goutinc)))
 
+(defun gen-code-gout3c1e-nuc (fout intname raw-infix flat-script)
+  (destructuring-bind (op bra-i ket-j bra-k ket-l)
+    (split-int-expression raw-infix)
+    (let* ((i-rev (effect-keys bra-i))
+           (j-rev (reverse (effect-keys ket-j)))
+           (k-rev (effect-keys bra-k))
+           (op-rev (reverse (effect-keys op)))
+           (op-len (length op-rev))
+           (i-len (length i-rev))
+           (j-len (length j-rev))
+           (k-len (length k-rev))
+           (tot-bits (+ i-len j-len op-len k-len))
+           (goutinc (length flat-script)))
+      (format fout "static void CINTgout1e_~a" intname)
+      (format fout "(double *RESTRICT gout,
+double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs, int count) {
+int nf = envs->nf;
+int nrys_roots = envs->nrys_roots;
+int nfc = nf * ~a;
+double *gout1 = gout + nfc*SIMDD;~%" goutinc)
+      (format fout "int ix, iy, iz, ia, n, i;
+double *RESTRICT g0 = g;~%")
+      (if (intersection *act-left-right* op)
+        (loop for i in (range (ash 1 tot-bits)) do
+              (format fout "double *RESTRICT g~a = g~a + envs->g_size * 3 * SIMDD;~%" (1+ i) i))
+        (loop for i in (range (1- (ash 1 tot-bits))) do
+              (format fout "double *RESTRICT g~a = g~a + envs->g_size * 3 * SIMDD;~%" (1+ i) i)))
+      (dump-declare-dri-for-rc fout bra-i "i")
+      (dump-declare-dri-for-rc fout (append op ket-j) "j")
+      (dump-declare-dri-for-rc fout bra-k "k")
+      (dump-declare-giao-ij fout bra-i (append op ket-j))
+      (format fout "__MD r1;
+__MD rs[~a];~%" (expt 3 tot-bits))
+      (format fout "for (n = 0; n < nfc*SIMDD; n++) { gout1[n] = 0; }
+for (ia = 0; ia < envs->natm; ia++) {
+CINTg3c1e_nuc(g, envs, count, ia);~%")
+      (let ((fmt-i "G2E_~aI(g~a, g~a, envs->i_l+~a, envs->j_l, envs->k_l, 0);~%")
+            (fmt-op (mkstr "G2E_~aJ(g~a, g~a, envs->i_l+~d, envs->j_l+~a, envs->k_l, 0);
+G2E_~aI(g~a, g~a, envs->i_l+~a, envs->j_l+~a, envs->k_l, 0);
+for (ix = 0; ix < envs->g_size * 3 * SIMDD; ix++) {g~a[ix] += g~a[ix];}~%"))
+            (fmt-j (mkstr "G2E_~aJ(g~a, g~a, envs->i_l+~d, envs->j_l+~a, envs->k_l, 0);~%")))
+        (dump-combo-braket fout fmt-i fmt-op fmt-j i-rev op-rev j-rev k-len))
+      (format fout "for (n = 0; n < nf; n++) {
+ix = idx[0+n*3];
+iy = idx[1+n*3];
+iz = idx[2+n*3];
+for (i = 0; i < ~a; i++) { rs[i] = MM_SET1(0.); }
+for (i = 0; i < nrys_roots; i++) {~%" (expt 3 tot-bits))
+      (dump-s-loop-avx fout tot-bits)
+      (format fout "}~%")
+      (let ((assemb (to-c-code-string fout #'cell-converter-avx flat-script)))
+        (loop for s in assemb
+              for gid from 0 do
+              (unless (equal s " 0")
+                (format fout "r1 = MM_LOAD(gout1+(n*~a+~a)*SIMDD) +~a; " goutinc gid s)
+                (format fout "MM_STORE(gout1+(n*~a+~a)*SIMDD, r1);~%" goutinc gid))))
+      (format fout "}
+}
+CINTsort_gout(gout, gout1, nfc, SIMDD);
+}~%" goutinc)
+      goutinc)))
+
+(defun gen-code-gout3c1e-rinv (fout intname raw-infix flat-script)
+  (destructuring-bind (op bra-i ket-j bra-k ket-l)
+    (split-int-expression raw-infix)
+    (let* ((i-rev (effect-keys bra-i))
+           (j-rev (reverse (effect-keys ket-j)))
+           (k-rev (effect-keys bra-k))
+           (op-rev (reverse (effect-keys op)))
+           (op-len (length op-rev))
+           (i-len (length i-rev))
+           (j-len (length j-rev))
+           (k-len (length k-rev))
+           (tot-bits (+ i-len j-len op-len k-len))
+           (goutinc (length flat-script)))
+      (format fout "static void CINTgout1e_~a" intname)
+      (format fout "(double *RESTRICT gout,
+double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs, int count) {
+CINTg1e_nuc(g, envs, count, -1);
+int nf = envs->nf;
+int nrys_roots = envs->nrys_roots;
+int nfc = nf * ~a;~%" goutinc)
+      (format fout "int ix, iy, iz, ia, n, i;
+DECLARE_GOUT;
+double *RESTRICT g0 = g;~%")
+      (if (intersection *act-left-right* op)
+        (loop for i in (range (ash 1 tot-bits)) do
+              (format fout "double *RESTRICT g~a = g~a + envs->g_size * 3 * SIMDD;~%" (1+ i) i))
+        (loop for i in (range (1- (ash 1 tot-bits))) do
+              (format fout "double *RESTRICT g~a = g~a + envs->g_size * 3 * SIMDD;~%" (1+ i) i)))
+      (dump-declare-dri-for-rc fout bra-i "i")
+      (dump-declare-dri-for-rc fout (append op ket-j) "j")
+      (dump-declare-dri-for-rc fout bra-k "k")
+      (dump-declare-giao-ij fout bra-i (append op ket-j))
+      (format fout "__MD r1;
+__MD rs[~a];~%" (expt 3 tot-bits))
+      (let ((fmt-i "G2E_~aI(g~a, g~a, envs->i_l+~a, envs->j_l, envs->k_l, 0);~%")
+            (fmt-op (mkstr "G2E_~aJ(g~a, g~a, envs->i_l+~d, envs->j_l+~a, envs->k_l, 0);
+G2E_~aI(g~a, g~a, envs->i_l+~a, envs->j_l+~a, envs->k_l, 0);
+for (ix = 0; ix < envs->g_size * 3 * SIMDD; ix++) {g~a[ix] += g~a[ix];}~%"))
+            (fmt-j (mkstr "G2E_~aJ(g~a, g~a, envs->i_l+~d, envs->j_l+~a, envs->k_l, 0);~%")))
+        (dump-combo-braket fout fmt-i fmt-op fmt-j i-rev op-rev j-rev k-len))
+      (format fout "for (n = 0; n < nf; n++) {
+ix = idx[0+n*3];
+iy = idx[1+n*3];
+iz = idx[2+n*3];
+for (i = 0; i < ~a; i++) { rs[i] = MM_SET1(0.); }
+for (i = 0; i < nrys_roots; i++) {~%" (expt 3 tot-bits))
+      (dump-s-loop-avx fout tot-bits)
+      (format fout "}~%")
+      (gen-c-block-avx fout flat-script)
+      (format fout "}}~%")
+      goutinc)))
+
 (defun gen-code-int3c1e (fout intname raw-infix)
   (destructuring-bind (op bra-i ket-j bra-k ket-l)
     (split-int-expression raw-infix)

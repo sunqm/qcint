@@ -1456,3 +1456,1483 @@ return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_2e1, &c2s_sf_2e2)
 } // int2e_ip1ip2_spinor
 ALL_CINT(int2e_ip1ip2)
 //ALL_CINT_FORTRAN_(cint2e_ip1ip2)
+/* <NABLA NABLA i|P* NUC DOT P |j> */
+static void CINTgout1e_int1e_ipippnucp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+int nf = envs->nf;
+int nrys_roots = envs->nrys_roots;
+int nfc = nf * 9;
+double *gout1 = gout + nfc*SIMDD;
+int ix, iy, iz, ia, n, i;
+double *RESTRICT g0 = g;
+double *RESTRICT g1 = g0  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g2 = g1  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g3 = g2  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g4 = g3  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g5 = g4  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g6 = g5  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g7 = g6  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g8 = g7  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g9 = g8  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g10 = g9  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g11 = g10  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g12 = g11  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g13 = g12  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g14 = g13  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g15 = g14  + envs->g_size * 3 * SIMDD;
+__MD r1;
+__MD rs[81];
+for (n = 0; n < nfc*SIMDD; n++) { gout1[n] = 0; }
+for (ia = 0; ia < envs->natm; ia++) {
+CINTg1e_nuc(g, envs, count, ia);
+G2E_D_J(g1, g0, envs->i_l+2, envs->j_l+0, 0, 0);
+G2E_D_J(g2, g0, envs->i_l+2, envs->j_l+1, 0, 0);
+G2E_D_J(g3, g2, envs->i_l+2, envs->j_l+0, 0, 0);
+G2E_D_I(g4, g0, envs->i_l+1, envs->j_l, 0, 0);
+G2E_D_I(g5, g1, envs->i_l+1, envs->j_l, 0, 0);
+G2E_D_I(g6, g2, envs->i_l+1, envs->j_l, 0, 0);
+G2E_D_I(g7, g3, envs->i_l+1, envs->j_l, 0, 0);
+G2E_D_I(g8, g0, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g9, g1, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g10, g2, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g11, g3, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g12, g4, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g13, g5, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g14, g6, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g15, g7, envs->i_l+0, envs->j_l, 0, 0);
+for (n = 0; n < nf; n++) {
+ix = idx[0+n*3];
+iy = idx[1+n*3];
+iz = idx[2+n*3];
+for (i = 0; i < 81; i++) { rs[i] = MM_SET1(0.); }
+for (i = 0; i < nrys_roots; i++) {
+rs[0] += MM_LOAD(g15+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[1] += MM_LOAD(g14+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[2] += MM_LOAD(g14+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[3] += MM_LOAD(g13+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[4] += MM_LOAD(g12+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[5] += MM_LOAD(g12+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[6] += MM_LOAD(g13+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[7] += MM_LOAD(g12+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[8] += MM_LOAD(g12+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[9] += MM_LOAD(g11+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[10] += MM_LOAD(g10+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[11] += MM_LOAD(g10+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[12] += MM_LOAD(g9+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[13] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g7+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[14] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[15] += MM_LOAD(g9+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[16] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[17] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[18] += MM_LOAD(g11+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[19] += MM_LOAD(g10+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[20] += MM_LOAD(g10+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[21] += MM_LOAD(g9+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[22] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[23] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[24] += MM_LOAD(g9+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[25] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[26] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g7+(iz+i)*SIMDD);
+rs[27] += MM_LOAD(g7+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[28] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g9+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[29] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[30] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g10+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[31] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g11+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[32] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g10+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[33] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[34] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g9+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[35] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[36] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g12+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[37] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g13+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[38] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g12+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[39] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g14+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[40] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g15+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[41] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g14+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[42] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g12+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[43] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g13+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[44] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g12+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[45] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[46] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g9+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[47] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[48] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g10+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[49] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g11+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[50] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g10+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[51] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[52] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g9+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[53] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g7+(iz+i)*SIMDD);
+rs[54] += MM_LOAD(g7+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[55] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[56] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g9+(iz+i)*SIMDD);
+rs[57] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[58] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[59] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g9+(iz+i)*SIMDD);
+rs[60] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g10+(iz+i)*SIMDD);
+rs[61] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g10+(iz+i)*SIMDD);
+rs[62] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g11+(iz+i)*SIMDD);
+rs[63] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[64] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[65] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g9+(iz+i)*SIMDD);
+rs[66] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[67] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g7+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[68] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g9+(iz+i)*SIMDD);
+rs[69] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g10+(iz+i)*SIMDD);
+rs[70] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g10+(iz+i)*SIMDD);
+rs[71] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g11+(iz+i)*SIMDD);
+rs[72] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g12+(iz+i)*SIMDD);
+rs[73] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g12+(iz+i)*SIMDD);
+rs[74] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g13+(iz+i)*SIMDD);
+rs[75] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g12+(iz+i)*SIMDD);
+rs[76] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g12+(iz+i)*SIMDD);
+rs[77] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g13+(iz+i)*SIMDD);
+rs[78] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g14+(iz+i)*SIMDD);
+rs[79] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g14+(iz+i)*SIMDD);
+rs[80] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g15+(iz+i)*SIMDD);
+}
+r1 = MM_LOAD(gout1+(n*9+0)*SIMDD) + - rs[0] - rs[4] - rs[8]; MM_STORE(gout1+(n*9+0)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*9+1)*SIMDD) + - rs[27] - rs[31] - rs[35]; MM_STORE(gout1+(n*9+1)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*9+2)*SIMDD) + - rs[54] - rs[58] - rs[62]; MM_STORE(gout1+(n*9+2)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*9+3)*SIMDD) + - rs[9] - rs[13] - rs[17]; MM_STORE(gout1+(n*9+3)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*9+4)*SIMDD) + - rs[36] - rs[40] - rs[44]; MM_STORE(gout1+(n*9+4)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*9+5)*SIMDD) + - rs[63] - rs[67] - rs[71]; MM_STORE(gout1+(n*9+5)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*9+6)*SIMDD) + - rs[18] - rs[22] - rs[26]; MM_STORE(gout1+(n*9+6)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*9+7)*SIMDD) + - rs[45] - rs[49] - rs[53]; MM_STORE(gout1+(n*9+7)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*9+8)*SIMDD) + - rs[72] - rs[76] - rs[80]; MM_STORE(gout1+(n*9+8)*SIMDD, r1);
+}
+}
+CINTsort_gout(gout, gout1, nfc, SIMDD);
+}
+void int1e_ipippnucp_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
+int ng[] = {2, 2, 0, 0, 4, 1, 0, 9};
+CINTall_1e_optimizer(opt, ng, atm, natm, bas, nbas, env);
+}
+int int1e_ipippnucp_cart(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {2, 2, 0, 0, 4, 1, 0, 9};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_ipippnucp;
+return CINT1e_drv(out, dims, &envs, opt, cache, &c2s_cart_1e);
+} // int1e_ipippnucp_cart
+int int1e_ipippnucp_sph(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {2, 2, 0, 0, 4, 1, 0, 9};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_ipippnucp;
+return CINT1e_drv(out, dims, &envs, opt, cache, &c2s_sph_1e);
+} // int1e_ipippnucp_sph
+int int1e_ipippnucp_spinor(double complex *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {2, 2, 0, 0, 4, 1, 0, 9};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_ipippnucp;
+return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_1e);
+} // int1e_ipippnucp_spinor
+ALL_CINT1E(int1e_ipippnucp)
+//ALL_CINT1E_FORTRAN_(cint1e_ipippnucp)
+/* <NABLA i|P* NUC DOT P |NABLA j> */
+static void CINTgout1e_int1e_ippnucpip(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+int nf = envs->nf;
+int nrys_roots = envs->nrys_roots;
+int nfc = nf * 9;
+double *gout1 = gout + nfc*SIMDD;
+int ix, iy, iz, ia, n, i;
+double *RESTRICT g0 = g;
+double *RESTRICT g1 = g0  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g2 = g1  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g3 = g2  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g4 = g3  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g5 = g4  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g6 = g5  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g7 = g6  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g8 = g7  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g9 = g8  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g10 = g9  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g11 = g10  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g12 = g11  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g13 = g12  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g14 = g13  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g15 = g14  + envs->g_size * 3 * SIMDD;
+__MD r1;
+__MD rs[81];
+for (n = 0; n < nfc*SIMDD; n++) { gout1[n] = 0; }
+for (ia = 0; ia < envs->natm; ia++) {
+CINTg1e_nuc(g, envs, count, ia);
+G2E_D_J(g1, g0, envs->i_l+1, envs->j_l+0, 0, 0);
+G2E_D_J(g2, g0, envs->i_l+1, envs->j_l+1, 0, 0);
+G2E_D_J(g3, g2, envs->i_l+1, envs->j_l+0, 0, 0);
+G2E_D_J(g4, g0, envs->i_l+1, envs->j_l+2, 0, 0);
+G2E_D_J(g5, g4, envs->i_l+1, envs->j_l+0, 0, 0);
+G2E_D_J(g6, g4, envs->i_l+1, envs->j_l+1, 0, 0);
+G2E_D_J(g7, g6, envs->i_l+1, envs->j_l+0, 0, 0);
+G2E_D_I(g8, g0, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g9, g1, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g10, g2, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g11, g3, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g12, g4, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g13, g5, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g14, g6, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g15, g7, envs->i_l+0, envs->j_l, 0, 0);
+for (n = 0; n < nf; n++) {
+ix = idx[0+n*3];
+iy = idx[1+n*3];
+iz = idx[2+n*3];
+for (i = 0; i < 81; i++) { rs[i] = MM_SET1(0.); }
+for (i = 0; i < nrys_roots; i++) {
+rs[0] += MM_LOAD(g15+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[1] += MM_LOAD(g14+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[2] += MM_LOAD(g14+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[3] += MM_LOAD(g13+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[4] += MM_LOAD(g12+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[5] += MM_LOAD(g12+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[6] += MM_LOAD(g13+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[7] += MM_LOAD(g12+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[8] += MM_LOAD(g12+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[9] += MM_LOAD(g11+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[10] += MM_LOAD(g10+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[11] += MM_LOAD(g10+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[12] += MM_LOAD(g9+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[13] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g7+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[14] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[15] += MM_LOAD(g9+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[16] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[17] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[18] += MM_LOAD(g11+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[19] += MM_LOAD(g10+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[20] += MM_LOAD(g10+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[21] += MM_LOAD(g9+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[22] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[23] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[24] += MM_LOAD(g9+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[25] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[26] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g7+(iz+i)*SIMDD);
+rs[27] += MM_LOAD(g7+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[28] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g9+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[29] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[30] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g10+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[31] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g11+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[32] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g10+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[33] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[34] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g9+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[35] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[36] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g12+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[37] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g13+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[38] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g12+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[39] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g14+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[40] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g15+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[41] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g14+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[42] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g12+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[43] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g13+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[44] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g12+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[45] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[46] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g9+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[47] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[48] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g10+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[49] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g11+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[50] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g10+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[51] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[52] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g9+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[53] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g7+(iz+i)*SIMDD);
+rs[54] += MM_LOAD(g7+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[55] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[56] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g9+(iz+i)*SIMDD);
+rs[57] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[58] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[59] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g9+(iz+i)*SIMDD);
+rs[60] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g10+(iz+i)*SIMDD);
+rs[61] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g10+(iz+i)*SIMDD);
+rs[62] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g11+(iz+i)*SIMDD);
+rs[63] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[64] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[65] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g9+(iz+i)*SIMDD);
+rs[66] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[67] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g7+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[68] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g9+(iz+i)*SIMDD);
+rs[69] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g10+(iz+i)*SIMDD);
+rs[70] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g10+(iz+i)*SIMDD);
+rs[71] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g11+(iz+i)*SIMDD);
+rs[72] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g12+(iz+i)*SIMDD);
+rs[73] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g12+(iz+i)*SIMDD);
+rs[74] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g13+(iz+i)*SIMDD);
+rs[75] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g12+(iz+i)*SIMDD);
+rs[76] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g12+(iz+i)*SIMDD);
+rs[77] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g13+(iz+i)*SIMDD);
+rs[78] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g14+(iz+i)*SIMDD);
+rs[79] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g14+(iz+i)*SIMDD);
+rs[80] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g15+(iz+i)*SIMDD);
+}
+r1 = MM_LOAD(gout1+(n*9+0)*SIMDD) + - rs[0] - rs[12] - rs[24]; MM_STORE(gout1+(n*9+0)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*9+1)*SIMDD) + - rs[1] - rs[13] - rs[25]; MM_STORE(gout1+(n*9+1)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*9+2)*SIMDD) + - rs[2] - rs[14] - rs[26]; MM_STORE(gout1+(n*9+2)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*9+3)*SIMDD) + - rs[27] - rs[39] - rs[51]; MM_STORE(gout1+(n*9+3)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*9+4)*SIMDD) + - rs[28] - rs[40] - rs[52]; MM_STORE(gout1+(n*9+4)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*9+5)*SIMDD) + - rs[29] - rs[41] - rs[53]; MM_STORE(gout1+(n*9+5)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*9+6)*SIMDD) + - rs[54] - rs[66] - rs[78]; MM_STORE(gout1+(n*9+6)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*9+7)*SIMDD) + - rs[55] - rs[67] - rs[79]; MM_STORE(gout1+(n*9+7)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*9+8)*SIMDD) + - rs[56] - rs[68] - rs[80]; MM_STORE(gout1+(n*9+8)*SIMDD, r1);
+}
+}
+CINTsort_gout(gout, gout1, nfc, SIMDD);
+}
+void int1e_ippnucpip_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
+int ng[] = {1, 3, 0, 0, 4, 1, 0, 9};
+CINTall_1e_optimizer(opt, ng, atm, natm, bas, nbas, env);
+}
+int int1e_ippnucpip_cart(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {1, 3, 0, 0, 4, 1, 0, 9};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_ippnucpip;
+return CINT1e_drv(out, dims, &envs, opt, cache, &c2s_cart_1e);
+} // int1e_ippnucpip_cart
+int int1e_ippnucpip_sph(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {1, 3, 0, 0, 4, 1, 0, 9};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_ippnucpip;
+return CINT1e_drv(out, dims, &envs, opt, cache, &c2s_sph_1e);
+} // int1e_ippnucpip_sph
+int int1e_ippnucpip_spinor(double complex *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {1, 3, 0, 0, 4, 1, 0, 9};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_ippnucpip;
+return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_1e);
+} // int1e_ippnucpip_spinor
+ALL_CINT1E(int1e_ippnucpip)
+//ALL_CINT1E_FORTRAN_(cint1e_ippnucpip)
+/* <NABLA NABLA i|P* RINV DOT P |j> */
+static void CINTgout1e_int1e_ipipprinvp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+CINTg1e_nuc(g, envs, count, -1);
+int nf = envs->nf;
+int nfc = nf * 9;
+int nrys_roots = envs->nrys_roots;
+int ix, iy, iz, n, i;
+DECLARE_GOUT;
+double *RESTRICT g0 = g;
+double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g3 = g2 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g4 = g3 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g5 = g4 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g6 = g5 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g7 = g6 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g8 = g7 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g9 = g8 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g10 = g9 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g11 = g10 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g12 = g11 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g13 = g12 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g14 = g13 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g15 = g14 + envs->g_size * 3 * SIMDD;
+__MD r1;
+__MD rs[81];
+G2E_D_J(g1, g0, envs->i_l+2, envs->j_l+0, 0, 0);
+G2E_D_J(g2, g0, envs->i_l+2, envs->j_l+1, 0, 0);
+G2E_D_J(g3, g2, envs->i_l+2, envs->j_l+0, 0, 0);
+G2E_D_I(g4, g0, envs->i_l+1, envs->j_l, 0, 0);
+G2E_D_I(g5, g1, envs->i_l+1, envs->j_l, 0, 0);
+G2E_D_I(g6, g2, envs->i_l+1, envs->j_l, 0, 0);
+G2E_D_I(g7, g3, envs->i_l+1, envs->j_l, 0, 0);
+G2E_D_I(g8, g0, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g9, g1, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g10, g2, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g11, g3, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g12, g4, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g13, g5, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g14, g6, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g15, g7, envs->i_l+0, envs->j_l, 0, 0);
+for (n = 0; n < nf; n++) {
+ix = idx[0+n*3];
+iy = idx[1+n*3];
+iz = idx[2+n*3];
+for (i = 0; i < 81; i++) { rs[i] = MM_SET1(0.); }
+for (i = 0; i < nrys_roots; i++) {
+rs[0] += MM_LOAD(g15+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[1] += MM_LOAD(g14+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[2] += MM_LOAD(g14+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[3] += MM_LOAD(g13+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[4] += MM_LOAD(g12+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[5] += MM_LOAD(g12+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[6] += MM_LOAD(g13+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[7] += MM_LOAD(g12+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[8] += MM_LOAD(g12+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[9] += MM_LOAD(g11+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[10] += MM_LOAD(g10+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[11] += MM_LOAD(g10+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[12] += MM_LOAD(g9+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[13] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g7+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[14] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[15] += MM_LOAD(g9+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[16] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[17] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[18] += MM_LOAD(g11+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[19] += MM_LOAD(g10+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[20] += MM_LOAD(g10+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[21] += MM_LOAD(g9+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[22] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[23] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[24] += MM_LOAD(g9+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[25] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[26] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g7+(iz+i)*SIMDD);
+rs[27] += MM_LOAD(g7+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[28] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g9+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[29] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[30] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g10+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[31] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g11+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[32] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g10+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[33] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[34] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g9+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[35] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[36] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g12+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[37] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g13+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[38] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g12+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[39] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g14+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[40] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g15+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[41] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g14+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[42] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g12+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[43] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g13+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[44] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g12+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[45] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[46] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g9+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[47] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[48] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g10+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[49] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g11+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[50] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g10+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[51] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[52] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g9+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[53] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g7+(iz+i)*SIMDD);
+rs[54] += MM_LOAD(g7+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[55] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[56] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g9+(iz+i)*SIMDD);
+rs[57] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[58] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[59] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g9+(iz+i)*SIMDD);
+rs[60] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g10+(iz+i)*SIMDD);
+rs[61] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g10+(iz+i)*SIMDD);
+rs[62] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g11+(iz+i)*SIMDD);
+rs[63] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[64] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[65] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g9+(iz+i)*SIMDD);
+rs[66] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[67] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g7+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[68] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g9+(iz+i)*SIMDD);
+rs[69] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g10+(iz+i)*SIMDD);
+rs[70] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g10+(iz+i)*SIMDD);
+rs[71] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g11+(iz+i)*SIMDD);
+rs[72] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g12+(iz+i)*SIMDD);
+rs[73] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g12+(iz+i)*SIMDD);
+rs[74] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g13+(iz+i)*SIMDD);
+rs[75] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g12+(iz+i)*SIMDD);
+rs[76] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g12+(iz+i)*SIMDD);
+rs[77] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g13+(iz+i)*SIMDD);
+rs[78] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g14+(iz+i)*SIMDD);
+rs[79] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g14+(iz+i)*SIMDD);
+rs[80] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g15+(iz+i)*SIMDD);
+}
+r1 = - rs[0] - rs[4] - rs[8]; GOUT_SCATTER(gout, n*9+0, r1);
+r1 = - rs[27] - rs[31] - rs[35]; GOUT_SCATTER(gout, n*9+1, r1);
+r1 = - rs[54] - rs[58] - rs[62]; GOUT_SCATTER(gout, n*9+2, r1);
+r1 = - rs[9] - rs[13] - rs[17]; GOUT_SCATTER(gout, n*9+3, r1);
+r1 = - rs[36] - rs[40] - rs[44]; GOUT_SCATTER(gout, n*9+4, r1);
+r1 = - rs[63] - rs[67] - rs[71]; GOUT_SCATTER(gout, n*9+5, r1);
+r1 = - rs[18] - rs[22] - rs[26]; GOUT_SCATTER(gout, n*9+6, r1);
+r1 = - rs[45] - rs[49] - rs[53]; GOUT_SCATTER(gout, n*9+7, r1);
+r1 = - rs[72] - rs[76] - rs[80]; GOUT_SCATTER(gout, n*9+8, r1);
+}}
+void int1e_ipipprinvp_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
+int ng[] = {2, 2, 0, 0, 4, 1, 0, 9};
+CINTall_1e_optimizer(opt, ng, atm, natm, bas, nbas, env);
+}
+int int1e_ipipprinvp_cart(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {2, 2, 0, 0, 4, 1, 0, 9};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_ipipprinvp;
+return CINT1e_drv(out, dims, &envs, opt, cache, &c2s_cart_1e);
+} // int1e_ipipprinvp_cart
+int int1e_ipipprinvp_sph(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {2, 2, 0, 0, 4, 1, 0, 9};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_ipipprinvp;
+return CINT1e_drv(out, dims, &envs, opt, cache, &c2s_sph_1e);
+} // int1e_ipipprinvp_sph
+int int1e_ipipprinvp_spinor(double complex *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {2, 2, 0, 0, 4, 1, 0, 9};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_ipipprinvp;
+return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_1e);
+} // int1e_ipipprinvp_spinor
+ALL_CINT1E(int1e_ipipprinvp)
+//ALL_CINT1E_FORTRAN_(cint1e_ipipprinvp)
+/* <NABLA i|P* RINV DOT P |NABLA j> */
+static void CINTgout1e_int1e_ipprinvpip(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+CINTg1e_nuc(g, envs, count, -1);
+int nf = envs->nf;
+int nfc = nf * 9;
+int nrys_roots = envs->nrys_roots;
+int ix, iy, iz, n, i;
+DECLARE_GOUT;
+double *RESTRICT g0 = g;
+double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g3 = g2 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g4 = g3 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g5 = g4 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g6 = g5 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g7 = g6 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g8 = g7 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g9 = g8 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g10 = g9 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g11 = g10 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g12 = g11 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g13 = g12 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g14 = g13 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g15 = g14 + envs->g_size * 3 * SIMDD;
+__MD r1;
+__MD rs[81];
+G2E_D_J(g1, g0, envs->i_l+1, envs->j_l+0, 0, 0);
+G2E_D_J(g2, g0, envs->i_l+1, envs->j_l+1, 0, 0);
+G2E_D_J(g3, g2, envs->i_l+1, envs->j_l+0, 0, 0);
+G2E_D_J(g4, g0, envs->i_l+1, envs->j_l+2, 0, 0);
+G2E_D_J(g5, g4, envs->i_l+1, envs->j_l+0, 0, 0);
+G2E_D_J(g6, g4, envs->i_l+1, envs->j_l+1, 0, 0);
+G2E_D_J(g7, g6, envs->i_l+1, envs->j_l+0, 0, 0);
+G2E_D_I(g8, g0, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g9, g1, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g10, g2, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g11, g3, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g12, g4, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g13, g5, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g14, g6, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g15, g7, envs->i_l+0, envs->j_l, 0, 0);
+for (n = 0; n < nf; n++) {
+ix = idx[0+n*3];
+iy = idx[1+n*3];
+iz = idx[2+n*3];
+for (i = 0; i < 81; i++) { rs[i] = MM_SET1(0.); }
+for (i = 0; i < nrys_roots; i++) {
+rs[0] += MM_LOAD(g15+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[1] += MM_LOAD(g14+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[2] += MM_LOAD(g14+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[3] += MM_LOAD(g13+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[4] += MM_LOAD(g12+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[5] += MM_LOAD(g12+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[6] += MM_LOAD(g13+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[7] += MM_LOAD(g12+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[8] += MM_LOAD(g12+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[9] += MM_LOAD(g11+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[10] += MM_LOAD(g10+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[11] += MM_LOAD(g10+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[12] += MM_LOAD(g9+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[13] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g7+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[14] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[15] += MM_LOAD(g9+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[16] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[17] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[18] += MM_LOAD(g11+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[19] += MM_LOAD(g10+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[20] += MM_LOAD(g10+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[21] += MM_LOAD(g9+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[22] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[23] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[24] += MM_LOAD(g9+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[25] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[26] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g7+(iz+i)*SIMDD);
+rs[27] += MM_LOAD(g7+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[28] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g9+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[29] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[30] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g10+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[31] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g11+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[32] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g10+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[33] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[34] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g9+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[35] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[36] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g12+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[37] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g13+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[38] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g12+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[39] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g14+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[40] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g15+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[41] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g14+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[42] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g12+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[43] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g13+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[44] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g12+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[45] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[46] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g9+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[47] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[48] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g10+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[49] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g11+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[50] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g10+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[51] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[52] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g9+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[53] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g7+(iz+i)*SIMDD);
+rs[54] += MM_LOAD(g7+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[55] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[56] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g9+(iz+i)*SIMDD);
+rs[57] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[58] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[59] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g9+(iz+i)*SIMDD);
+rs[60] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g10+(iz+i)*SIMDD);
+rs[61] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g10+(iz+i)*SIMDD);
+rs[62] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g11+(iz+i)*SIMDD);
+rs[63] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[64] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[65] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g9+(iz+i)*SIMDD);
+rs[66] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[67] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g7+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[68] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g9+(iz+i)*SIMDD);
+rs[69] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g10+(iz+i)*SIMDD);
+rs[70] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g10+(iz+i)*SIMDD);
+rs[71] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g11+(iz+i)*SIMDD);
+rs[72] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g12+(iz+i)*SIMDD);
+rs[73] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g12+(iz+i)*SIMDD);
+rs[74] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g13+(iz+i)*SIMDD);
+rs[75] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g12+(iz+i)*SIMDD);
+rs[76] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g12+(iz+i)*SIMDD);
+rs[77] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g13+(iz+i)*SIMDD);
+rs[78] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g14+(iz+i)*SIMDD);
+rs[79] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g14+(iz+i)*SIMDD);
+rs[80] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g15+(iz+i)*SIMDD);
+}
+r1 = - rs[0] - rs[12] - rs[24]; GOUT_SCATTER(gout, n*9+0, r1);
+r1 = - rs[1] - rs[13] - rs[25]; GOUT_SCATTER(gout, n*9+1, r1);
+r1 = - rs[2] - rs[14] - rs[26]; GOUT_SCATTER(gout, n*9+2, r1);
+r1 = - rs[27] - rs[39] - rs[51]; GOUT_SCATTER(gout, n*9+3, r1);
+r1 = - rs[28] - rs[40] - rs[52]; GOUT_SCATTER(gout, n*9+4, r1);
+r1 = - rs[29] - rs[41] - rs[53]; GOUT_SCATTER(gout, n*9+5, r1);
+r1 = - rs[54] - rs[66] - rs[78]; GOUT_SCATTER(gout, n*9+6, r1);
+r1 = - rs[55] - rs[67] - rs[79]; GOUT_SCATTER(gout, n*9+7, r1);
+r1 = - rs[56] - rs[68] - rs[80]; GOUT_SCATTER(gout, n*9+8, r1);
+}}
+void int1e_ipprinvpip_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
+int ng[] = {1, 3, 0, 0, 4, 1, 0, 9};
+CINTall_1e_optimizer(opt, ng, atm, natm, bas, nbas, env);
+}
+int int1e_ipprinvpip_cart(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {1, 3, 0, 0, 4, 1, 0, 9};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_ipprinvpip;
+return CINT1e_drv(out, dims, &envs, opt, cache, &c2s_cart_1e);
+} // int1e_ipprinvpip_cart
+int int1e_ipprinvpip_sph(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {1, 3, 0, 0, 4, 1, 0, 9};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_ipprinvpip;
+return CINT1e_drv(out, dims, &envs, opt, cache, &c2s_sph_1e);
+} // int1e_ipprinvpip_sph
+int int1e_ipprinvpip_spinor(double complex *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {1, 3, 0, 0, 4, 1, 0, 9};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_ipprinvpip;
+return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_1e);
+} // int1e_ipprinvpip_spinor
+ALL_CINT1E(int1e_ipprinvpip)
+//ALL_CINT1E_FORTRAN_(cint1e_ipprinvpip)
+/* <NABLA NABLA i|SIGMA DOT P NUC SIGMA DOT P |j> */
+static void CINTgout1e_int1e_ipipspnucsp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+int nf = envs->nf;
+int nrys_roots = envs->nrys_roots;
+int nfc = nf * 36;
+double *gout1 = gout + nfc*SIMDD;
+int ix, iy, iz, ia, n, i;
+double *RESTRICT g0 = g;
+double *RESTRICT g1 = g0  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g2 = g1  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g3 = g2  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g4 = g3  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g5 = g4  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g6 = g5  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g7 = g6  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g8 = g7  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g9 = g8  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g10 = g9  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g11 = g10  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g12 = g11  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g13 = g12  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g14 = g13  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g15 = g14  + envs->g_size * 3 * SIMDD;
+__MD r1;
+__MD rs[81];
+for (n = 0; n < nfc*SIMDD; n++) { gout1[n] = 0; }
+for (ia = 0; ia < envs->natm; ia++) {
+CINTg1e_nuc(g, envs, count, ia);
+G2E_D_J(g1, g0, envs->i_l+2, envs->j_l+0, 0, 0);
+G2E_D_J(g2, g0, envs->i_l+2, envs->j_l+1, 0, 0);
+G2E_D_J(g3, g2, envs->i_l+2, envs->j_l+0, 0, 0);
+G2E_D_I(g4, g0, envs->i_l+1, envs->j_l, 0, 0);
+G2E_D_I(g5, g1, envs->i_l+1, envs->j_l, 0, 0);
+G2E_D_I(g6, g2, envs->i_l+1, envs->j_l, 0, 0);
+G2E_D_I(g7, g3, envs->i_l+1, envs->j_l, 0, 0);
+G2E_D_I(g8, g0, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g9, g1, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g10, g2, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g11, g3, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g12, g4, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g13, g5, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g14, g6, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g15, g7, envs->i_l+0, envs->j_l, 0, 0);
+for (n = 0; n < nf; n++) {
+ix = idx[0+n*3];
+iy = idx[1+n*3];
+iz = idx[2+n*3];
+for (i = 0; i < 81; i++) { rs[i] = MM_SET1(0.); }
+for (i = 0; i < nrys_roots; i++) {
+rs[0] += MM_LOAD(g15+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[1] += MM_LOAD(g14+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[2] += MM_LOAD(g14+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[3] += MM_LOAD(g13+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[4] += MM_LOAD(g12+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[5] += MM_LOAD(g12+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[6] += MM_LOAD(g13+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[7] += MM_LOAD(g12+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[8] += MM_LOAD(g12+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[9] += MM_LOAD(g11+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[10] += MM_LOAD(g10+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[11] += MM_LOAD(g10+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[12] += MM_LOAD(g9+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[13] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g7+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[14] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[15] += MM_LOAD(g9+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[16] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[17] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[18] += MM_LOAD(g11+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[19] += MM_LOAD(g10+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[20] += MM_LOAD(g10+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[21] += MM_LOAD(g9+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[22] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[23] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[24] += MM_LOAD(g9+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[25] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[26] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g7+(iz+i)*SIMDD);
+rs[27] += MM_LOAD(g7+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[28] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g9+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[29] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[30] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g10+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[31] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g11+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[32] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g10+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[33] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[34] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g9+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[35] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[36] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g12+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[37] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g13+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[38] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g12+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[39] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g14+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[40] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g15+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[41] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g14+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[42] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g12+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[43] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g13+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[44] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g12+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[45] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[46] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g9+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[47] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[48] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g10+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[49] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g11+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[50] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g10+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[51] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[52] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g9+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[53] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g7+(iz+i)*SIMDD);
+rs[54] += MM_LOAD(g7+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[55] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[56] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g9+(iz+i)*SIMDD);
+rs[57] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[58] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[59] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g9+(iz+i)*SIMDD);
+rs[60] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g10+(iz+i)*SIMDD);
+rs[61] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g10+(iz+i)*SIMDD);
+rs[62] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g11+(iz+i)*SIMDD);
+rs[63] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[64] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[65] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g9+(iz+i)*SIMDD);
+rs[66] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[67] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g7+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[68] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g9+(iz+i)*SIMDD);
+rs[69] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g10+(iz+i)*SIMDD);
+rs[70] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g10+(iz+i)*SIMDD);
+rs[71] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g11+(iz+i)*SIMDD);
+rs[72] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g12+(iz+i)*SIMDD);
+rs[73] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g12+(iz+i)*SIMDD);
+rs[74] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g13+(iz+i)*SIMDD);
+rs[75] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g12+(iz+i)*SIMDD);
+rs[76] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g12+(iz+i)*SIMDD);
+rs[77] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g13+(iz+i)*SIMDD);
+rs[78] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g14+(iz+i)*SIMDD);
+rs[79] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g14+(iz+i)*SIMDD);
+rs[80] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g15+(iz+i)*SIMDD);
+}
+r1 = MM_LOAD(gout1+(n*36+0)*SIMDD) + - rs[5] + rs[7]; MM_STORE(gout1+(n*36+0)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+1)*SIMDD) + - rs[6] + rs[2]; MM_STORE(gout1+(n*36+1)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+2)*SIMDD) + - rs[1] + rs[3]; MM_STORE(gout1+(n*36+2)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+3)*SIMDD) + - rs[0] - rs[4] - rs[8]; MM_STORE(gout1+(n*36+3)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+4)*SIMDD) + - rs[32] + rs[34]; MM_STORE(gout1+(n*36+4)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+5)*SIMDD) + - rs[33] + rs[29]; MM_STORE(gout1+(n*36+5)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+6)*SIMDD) + - rs[28] + rs[30]; MM_STORE(gout1+(n*36+6)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+7)*SIMDD) + - rs[27] - rs[31] - rs[35]; MM_STORE(gout1+(n*36+7)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+8)*SIMDD) + - rs[59] + rs[61]; MM_STORE(gout1+(n*36+8)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+9)*SIMDD) + - rs[60] + rs[56]; MM_STORE(gout1+(n*36+9)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+10)*SIMDD) + - rs[55] + rs[57]; MM_STORE(gout1+(n*36+10)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+11)*SIMDD) + - rs[54] - rs[58] - rs[62]; MM_STORE(gout1+(n*36+11)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+12)*SIMDD) + - rs[14] + rs[16]; MM_STORE(gout1+(n*36+12)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+13)*SIMDD) + - rs[15] + rs[11]; MM_STORE(gout1+(n*36+13)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+14)*SIMDD) + - rs[10] + rs[12]; MM_STORE(gout1+(n*36+14)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+15)*SIMDD) + - rs[9] - rs[13] - rs[17]; MM_STORE(gout1+(n*36+15)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+16)*SIMDD) + - rs[41] + rs[43]; MM_STORE(gout1+(n*36+16)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+17)*SIMDD) + - rs[42] + rs[38]; MM_STORE(gout1+(n*36+17)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+18)*SIMDD) + - rs[37] + rs[39]; MM_STORE(gout1+(n*36+18)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+19)*SIMDD) + - rs[36] - rs[40] - rs[44]; MM_STORE(gout1+(n*36+19)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+20)*SIMDD) + - rs[68] + rs[70]; MM_STORE(gout1+(n*36+20)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+21)*SIMDD) + - rs[69] + rs[65]; MM_STORE(gout1+(n*36+21)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+22)*SIMDD) + - rs[64] + rs[66]; MM_STORE(gout1+(n*36+22)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+23)*SIMDD) + - rs[63] - rs[67] - rs[71]; MM_STORE(gout1+(n*36+23)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+24)*SIMDD) + - rs[23] + rs[25]; MM_STORE(gout1+(n*36+24)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+25)*SIMDD) + - rs[24] + rs[20]; MM_STORE(gout1+(n*36+25)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+26)*SIMDD) + - rs[19] + rs[21]; MM_STORE(gout1+(n*36+26)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+27)*SIMDD) + - rs[18] - rs[22] - rs[26]; MM_STORE(gout1+(n*36+27)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+28)*SIMDD) + - rs[50] + rs[52]; MM_STORE(gout1+(n*36+28)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+29)*SIMDD) + - rs[51] + rs[47]; MM_STORE(gout1+(n*36+29)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+30)*SIMDD) + - rs[46] + rs[48]; MM_STORE(gout1+(n*36+30)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+31)*SIMDD) + - rs[45] - rs[49] - rs[53]; MM_STORE(gout1+(n*36+31)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+32)*SIMDD) + - rs[77] + rs[79]; MM_STORE(gout1+(n*36+32)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+33)*SIMDD) + - rs[78] + rs[74]; MM_STORE(gout1+(n*36+33)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+34)*SIMDD) + - rs[73] + rs[75]; MM_STORE(gout1+(n*36+34)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+35)*SIMDD) + - rs[72] - rs[76] - rs[80]; MM_STORE(gout1+(n*36+35)*SIMDD, r1);
+}
+}
+CINTsort_gout(gout, gout1, nfc, SIMDD);
+}
+void int1e_ipipspnucsp_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
+int ng[] = {2, 2, 0, 0, 4, 4, 0, 9};
+CINTall_1e_optimizer(opt, ng, atm, natm, bas, nbas, env);
+}
+int int1e_ipipspnucsp_cart(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {2, 2, 0, 0, 4, 4, 0, 9};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_ipipspnucsp;
+return CINT1e_drv(out, dims, &envs, opt, cache, &c2s_cart_1e);
+} // int1e_ipipspnucsp_cart
+int int1e_ipipspnucsp_sph(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {2, 2, 0, 0, 4, 4, 0, 9};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_ipipspnucsp;
+return CINT1e_drv(out, dims, &envs, opt, cache, &c2s_sph_1e);
+} // int1e_ipipspnucsp_sph
+int int1e_ipipspnucsp_spinor(double complex *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {2, 2, 0, 0, 4, 4, 0, 9};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_ipipspnucsp;
+return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1e);
+} // int1e_ipipspnucsp_spinor
+ALL_CINT1E(int1e_ipipspnucsp)
+//ALL_CINT1E_FORTRAN_(cint1e_ipipspnucsp)
+/* <NABLA i|SIGMA DOT P NUC SIGMA DOT P |NABLA j> */
+static void CINTgout1e_int1e_ipspnucspip(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+int nf = envs->nf;
+int nrys_roots = envs->nrys_roots;
+int nfc = nf * 36;
+double *gout1 = gout + nfc*SIMDD;
+int ix, iy, iz, ia, n, i;
+double *RESTRICT g0 = g;
+double *RESTRICT g1 = g0  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g2 = g1  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g3 = g2  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g4 = g3  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g5 = g4  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g6 = g5  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g7 = g6  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g8 = g7  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g9 = g8  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g10 = g9  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g11 = g10  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g12 = g11  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g13 = g12  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g14 = g13  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g15 = g14  + envs->g_size * 3 * SIMDD;
+__MD r1;
+__MD rs[81];
+for (n = 0; n < nfc*SIMDD; n++) { gout1[n] = 0; }
+for (ia = 0; ia < envs->natm; ia++) {
+CINTg1e_nuc(g, envs, count, ia);
+G2E_D_J(g1, g0, envs->i_l+1, envs->j_l+0, 0, 0);
+G2E_D_J(g2, g0, envs->i_l+1, envs->j_l+1, 0, 0);
+G2E_D_J(g3, g2, envs->i_l+1, envs->j_l+0, 0, 0);
+G2E_D_J(g4, g0, envs->i_l+1, envs->j_l+2, 0, 0);
+G2E_D_J(g5, g4, envs->i_l+1, envs->j_l+0, 0, 0);
+G2E_D_J(g6, g4, envs->i_l+1, envs->j_l+1, 0, 0);
+G2E_D_J(g7, g6, envs->i_l+1, envs->j_l+0, 0, 0);
+G2E_D_I(g8, g0, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g9, g1, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g10, g2, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g11, g3, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g12, g4, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g13, g5, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g14, g6, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g15, g7, envs->i_l+0, envs->j_l, 0, 0);
+for (n = 0; n < nf; n++) {
+ix = idx[0+n*3];
+iy = idx[1+n*3];
+iz = idx[2+n*3];
+for (i = 0; i < 81; i++) { rs[i] = MM_SET1(0.); }
+for (i = 0; i < nrys_roots; i++) {
+rs[0] += MM_LOAD(g15+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[1] += MM_LOAD(g14+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[2] += MM_LOAD(g14+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[3] += MM_LOAD(g13+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[4] += MM_LOAD(g12+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[5] += MM_LOAD(g12+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[6] += MM_LOAD(g13+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[7] += MM_LOAD(g12+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[8] += MM_LOAD(g12+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[9] += MM_LOAD(g11+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[10] += MM_LOAD(g10+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[11] += MM_LOAD(g10+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[12] += MM_LOAD(g9+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[13] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g7+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[14] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[15] += MM_LOAD(g9+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[16] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[17] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[18] += MM_LOAD(g11+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[19] += MM_LOAD(g10+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[20] += MM_LOAD(g10+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[21] += MM_LOAD(g9+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[22] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[23] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[24] += MM_LOAD(g9+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[25] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[26] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g7+(iz+i)*SIMDD);
+rs[27] += MM_LOAD(g7+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[28] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g9+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[29] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[30] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g10+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[31] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g11+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[32] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g10+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[33] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[34] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g9+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[35] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[36] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g12+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[37] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g13+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[38] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g12+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[39] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g14+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[40] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g15+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[41] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g14+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[42] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g12+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[43] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g13+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[44] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g12+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[45] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[46] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g9+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[47] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[48] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g10+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[49] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g11+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[50] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g10+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[51] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[52] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g9+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[53] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g7+(iz+i)*SIMDD);
+rs[54] += MM_LOAD(g7+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[55] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[56] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g9+(iz+i)*SIMDD);
+rs[57] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[58] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[59] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g9+(iz+i)*SIMDD);
+rs[60] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g10+(iz+i)*SIMDD);
+rs[61] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g10+(iz+i)*SIMDD);
+rs[62] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g11+(iz+i)*SIMDD);
+rs[63] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[64] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[65] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g9+(iz+i)*SIMDD);
+rs[66] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[67] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g7+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[68] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g9+(iz+i)*SIMDD);
+rs[69] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g10+(iz+i)*SIMDD);
+rs[70] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g10+(iz+i)*SIMDD);
+rs[71] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g11+(iz+i)*SIMDD);
+rs[72] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g12+(iz+i)*SIMDD);
+rs[73] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g12+(iz+i)*SIMDD);
+rs[74] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g13+(iz+i)*SIMDD);
+rs[75] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g12+(iz+i)*SIMDD);
+rs[76] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g12+(iz+i)*SIMDD);
+rs[77] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g13+(iz+i)*SIMDD);
+rs[78] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g14+(iz+i)*SIMDD);
+rs[79] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g14+(iz+i)*SIMDD);
+rs[80] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g15+(iz+i)*SIMDD);
+}
+r1 = MM_LOAD(gout1+(n*36+0)*SIMDD) + - rs[15] + rs[21]; MM_STORE(gout1+(n*36+0)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+1)*SIMDD) + - rs[18] + rs[6]; MM_STORE(gout1+(n*36+1)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+2)*SIMDD) + - rs[3] + rs[9]; MM_STORE(gout1+(n*36+2)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+3)*SIMDD) + - rs[0] - rs[12] - rs[24]; MM_STORE(gout1+(n*36+3)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+4)*SIMDD) + - rs[16] + rs[22]; MM_STORE(gout1+(n*36+4)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+5)*SIMDD) + - rs[19] + rs[7]; MM_STORE(gout1+(n*36+5)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+6)*SIMDD) + - rs[4] + rs[10]; MM_STORE(gout1+(n*36+6)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+7)*SIMDD) + - rs[1] - rs[13] - rs[25]; MM_STORE(gout1+(n*36+7)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+8)*SIMDD) + - rs[17] + rs[23]; MM_STORE(gout1+(n*36+8)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+9)*SIMDD) + - rs[20] + rs[8]; MM_STORE(gout1+(n*36+9)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+10)*SIMDD) + - rs[5] + rs[11]; MM_STORE(gout1+(n*36+10)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+11)*SIMDD) + - rs[2] - rs[14] - rs[26]; MM_STORE(gout1+(n*36+11)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+12)*SIMDD) + - rs[42] + rs[48]; MM_STORE(gout1+(n*36+12)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+13)*SIMDD) + - rs[45] + rs[33]; MM_STORE(gout1+(n*36+13)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+14)*SIMDD) + - rs[30] + rs[36]; MM_STORE(gout1+(n*36+14)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+15)*SIMDD) + - rs[27] - rs[39] - rs[51]; MM_STORE(gout1+(n*36+15)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+16)*SIMDD) + - rs[43] + rs[49]; MM_STORE(gout1+(n*36+16)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+17)*SIMDD) + - rs[46] + rs[34]; MM_STORE(gout1+(n*36+17)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+18)*SIMDD) + - rs[31] + rs[37]; MM_STORE(gout1+(n*36+18)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+19)*SIMDD) + - rs[28] - rs[40] - rs[52]; MM_STORE(gout1+(n*36+19)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+20)*SIMDD) + - rs[44] + rs[50]; MM_STORE(gout1+(n*36+20)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+21)*SIMDD) + - rs[47] + rs[35]; MM_STORE(gout1+(n*36+21)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+22)*SIMDD) + - rs[32] + rs[38]; MM_STORE(gout1+(n*36+22)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+23)*SIMDD) + - rs[29] - rs[41] - rs[53]; MM_STORE(gout1+(n*36+23)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+24)*SIMDD) + - rs[69] + rs[75]; MM_STORE(gout1+(n*36+24)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+25)*SIMDD) + - rs[72] + rs[60]; MM_STORE(gout1+(n*36+25)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+26)*SIMDD) + - rs[57] + rs[63]; MM_STORE(gout1+(n*36+26)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+27)*SIMDD) + - rs[54] - rs[66] - rs[78]; MM_STORE(gout1+(n*36+27)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+28)*SIMDD) + - rs[70] + rs[76]; MM_STORE(gout1+(n*36+28)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+29)*SIMDD) + - rs[73] + rs[61]; MM_STORE(gout1+(n*36+29)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+30)*SIMDD) + - rs[58] + rs[64]; MM_STORE(gout1+(n*36+30)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+31)*SIMDD) + - rs[55] - rs[67] - rs[79]; MM_STORE(gout1+(n*36+31)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+32)*SIMDD) + - rs[71] + rs[77]; MM_STORE(gout1+(n*36+32)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+33)*SIMDD) + - rs[74] + rs[62]; MM_STORE(gout1+(n*36+33)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+34)*SIMDD) + - rs[59] + rs[65]; MM_STORE(gout1+(n*36+34)*SIMDD, r1);
+r1 = MM_LOAD(gout1+(n*36+35)*SIMDD) + - rs[56] - rs[68] - rs[80]; MM_STORE(gout1+(n*36+35)*SIMDD, r1);
+}
+}
+CINTsort_gout(gout, gout1, nfc, SIMDD);
+}
+void int1e_ipspnucspip_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
+int ng[] = {1, 3, 0, 0, 4, 4, 0, 9};
+CINTall_1e_optimizer(opt, ng, atm, natm, bas, nbas, env);
+}
+int int1e_ipspnucspip_cart(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {1, 3, 0, 0, 4, 4, 0, 9};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_ipspnucspip;
+return CINT1e_drv(out, dims, &envs, opt, cache, &c2s_cart_1e);
+} // int1e_ipspnucspip_cart
+int int1e_ipspnucspip_sph(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {1, 3, 0, 0, 4, 4, 0, 9};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_ipspnucspip;
+return CINT1e_drv(out, dims, &envs, opt, cache, &c2s_sph_1e);
+} // int1e_ipspnucspip_sph
+int int1e_ipspnucspip_spinor(double complex *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {1, 3, 0, 0, 4, 4, 0, 9};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_ipspnucspip;
+return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1e);
+} // int1e_ipspnucspip_spinor
+ALL_CINT1E(int1e_ipspnucspip)
+//ALL_CINT1E_FORTRAN_(cint1e_ipspnucspip)
+/* <NABLA NABLA i|SIGMA DOT P RINV SIGMA DOT P |j> */
+static void CINTgout1e_int1e_ipipsprinvsp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+CINTg1e_nuc(g, envs, count, -1);
+int nf = envs->nf;
+int nfc = nf * 36;
+int nrys_roots = envs->nrys_roots;
+int ix, iy, iz, n, i;
+DECLARE_GOUT;
+double *RESTRICT g0 = g;
+double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g3 = g2 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g4 = g3 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g5 = g4 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g6 = g5 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g7 = g6 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g8 = g7 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g9 = g8 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g10 = g9 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g11 = g10 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g12 = g11 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g13 = g12 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g14 = g13 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g15 = g14 + envs->g_size * 3 * SIMDD;
+__MD r1;
+__MD rs[81];
+G2E_D_J(g1, g0, envs->i_l+2, envs->j_l+0, 0, 0);
+G2E_D_J(g2, g0, envs->i_l+2, envs->j_l+1, 0, 0);
+G2E_D_J(g3, g2, envs->i_l+2, envs->j_l+0, 0, 0);
+G2E_D_I(g4, g0, envs->i_l+1, envs->j_l, 0, 0);
+G2E_D_I(g5, g1, envs->i_l+1, envs->j_l, 0, 0);
+G2E_D_I(g6, g2, envs->i_l+1, envs->j_l, 0, 0);
+G2E_D_I(g7, g3, envs->i_l+1, envs->j_l, 0, 0);
+G2E_D_I(g8, g0, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g9, g1, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g10, g2, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g11, g3, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g12, g4, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g13, g5, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g14, g6, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g15, g7, envs->i_l+0, envs->j_l, 0, 0);
+for (n = 0; n < nf; n++) {
+ix = idx[0+n*3];
+iy = idx[1+n*3];
+iz = idx[2+n*3];
+for (i = 0; i < 81; i++) { rs[i] = MM_SET1(0.); }
+for (i = 0; i < nrys_roots; i++) {
+rs[0] += MM_LOAD(g15+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[1] += MM_LOAD(g14+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[2] += MM_LOAD(g14+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[3] += MM_LOAD(g13+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[4] += MM_LOAD(g12+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[5] += MM_LOAD(g12+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[6] += MM_LOAD(g13+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[7] += MM_LOAD(g12+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[8] += MM_LOAD(g12+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[9] += MM_LOAD(g11+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[10] += MM_LOAD(g10+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[11] += MM_LOAD(g10+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[12] += MM_LOAD(g9+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[13] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g7+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[14] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[15] += MM_LOAD(g9+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[16] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[17] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[18] += MM_LOAD(g11+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[19] += MM_LOAD(g10+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[20] += MM_LOAD(g10+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[21] += MM_LOAD(g9+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[22] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[23] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[24] += MM_LOAD(g9+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[25] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[26] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g7+(iz+i)*SIMDD);
+rs[27] += MM_LOAD(g7+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[28] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g9+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[29] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[30] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g10+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[31] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g11+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[32] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g10+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[33] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[34] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g9+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[35] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[36] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g12+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[37] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g13+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[38] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g12+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[39] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g14+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[40] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g15+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[41] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g14+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[42] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g12+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[43] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g13+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[44] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g12+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[45] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[46] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g9+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[47] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[48] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g10+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[49] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g11+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[50] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g10+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[51] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[52] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g9+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[53] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g7+(iz+i)*SIMDD);
+rs[54] += MM_LOAD(g7+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[55] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[56] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g9+(iz+i)*SIMDD);
+rs[57] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[58] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[59] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g9+(iz+i)*SIMDD);
+rs[60] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g10+(iz+i)*SIMDD);
+rs[61] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g10+(iz+i)*SIMDD);
+rs[62] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g11+(iz+i)*SIMDD);
+rs[63] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[64] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[65] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g9+(iz+i)*SIMDD);
+rs[66] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[67] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g7+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[68] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g9+(iz+i)*SIMDD);
+rs[69] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g10+(iz+i)*SIMDD);
+rs[70] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g10+(iz+i)*SIMDD);
+rs[71] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g11+(iz+i)*SIMDD);
+rs[72] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g12+(iz+i)*SIMDD);
+rs[73] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g12+(iz+i)*SIMDD);
+rs[74] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g13+(iz+i)*SIMDD);
+rs[75] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g12+(iz+i)*SIMDD);
+rs[76] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g12+(iz+i)*SIMDD);
+rs[77] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g13+(iz+i)*SIMDD);
+rs[78] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g14+(iz+i)*SIMDD);
+rs[79] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g14+(iz+i)*SIMDD);
+rs[80] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g15+(iz+i)*SIMDD);
+}
+r1 = - rs[5] + rs[7]; GOUT_SCATTER(gout, n*36+0, r1);
+r1 = - rs[6] + rs[2]; GOUT_SCATTER(gout, n*36+1, r1);
+r1 = - rs[1] + rs[3]; GOUT_SCATTER(gout, n*36+2, r1);
+r1 = - rs[0] - rs[4] - rs[8]; GOUT_SCATTER(gout, n*36+3, r1);
+r1 = - rs[32] + rs[34]; GOUT_SCATTER(gout, n*36+4, r1);
+r1 = - rs[33] + rs[29]; GOUT_SCATTER(gout, n*36+5, r1);
+r1 = - rs[28] + rs[30]; GOUT_SCATTER(gout, n*36+6, r1);
+r1 = - rs[27] - rs[31] - rs[35]; GOUT_SCATTER(gout, n*36+7, r1);
+r1 = - rs[59] + rs[61]; GOUT_SCATTER(gout, n*36+8, r1);
+r1 = - rs[60] + rs[56]; GOUT_SCATTER(gout, n*36+9, r1);
+r1 = - rs[55] + rs[57]; GOUT_SCATTER(gout, n*36+10, r1);
+r1 = - rs[54] - rs[58] - rs[62]; GOUT_SCATTER(gout, n*36+11, r1);
+r1 = - rs[14] + rs[16]; GOUT_SCATTER(gout, n*36+12, r1);
+r1 = - rs[15] + rs[11]; GOUT_SCATTER(gout, n*36+13, r1);
+r1 = - rs[10] + rs[12]; GOUT_SCATTER(gout, n*36+14, r1);
+r1 = - rs[9] - rs[13] - rs[17]; GOUT_SCATTER(gout, n*36+15, r1);
+r1 = - rs[41] + rs[43]; GOUT_SCATTER(gout, n*36+16, r1);
+r1 = - rs[42] + rs[38]; GOUT_SCATTER(gout, n*36+17, r1);
+r1 = - rs[37] + rs[39]; GOUT_SCATTER(gout, n*36+18, r1);
+r1 = - rs[36] - rs[40] - rs[44]; GOUT_SCATTER(gout, n*36+19, r1);
+r1 = - rs[68] + rs[70]; GOUT_SCATTER(gout, n*36+20, r1);
+r1 = - rs[69] + rs[65]; GOUT_SCATTER(gout, n*36+21, r1);
+r1 = - rs[64] + rs[66]; GOUT_SCATTER(gout, n*36+22, r1);
+r1 = - rs[63] - rs[67] - rs[71]; GOUT_SCATTER(gout, n*36+23, r1);
+r1 = - rs[23] + rs[25]; GOUT_SCATTER(gout, n*36+24, r1);
+r1 = - rs[24] + rs[20]; GOUT_SCATTER(gout, n*36+25, r1);
+r1 = - rs[19] + rs[21]; GOUT_SCATTER(gout, n*36+26, r1);
+r1 = - rs[18] - rs[22] - rs[26]; GOUT_SCATTER(gout, n*36+27, r1);
+r1 = - rs[50] + rs[52]; GOUT_SCATTER(gout, n*36+28, r1);
+r1 = - rs[51] + rs[47]; GOUT_SCATTER(gout, n*36+29, r1);
+r1 = - rs[46] + rs[48]; GOUT_SCATTER(gout, n*36+30, r1);
+r1 = - rs[45] - rs[49] - rs[53]; GOUT_SCATTER(gout, n*36+31, r1);
+r1 = - rs[77] + rs[79]; GOUT_SCATTER(gout, n*36+32, r1);
+r1 = - rs[78] + rs[74]; GOUT_SCATTER(gout, n*36+33, r1);
+r1 = - rs[73] + rs[75]; GOUT_SCATTER(gout, n*36+34, r1);
+r1 = - rs[72] - rs[76] - rs[80]; GOUT_SCATTER(gout, n*36+35, r1);
+}}
+void int1e_ipipsprinvsp_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
+int ng[] = {2, 2, 0, 0, 4, 4, 0, 9};
+CINTall_1e_optimizer(opt, ng, atm, natm, bas, nbas, env);
+}
+int int1e_ipipsprinvsp_cart(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {2, 2, 0, 0, 4, 4, 0, 9};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_ipipsprinvsp;
+return CINT1e_drv(out, dims, &envs, opt, cache, &c2s_cart_1e);
+} // int1e_ipipsprinvsp_cart
+int int1e_ipipsprinvsp_sph(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {2, 2, 0, 0, 4, 4, 0, 9};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_ipipsprinvsp;
+return CINT1e_drv(out, dims, &envs, opt, cache, &c2s_sph_1e);
+} // int1e_ipipsprinvsp_sph
+int int1e_ipipsprinvsp_spinor(double complex *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {2, 2, 0, 0, 4, 4, 0, 9};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_ipipsprinvsp;
+return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1e);
+} // int1e_ipipsprinvsp_spinor
+ALL_CINT1E(int1e_ipipsprinvsp)
+//ALL_CINT1E_FORTRAN_(cint1e_ipipsprinvsp)
+/* <NABLA i|SIGMA DOT P RINV SIGMA DOT P |NABLA j> */
+static void CINTgout1e_int1e_ipsprinvspip(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+CINTg1e_nuc(g, envs, count, -1);
+int nf = envs->nf;
+int nfc = nf * 36;
+int nrys_roots = envs->nrys_roots;
+int ix, iy, iz, n, i;
+DECLARE_GOUT;
+double *RESTRICT g0 = g;
+double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g3 = g2 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g4 = g3 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g5 = g4 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g6 = g5 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g7 = g6 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g8 = g7 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g9 = g8 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g10 = g9 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g11 = g10 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g12 = g11 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g13 = g12 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g14 = g13 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g15 = g14 + envs->g_size * 3 * SIMDD;
+__MD r1;
+__MD rs[81];
+G2E_D_J(g1, g0, envs->i_l+1, envs->j_l+0, 0, 0);
+G2E_D_J(g2, g0, envs->i_l+1, envs->j_l+1, 0, 0);
+G2E_D_J(g3, g2, envs->i_l+1, envs->j_l+0, 0, 0);
+G2E_D_J(g4, g0, envs->i_l+1, envs->j_l+2, 0, 0);
+G2E_D_J(g5, g4, envs->i_l+1, envs->j_l+0, 0, 0);
+G2E_D_J(g6, g4, envs->i_l+1, envs->j_l+1, 0, 0);
+G2E_D_J(g7, g6, envs->i_l+1, envs->j_l+0, 0, 0);
+G2E_D_I(g8, g0, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g9, g1, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g10, g2, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g11, g3, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g12, g4, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g13, g5, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g14, g6, envs->i_l+0, envs->j_l, 0, 0);
+G2E_D_I(g15, g7, envs->i_l+0, envs->j_l, 0, 0);
+for (n = 0; n < nf; n++) {
+ix = idx[0+n*3];
+iy = idx[1+n*3];
+iz = idx[2+n*3];
+for (i = 0; i < 81; i++) { rs[i] = MM_SET1(0.); }
+for (i = 0; i < nrys_roots; i++) {
+rs[0] += MM_LOAD(g15+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[1] += MM_LOAD(g14+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[2] += MM_LOAD(g14+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[3] += MM_LOAD(g13+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[4] += MM_LOAD(g12+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[5] += MM_LOAD(g12+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[6] += MM_LOAD(g13+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[7] += MM_LOAD(g12+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[8] += MM_LOAD(g12+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[9] += MM_LOAD(g11+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[10] += MM_LOAD(g10+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[11] += MM_LOAD(g10+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[12] += MM_LOAD(g9+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[13] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g7+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[14] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[15] += MM_LOAD(g9+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[16] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[17] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[18] += MM_LOAD(g11+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[19] += MM_LOAD(g10+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[20] += MM_LOAD(g10+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[21] += MM_LOAD(g9+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[22] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[23] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[24] += MM_LOAD(g9+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[25] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[26] += MM_LOAD(g8+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g7+(iz+i)*SIMDD);
+rs[27] += MM_LOAD(g7+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[28] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g9+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[29] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[30] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g10+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[31] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g11+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[32] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g10+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[33] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[34] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g9+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[35] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[36] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g12+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[37] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g13+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[38] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g12+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[39] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g14+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[40] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g15+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
+rs[41] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g14+(iy+i)*SIMDD) * MM_LOAD(g1+(iz+i)*SIMDD);
+rs[42] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g12+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[43] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g13+(iy+i)*SIMDD) * MM_LOAD(g2+(iz+i)*SIMDD);
+rs[44] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g12+(iy+i)*SIMDD) * MM_LOAD(g3+(iz+i)*SIMDD);
+rs[45] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[46] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g9+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[47] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[48] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g10+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[49] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g11+(iy+i)*SIMDD) * MM_LOAD(g4+(iz+i)*SIMDD);
+rs[50] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g10+(iy+i)*SIMDD) * MM_LOAD(g5+(iz+i)*SIMDD);
+rs[51] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[52] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g9+(iy+i)*SIMDD) * MM_LOAD(g6+(iz+i)*SIMDD);
+rs[53] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g8+(iy+i)*SIMDD) * MM_LOAD(g7+(iz+i)*SIMDD);
+rs[54] += MM_LOAD(g7+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[55] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[56] += MM_LOAD(g6+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g9+(iz+i)*SIMDD);
+rs[57] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[58] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[59] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g9+(iz+i)*SIMDD);
+rs[60] += MM_LOAD(g5+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g10+(iz+i)*SIMDD);
+rs[61] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g10+(iz+i)*SIMDD);
+rs[62] += MM_LOAD(g4+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g11+(iz+i)*SIMDD);
+rs[63] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[64] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[65] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g9+(iz+i)*SIMDD);
+rs[66] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[67] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g7+(iy+i)*SIMDD) * MM_LOAD(g8+(iz+i)*SIMDD);
+rs[68] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g6+(iy+i)*SIMDD) * MM_LOAD(g9+(iz+i)*SIMDD);
+rs[69] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g10+(iz+i)*SIMDD);
+rs[70] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g5+(iy+i)*SIMDD) * MM_LOAD(g10+(iz+i)*SIMDD);
+rs[71] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g4+(iy+i)*SIMDD) * MM_LOAD(g11+(iz+i)*SIMDD);
+rs[72] += MM_LOAD(g3+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g12+(iz+i)*SIMDD);
+rs[73] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g12+(iz+i)*SIMDD);
+rs[74] += MM_LOAD(g2+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g13+(iz+i)*SIMDD);
+rs[75] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g12+(iz+i)*SIMDD);
+rs[76] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g3+(iy+i)*SIMDD) * MM_LOAD(g12+(iz+i)*SIMDD);
+rs[77] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g2+(iy+i)*SIMDD) * MM_LOAD(g13+(iz+i)*SIMDD);
+rs[78] += MM_LOAD(g1+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g14+(iz+i)*SIMDD);
+rs[79] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g1+(iy+i)*SIMDD) * MM_LOAD(g14+(iz+i)*SIMDD);
+rs[80] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g15+(iz+i)*SIMDD);
+}
+r1 = - rs[15] + rs[21]; GOUT_SCATTER(gout, n*36+0, r1);
+r1 = - rs[18] + rs[6]; GOUT_SCATTER(gout, n*36+1, r1);
+r1 = - rs[3] + rs[9]; GOUT_SCATTER(gout, n*36+2, r1);
+r1 = - rs[0] - rs[12] - rs[24]; GOUT_SCATTER(gout, n*36+3, r1);
+r1 = - rs[16] + rs[22]; GOUT_SCATTER(gout, n*36+4, r1);
+r1 = - rs[19] + rs[7]; GOUT_SCATTER(gout, n*36+5, r1);
+r1 = - rs[4] + rs[10]; GOUT_SCATTER(gout, n*36+6, r1);
+r1 = - rs[1] - rs[13] - rs[25]; GOUT_SCATTER(gout, n*36+7, r1);
+r1 = - rs[17] + rs[23]; GOUT_SCATTER(gout, n*36+8, r1);
+r1 = - rs[20] + rs[8]; GOUT_SCATTER(gout, n*36+9, r1);
+r1 = - rs[5] + rs[11]; GOUT_SCATTER(gout, n*36+10, r1);
+r1 = - rs[2] - rs[14] - rs[26]; GOUT_SCATTER(gout, n*36+11, r1);
+r1 = - rs[42] + rs[48]; GOUT_SCATTER(gout, n*36+12, r1);
+r1 = - rs[45] + rs[33]; GOUT_SCATTER(gout, n*36+13, r1);
+r1 = - rs[30] + rs[36]; GOUT_SCATTER(gout, n*36+14, r1);
+r1 = - rs[27] - rs[39] - rs[51]; GOUT_SCATTER(gout, n*36+15, r1);
+r1 = - rs[43] + rs[49]; GOUT_SCATTER(gout, n*36+16, r1);
+r1 = - rs[46] + rs[34]; GOUT_SCATTER(gout, n*36+17, r1);
+r1 = - rs[31] + rs[37]; GOUT_SCATTER(gout, n*36+18, r1);
+r1 = - rs[28] - rs[40] - rs[52]; GOUT_SCATTER(gout, n*36+19, r1);
+r1 = - rs[44] + rs[50]; GOUT_SCATTER(gout, n*36+20, r1);
+r1 = - rs[47] + rs[35]; GOUT_SCATTER(gout, n*36+21, r1);
+r1 = - rs[32] + rs[38]; GOUT_SCATTER(gout, n*36+22, r1);
+r1 = - rs[29] - rs[41] - rs[53]; GOUT_SCATTER(gout, n*36+23, r1);
+r1 = - rs[69] + rs[75]; GOUT_SCATTER(gout, n*36+24, r1);
+r1 = - rs[72] + rs[60]; GOUT_SCATTER(gout, n*36+25, r1);
+r1 = - rs[57] + rs[63]; GOUT_SCATTER(gout, n*36+26, r1);
+r1 = - rs[54] - rs[66] - rs[78]; GOUT_SCATTER(gout, n*36+27, r1);
+r1 = - rs[70] + rs[76]; GOUT_SCATTER(gout, n*36+28, r1);
+r1 = - rs[73] + rs[61]; GOUT_SCATTER(gout, n*36+29, r1);
+r1 = - rs[58] + rs[64]; GOUT_SCATTER(gout, n*36+30, r1);
+r1 = - rs[55] - rs[67] - rs[79]; GOUT_SCATTER(gout, n*36+31, r1);
+r1 = - rs[71] + rs[77]; GOUT_SCATTER(gout, n*36+32, r1);
+r1 = - rs[74] + rs[62]; GOUT_SCATTER(gout, n*36+33, r1);
+r1 = - rs[59] + rs[65]; GOUT_SCATTER(gout, n*36+34, r1);
+r1 = - rs[56] - rs[68] - rs[80]; GOUT_SCATTER(gout, n*36+35, r1);
+}}
+void int1e_ipsprinvspip_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
+int ng[] = {1, 3, 0, 0, 4, 4, 0, 9};
+CINTall_1e_optimizer(opt, ng, atm, natm, bas, nbas, env);
+}
+int int1e_ipsprinvspip_cart(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {1, 3, 0, 0, 4, 4, 0, 9};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_ipsprinvspip;
+return CINT1e_drv(out, dims, &envs, opt, cache, &c2s_cart_1e);
+} // int1e_ipsprinvspip_cart
+int int1e_ipsprinvspip_sph(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {1, 3, 0, 0, 4, 4, 0, 9};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_ipsprinvspip;
+return CINT1e_drv(out, dims, &envs, opt, cache, &c2s_sph_1e);
+} // int1e_ipsprinvspip_sph
+int int1e_ipsprinvspip_spinor(double complex *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {1, 3, 0, 0, 4, 4, 0, 9};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_ipsprinvspip;
+return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1e);
+} // int1e_ipsprinvspip_spinor
+ALL_CINT1E(int1e_ipsprinvspip)
+//ALL_CINT1E_FORTRAN_(cint1e_ipsprinvspip)
