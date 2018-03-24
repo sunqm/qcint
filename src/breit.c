@@ -38,112 +38,124 @@
 #include "misc.h"
 #include "c2f.h"
 
-static void _copy(double complex *out, double complex *in,
-                  int *dims, int *counts);
+#define DECLARE(X)      int X(double complex *out, int *dims, int *shls, \
+                              int *atm, int natm, int *bas, int nbas, double *env, \
+                              CINTOpt *opt, double *cache)
 
-#define DECLARE(X)      int X(double complex *opijkl, int *shls, \
-                              int *atm, int natm, \
-                              int *bas, int nbas, double *env, CINTOpt *opt)
-
-#define BREIT0(X) \
-DECLARE(int2e_##X); \
-DECLARE(int2e_gauge_r1_##X); \
-DECLARE(int2e_gauge_r2_##X); \
+#define BREIT0(X, ncomp_tensor) \
+DECLARE(int2e_##X##_spinor); \
+DECLARE(int2e_gauge_r1_##X##_spinor); \
+DECLARE(int2e_gauge_r2_##X##_spinor); \
 void int2e_breit_##X##_optimizer(CINTOpt **opt, int *atm, int natm, \
-                                  int *bas, int nbas, double *env) \
+                                 int *bas, int nbas, double *env) \
 { \
         *opt = NULL; \
 } \
 int int2e_breit_##X##_spinor(double complex *out, int *dims, int *shls, \
-int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) \
+                             int *atm, int natm, int *bas, int nbas, double *env, \
+                             CINTOpt *opt, double *cache) \
 { \
-        if (out == NULL) { \
-                int cache_size1 = int2e_gauge_r1_##X##_spinor(NULL, NULL, shls, \
-                                atm, natm, bas, nbas, env, NULL, cache); \
-                int cache_size2 = int2e_gauge_r2_##X##_spinor(NULL, NULL, shls, \
-                                atm, natm, bas, nbas, env, NULL, cache); \
-                return MAX(cache_size1, cache_size2); \
-        } \
-\
-        int counts[4]; \
-        counts[0] = CINTcgto_spinor(shls[0], bas); \
-        counts[1] = CINTcgto_spinor(shls[1], bas); \
-        counts[2] = CINTcgto_spinor(shls[2], bas); \
-        counts[3] = CINTcgto_spinor(shls[3], bas); \
-        const int nop = counts[0] * counts[1] * counts[2] * counts[3]; \
-        double complex *buf = malloc(sizeof(double complex) * nop * 2); \
-        double complex *buf1 = buf + nop; \
-        int i; \
-\
-        int has_value = int2e_##X##_spinor(buf, NULL, shls, \
-                                atm, natm, bas, nbas, env, NULL, cache); \
-\
-        has_value = (int2e_gauge_r1_##X##_spinor(buf1, NULL, shls, \
-                                atm, natm, bas, nbas, env, NULL, cache) || \
-                     has_value); \
-        /* [1/2 gaunt] - [1/2 xxx*\sigma\dot r1] */ \
-        if (has_value) { \
-                for (i = 0; i < nop; i++) { \
-                        buf[i] = -buf1[i] - buf[i]; \
-                } \
-        } \
-        /* ... [- 1/2 xxx*\sigma\dot(-r2)] */ \
-        has_value = (int2e_gauge_r2_##X##_spinor(buf1, NULL, shls, \
-                                atm, natm, bas, nbas, env, NULL, cache) || \
-                     has_value); \
-        if (dims == NULL) { \
-                for (i = 0; i < nop; i++) { \
-                        out[i] = (buf[i] + buf1[i]) * .5; \
-                } \
-        } else { \
-                for (i = 0; i < nop; i++) { \
-                        buf[i] = (buf[i] + buf1[i]) * .5; \
-                } \
-                _copy(out, buf, dims, counts); \
-        } \
-        free(buf); \
-        return has_value; \
+        return _int2e_breit_drv(out, dims, shls, atm, natm, bas, nbas, env, opt, cache, \
+                                ncomp_tensor, &int2e_##X##_spinor, \
+                                &int2e_gauge_r1_##X##_spinor, &int2e_gauge_r2_##X##_spinor); \
 } \
-int cint2e_breit_##X##_spinor(double *out, int *shls, int *atm, int natm, \
-                              int *bas, int nbas, double *env) { \
-        return int2e_breit_##X##_spinor((double complex *)out, NULL, shls, \
-                                atm, natm, bas, nbas, env, NULL, NULL); \
+int cint2e_breit_##X##_spinor(double complex *out, int *shls, \
+                      int *atm, int natm, int *bas, int nbas, double *env, \
+                      CINTOpt *opt) \
+{ \
+        return int2e_breit_##X##_spinor(out, NULL, shls, \
+                                        atm, natm, bas, nbas, env, opt, NULL); \
 }
 
-static void _copy(double complex *out, double complex *in,
-                  int *dims, int *counts)
+static void _copy_to_out(double complex *out, double complex *in, int *dims, int *counts)
 {
+        if (out == in) {
+                return;
+        }
         int ni = dims[0];
         int nj = dims[1];
         int nk = dims[2];
+        int nij = ni * nj;
+        int nijk = nij * nk;
         int di = counts[0];
         int dj = counts[1];
         int dk = counts[2];
         int dl = counts[3];
-        int nij = ni * nj;
         int dij = di * dj;
-        int nijk = nij * nk;
         int dijk = dij * dk;
         int i, j, k, l;
-        double complex *pout, *pin;
+        double complex *pin, *pout;
         for (l = 0; l < dl; l++) {
                 for (k = 0; k < dk; k++) {
-                        pout = out + k * nij;
                         pin  = in  + k * dij;
+                        pout = out + k * nij;
                         for (j = 0; j < dj; j++) {
                         for (i = 0; i < di; i++) {
                                 pout[j*ni+i] = pin[j*di+i];
                         } }
                 }
-                out += nijk;
                 in  += dijk;
+                out += nijk;
         }
 }
 
-BREIT0(ssp1ssp2);
-BREIT0(ssp1sps2);
-BREIT0(sps1ssp2);
-BREIT0(sps1sps2);
+static int _int2e_breit_drv(double complex *out, int *dims, int *shls,
+                            int *atm, int natm, int *bas, int nbas, double *env,
+                            CINTOpt *opt, double *cache, int ncomp_tensor,
+                            int (*f_gaunt)(), int (*f_gauge_r1)(), int (*f_gauge_r2)())
+{
+        if (out == NULL) {
+                int cache_size1 = (*f_gauge_r1)(NULL, NULL, shls,
+                                atm, natm, bas, nbas, env, NULL, cache);
+                int cache_size2 = (*f_gauge_r2)(NULL, NULL, shls,
+                                atm, natm, bas, nbas, env, NULL, cache);
+                return MAX(cache_size1, cache_size2);
+        }
+
+        int counts[4];
+        counts[0] = CINTcgto_spinor(shls[0], bas);
+        counts[1] = CINTcgto_spinor(shls[1], bas);
+        counts[2] = CINTcgto_spinor(shls[2], bas);
+        counts[3] = CINTcgto_spinor(shls[3], bas);
+        int nop = counts[0] * counts[1] * counts[2] * counts[3] * ncomp_tensor;
+        double complex *buf = malloc(sizeof(double complex) * nop*2);
+        double complex *buf1;
+        if (dims == NULL) {
+                dims = counts;
+                buf1 = out;
+        } else {
+                buf1 = buf + nop;
+        }
+
+        int has_value = (*f_gaunt)(buf1, NULL, shls, atm, natm, bas, nbas, env, NULL, cache);
+
+        int i;
+        has_value = ((*f_gauge_r1)(buf, NULL, shls, atm, natm, bas, nbas, env, NULL, cache) ||
+                     has_value);
+        /* [1/2 gaunt] - [1/2 xxx*\sigma1\dot r1] */
+        if (has_value) {
+                for (i = 0; i < nop; i++) {
+                        buf1[i] = -buf1[i] - buf[i];
+                }
+        }
+        /* ... [- 1/2 xxx*\sigma1\dot(-r2)] */
+        has_value = ((*f_gauge_r2)(buf, NULL, shls, atm, natm, bas, nbas, env, NULL, cache) ||
+                     has_value);
+        if (has_value) {
+                for (i = 0; i < nop; i++) {
+                        buf1[i] = (buf1[i] + buf[i]) * .5;
+                }
+        }
+        _copy_to_out(out, buf1, dims, counts);
+        free(buf);
+        return has_value;
+}
+
+
+BREIT0(ssp1ssp2, 1);
+BREIT0(ssp1sps2, 1);
+BREIT0(sps1ssp2, 1);
+BREIT0(sps1sps2, 1);
 
 /* based on
  * '("int2e_breit_r1p2"  ( nabla \, r0 \| dot nabla-r12 \| \, nabla ))
