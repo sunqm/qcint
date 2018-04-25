@@ -35,6 +35,10 @@
   '("int1e_prinvxp"             (p* \| rinv cross p \| ))
   '("int1e_pnucxp"              (p* \| nuc cross p \| ))
   '("int2e_p1vxp1"              (p* \, cross p \| \, )) ; SSO
+  '("int1e_irp"                 ( \| rc nabla \| ))
+  '("int1e_irrp"                ( \| rc rc nabla \| ))
+  '("int1e_irpr"                ( \| rc nabla rc \| ))
+  '("int1e_irrr"                ( \| rc rc rc \| ))
 )
 
 (gen-cint "intor2.c"
@@ -109,7 +113,9 @@
 
 (gen-cint "grad1.c"
   '("int1e_ipovlp"              (nabla \|))
+  '("int1e_ovlpip"              (\| nabla))
   '("int1e_ipkin"               (.5 nabla \| p dot p))
+  '("int1e_kinip"               (.5 \| p dot p nabla))
   '("int1e_ipnuc"               (nabla \| nuc \|))
   '("int1e_iprinv"              (nabla \| rinv \|))
   '("int1e_rinv"                (\| rinv \|))
