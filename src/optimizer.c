@@ -404,10 +404,12 @@ void CINTOpt_set_non0coeff(CINTOpt *opt, int *atm, int natm,
                 tot_prim_ctr += bas(NPRIM_OF, i) * bas(NCTR_OF,i);
         }
 
-        opt->non0ctr = malloc(sizeof(int *) * nbas);
-        opt->sortedidx = malloc(sizeof(int *) * nbas);
+        opt->non0ctr = malloc(sizeof(int *) * MAX(nbas, 1));
+        opt->sortedidx = malloc(sizeof(int *) * MAX(nbas, 1));
         int *pnon0ctr = malloc(sizeof(int) * tot_prim*10);
         int *psortedidx = malloc(sizeof(int) * tot_prim_ctr*10);
+        opt->non0ctr[0] = pnon0ctr;
+        opt->sortedidx[0] = psortedidx;
         for (i = 0; i < nbas; i++) {
                 iprim = bas(NPRIM_OF,i);
                 ictr = bas(NCTR_OF,i);
