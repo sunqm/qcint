@@ -238,10 +238,12 @@ void CINTg3c1e_nuc(double *g, CINTEnvVars *envs, int count, int nuc_id)
         r0 = MM_LOAD(envs->ai) * MM_SET1(ri[0]) + MM_LOAD(envs->aj) * MM_SET1(rj[0]) + MM_LOAD(envs->ak) * MM_SET1(rk[0]);
         r1 = MM_LOAD(envs->ai) * MM_SET1(ri[1]) + MM_LOAD(envs->aj) * MM_SET1(rj[1]) + MM_LOAD(envs->ak) * MM_SET1(rk[1]);
         r2 = MM_LOAD(envs->ai) * MM_SET1(ri[2]) + MM_LOAD(envs->aj) * MM_SET1(rj[2]) + MM_LOAD(envs->ak) * MM_SET1(rk[2]);
-        rt2 = MM_SET1(1.) / aijk;
-        crijk[0] = cr[0] - r0 * rt2;
-        crijk[1] = cr[1] - r1 * rt2;
-        crijk[2] = cr[2] - r2 * rt2;
+        MM_STORE(rijk+0*SIMDD, r0 / aijk);
+        MM_STORE(rijk+1*SIMDD, r1 / aijk);
+        MM_STORE(rijk+2*SIMDD, r2 / aijk);
+        crijk[0] = MM_SET1(cr[0]) - MM_LOAD(rijk+0*SIMDD);
+        crijk[1] = MM_SET1(cr[1]) - MM_LOAD(rijk+1*SIMDD);
+        crijk[2] = MM_SET1(cr[2]) - MM_LOAD(rijk+2*SIMDD);
         MM_STORE(x, aijk * MM_LOAD(tau) * MM_LOAD(tau) * SQUARE(crijk));
         for (i = 0; i < nrys_roots*SIMDD; i++) {
                 u[i] = 0;
