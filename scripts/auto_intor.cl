@@ -40,7 +40,7 @@
   '("int1e_irrp"                ( \| rc rc nabla \| ))
   '("int1e_irpr"                ( \| rc nabla rc \| ))
   '("int1e_ggovlp"              ( \| g g \|))
-  '("int1e_ggkin"               ( \| g g nabla dot nabla \|))
+  '("int1e_ggkin"               (.5 \| g g nabla dot nabla \|))
   '("int1e_ggnuc"               ( \| g g nuc \|))
   '("int1e_grjxp"               ( \| g r cross p \|))
 )
@@ -201,6 +201,7 @@
   '("int3c2e_ipip1"             ( nabla nabla \, \| ))
   '("int3c2e_ipvip1"            ( nabla \, nabla \| ))
   '("int3c2e_ip1ip2"            ( nabla \, \| nabla ))
+  '("int2c2e_ipip1"             ( nabla nabla \| r12 \|))
   '("int2c2e_ip1ip2"            ( nabla \| r12 \| nabla))
 )
 
