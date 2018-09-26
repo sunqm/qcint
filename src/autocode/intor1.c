@@ -2902,7 +2902,7 @@ return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_1e);
 } // int1e_ggovlp_spinor
 ALL_CINT1E(int1e_ggovlp)
 //ALL_CINT1E_FORTRAN_(cint1e_ggovlp)
-/* <i|G G NABLA DOT NABLA |j> */
+/* <i|G G P DOT P |j> */
 static void CINTgout1e_int1e_ggkin(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 CINTg1e_ovlp(g, envs, count);
 int nf = envs->nf;
@@ -3040,15 +3040,15 @@ rs[77] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g13+iz*SIMDD);
 rs[78] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g14+iz*SIMDD);
 rs[79] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g14+iz*SIMDD);
 rs[80] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g15+iz*SIMDD);
-r1 = - MM_SET1(c[4])*rs[72] + MM_SET1(2)*MM_SET1(c[5])*rs[63] - MM_SET1(c[8])*rs[36] - MM_SET1(c[4])*rs[76] + MM_SET1(2)*MM_SET1(c[5])*rs[67] - MM_SET1(c[8])*rs[40] - MM_SET1(c[4])*rs[80] + MM_SET1(2)*MM_SET1(c[5])*rs[71] - MM_SET1(c[8])*rs[44]; GOUT_SCATTER(gout, n*9+0, r1);
-r1 = - MM_SET1(c[5])*rs[54] + MM_SET1(c[8])*rs[27] + MM_SET1(c[3])*rs[72] - MM_SET1(c[6])*rs[45] - MM_SET1(c[5])*rs[58] + MM_SET1(c[8])*rs[31] + MM_SET1(c[3])*rs[76] - MM_SET1(c[6])*rs[49] - MM_SET1(c[5])*rs[62] + MM_SET1(c[8])*rs[35] + MM_SET1(c[3])*rs[80] - MM_SET1(c[6])*rs[53]; GOUT_SCATTER(gout, n*9+1, r1);
-r1 = - MM_SET1(c[3])*rs[63] + MM_SET1(c[6])*rs[36] + MM_SET1(c[4])*rs[54] - MM_SET1(c[7])*rs[27] - MM_SET1(c[3])*rs[67] + MM_SET1(c[6])*rs[40] + MM_SET1(c[4])*rs[58] - MM_SET1(c[7])*rs[31] - MM_SET1(c[3])*rs[71] + MM_SET1(c[6])*rs[44] + MM_SET1(c[4])*rs[62] - MM_SET1(c[7])*rs[35]; GOUT_SCATTER(gout, n*9+2, r1);
-r1 = - MM_SET1(c[7])*rs[18] + MM_SET1(c[1])*rs[72] + MM_SET1(c[8])*rs[9] - MM_SET1(c[2])*rs[63] - MM_SET1(c[7])*rs[22] + MM_SET1(c[1])*rs[76] + MM_SET1(c[8])*rs[13] - MM_SET1(c[2])*rs[67] - MM_SET1(c[7])*rs[26] + MM_SET1(c[1])*rs[80] + MM_SET1(c[8])*rs[17] - MM_SET1(c[2])*rs[71]; GOUT_SCATTER(gout, n*9+3, r1);
-r1 = - MM_SET1(c[8])*rs[0] + MM_SET1(2)*MM_SET1(c[6])*rs[18] - MM_SET1(c[0])*rs[72] - MM_SET1(c[8])*rs[4] + MM_SET1(2)*MM_SET1(c[6])*rs[22] - MM_SET1(c[0])*rs[76] - MM_SET1(c[8])*rs[8] + MM_SET1(2)*MM_SET1(c[6])*rs[26] - MM_SET1(c[0])*rs[80]; GOUT_SCATTER(gout, n*9+4, r1);
-r1 = - MM_SET1(c[6])*rs[9] + MM_SET1(c[0])*rs[63] + MM_SET1(c[7])*rs[0] - MM_SET1(c[1])*rs[54] - MM_SET1(c[6])*rs[13] + MM_SET1(c[0])*rs[67] + MM_SET1(c[7])*rs[4] - MM_SET1(c[1])*rs[58] - MM_SET1(c[6])*rs[17] + MM_SET1(c[0])*rs[71] + MM_SET1(c[7])*rs[8] - MM_SET1(c[1])*rs[62]; GOUT_SCATTER(gout, n*9+5, r1);
-r1 = - MM_SET1(c[1])*rs[45] + MM_SET1(c[4])*rs[18] + MM_SET1(c[2])*rs[36] - MM_SET1(c[5])*rs[9] - MM_SET1(c[1])*rs[49] + MM_SET1(c[4])*rs[22] + MM_SET1(c[2])*rs[40] - MM_SET1(c[5])*rs[13] - MM_SET1(c[1])*rs[53] + MM_SET1(c[4])*rs[26] + MM_SET1(c[2])*rs[44] - MM_SET1(c[5])*rs[17]; GOUT_SCATTER(gout, n*9+6, r1);
-r1 = - MM_SET1(c[2])*rs[27] + MM_SET1(c[5])*rs[0] + MM_SET1(c[0])*rs[45] - MM_SET1(c[3])*rs[18] - MM_SET1(c[2])*rs[31] + MM_SET1(c[5])*rs[4] + MM_SET1(c[0])*rs[49] - MM_SET1(c[3])*rs[22] - MM_SET1(c[2])*rs[35] + MM_SET1(c[5])*rs[8] + MM_SET1(c[0])*rs[53] - MM_SET1(c[3])*rs[26]; GOUT_SCATTER(gout, n*9+7, r1);
-r1 = - MM_SET1(c[0])*rs[36] + MM_SET1(2)*MM_SET1(c[1])*rs[27] - MM_SET1(c[4])*rs[0] - MM_SET1(c[0])*rs[40] + MM_SET1(2)*MM_SET1(c[1])*rs[31] - MM_SET1(c[4])*rs[4] - MM_SET1(c[0])*rs[44] + MM_SET1(2)*MM_SET1(c[1])*rs[35] - MM_SET1(c[4])*rs[8]; GOUT_SCATTER(gout, n*9+8, r1);
+r1 = + MM_SET1(c[4])*rs[72] + MM_SET1(-2)*MM_SET1(c[5])*rs[63] + MM_SET1(c[8])*rs[36] + MM_SET1(c[4])*rs[76] + MM_SET1(-2)*MM_SET1(c[5])*rs[67] + MM_SET1(c[8])*rs[40] + MM_SET1(c[4])*rs[80] + MM_SET1(-2)*MM_SET1(c[5])*rs[71] + MM_SET1(c[8])*rs[44]; GOUT_SCATTER(gout, n*9+0, r1);
+r1 = + MM_SET1(c[5])*rs[54] - MM_SET1(c[8])*rs[27] - MM_SET1(c[3])*rs[72] + MM_SET1(c[6])*rs[45] + MM_SET1(c[5])*rs[58] - MM_SET1(c[8])*rs[31] - MM_SET1(c[3])*rs[76] + MM_SET1(c[6])*rs[49] + MM_SET1(c[5])*rs[62] - MM_SET1(c[8])*rs[35] - MM_SET1(c[3])*rs[80] + MM_SET1(c[6])*rs[53]; GOUT_SCATTER(gout, n*9+1, r1);
+r1 = + MM_SET1(c[3])*rs[63] - MM_SET1(c[6])*rs[36] - MM_SET1(c[4])*rs[54] + MM_SET1(c[7])*rs[27] + MM_SET1(c[3])*rs[67] - MM_SET1(c[6])*rs[40] - MM_SET1(c[4])*rs[58] + MM_SET1(c[7])*rs[31] + MM_SET1(c[3])*rs[71] - MM_SET1(c[6])*rs[44] - MM_SET1(c[4])*rs[62] + MM_SET1(c[7])*rs[35]; GOUT_SCATTER(gout, n*9+2, r1);
+r1 = + MM_SET1(c[7])*rs[18] - MM_SET1(c[1])*rs[72] - MM_SET1(c[8])*rs[9] + MM_SET1(c[2])*rs[63] + MM_SET1(c[7])*rs[22] - MM_SET1(c[1])*rs[76] - MM_SET1(c[8])*rs[13] + MM_SET1(c[2])*rs[67] + MM_SET1(c[7])*rs[26] - MM_SET1(c[1])*rs[80] - MM_SET1(c[8])*rs[17] + MM_SET1(c[2])*rs[71]; GOUT_SCATTER(gout, n*9+3, r1);
+r1 = + MM_SET1(c[8])*rs[0] + MM_SET1(-2)*MM_SET1(c[6])*rs[18] + MM_SET1(c[0])*rs[72] + MM_SET1(c[8])*rs[4] + MM_SET1(-2)*MM_SET1(c[6])*rs[22] + MM_SET1(c[0])*rs[76] + MM_SET1(c[8])*rs[8] + MM_SET1(-2)*MM_SET1(c[6])*rs[26] + MM_SET1(c[0])*rs[80]; GOUT_SCATTER(gout, n*9+4, r1);
+r1 = + MM_SET1(c[6])*rs[9] - MM_SET1(c[0])*rs[63] - MM_SET1(c[7])*rs[0] + MM_SET1(c[1])*rs[54] + MM_SET1(c[6])*rs[13] - MM_SET1(c[0])*rs[67] - MM_SET1(c[7])*rs[4] + MM_SET1(c[1])*rs[58] + MM_SET1(c[6])*rs[17] - MM_SET1(c[0])*rs[71] - MM_SET1(c[7])*rs[8] + MM_SET1(c[1])*rs[62]; GOUT_SCATTER(gout, n*9+5, r1);
+r1 = + MM_SET1(c[1])*rs[45] - MM_SET1(c[4])*rs[18] - MM_SET1(c[2])*rs[36] + MM_SET1(c[5])*rs[9] + MM_SET1(c[1])*rs[49] - MM_SET1(c[4])*rs[22] - MM_SET1(c[2])*rs[40] + MM_SET1(c[5])*rs[13] + MM_SET1(c[1])*rs[53] - MM_SET1(c[4])*rs[26] - MM_SET1(c[2])*rs[44] + MM_SET1(c[5])*rs[17]; GOUT_SCATTER(gout, n*9+6, r1);
+r1 = + MM_SET1(c[2])*rs[27] - MM_SET1(c[5])*rs[0] - MM_SET1(c[0])*rs[45] + MM_SET1(c[3])*rs[18] + MM_SET1(c[2])*rs[31] - MM_SET1(c[5])*rs[4] - MM_SET1(c[0])*rs[49] + MM_SET1(c[3])*rs[22] + MM_SET1(c[2])*rs[35] - MM_SET1(c[5])*rs[8] - MM_SET1(c[0])*rs[53] + MM_SET1(c[3])*rs[26]; GOUT_SCATTER(gout, n*9+7, r1);
+r1 = + MM_SET1(c[0])*rs[36] + MM_SET1(-2)*MM_SET1(c[1])*rs[27] + MM_SET1(c[4])*rs[0] + MM_SET1(c[0])*rs[40] + MM_SET1(-2)*MM_SET1(c[1])*rs[31] + MM_SET1(c[4])*rs[4] + MM_SET1(c[0])*rs[44] + MM_SET1(-2)*MM_SET1(c[1])*rs[35] + MM_SET1(c[4])*rs[8]; GOUT_SCATTER(gout, n*9+8, r1);
 }}
 void int1e_ggkin_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
 int ng[] = {0, 4, 0, 0, 4, 1, 1, 9};
