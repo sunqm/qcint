@@ -334,8 +334,12 @@ int CINT3c2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
                 CINTg4c_index_xyz(idx, envs);
                 allocated_idx = 1;
         }
-        int *non0ctr[3] = {opt->non0ctr[i_sh], opt->non0ctr[j_sh], opt->non0ctr[k_sh]};
-        int *non0idx[3] = {opt->sortedidx[i_sh], opt->sortedidx[j_sh], opt->sortedidx[k_sh]};
+
+        int non0ctrk[k_prim];
+        int non0idxk[k_prim*k_ctr];
+        CINTOpt_non0coeff_byshell(non0idxk, non0ctrk, ck, k_prim, k_ctr);
+        int *non0ctr[3] = {opt->non0ctr[i_sh], opt->non0ctr[j_sh], non0ctrk};
+        int *non0idx[3] = {opt->sortedidx[i_sh], opt->sortedidx[j_sh], non0idxk};
 
         INITSIMD;
 
