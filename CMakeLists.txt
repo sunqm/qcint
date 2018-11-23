@@ -1,6 +1,7 @@
 cmake_minimum_required (VERSION 2.6)
 project (qcint C)
 set(qcint_VERSION "3.0.14")
+set(qcint_SOVERSION "3")
 
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "")
   set(CMAKE_BUILD_TYPE RELWITHDEBINFO)
@@ -90,6 +91,7 @@ endif()
 add_library(cint ${cintSrc})
 set_target_properties(cint PROPERTIES
   VERSION ${qcint_VERSION}
+  SOVERSION ${qcint_SOVERSION}
   LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 target_link_libraries(cint ${BLAS_LIBRARIES})
 if(QUADMATH_FOUND)
