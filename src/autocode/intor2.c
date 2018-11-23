@@ -34,7 +34,7 @@
 #include "c2f.h"
 /* <k G i|R12 |j l> : i,j \in electron 1; k,l \in electron 2
  * = (G i j|R12 |k l) */
-static void CINTgout2e_int2e_ig1(double *RESTRICT gout,
+void CINTgout2e_int2e_ig1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nfc = nf * 3;
@@ -108,7 +108,7 @@ r1 = - MM_SET1(c[1])*rs[2] + MM_SET1(c[2])*rs[1]; GOUT_SCATTER(gout, n*3+0, r1);
 r1 = - MM_SET1(c[2])*rs[0] + MM_SET1(c[0])*rs[2]; GOUT_SCATTER(gout, n*3+1, r1);
 r1 = - MM_SET1(c[0])*rs[1] + MM_SET1(c[1])*rs[0]; GOUT_SCATTER(gout, n*3+2, r1);
 }}
-static void CINTgout2e_int2e_ig1_simd1(double *RESTRICT gout,
+void CINTgout2e_int2e_ig1_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
@@ -235,7 +235,7 @@ ALL_CINT(int2e_ig1)
 //ALL_CINT_FORTRAN_(cint2e_ig1)
 /* <k G G i|R12 |j l> : i,j \in electron 1; k,l \in electron 2
  * = (G G i j|R12 |k l) */
-static void CINTgout2e_int2e_gg1(double *RESTRICT gout,
+void CINTgout2e_int2e_gg1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nfc = nf * 9;
@@ -391,7 +391,7 @@ r1 = - MM_SET1(c[3])*rs[7] + MM_SET1(c[6])*rs[4] + MM_SET1(c[4])*rs[6] - MM_SET1
 r1 = - MM_SET1(c[6])*rs[1] + MM_SET1(c[0])*rs[7] + MM_SET1(c[7])*rs[0] - MM_SET1(c[1])*rs[6]; GOUT_SCATTER(gout, n*9+7, r1);
 r1 = - MM_SET1(c[0])*rs[4] + MM_SET1(2)*MM_SET1(c[1])*rs[3] - MM_SET1(c[4])*rs[0]; GOUT_SCATTER(gout, n*9+8, r1);
 }}
-static void CINTgout2e_int2e_gg1_simd1(double *RESTRICT gout,
+void CINTgout2e_int2e_gg1_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
@@ -518,7 +518,7 @@ ALL_CINT(int2e_gg1)
 //ALL_CINT_FORTRAN_(cint2e_gg1)
 /* <G k G i|R12 |j l> : i,j \in electron 1; k,l \in electron 2
  * = (G i j|R12 |G k l) */
-static void CINTgout2e_int2e_g1g2(double *RESTRICT gout,
+void CINTgout2e_int2e_g1g2(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nfc = nf * 9;
@@ -678,7 +678,7 @@ r1 = + MM_SET1(c[1])*rs[5] - MM_SET1(c[4])*rs[2] - MM_SET1(c[2])*rs[4] + MM_SET1
 r1 = + MM_SET1(c[2])*rs[3] - MM_SET1(c[5])*rs[0] - MM_SET1(c[0])*rs[5] + MM_SET1(c[3])*rs[2]; GOUT_SCATTER(gout, n*9+7, r1);
 r1 = + MM_SET1(c[0])*rs[4] - MM_SET1(c[3])*rs[1] - MM_SET1(c[1])*rs[3] + MM_SET1(c[4])*rs[0]; GOUT_SCATTER(gout, n*9+8, r1);
 }}
-static void CINTgout2e_int2e_g1g2_simd1(double *RESTRICT gout,
+void CINTgout2e_int2e_g1g2_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
@@ -839,7 +839,7 @@ ALL_CINT(int2e_g1g2)
 //ALL_CINT_FORTRAN_(cint2e_g1g2)
 /* <k P* i|R12 |CROSS P j l> : i,j \in electron 1; k,l \in electron 2
  * = (P* i CROSS P j|R12 |k l) */
-static void CINTgout2e_int2e_p1vxp1(double *RESTRICT gout,
+void CINTgout2e_int2e_p1vxp1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nfc = nf * 3;
@@ -975,7 +975,7 @@ r1 = + rs[5] - rs[7]; GOUT_SCATTER(gout, n*3+0, r1);
 r1 = + rs[6] - rs[2]; GOUT_SCATTER(gout, n*3+1, r1);
 r1 = + rs[1] - rs[3]; GOUT_SCATTER(gout, n*3+2, r1);
 }}
-static void CINTgout2e_int2e_p1vxp1_simd1(double *RESTRICT gout,
+void CINTgout2e_int2e_p1vxp1_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
@@ -1043,7 +1043,7 @@ ALL_CINT(int2e_p1vxp1)
 //ALL_CINT_FORTRAN_(cint2e_p1vxp1)
 /* <k i|NABLA-R12 |RC j l> : i,j \in electron 1; k,l \in electron 2
  * = (i RC j|NABLA-R12 |k l) */
-static void CINTgout2e_int2e_ip1v_rc1(double *RESTRICT gout,
+void CINTgout2e_int2e_ip1v_rc1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nfc = nf * 9;
@@ -1192,7 +1192,7 @@ r1 = + rs[6]; GOUT_SCATTER(gout, n*9+6, r1);
 r1 = + rs[7]; GOUT_SCATTER(gout, n*9+7, r1);
 r1 = + rs[8]; GOUT_SCATTER(gout, n*9+8, r1);
 }}
-static void CINTgout2e_int2e_ip1v_rc1_simd1(double *RESTRICT gout,
+void CINTgout2e_int2e_ip1v_rc1_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
@@ -1273,7 +1273,7 @@ ALL_CINT(int2e_ip1v_rc1)
 //ALL_CINT_FORTRAN_(cint2e_ip1v_rc1)
 /* <k i|NABLA-R12 |R j l> : i,j \in electron 1; k,l \in electron 2
  * = (i R j|NABLA-R12 |k l) */
-static void CINTgout2e_int2e_ip1v_r1(double *RESTRICT gout,
+void CINTgout2e_int2e_ip1v_r1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nfc = nf * 9;
@@ -1418,7 +1418,7 @@ r1 = + rs[6]; GOUT_SCATTER(gout, n*9+6, r1);
 r1 = + rs[7]; GOUT_SCATTER(gout, n*9+7, r1);
 r1 = + rs[8]; GOUT_SCATTER(gout, n*9+8, r1);
 }}
-static void CINTgout2e_int2e_ip1v_r1_simd1(double *RESTRICT gout,
+void CINTgout2e_int2e_ip1v_r1_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
@@ -1495,7 +1495,7 @@ ALL_CINT(int2e_ip1v_r1)
 //ALL_CINT_FORTRAN_(cint2e_ip1v_r1)
 /* <k G i|NABLA-R12 CROSS P |j l> : i,j \in electron 1; k,l \in electron 2
  * = (G i j|NABLA-R12 CROSS P |k l) */
-static void CINTgout2e_int2e_ipvg1_xp1(double *RESTRICT gout,
+void CINTgout2e_int2e_ipvg1_xp1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nfc = nf * 9;
@@ -1574,7 +1574,7 @@ r1 = + MM_SET1(c[0])*rs[14] - MM_SET1(c[1])*rs[5] - MM_SET1(c[0])*rs[16] + MM_SE
 r1 = + MM_SET1(c[0])*rs[15] - MM_SET1(c[1])*rs[6] - MM_SET1(c[0])*rs[11] + MM_SET1(c[1])*rs[2]; GOUT_SCATTER(gout, n*9+7, r1);
 r1 = + MM_SET1(c[0])*rs[10] - MM_SET1(c[1])*rs[1] - MM_SET1(c[0])*rs[12] + MM_SET1(c[1])*rs[3]; GOUT_SCATTER(gout, n*9+8, r1);
 }}
-static void CINTgout2e_int2e_ipvg1_xp1_simd1(double *RESTRICT gout,
+void CINTgout2e_int2e_ipvg1_xp1_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
@@ -1724,7 +1724,7 @@ ALL_CINT(int2e_ipvg1_xp1)
 //ALL_CINT_FORTRAN_(cint2e_ipvg1_xp1)
 /* <G k i|NABLA-R12 CROSS P |j l> : i,j \in electron 1; k,l \in electron 2
  * = (i j|NABLA-R12 CROSS P |G k l) */
-static void CINTgout2e_int2e_ipvg2_xp1(double *RESTRICT gout,
+void CINTgout2e_int2e_ipvg2_xp1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nfc = nf * 9;
@@ -1805,7 +1805,7 @@ r1 = - MM_SET1(c[1])*rs[5] + MM_SET1(c[1])*rs[11] + MM_SET1(c[2])*rs[4] - MM_SET
 r1 = - MM_SET1(c[2])*rs[3] + MM_SET1(c[2])*rs[9] + MM_SET1(c[0])*rs[5] - MM_SET1(c[0])*rs[11]; GOUT_SCATTER(gout, n*9+7, r1);
 r1 = - MM_SET1(c[0])*rs[4] + MM_SET1(c[0])*rs[10] + MM_SET1(c[1])*rs[3] - MM_SET1(c[1])*rs[9]; GOUT_SCATTER(gout, n*9+8, r1);
 }}
-static void CINTgout2e_int2e_ipvg2_xp1_simd1(double *RESTRICT gout,
+void CINTgout2e_int2e_ipvg2_xp1_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
@@ -1956,7 +1956,7 @@ return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_2e1i, &c2s_sf_2e2
 ALL_CINT(int2e_ipvg2_xp1)
 //ALL_CINT_FORTRAN_(cint2e_ipvg2_xp1)
 /* <i|NUC |RC CROSS P j> */
-static void CINTgout1e_int1e_inuc_rcxp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+void CINTgout1e_int1e_inuc_rcxp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
 int nfc = nf * 3;
@@ -2032,7 +2032,7 @@ return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_1e);
 ALL_CINT1E(int1e_inuc_rcxp)
 //ALL_CINT1E_FORTRAN_(cint1e_inuc_rcxp)
 /* <i|NUC |R CROSS P j> */
-static void CINTgout1e_int1e_inuc_rxp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+void CINTgout1e_int1e_inuc_rxp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
 int nfc = nf * 3;

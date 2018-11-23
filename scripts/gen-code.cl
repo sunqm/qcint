@@ -408,7 +408,7 @@
            (op-len (length op-rev))
            (tot-bits (+ i-len j-len op-len))
            (goutinc (length flat-script)))
-      (format fout "static void CINTgout1e_~a" intname)
+      (format fout "void CINTgout1e_~a" intname)
       (format fout "(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 CINTg1e_ovlp(g, envs, count);
 int nf = envs->nf;
@@ -453,7 +453,7 @@ iz = idx[2+n*3];~%")
            (op-len (length op-rev))
            (tot-bits (+ i-len j-len op-len))
            (goutinc (length flat-script)))
-      (format fout "static void CINTgout1e_~a" intname)
+      (format fout "void CINTgout1e_~a" intname)
       (format fout "(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
@@ -509,7 +509,7 @@ CINTsort_gout(gout, gout1, nfc, SIMDD);
            (op-len (length op-rev))
            (tot-bits (+ i-len j-len op-len))
            (goutinc (length flat-script)))
-      (format fout "static void CINTgout1e_~a" intname)
+      (format fout "void CINTgout1e_~a" intname)
       (format fout "(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 CINTg1e_nuc(g, envs, count, -1);
 int nf = envs->nf;
@@ -791,7 +791,7 @@ for (i = 0; i < nrys_roots; i++) {~%" (expt 3 tot-bits))
            (l-len (length l-rev))
            (tot-bits (+ i-len j-len op-len k-len l-len))
            (goutinc (length flat-script)))
-      (format fout "static void CINTgout2e_~a(double *RESTRICT gout,
+      (format fout "void CINTgout2e_~a(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {~%" intname)
       (format fout "int nf = envs->nf;
 int nfc = nf * ~a;~%" goutinc)
@@ -863,7 +863,7 @@ for (ix = 0; ix < envs->g_size * 3 * SIMDD; ix++) {g~a[ix] += g~a[ix];}~%"))
            (l-len (length l-rev))
            (tot-bits (+ i-len j-len op-len k-len l-len))
            (goutinc (length flat-script)))
-      (format fout "static void CINTgout2e_~a_simd1(double *RESTRICT gout,
+      (format fout "void CINTgout2e_~a_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {~%" intname)
       (format fout "int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;

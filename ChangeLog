@@ -1,4 +1,6 @@
-Version 3.0.14  (2018-?-?):
+Version 3.0.14  (2018-11-22):
+	* F12 derivative integrals
+	* New 2c2e integral ( nabla nabla i | j )
 	* Bugfix for int3c1e_rinv type integrals
 Version 3.0.13  (2018-06-11):
 	* New integral < | r r r r | >

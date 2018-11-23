@@ -34,7 +34,7 @@
 #include "c2f.h"
 /* <k i|BREIT-R1 |R0 SIGMA DOT P j SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
  * = (i R0 SIGMA DOT P j|BREIT-R1 |k SIGMA DOT P l) */
-static void CINTgout2e_int2e_gauge_r1_ssp1ssp2(double *RESTRICT gout,
+void CINTgout2e_int2e_gauge_r1_ssp1ssp2(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nfc = nf * 16;
@@ -184,7 +184,7 @@ r1 = + rs[54] - rs[6] + rs[64] - rs[16] + rs[74] - rs[26]; GOUT_SCATTER(gout, n*
 r1 = + rs[3] - rs[27] + rs[13] - rs[37] + rs[23] - rs[47]; GOUT_SCATTER(gout, n*16+14, r1);
 r1 = + rs[0] + rs[30] + rs[60] + rs[10] + rs[40] + rs[70] + rs[20] + rs[50] + rs[80]; GOUT_SCATTER(gout, n*16+15, r1);
 }}
-static void CINTgout2e_int2e_gauge_r1_ssp1ssp2_simd1(double *RESTRICT gout,
+void CINTgout2e_int2e_gauge_r1_ssp1ssp2_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
@@ -368,7 +368,7 @@ ALL_CINT(int2e_gauge_r1_ssp1ssp2)
 //ALL_CINT_FORTRAN_(cint2e_gauge_r1_ssp1ssp2)
 /* <SIGMA DOT P k i|BREIT-R1 |R0 SIGMA DOT P j l> : i,j \in electron 1; k,l \in electron 2
  * = (i R0 SIGMA DOT P j|BREIT-R1 |SIGMA DOT P k l) */
-static void CINTgout2e_int2e_gauge_r1_ssp1sps2(double *RESTRICT gout,
+void CINTgout2e_int2e_gauge_r1_ssp1sps2(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nfc = nf * 16;
@@ -518,7 +518,7 @@ r1 = - rs[54] + rs[6] - rs[64] + rs[16] - rs[74] + rs[26]; GOUT_SCATTER(gout, n*
 r1 = - rs[3] + rs[27] - rs[13] + rs[37] - rs[23] + rs[47]; GOUT_SCATTER(gout, n*16+14, r1);
 r1 = - rs[0] - rs[30] - rs[60] - rs[10] - rs[40] - rs[70] - rs[20] - rs[50] - rs[80]; GOUT_SCATTER(gout, n*16+15, r1);
 }}
-static void CINTgout2e_int2e_gauge_r1_ssp1sps2_simd1(double *RESTRICT gout,
+void CINTgout2e_int2e_gauge_r1_ssp1sps2_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
@@ -702,7 +702,7 @@ ALL_CINT(int2e_gauge_r1_ssp1sps2)
 //ALL_CINT_FORTRAN_(cint2e_gauge_r1_ssp1sps2)
 /* <k SIGMA DOT P i|BREIT-R1 |R0 j SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
  * = (SIGMA DOT P i R0 j|BREIT-R1 |k SIGMA DOT P l) */
-static void CINTgout2e_int2e_gauge_r1_sps1ssp2(double *RESTRICT gout,
+void CINTgout2e_int2e_gauge_r1_sps1ssp2(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nfc = nf * 16;
@@ -852,7 +852,7 @@ r1 = - rs[54] + rs[18] - rs[58] + rs[22] - rs[62] + rs[26]; GOUT_SCATTER(gout, n
 r1 = - rs[9] + rs[27] - rs[13] + rs[31] - rs[17] + rs[35]; GOUT_SCATTER(gout, n*16+14, r1);
 r1 = - rs[0] - rs[36] - rs[72] - rs[4] - rs[40] - rs[76] - rs[8] - rs[44] - rs[80]; GOUT_SCATTER(gout, n*16+15, r1);
 }}
-static void CINTgout2e_int2e_gauge_r1_sps1ssp2_simd1(double *RESTRICT gout,
+void CINTgout2e_int2e_gauge_r1_sps1ssp2_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
@@ -1036,7 +1036,7 @@ ALL_CINT(int2e_gauge_r1_sps1ssp2)
 //ALL_CINT_FORTRAN_(cint2e_gauge_r1_sps1ssp2)
 /* <SIGMA DOT P k SIGMA DOT P i|BREIT-R1 |R0 j l> : i,j \in electron 1; k,l \in electron 2
  * = (SIGMA DOT P i R0 j|BREIT-R1 |SIGMA DOT P k l) */
-static void CINTgout2e_int2e_gauge_r1_sps1sps2(double *RESTRICT gout,
+void CINTgout2e_int2e_gauge_r1_sps1sps2(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nfc = nf * 16;
@@ -1186,7 +1186,7 @@ r1 = + rs[54] - rs[18] + rs[58] - rs[22] + rs[62] - rs[26]; GOUT_SCATTER(gout, n
 r1 = + rs[9] - rs[27] + rs[13] - rs[31] + rs[17] - rs[35]; GOUT_SCATTER(gout, n*16+14, r1);
 r1 = + rs[0] + rs[36] + rs[72] + rs[4] + rs[40] + rs[76] + rs[8] + rs[44] + rs[80]; GOUT_SCATTER(gout, n*16+15, r1);
 }}
-static void CINTgout2e_int2e_gauge_r1_sps1sps2_simd1(double *RESTRICT gout,
+void CINTgout2e_int2e_gauge_r1_sps1sps2_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
@@ -1370,7 +1370,7 @@ ALL_CINT(int2e_gauge_r1_sps1sps2)
 //ALL_CINT_FORTRAN_(cint2e_gauge_r1_sps1sps2)
 /* <k i|BREIT-R2 |SIGMA DOT P j R0 SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
  * = (i SIGMA DOT P j|BREIT-R2 |k R0 SIGMA DOT P l) */
-static void CINTgout2e_int2e_gauge_r2_ssp1ssp2(double *RESTRICT gout,
+void CINTgout2e_int2e_gauge_r2_ssp1ssp2(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nfc = nf * 16;
@@ -1524,7 +1524,7 @@ r1 = + rs[54] - rs[18] + rs[58] - rs[22] + rs[62] - rs[26]; GOUT_SCATTER(gout, n
 r1 = + rs[9] - rs[27] + rs[13] - rs[31] + rs[17] - rs[35]; GOUT_SCATTER(gout, n*16+14, r1);
 r1 = + rs[0] + rs[36] + rs[72] + rs[4] + rs[40] + rs[76] + rs[8] + rs[44] + rs[80]; GOUT_SCATTER(gout, n*16+15, r1);
 }}
-static void CINTgout2e_int2e_gauge_r2_ssp1ssp2_simd1(double *RESTRICT gout,
+void CINTgout2e_int2e_gauge_r2_ssp1ssp2_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
@@ -1712,7 +1712,7 @@ ALL_CINT(int2e_gauge_r2_ssp1ssp2)
 //ALL_CINT_FORTRAN_(cint2e_gauge_r2_ssp1ssp2)
 /* <SIGMA DOT P k i|BREIT-R2 |SIGMA DOT P j R0 l> : i,j \in electron 1; k,l \in electron 2
  * = (i SIGMA DOT P j|BREIT-R2 |SIGMA DOT P k R0 l) */
-static void CINTgout2e_int2e_gauge_r2_ssp1sps2(double *RESTRICT gout,
+void CINTgout2e_int2e_gauge_r2_ssp1sps2(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nfc = nf * 16;
@@ -1866,7 +1866,7 @@ r1 = - rs[54] + rs[18] - rs[58] + rs[22] - rs[62] + rs[26]; GOUT_SCATTER(gout, n
 r1 = - rs[9] + rs[27] - rs[13] + rs[31] - rs[17] + rs[35]; GOUT_SCATTER(gout, n*16+14, r1);
 r1 = - rs[0] - rs[36] - rs[72] - rs[4] - rs[40] - rs[76] - rs[8] - rs[44] - rs[80]; GOUT_SCATTER(gout, n*16+15, r1);
 }}
-static void CINTgout2e_int2e_gauge_r2_ssp1sps2_simd1(double *RESTRICT gout,
+void CINTgout2e_int2e_gauge_r2_ssp1sps2_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
@@ -2054,7 +2054,7 @@ ALL_CINT(int2e_gauge_r2_ssp1sps2)
 //ALL_CINT_FORTRAN_(cint2e_gauge_r2_ssp1sps2)
 /* <k SIGMA DOT P i|BREIT-R2 |j R0 SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
  * = (SIGMA DOT P i j|BREIT-R2 |k R0 SIGMA DOT P l) */
-static void CINTgout2e_int2e_gauge_r2_sps1ssp2(double *RESTRICT gout,
+void CINTgout2e_int2e_gauge_r2_sps1ssp2(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nfc = nf * 16;
@@ -2208,7 +2208,7 @@ r1 = - rs[54] + rs[18] - rs[58] + rs[22] - rs[62] + rs[26]; GOUT_SCATTER(gout, n
 r1 = - rs[9] + rs[27] - rs[13] + rs[31] - rs[17] + rs[35]; GOUT_SCATTER(gout, n*16+14, r1);
 r1 = - rs[0] - rs[36] - rs[72] - rs[4] - rs[40] - rs[76] - rs[8] - rs[44] - rs[80]; GOUT_SCATTER(gout, n*16+15, r1);
 }}
-static void CINTgout2e_int2e_gauge_r2_sps1ssp2_simd1(double *RESTRICT gout,
+void CINTgout2e_int2e_gauge_r2_sps1ssp2_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
@@ -2396,7 +2396,7 @@ ALL_CINT(int2e_gauge_r2_sps1ssp2)
 //ALL_CINT_FORTRAN_(cint2e_gauge_r2_sps1ssp2)
 /* <SIGMA DOT P k SIGMA DOT P i|BREIT-R2 |j R0 l> : i,j \in electron 1; k,l \in electron 2
  * = (SIGMA DOT P i j|BREIT-R2 |SIGMA DOT P k R0 l) */
-static void CINTgout2e_int2e_gauge_r2_sps1sps2(double *RESTRICT gout,
+void CINTgout2e_int2e_gauge_r2_sps1sps2(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nfc = nf * 16;
@@ -2550,7 +2550,7 @@ r1 = + rs[54] - rs[18] + rs[58] - rs[22] + rs[62] - rs[26]; GOUT_SCATTER(gout, n
 r1 = + rs[9] - rs[27] + rs[13] - rs[31] + rs[17] - rs[35]; GOUT_SCATTER(gout, n*16+14, r1);
 r1 = + rs[0] + rs[36] + rs[72] + rs[4] + rs[40] + rs[76] + rs[8] + rs[44] + rs[80]; GOUT_SCATTER(gout, n*16+15, r1);
 }}
-static void CINTgout2e_int2e_gauge_r2_sps1sps2_simd1(double *RESTRICT gout,
+void CINTgout2e_int2e_gauge_r2_sps1sps2_simd1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;

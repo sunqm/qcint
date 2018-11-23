@@ -33,7 +33,7 @@
 #include "misc.h"
 #include "c2f.h"
 /* <i|OVLP |SIGMA j> */
-static void CINTgout1e_int1e_sigma(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+void CINTgout1e_int1e_sigma(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 CINTg1e_ovlp(g, envs, count);
 int nf = envs->nf;
 int nfc = nf * 12;
@@ -91,7 +91,7 @@ return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1ei);
 ALL_CINT1E(int1e_sigma)
 //ALL_CINT1E_FORTRAN_(cint1e_sigma)
 /* <SIGMA DOT P i|OVLP |SIGMA SIGMA DOT P j> */
-static void CINTgout1e_int1e_spsigmasp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+void CINTgout1e_int1e_spsigmasp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 CINTg1e_ovlp(g, envs, count);
 int nf = envs->nf;
 int nfc = nf * 12;
@@ -163,7 +163,7 @@ return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1ei);
 ALL_CINT1E(int1e_spsigmasp)
 //ALL_CINT1E_FORTRAN_(cint1e_spsigmasp)
 /* <SIGMA DOT R i|OVLP |SIGMA DOT R j> */
-static void CINTgout1e_int1e_srsr(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+void CINTgout1e_int1e_srsr(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 CINTg1e_ovlp(g, envs, count);
 int nf = envs->nf;
 int nfc = nf * 4;
@@ -227,7 +227,7 @@ return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1e);
 ALL_CINT1E(int1e_srsr)
 //ALL_CINT1E_FORTRAN_(cint1e_srsr)
 /* <SIGMA DOT R i|OVLP |j> */
-static void CINTgout1e_int1e_sr(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+void CINTgout1e_int1e_sr(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 CINTg1e_ovlp(g, envs, count);
 int nf = envs->nf;
 int nfc = nf * 4;
@@ -281,7 +281,7 @@ return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1ei);
 ALL_CINT1E(int1e_sr)
 //ALL_CINT1E_FORTRAN_(cint1e_sr)
 /* <SIGMA DOT R i|OVLP |SIGMA DOT P j> */
-static void CINTgout1e_int1e_srsp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+void CINTgout1e_int1e_srsp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 CINTg1e_ovlp(g, envs, count);
 int nf = envs->nf;
 int nfc = nf * 4;
@@ -345,7 +345,7 @@ return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1ei);
 ALL_CINT1E(int1e_srsp)
 //ALL_CINT1E_FORTRAN_(cint1e_srsp)
 /* <SIGMA DOT P i|OVLP |SIGMA DOT P j> */
-static void CINTgout1e_int1e_spsp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+void CINTgout1e_int1e_spsp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 CINTg1e_ovlp(g, envs, count);
 int nf = envs->nf;
 int nfc = nf * 1;
@@ -406,7 +406,7 @@ return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_1e);
 ALL_CINT1E(int1e_spsp)
 //ALL_CINT1E_FORTRAN_(cint1e_spsp)
 /* <SIGMA DOT P i|OVLP |j> */
-static void CINTgout1e_int1e_sp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+void CINTgout1e_int1e_sp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 CINTg1e_ovlp(g, envs, count);
 int nf = envs->nf;
 int nfc = nf * 4;
@@ -460,7 +460,7 @@ return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1e);
 ALL_CINT1E(int1e_sp)
 //ALL_CINT1E_FORTRAN_(cint1e_sp)
 /* <SIGMA DOT P i|NUC |SIGMA DOT P j> */
-static void CINTgout1e_int1e_spnucsp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+void CINTgout1e_int1e_spnucsp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
 int nfc = nf * 4;
@@ -533,7 +533,7 @@ return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1e);
 ALL_CINT1E(int1e_spnucsp)
 //ALL_CINT1E_FORTRAN_(cint1e_spnucsp)
 /* <SIGMA DOT P i|RINV |SIGMA DOT P j> */
-static void CINTgout1e_int1e_sprinvsp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+void CINTgout1e_int1e_sprinvsp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 CINTg1e_nuc(g, envs, count, -1);
 int nf = envs->nf;
 int nfc = nf * 4;
@@ -601,7 +601,7 @@ return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1e);
 ALL_CINT1E(int1e_sprinvsp)
 //ALL_CINT1E_FORTRAN_(cint1e_sprinvsp)
 /* <SIGMA DOT R i|NUC |SIGMA DOT R j> */
-static void CINTgout1e_int1e_srnucsr(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+void CINTgout1e_int1e_srnucsr(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
 int nfc = nf * 4;
@@ -674,7 +674,7 @@ return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1e);
 ALL_CINT1E(int1e_srnucsr)
 //ALL_CINT1E_FORTRAN_(cint1e_srnucsr)
 /* <SIGMA DOT P i|RC |SIGMA DOT P j> */
-static void CINTgout1e_int1e_sprsp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+void CINTgout1e_int1e_sprsp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 CINTg1e_ovlp(g, envs, count);
 int nf = envs->nf;
 int nfc = nf * 12;
@@ -776,7 +776,7 @@ return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1e);
 ALL_CINT1E(int1e_sprsp)
 //ALL_CINT1E_FORTRAN_(cint1e_sprsp)
 /* <G i|OVLP |j> */
-static void CINTgout1e_int1e_govlp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+void CINTgout1e_int1e_govlp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 CINTg1e_ovlp(g, envs, count);
 int nf = envs->nf;
 int nfc = nf * 3;
@@ -875,7 +875,7 @@ return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_1ei);
 ALL_CINT1E(int1e_govlp)
 //ALL_CINT1E_FORTRAN_(cint1e_govlp)
 /* <G i|NUC |j> */
-static void CINTgout1e_int1e_gnuc(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+void CINTgout1e_int1e_gnuc(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
 int nfc = nf * 3;
@@ -983,7 +983,7 @@ return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_1ei);
 ALL_CINT1E(int1e_gnuc)
 //ALL_CINT1E_FORTRAN_(cint1e_gnuc)
 /* <SIGMA CROSS RC i|SIGMA CROSS NABLA-RINV |j> */
-static void CINTgout1e_int1e_cg_sa10sa01(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+void CINTgout1e_int1e_cg_sa10sa01(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 CINTg1e_nuc(g, envs, count, -1);
 int nf = envs->nf;
 int nfc = nf * 36;
@@ -1093,7 +1093,7 @@ return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1e);
 ALL_CINT1E(int1e_cg_sa10sa01)
 //ALL_CINT1E_FORTRAN_(cint1e_cg_sa10sa01)
 /* <RC CROSS SIGMA i|OVLP |SIGMA DOT P j> */
-static void CINTgout1e_int1e_cg_sa10sp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+void CINTgout1e_int1e_cg_sa10sp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 CINTg1e_ovlp(g, envs, count);
 int nf = envs->nf;
 int nfc = nf * 12;
@@ -1172,7 +1172,7 @@ return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1ei);
 ALL_CINT1E(int1e_cg_sa10sp)
 //ALL_CINT1E_FORTRAN_(cint1e_cg_sa10sp)
 /* <RC CROSS SIGMA i|NUC |SIGMA DOT P j> */
-static void CINTgout1e_int1e_cg_sa10nucsp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+void CINTgout1e_int1e_cg_sa10nucsp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
 int nfc = nf * 12;
@@ -1260,7 +1260,7 @@ return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1ei);
 ALL_CINT1E(int1e_cg_sa10nucsp)
 //ALL_CINT1E_FORTRAN_(cint1e_cg_sa10nucsp)
 /* <SIGMA CROSS R i|SIGMA CROSS NABLA-RINV |j> */
-static void CINTgout1e_int1e_giao_sa10sa01(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+void CINTgout1e_int1e_giao_sa10sa01(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 CINTg1e_nuc(g, envs, count, -1);
 int nf = envs->nf;
 int nfc = nf * 36;
@@ -1366,7 +1366,7 @@ return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1e);
 ALL_CINT1E(int1e_giao_sa10sa01)
 //ALL_CINT1E_FORTRAN_(cint1e_giao_sa10sa01)
 /* <R CROSS SIGMA i|OVLP |SIGMA DOT P j> */
-static void CINTgout1e_int1e_giao_sa10sp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+void CINTgout1e_int1e_giao_sa10sp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 CINTg1e_ovlp(g, envs, count);
 int nf = envs->nf;
 int nfc = nf * 12;
@@ -1441,7 +1441,7 @@ return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1ei);
 ALL_CINT1E(int1e_giao_sa10sp)
 //ALL_CINT1E_FORTRAN_(cint1e_giao_sa10sp)
 /* <R CROSS SIGMA i|NUC |SIGMA DOT P j> */
-static void CINTgout1e_int1e_giao_sa10nucsp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+void CINTgout1e_int1e_giao_sa10nucsp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
 int nfc = nf * 12;
@@ -1525,7 +1525,7 @@ return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1ei);
 ALL_CINT1E(int1e_giao_sa10nucsp)
 //ALL_CINT1E_FORTRAN_(cint1e_giao_sa10nucsp)
 /* <i|NABLA-RINV CROSS SIGMA |SIGMA DOT P j> */
-static void CINTgout1e_int1e_sa01sp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+void CINTgout1e_int1e_sa01sp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 CINTg1e_nuc(g, envs, count, -1);
 int nf = envs->nf;
 int nfc = nf * 12;
@@ -1604,7 +1604,7 @@ return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1ei);
 ALL_CINT1E(int1e_sa01sp)
 //ALL_CINT1E_FORTRAN_(cint1e_sa01sp)
 /* <G SIGMA DOT P i|OVLP |SIGMA DOT P j> */
-static void CINTgout1e_int1e_spgsp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+void CINTgout1e_int1e_spgsp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 CINTg1e_ovlp(g, envs, count);
 int nf = envs->nf;
 int nfc = nf * 12;
@@ -1748,7 +1748,7 @@ return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1ei);
 ALL_CINT1E(int1e_spgsp)
 //ALL_CINT1E_FORTRAN_(cint1e_spgsp)
 /* <G SIGMA DOT P i|NUC |SIGMA DOT P j> */
-static void CINTgout1e_int1e_spgnucsp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+void CINTgout1e_int1e_spgnucsp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
 int nfc = nf * 12;
@@ -1901,7 +1901,7 @@ return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1ei);
 ALL_CINT1E(int1e_spgnucsp)
 //ALL_CINT1E_FORTRAN_(cint1e_spgnucsp)
 /* <G SIGMA DOT P i|NABLA-RINV CROSS SIGMA |j> */
-static void CINTgout1e_int1e_spgsa01(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+void CINTgout1e_int1e_spgsa01(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 CINTg1e_nuc(g, envs, count, -1);
 int nf = envs->nf;
 int nfc = nf * 36;
