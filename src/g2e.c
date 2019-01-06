@@ -439,7 +439,7 @@ MM_STORE(p0z+j*SIMDD, MM_LOAD(c00z+i*SIMDD) * MM_LOAD(gz+j*SIMDD) + r0 * MM_LOAD
  * g0[i,k,l,j] = < ik | lj > = ( i j | k l )
  */
 /* 2d is based on l,j */
-void CINTg0_lj2d_4d(double *g, CINTEnvVars *envs)
+void CINTg0_lj_4d(double *g, CINTEnvVars *envs)
 {
         int li = envs->li_ceil;
         int lk = envs->lk_ceil;
@@ -1817,7 +1817,7 @@ void CINTg0_2e_lj2d4d(double *g, Rys2eT *bc, CINTEnvVars *envs)
         default:
 _g0_4d_default:
                         CINTg0_2e_2d(g, bc, envs);
-                        CINTg0_lj2d_4d(g, envs);
+                        CINTg0_lj_4d(g, envs);
                         return;
         }
 error:
@@ -1841,15 +1841,6 @@ void CINTg0_2e_il2d4d(double *g, Rys2eT *bc, CINTEnvVars *envs)
         CINTg0_2e_2d(g, bc, envs);
         CINTg0_il_4d(g, envs);
 }
-
-#ifdef WITH_F12
-void CINTg0_2e_stg_lj2d4d(double *g, Rys2eT *bc, CINTEnvVars *envs)
-{
-        CINTg0_2e_2d(g, bc, envs);
-        CINTg0_lj2d_4d(g, envs);
-}
-#endif
-
 
 /*
  * g[i,k,l,j] = < ik | lj > = ( i j | k l )
@@ -2039,13 +2030,12 @@ void CINTg0_2e(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
         r0 = MM_LOAD(a0);
         r1 = MM_LOAD(a1);
         r2 = MM_SET1(.5);
-        r3 = MM_SET1(2.);
+        r3 = MM_SET1(1.);
         for (i = 0; i < nroots; i++) {
                 r4 = MM_MUL(r0, MM_LOAD(u+i*SIMDD));
-                r5 = MM_DIV(r2, MM_FMA(r4, ra, r1));
-                MM_STORE(tmp4+i*SIMDD, r5);
-                r6 = MM_MUL(MM_MUL(r3, r4), r5);
-                MM_STORE(tmp1+i*SIMDD, r6);
+                r5 = MM_DIV(r3, MM_FMA(r4, ra, r1));
+                MM_STORE(tmp4+i*SIMDD, MM_MUL(r2, r5));
+                MM_STORE(tmp1+i*SIMDD, MM_MUL(r4, r5));
         }
         ra = MM_SET1(.5);
         r2 = MM_LOAD(akl);

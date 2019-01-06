@@ -69,8 +69,8 @@ void c##NAME##_sph_optimizer(CINTOpt **opt, int *atm, int natm, \
         NAME##_optimizer(opt, atm, natm, bas, nbas, env); \
 }
 
-ALL_CINT(int2e_yp)
-ALL_CINT(int2e_stg)
+ALL_CINT(int2e_yp);
+ALL_CINT(int2e_stg);
 
 
 

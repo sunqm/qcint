@@ -236,8 +236,6 @@ void CINTall_3c1e_optimizer(CINTOpt **opt, int *ng,
 }
 
 #ifdef WITH_F12
-void CINTinit_int2e_stg_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
-                                int *atm, int natm, int *bas, int nbas, double *env);
 void CINTall_2e_stg_optimizer(CINTOpt **opt, int *ng,
                               int *atm, int natm, int *bas, int nbas, double *env)
 {
@@ -248,6 +246,19 @@ void CINTall_2e_stg_optimizer(CINTOpt **opt, int *ng,
                 4, 6, ng, atm, natm, bas, nbas, env);
 }
 #endif
+ 
+#ifdef WITH_GTG
+void CINTall_2e_gtg_optimizer(CINTOpt **opt, int *ng,
+                              int *atm, int natm, int *bas, int nbas, double *env)
+{
+        CINTinit_2e_optimizer(opt, atm, natm, bas, nbas, env);
+        CINTOpt_setij(*opt, ng, atm, natm, bas, nbas, env);
+        CINTOpt_set_non0coeff(*opt, atm, natm, bas, nbas, env);
+        gen_idx(*opt, &CINTinit_int2e_gtg_EnvVars, &CINTg4c_index_xyz,
+                4, 6, ng, atm, natm, bas, nbas, env);
+}
+#endif
+
 
 
 // for the coeffs of the pGTO, find the maximum abs(coeff)

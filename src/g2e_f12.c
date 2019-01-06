@@ -33,8 +33,10 @@ void CINTg0_2e_yp(double *g, Rys2eT *bc, CINTEnvVars *envs, int count);
 void CINTg0_2e_yp_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd);
 void CINTg0_2e_stg(double *g, Rys2eT *bc, CINTEnvVars *envs, int count);
 void CINTg0_2e_stg_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd);
-void CINTg0_2e_stg_lj2d4d(double *g, Rys2eT *bc, const CINTEnvVars *envs);
-void CINTg0_2e_stg_lj2d4d_simd1(double *g, Rys2eT *bc, const CINTEnvVars *envs);
+void CINTg0_2e_stg_lj2d4d(double *g, Rys2eT *bc, CINTEnvVars *envs);
+void CINTg0_2e_stg_lj2d4d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs);
+void CINTg0_lj_4d(double *g, CINTEnvVars *envs);
+void CINTg0_lj_4d_simd1(double *g, CINTEnvVars *envs);
 
 void CINTinit_int2e_yp_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
                                int *atm, int natm, int *bas, int nbas, double *env)
@@ -167,6 +169,18 @@ void CINTinit_int2e_stg_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
         envs->f_g0_2e_simd1 = &CINTg0_2e_stg_simd1;
 }
 
+void CINTg0_2e_stg_lj2d4d(double *g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        CINTg0_2e_2d(g, bc, envs);
+        CINTg0_lj_4d(g, envs);
+}
+
+void CINTg0_2e_stg_lj2d4d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        CINTg0_2e_2d_simd1(g, bc, envs);
+        CINTg0_lj_4d_simd1(g, envs);
+}
+
 void CINTg0_2e_yp(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
 {
         ALIGNMM double aij[SIMDD];
@@ -273,13 +287,12 @@ void CINTg0_2e_yp(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
         r0 = MM_LOAD(a0);
         r1 = MM_LOAD(a1);
         r2 = MM_SET1(.5);
-        r3 = MM_SET1(2.);
+        r3 = MM_SET1(1.);
         for (i = 0; i < nroots; i++) {
                 r4 = MM_MUL(r0, MM_LOAD(u+i*SIMDD));
-                r5 = MM_DIV(r2, MM_FMA(r4, ra, r1));
-                MM_STORE(tmp4+i*SIMDD, r5);
-                r6 = MM_MUL(MM_MUL(r3, r4), r5);
-                MM_STORE(tmp1+i*SIMDD, r6);
+                r5 = MM_DIV(r3, MM_FMA(r4, ra, r1));
+                MM_STORE(tmp4+i*SIMDD, MM_MUL(r2, r5));
+                MM_STORE(tmp1+i*SIMDD, MM_MUL(r4, r5));
         }
         ra = MM_SET1(.5);
         r2 = MM_LOAD(akl);
@@ -320,7 +333,11 @@ void CINTg0_2e_yp(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
 
 void CINTg0_2e_yp_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
 {
-        double aij, akl, a0, a1, fac1;
+        const double aij = envs->ai[idsimd] + envs->aj[idsimd];
+        const double akl = envs->ak[idsimd] + envs->al[idsimd];
+        const double zeta = envs->env[PTR_F12_ZETA];
+        const int nroots = envs->nrys_roots;
+        double a0, a1, fac1;
         ALIGNMM double x[SIMDD];
         ALIGNMM double ua[SIMDD];
         double *rij = envs->rij;
@@ -330,12 +347,8 @@ void CINTg0_2e_yp_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
         double rklrx[3];
         double *u = bc->u;
         double *w = bc->w;
-        double zeta = envs->env[PTR_F12_ZETA];
-        int nroots = envs->nrys_roots;
         int i;
 
-        aij = envs->ai[idsimd] + envs->aj[idsimd];
-        akl = envs->ak[idsimd] + envs->al[idsimd];
         a1 = aij * akl;
         a0 = a1 / (aij + akl);
         //fac1 = sqrt(a0 / (a1 * a1 * a1)) * envs->fac[idsimd];
@@ -527,13 +540,12 @@ void CINTg0_2e_stg(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
         r0 = MM_LOAD(a0);
         r1 = MM_LOAD(a1);
         r2 = MM_SET1(.5);
-        r3 = MM_SET1(2.);
+        r3 = MM_SET1(1.);
         for (i = 0; i < nroots; i++) {
                 r4 = MM_MUL(r0, MM_LOAD(u+i*SIMDD));
-                r5 = MM_DIV(r2, MM_FMA(r4, ra, r1));
-                MM_STORE(tmp4+i*SIMDD, r5);
-                r6 = MM_MUL(MM_MUL(r3, r4), r5);
-                MM_STORE(tmp1+i*SIMDD, r6);
+                r5 = MM_DIV(r3, MM_FMA(r4, ra, r1));
+                MM_STORE(tmp4+i*SIMDD, MM_MUL(r2, r5));
+                MM_STORE(tmp1+i*SIMDD, MM_MUL(r4, r5));
         }
         ra = MM_SET1(.5);
         r2 = MM_LOAD(akl);
@@ -574,7 +586,11 @@ void CINTg0_2e_stg(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
 
 void CINTg0_2e_stg_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
 {
-        double aij, akl, a0, a1, fac1;
+        const double aij = envs->ai[idsimd] + envs->aj[idsimd];
+        const double akl = envs->ak[idsimd] + envs->al[idsimd];
+        const double zeta = envs->env[PTR_F12_ZETA];
+        const int nroots = envs->nrys_roots;
+        double a0, a1, fac1;
         ALIGNMM double x[SIMDD];
         ALIGNMM double ua[SIMDD];
         double *rij = envs->rij;
@@ -584,12 +600,8 @@ void CINTg0_2e_stg_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
         double rklrx[3];
         double *u = bc->u;
         double *w = bc->w;
-        double zeta = envs->env[PTR_F12_ZETA];
-        int nroots = envs->nrys_roots;
         int i;
 
-        aij = envs->ai[idsimd] + envs->aj[idsimd];
-        akl = envs->ak[idsimd] + envs->al[idsimd];
         a1 = aij * akl;
         a0 = a1 / (aij + akl);
         //fac1 = sqrt(a0 / (a1 * a1 * a1)) * envs->fac[idsimd];

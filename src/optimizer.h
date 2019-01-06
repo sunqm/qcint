@@ -71,3 +71,13 @@ void CINTall_2e_stg_optimizer(CINTOpt **opt, int *ng,
 
 int CINTset_pairdata(PairData *pdata, double *ai, double *aj, double *ri, double *rj,
                      int li_ceil, int lj_ceil, int iprim, int jprim, double rr_ij);
+
+#ifdef WITH_F12
+void CINTall_2e_stg_optimizer(CINTOpt **opt, int *ng,
+                              int *atm, int natm, int *bas, int nbas, double *env);
+#endif
+ 
+#ifdef WITH_GTG
+void CINTall_2e_gtg_optimizer(CINTOpt **opt, int *ng,
+                              int *atm, int natm, int *bas, int nbas, double *env);
+#endif

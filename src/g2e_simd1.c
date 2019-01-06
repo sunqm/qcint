@@ -1306,15 +1306,6 @@ void CINTg0_2e_il2d4d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs)
         CINTg0_il_4d_simd1(g, envs);
 }
 
-#ifdef WITH_F12
-void CINTg0_2e_stg_lj2d4d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs)
-{
-        CINTg0_2e_2d_simd1(g, bc, envs);
-        CINTg0_lj_4d_simd1(g, envs);
-}
-#endif
-
-
 /*
  * g[i,k,l,j] = < ik | lj > = ( i j | k l )
  */

@@ -109,6 +109,18 @@ void CINTx1k_2e_simd1(double *f, double *g, double *rk,
 void CINTx1l_2e_simd1(double *f, double *g, double *rl,
                       int li, int lj, int lk, int ll, CINTEnvVars *envs);
 
+#ifdef WITH_F12
+void CINTinit_int2e_yp_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
+                               int *atm, int natm, int *bas, int nbas, double *env);
+void CINTinit_int2e_stg_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
+                                int *atm, int natm, int *bas, int nbas, double *env);
+#endif
+ 
+#ifdef WITH_GTG
+void CINTinit_int2e_gtg_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
+                                int *atm, int natm, int *bas, int nbas, double *env);
+#endif
+
 
 #define G2E_D_I(f, g, li, lj, lk, ll)   CINTnabla1i_2e(f, g, li, lj, lk, ll, envs)
 #define G2E_D_J(f, g, li, lj, lk, ll)   CINTnabla1j_2e(f, g, li, lj, lk, ll, envs)
