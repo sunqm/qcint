@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 2.6)
 project (qcint C)
-set(qcint_VERSION "3.0.16")
+set(qcint_VERSION "3.0.17")
 set(qcint_SOVERSION "3")
 
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "")
@@ -83,7 +83,7 @@ if(WITH_F12)
 endif(WITH_F12)
 
 if(WITH_GTG)
-  set(cintSrc ${cintSrc} src/g2e_gtg.c src/cint2e_gtg.c)
+  set(cintSrc ${cintSrc} src/g2e_gtg.c src/cint2e_gtg.c src/cint3c2e_gtg.c)
   add_definitions(-DWITH_GTG)
   message("Enabled WITH_GTG")
 endif(WITH_GTG)
