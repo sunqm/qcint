@@ -163,7 +163,7 @@ void CINTinit_int3c2e_gtg_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
         envs->nfk = (envs->k_l+1)*(envs->k_l+2)/2;
         envs->nfl = 1;
         envs->nf = envs->nfi * envs->nfk * envs->nfj;
-        envs->common_factor = 1;
+        envs->common_factor = SQRTPI * .5;
 
         envs->gbits = ng[GSHIFT];
         envs->ncomp_e1 = ng[POS_E1];
