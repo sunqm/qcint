@@ -441,57 +441,6 @@ return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_1e);
 } // int1e_iprinv_spinor
 ALL_CINT1E(int1e_iprinv)
 //ALL_CINT1E_FORTRAN_(cint1e_iprinv)
-/* <i|RINV |j> */
-void CINTgout1e_int1e_rinv(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
-CINTg1e_nuc(g, envs, count, -1);
-int nf = envs->nf;
-int nfc = nf * 1;
-int nrys_roots = envs->nrys_roots;
-int ix, iy, iz, n, i;
-DECLARE_GOUT;
-double *RESTRICT g0 = g;
-__MD r1;
-__MD rs[1];
-for (n = 0; n < nf; n++) {
-ix = idx[0+n*3];
-iy = idx[1+n*3];
-iz = idx[2+n*3];
-for (i = 0; i < 1; i++) { rs[i] = MM_SET1(0.); }
-for (i = 0; i < nrys_roots; i++) {
-rs[0] += MM_LOAD(g0+(ix+i)*SIMDD) * MM_LOAD(g0+(iy+i)*SIMDD) * MM_LOAD(g0+(iz+i)*SIMDD);
-}
-r1 = + rs[0]; GOUT_SCATTER(gout, n*1+0, r1);
-}}
-void int1e_rinv_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
-int ng[] = {0, 0, 0, 0, 0, 1, 0, 1};
-CINTall_1e_optimizer(opt, ng, atm, natm, bas, nbas, env);
-}
-int int1e_rinv_cart(double *out, int *dims, int *shls,
-int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
-int ng[] = {0, 0, 0, 0, 0, 1, 0, 1};
-CINTEnvVars envs;
-CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
-envs.f_gout = &CINTgout1e_int1e_rinv;
-return CINT1e_drv(out, dims, &envs, opt, cache, &c2s_cart_1e);
-} // int1e_rinv_cart
-int int1e_rinv_sph(double *out, int *dims, int *shls,
-int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
-int ng[] = {0, 0, 0, 0, 0, 1, 0, 1};
-CINTEnvVars envs;
-CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
-envs.f_gout = &CINTgout1e_int1e_rinv;
-return CINT1e_drv(out, dims, &envs, opt, cache, &c2s_sph_1e);
-} // int1e_rinv_sph
-int int1e_rinv_spinor(double complex *out, int *dims, int *shls,
-int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
-int ng[] = {0, 0, 0, 0, 0, 1, 0, 1};
-CINTEnvVars envs;
-CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
-envs.f_gout = &CINTgout1e_int1e_rinv;
-return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_1e);
-} // int1e_rinv_spinor
-ALL_CINT1E(int1e_rinv)
-//ALL_CINT1E_FORTRAN_(cint1e_rinv)
 /* <NABLA SIGMA DOT P i|NUC |SIGMA DOT P j> */
 void CINTgout1e_int1e_ipspnucsp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 int nf = envs->nf;
