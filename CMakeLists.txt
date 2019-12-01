@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 2.6)
 project (qcint C)
-set(qcint_VERSION "3.0.18")
+set(qcint_VERSION "3.0.19")
 set(qcint_SOVERSION "3")
 
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "")
