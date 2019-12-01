@@ -291,6 +291,10 @@ void CINTg1e_nuc(double *g, CINTEnvVars *envs, int count, int nuc_id)
         if (nuc_id < 0) {
                 fac1 = MM_SET1(2*M_PI) * MM_LOAD(envs->fac) * MM_LOAD(tau) / aij;
                 cr = env + PTR_RINV_ORIG;
+        } else if (atm(NUC_MOD_OF,nuc_id) == FRAC_CHARGE_NUC) {
+                fac1 = MM_SET1(2*M_PI) * MM_SET1(-env[atm[PTR_FRAC_CHARGE+nuc_id*ATM_SLOTS]]);
+                fac1 = fac1 * MM_LOAD(envs->fac) * MM_LOAD(tau) / aij;
+                cr = env + atm(PTR_COORD, nuc_id);
         } else {
                 fac1 = MM_SET1(2*M_PI) * MM_SET1(-fabs(atm[CHARGE_OF+nuc_id*ATM_SLOTS]));
                 fac1 = fac1 * MM_LOAD(envs->fac) * MM_LOAD(tau) / aij;
