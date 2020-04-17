@@ -219,6 +219,9 @@ void CINTg3c1e_nuc(double *g, CINTEnvVars *envs, int count, int nuc_id)
         int i, j, k, n, ptr, off;
         __MD crijk[3];
         __MD r0, r1, r2, rt2, fac1, aijk;
+        __MD scale;
+
+        scale = MM_SET1(2./SQRTPI);
 
         aijk = MM_LOAD(envs->ai) + MM_LOAD(envs->aj) + MM_LOAD(envs->ak);
         MM_STORE(tau, aijk);
@@ -227,14 +230,14 @@ void CINTg3c1e_nuc(double *g, CINTEnvVars *envs, int count, int nuc_id)
         }
 
         if (nuc_id < 0) {
-                fac1 = 2./SQRTPI * MM_LOAD(envs->fac) * MM_LOAD(tau) / aijk;
+                fac1 = scale * MM_LOAD(envs->fac) * MM_LOAD(tau) / aijk;
                 cr = env + PTR_RINV_ORIG;
         } else if (atm(NUC_MOD_OF,nuc_id) == FRAC_CHARGE_NUC) {
-                fac1 = 2./SQRTPI * MM_SET1(-env[atm[PTR_FRAC_CHARGE+nuc_id*ATM_SLOTS]]);
+                fac1 = scale * MM_SET1(-env[atm[PTR_FRAC_CHARGE+nuc_id*ATM_SLOTS]]);
                 fac1 = fac1 * MM_LOAD(envs->fac) * MM_LOAD(tau) / aijk;
                 cr = env + atm(PTR_COORD, nuc_id);
         } else {
-                fac1 = 2./SQRTPI * MM_SET1(-fabs(atm[CHARGE_OF+nuc_id*ATM_SLOTS]));
+                fac1 = scale * MM_SET1(-fabs(atm[CHARGE_OF+nuc_id*ATM_SLOTS]));
                 fac1 = fac1 * MM_LOAD(envs->fac) * MM_LOAD(tau) / aijk;
                 cr = env + atm(PTR_COORD, nuc_id);
         }
