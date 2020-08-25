@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 2.6)
 project (qcint C)
-set(qcint_VERSION "3.0.19")
+set(qcint_VERSION "3.1.0")
 set(qcint_SOVERSION "3")
 
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "")
@@ -88,6 +88,11 @@ if(WITH_GTG)
   add_definitions(-DWITH_GTG)
   message("Enabled WITH_GTG")
 endif(WITH_GTG)
+
+if(PYPZPX)
+  add_definitions(-DPYPZPX)
+  message("P orbitals are sorted to (py, pz, px)")
+endif(PYPZPX)
 
 option(BUILD_SHARED_LIBS "build shared libraries" 1)
 option(ENABLE_STATIC "Enforce static library build" 0)

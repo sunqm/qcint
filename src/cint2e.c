@@ -160,13 +160,13 @@
 //    double d;
 //    unsigned short s[4];
 //} type_IEEE754;
-static double approx_log(double x)
+static inline double approx_log(double x)
 {
         //type_IEEE754 y;
         //y.d = x;
         //return ((double)(y.s[3] >> 4) - 1023) * 0.7;
         //return log(x);
-        return 2.5;
+        return 3;
 }
 
 int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
@@ -244,8 +244,7 @@ int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
         ALIGNMM Rys2eT bc;
         double rr_kl = SQUARE(envs->rkrl);
         double log_rr_kl = (envs->lk_ceil+envs->ll_ceil+1)*approx_log(rr_kl+1)/2;
-        double akl, ekl, expijkl;
-        int ccekl;
+        double akl, ekl, expijkl, ccekl, eijcutoff;
         ALIGNMM double rkl[4];
         int non0ctri[i_prim];
         int non0ctrj[j_prim];
@@ -284,10 +283,11 @@ int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
                 for (kp = 0; kp < k_prim; kp++) {
                         akl = 1 / (ak[kp] + al[lp]);
                         ekl = rr_kl * ak[kp] * al[lp] * akl;
-                        ccekl = (int)(ekl - log_rr_kl);
+                        ccekl = ekl - log_rr_kl;
                         if (ccekl > CUTOFF15) {
                                 goto k_contracted;
                         }
+                        eijcutoff = CUTOFF15 - ccekl;
                         rkl[0] = (ak[kp]*rk[0] + al[lp]*rl[0]) * akl;
                         rkl[1] = (ak[kp]*rk[1] + al[lp]*rl[1]) * akl;
                         rkl[2] = (ak[kp]*rk[2] + al[lp]*rl[2]) * akl;
@@ -298,8 +298,7 @@ int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
                         for (jp = 0; jp < j_prim; jp++) {
                                 INIT_GCTR_ADDR(i, j, fac1k);
                                 for (ip = 0; ip < i_prim; ip++, pdata_ij++) {
-                                        if (pdata_ij->cceij > CUTOFF15 ||
-                                            pdata_ij->cceij+ccekl > CUTOFF15) {
+                                        if (pdata_ij->cceij > eijcutoff) {
                                                 goto i_contracted;
                                         }
                                         expijkl = pdata_ij->eij * ekl;

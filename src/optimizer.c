@@ -459,13 +459,13 @@ void CINTOpt_set_non0coeff(CINTOpt *opt, int *atm, int natm,
 //    double d;
 //    unsigned short s[4];
 //} type_IEEE754;
-static double approx_log(double x)
+static inline double approx_log(double x)
 {
         //type_IEEE754 y;
         //y.d = x;
         //return ((double)(y.s[3] >> 4) - 1023) * 0.7;
         //return log(x);
-        return 2.5;
+        return 3;
 }
 
 int CINTset_pairdata(PairData *pdata, double *ai, double *aj, double *ri, double *rj,

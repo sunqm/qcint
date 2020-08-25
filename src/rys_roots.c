@@ -1739,7 +1739,7 @@ static void R_qnode(__float128 *a, __float128 *rt, int order)
                         xi = x0 + (x0 - x1) / (p1 - p0) * p0;
                 }
                 n = 0;
-                while (x1 > accrt+x0 || x0 > x1+accrt) {
+                while (fabs(x1 - x0) > accrt) {
                         n++;
                         if (n > 600) {
                                 fprintf(stderr, "libcint::rys_roots NO CONV. IN R_qnode\n");
