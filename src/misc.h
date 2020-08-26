@@ -37,6 +37,7 @@ double CINTsquare_dist(const double *r1, const double *r2);
 double CINTgto_norm(int n, double a);
 
 
+#ifdef WITH_CINT2_INTERFACE
 #define ALL_CINT(NAME) \
 int c##NAME##_cart(double *out, int *shls, int *atm, int natm, \
             int *bas, int nbas, double *env, CINTOpt *opt) { \
@@ -79,3 +80,10 @@ int c##NAME(double *out, int *shls, int *atm, int natm, \
         return NAME##_spinor((double complex *)out, NULL, shls, \
                              atm, natm, bas, nbas, env, NULL, NULL); \
 }
+
+#else
+
+#define ALL_CINT(NAME)
+#define ALL_CINT1E(NAME)
+
+#endif  // WITH_CINT2_INTERFACE

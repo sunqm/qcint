@@ -22,6 +22,7 @@
  * c to fortran interface
  */
 
+#ifdef WITH_FORTRAN
 #include <stdlib.h>
 #include <math.h>
 #include "cint_bas.h"
@@ -178,3 +179,4 @@ void cintdel_optimizer_(CINTOptPtrAsInteger8 *optptr)
         cintdel_2e_optimizer_(optptr);
 }
 */
+#endif

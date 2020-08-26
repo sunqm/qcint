@@ -18,6 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef WITH_FORTRAN
 #define ALL_CINT_FORTRAN_(NAME) \
 int c##NAME##_sph_(double *out, int *shls, int *atm, int *natm, \
                    int *bas, int *nbas, double *env, size_t optptr_as_integer8) { \
@@ -67,3 +68,10 @@ int c##NAME##_(double *out, int *shls, int *atm, int *natm, \
         return NAME##_spinor((double complex *)out, NULL, shls, \
                              atm, *natm, bas, *nbas, env, NULL, NULL); \
 }
+
+#else
+
+#define ALL_CINT_FORTRAN_(NAME)
+#define ALL_CINT1E_FORTRAN_(NAME)
+
+#endif
