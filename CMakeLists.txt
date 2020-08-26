@@ -20,7 +20,6 @@ else()
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -funroll-loops -ftree-vectorize -ffast-math")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-math-errno -fno-strict-overflow -fomit-frame-pointer")
 endif()
-message("${CMAKE_C_FLAGS}")
 
 
 if (${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION} VERSION_GREATER 2.8.3)
