@@ -20,5 +20,7 @@
 
 void CINTrys_roots(int nroots, double *x, double *u, double *w, int count);
 void CINTstg_roots(int nroots, double* ta, double* ua, double* rr, double* ww, int count);
+void CINTerfc_rys_roots(int nroots, double *x, double *lower,
+                        double *u, double *w, int count);
 
 void CINTexp_cephes(double *expx, double *x);

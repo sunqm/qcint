@@ -1333,6 +1333,8 @@ void CINTg0_2e_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
 // For long-range part of range-separated Coulomb operator
                 theta = omega * omega / (omega * omega + a0);
                 a0 *= theta;
+        } else if (omega < 0) {
+                theta = omega * omega / (omega * omega + a0);
         }
 #endif
         fac1 = sqrt(a0 / (a1 * a1 * a1)) * envs->fac[idsimd];
@@ -1341,7 +1343,17 @@ void CINTg0_2e_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
         rijrkl[1] = rij[1*SIMDD+idsimd] - rkl[1*SIMDD+idsimd];
         rijrkl[2] = rij[2*SIMDD+idsimd] - rkl[2*SIMDD+idsimd];
         x[0] = a0 * SQUARE(rijrkl);
+
+#ifdef WITH_RANGE_COULOMB
+        if (omega < 0) {
+                theta = sqrt(theta);
+                CINTerfc_rys_roots(envs->nrys_roots, x, &theta, u, w, 1);
+        } else {
+                CINTrys_roots(envs->nrys_roots, x, u, w, 1);
+        }
+#else
         CINTrys_roots(envs->nrys_roots, x, u, w, 1);
+#endif
 
         double *gx = g;
         double *gy = g + envs->g_size;

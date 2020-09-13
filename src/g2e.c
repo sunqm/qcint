@@ -1900,7 +1900,13 @@ void CINTg0_2e(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
                 r0 = MM_DIV(r0, MM_ADD(r0, r1));
                 MM_STORE(theta, r0);
                 MM_STORE(a0, MM_MUL(r0, r1));
+        } else if (omega < 0) { // short-range part of range-separated Coulomb
+                r0 = MM_SET1(omega);
+                r0 = MM_MUL(r0, r0);
+                r0 = MM_DIV(r0, MM_ADD(r0, r1));
+                MM_STORE(theta, r0);
         }
+
         r1 = MM_LOAD(a1);
         r0 = MM_DIV(MM_LOAD(a0), MM_MUL(r1, MM_MUL(r1, r1)));
         MM_STORE(fac1, MM_MUL(MM_SQRT(r0), MM_LOAD(envs->fac)));
@@ -1951,7 +1957,16 @@ void CINTg0_2e(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
 //ABORT                MM_STORE(gz, MM_DIV(MM_LOAD(erfx), MM_SQRT(MM_LOAD(x))));
 //ABORT                return;
 //ABORT        }
+#ifdef WITH_RANGE_COULOMB
+        if (omega < 0) {
+                MM_STORE(theta, MM_SQRT(MM_LOAD(theta)));
+                CINTerfc_rys_roots(envs->nrys_roots, x, theta, u, w, count);
+        } else {
+                CINTrys_roots(envs->nrys_roots, x, u, w, count);
+        }
+#else
         CINTrys_roots(nroots, x, u, w, count);
+#endif
 
         double *gx = g;
         double *gy = gx + envs->g_size * SIMDD;
@@ -1972,6 +1987,7 @@ void CINTg0_2e(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
         if (envs->g_size == 1) {
                 return;
         }
+
 #ifdef WITH_RANGE_COULOMB
         if (omega > 0) {
                 /* u[:] = tau^2 / (1 - tau^2)
