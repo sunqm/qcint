@@ -298,6 +298,7 @@ void CINTOpt_setij(CINTOpt *opt, int *ng,
         int i, j, ip, jp;
         int iprim, ictr, jprim, jctr, li, lj;
         const double *ai, *aj, *ri, *rj, *ci, *cj;
+        double expcutoff;
 
         if (opt->data_ptr == NULL) {
                 size_t tot_prim = 0;
@@ -306,6 +307,11 @@ void CINTOpt_setij(CINTOpt *opt, int *ng,
                 }
                 opt->data_ptr = malloc(sizeof(int) * nbas*nbas);
                 opt->data = malloc(sizeof(PairData) * tot_prim*tot_prim);
+        }
+        if (env[PTR_EXPCUTOFF] == 0) {
+                expcutoff = EXPCUTOFF;
+        } else {
+                expcutoff = MAX(MIN_EXPCUTOFF, env[PTR_EXPCUTOFF]);
         }
 
         int ijkl_inc;
@@ -374,7 +380,7 @@ void CINTOpt_setij(CINTOpt *opt, int *ng,
 
                                 }
                         }
-                        if (min_cceij > CUTOFF15) { // very small pair-density
+                        if (min_cceij > expcutoff) { // very small pair-density
                                 opt->data_ptr[i*nbas+j] = NOVALUE;
                                 opt->data_ptr[j*nbas+i] = NOVALUE;
                         } else {
@@ -469,7 +475,8 @@ static inline double approx_log(double x)
 }
 
 int CINTset_pairdata(PairData *pdata, double *ai, double *aj, double *ri, double *rj,
-                     int li_ceil, int lj_ceil, int iprim, int jprim, double rr_ij)
+                     int li_ceil, int lj_ceil, int iprim, int jprim, double rr_ij,
+                     double expcutoff)
 {
         int ip, jp, cceij;
         double aij, eij;
@@ -485,7 +492,7 @@ int CINTset_pairdata(PairData *pdata, double *ai, double *aj, double *ri, double
                         pdata->rij[2] = (ai[ip]*ri[2] + aj[jp]*rj[2]) * aij;
                         cceij = (int)(eij - log_rr_ij);
                         pdata->cceij = cceij;
-                        if (cceij <= CUTOFF15) {
+                        if (cceij <= expcutoff) {
                                 empty = 0;
                                 pdata->eij = exp(-eij);
                         }

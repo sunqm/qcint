@@ -1309,7 +1309,7 @@ void CINTg0_2e_il2d4d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs)
 /*
  * g[i,k,l,j] = < ik | lj > = ( i j | k l )
  */
-void CINTg0_2e_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
+int CINTg0_2e_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
 {
         double aij, akl, a0, a1, fac1;
         ALIGNMM double x[SIMDD];
@@ -1329,12 +1329,11 @@ void CINTg0_2e_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
 #ifdef WITH_RANGE_COULOMB
         const double omega = envs->env[PTR_RANGE_OMEGA];
         double theta = 1;
-        if (omega > 0) {
-// For long-range part of range-separated Coulomb operator
+        if (omega != 0) {
                 theta = omega * omega / (omega * omega + a0);
-                a0 *= theta;
-        } else if (omega < 0) {
-                theta = omega * omega / (omega * omega + a0);
+                if (omega > 0) { // long-range part of range-separated Coulomb
+                        a0 *= theta;
+                }
         }
 #endif
         fac1 = sqrt(a0 / (a1 * a1 * a1)) * envs->fac[idsimd];
@@ -1345,7 +1344,11 @@ void CINTg0_2e_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
         x[0] = a0 * SQUARE(rijrkl);
 
 #ifdef WITH_RANGE_COULOMB
-        if (omega < 0) {
+        if (omega < 0) { // short-range part of range-separated Coulomb
+                // very small erfc() leads to ~0 weights
+                if (theta * x[0] > envs->expcutoff) {
+                        return 0;
+                }
                 theta = sqrt(theta);
                 CINTerfc_rys_roots(envs->nrys_roots, x, &theta, u, w, 1);
         } else {
@@ -1363,6 +1366,10 @@ void CINTg0_2e_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
                 gy[i] = 1;
                 gz[i] = w[i*SIMDD] * fac1;
         }
+        if (envs->g_size == 1) {
+                return 1;
+        }
+
 #ifdef WITH_RANGE_COULOMB
         if (omega > 0) {
                 /* u[:] = tau^2 / (1 - tau^2)
@@ -1374,9 +1381,6 @@ void CINTg0_2e_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
                 }
         }
 #endif
-        if (envs->g_size == 1) {
-                return;
-        }
 
         double u2, div, tmp1, tmp2, tmp3, tmp4;
         double *b00 = bc->b00;
@@ -1418,6 +1422,7 @@ void CINTg0_2e_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
         }
 
         (*envs->f_g0_2d4d_simd1)(g, bc, envs);
+        return 1;
 }
 
 

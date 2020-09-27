@@ -20,13 +20,15 @@
 
 // global parameters in env
 
-#define PTR_LIGHT_SPEED         0
+#define PTR_EXPCUTOFF           0
 #define PTR_COMMON_ORIG         1
 #define PTR_RINV_ORIG           4
 #define PTR_RINV_ZETA           7
-// omega parameter in range-separated coulomb operator erf(omega*r12)/r12
+// omega parameter in range-separated coulomb operator
+// LR interaction: erf(omega*r12)/r12 if omega > 0
+// SR interaction: erfc(omega*r12)/r12 if omega < 0
 #define PTR_RANGE_OMEGA         8
-// Yukawa potential and slater-type geminal e^{-zeta r}
+// Yukawa potential and Slater-type geminal e^{-zeta r}
 #define PTR_F12_ZETA            9
 #define PTR_GTG_ZETA            10
 #define PTR_ENV_START           20
@@ -118,9 +120,11 @@
 #define STATIC_DOUBLE_SIZE    500000
 #endif
 
-#define EXPCUTOFF       100
+#define EXPCUTOFF       60
+#ifndef MIN_EXPCUTOFF
 // ~ 1e-15
-#define CUTOFF15        40
+#define MIN_EXPCUTOFF   40
+#endif
 
 #define OF_CMPLX        2
 

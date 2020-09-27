@@ -62,7 +62,7 @@ typedef struct {
         int g2d_ijmax;
         int g2d_klmax;
         double common_factor;
-        double _padding1;
+        double expcutoff;
         double rirj[3]; // diff by sign in different g0_2d4d algorithm
         double rkrl[3];
         double *rx_in_rijrx;
@@ -73,8 +73,8 @@ typedef struct {
         double *rk;
         double *rl;
 
-        void (*f_g0_2e)();
-        void (*f_g0_2e_simd1)();
+        int (*f_g0_2e)();
+        int (*f_g0_2e_simd1)();
         void (*f_g0_2d4d)();
         void (*f_g0_2d4d_simd1)();
         void (*f_gout)();

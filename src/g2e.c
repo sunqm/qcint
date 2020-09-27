@@ -24,6 +24,7 @@
 #include <assert.h>
 #include "cint_const.h"
 #include "cint_bas.h"
+#include "misc.h"
 #include "simd.h"
 #include "rys_roots.h"
 #include "g2e.h"
@@ -62,6 +63,11 @@ void CINTinit_int2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
         envs->nfl = (envs->l_l+1)*(envs->l_l+2)/2;
         envs->nf = envs->nfi * envs->nfk * envs->nfl * envs->nfj;
         envs->common_factor = 1;
+        if (env[PTR_EXPCUTOFF] == 0) {
+                envs->expcutoff = EXPCUTOFF;
+        } else {
+                envs->expcutoff = MAX(MIN_EXPCUTOFF, env[PTR_EXPCUTOFF]);
+        }
 
         envs->gbits = ng[GSHIFT];
         envs->ncomp_e1 = ng[POS_E1];
@@ -1845,7 +1851,7 @@ void CINTg0_2e_il2d4d(double *g, Rys2eT *bc, CINTEnvVars *envs)
 /*
  * g[i,k,l,j] = < ik | lj > = ( i j | k l )
  */
-void CINTg0_2e(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
+int CINTg0_2e(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
 {
         ALIGNMM double aij[SIMDD];
         ALIGNMM double akl[SIMDD];
@@ -1890,21 +1896,17 @@ void CINTg0_2e(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
 // Keep this for backward compatibility to cint2
         const double omega = envs->env[PTR_RANGE_OMEGA];
         ALIGNMM double theta[SIMDD];
-        if (omega > 0) {
-// For long-range part of range-separated Coulomb operator
+        if (omega != 0) {
                 //:theta = omega * omega / (omega * omega + a0);
-                //:a0 *= theta;
                 r0 = MM_SET1(omega);
+                r0 = MM_MUL(r0, r0);
                 r1 = MM_LOAD(a0);
-                r0 = MM_MUL(r0, r0);
                 r0 = MM_DIV(r0, MM_ADD(r0, r1));
                 MM_STORE(theta, r0);
-                MM_STORE(a0, MM_MUL(r0, r1));
-        } else if (omega < 0) { // short-range part of range-separated Coulomb
-                r0 = MM_SET1(omega);
-                r0 = MM_MUL(r0, r0);
-                r0 = MM_DIV(r0, MM_ADD(r0, r1));
-                MM_STORE(theta, r0);
+                if (omega > 0) { // long-range part of range-separated Coulomb operator
+                        //:a0 *= theta;
+                        MM_STORE(a0, MM_MUL(r0, r1));
+                }
         }
 
         r1 = MM_LOAD(a1);
@@ -1959,8 +1961,17 @@ void CINTg0_2e(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
 //ABORT        }
 #ifdef WITH_RANGE_COULOMB
         if (omega < 0) {
-                MM_STORE(theta, MM_SQRT(MM_LOAD(theta)));
-                CINTerfc_rys_roots(envs->nrys_roots, x, theta, u, w, count);
+                ALIGNMM double tmp[SIMDD];
+                MM_STORE(tmp, MM_MUL(MM_LOAD(x), MM_LOAD(theta)));
+                int all_negligible = 1;
+                for (i = 0; i < count; i++) {
+                        all_negligible &= tmp[i] > envs->expcutoff;
+                }
+                if (all_negligible) {
+                        return 0;
+                }
+                MM_STORE(tmp, MM_SQRT(MM_LOAD(theta)));
+                CINTerfc_rys_roots(envs->nrys_roots, x, tmp, u, w, count);
         } else {
                 CINTrys_roots(envs->nrys_roots, x, u, w, count);
         }
@@ -1985,7 +1996,7 @@ void CINTg0_2e(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
                 MM_STORE(gz+i*SIMDD, MM_MUL(MM_LOAD(w+i*SIMDD), r0));
         }
         if (envs->g_size == 1) {
-                return;
+                return 1;
         }
 
 #ifdef WITH_RANGE_COULOMB
@@ -2088,6 +2099,7 @@ void CINTg0_2e(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
         }
 
         (*envs->f_g0_2d4d)(g, bc, envs);
+        return 1;
 }
 
 

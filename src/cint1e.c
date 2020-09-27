@@ -172,6 +172,7 @@ int CINT1e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
 
         double rr_ij = SQUARE(envs->rirj);
         double log_rr_ij = (envs->li_ceil+envs->lj_ceil+1)*approx_log(rr_ij+1)/2;
+        double expcutoff = envs->expcutoff;
         double aij, eij, cceij;
         double rij[4];
         int idx[nf*3];
@@ -200,7 +201,7 @@ int CINT1e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
                         aij = 1 / (ai[ip] + aj[jp]);
                         eij = rr_ij * ai[ip] * aj[jp] * aij;
                         cceij = eij - log_rr_ij;
-                        if (cceij > CUTOFF15) {
+                        if (cceij > expcutoff) {
                                 goto i_contracted;
                         }
                         rij[0] = (ai[ip]*ri[0] + aj[jp]*rj[0]) * aij;
@@ -277,6 +278,7 @@ int CINT1e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
 
         double rr_ij = SQUARE(envs->rirj);
         double log_rr_ij = (envs->li_ceil+envs->lj_ceil+1)*approx_log(rr_ij+1)/2;
+        double expcutoff = envs->expcutoff;
         double aij, eij, cceij;
         double rij[4];
         int *idx = opt->index_xyz_array[envs->i_l*LMAX1+envs->j_l];
@@ -296,7 +298,7 @@ int CINT1e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
                         aij = 1 / (ai[ip] + aj[jp]);
                         eij = rr_ij * ai[ip] * aj[jp] * aij;
                         cceij = eij - log_rr_ij;
-                        if (cceij > CUTOFF15) {
+                        if (cceij > expcutoff) {
                                 goto i_contracted;
                         }
                         for (i = 0; i < 3; i++) {

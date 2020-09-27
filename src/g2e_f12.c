@@ -29,10 +29,10 @@
 #include "misc.h"
 #include "g2e.h"
 
-void CINTg0_2e_yp(double *g, Rys2eT *bc, CINTEnvVars *envs, int count);
-void CINTg0_2e_yp_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd);
-void CINTg0_2e_stg(double *g, Rys2eT *bc, CINTEnvVars *envs, int count);
-void CINTg0_2e_stg_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd);
+int CINTg0_2e_yp(double *g, Rys2eT *bc, CINTEnvVars *envs, int count);
+int CINTg0_2e_yp_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd);
+int CINTg0_2e_stg(double *g, Rys2eT *bc, CINTEnvVars *envs, int count);
+int CINTg0_2e_stg_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd);
 void CINTg0_2e_stg_lj2d4d(double *g, Rys2eT *bc, CINTEnvVars *envs);
 void CINTg0_2e_stg_lj2d4d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs);
 void CINTg0_lj_4d(double *g, CINTEnvVars *envs);
@@ -66,6 +66,11 @@ void CINTinit_int2e_yp_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
         envs->nfl = (envs->l_l+1)*(envs->l_l+2)/2;
         envs->nf = envs->nfi * envs->nfk * envs->nfl * envs->nfj;
         envs->common_factor = 1;
+        if (env[PTR_EXPCUTOFF] == 0) {
+                envs->expcutoff = EXPCUTOFF;
+        } else {
+                envs->expcutoff = MAX(MIN_EXPCUTOFF, env[PTR_EXPCUTOFF]);
+        }
 
         envs->gbits = ng[GSHIFT];
         envs->ncomp_e1 = ng[POS_E1];
@@ -181,7 +186,7 @@ void CINTg0_2e_stg_lj2d4d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs)
         CINTg0_lj_4d_simd1(g, envs);
 }
 
-void CINTg0_2e_yp(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
+int CINTg0_2e_yp(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
 {
         ALIGNMM double aij[SIMDD];
         ALIGNMM double akl[SIMDD];
@@ -267,7 +272,7 @@ void CINTg0_2e_yp(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
         }
 
         if (envs->g_size == 1) {
-                return;
+                return 1;
         }
 
         double *b00 = bc->b00;
@@ -329,9 +334,10 @@ void CINTg0_2e_yp(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
         }
 
         (*envs->f_g0_2d4d)(g, bc, envs);
+        return 1;
 }
 
-void CINTg0_2e_yp_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
+int CINTg0_2e_yp_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
 {
         const double aij = envs->ai[idsimd] + envs->aj[idsimd];
         const double akl = envs->ak[idsimd] + envs->al[idsimd];
@@ -385,7 +391,7 @@ void CINTg0_2e_yp_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
         }
 
         if (envs->g_size == 1) {
-                return;
+                return 1;
         }
 
         double u2, div, tmp1, tmp2, tmp3, tmp4;
@@ -429,9 +435,10 @@ void CINTg0_2e_yp_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
         }
 
         (*envs->f_g0_2d4d_simd1)(g, bc, envs);
+        return 1;
 }
 
-void CINTg0_2e_stg(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
+int CINTg0_2e_stg(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
 {
         ALIGNMM double aij[SIMDD];
         ALIGNMM double akl[SIMDD];
@@ -520,7 +527,7 @@ void CINTg0_2e_stg(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
         }
 
         if (envs->g_size == 1) {
-                return;
+                return 1;
         }
 
         double *b00 = bc->b00;
@@ -582,9 +589,10 @@ void CINTg0_2e_stg(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
         }
 
         (*envs->f_g0_2d4d)(g, bc, envs);
+        return 1;
 }
 
-void CINTg0_2e_stg_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
+int CINTg0_2e_stg_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
 {
         const double aij = envs->ai[idsimd] + envs->aj[idsimd];
         const double akl = envs->ak[idsimd] + envs->al[idsimd];
@@ -639,7 +647,7 @@ void CINTg0_2e_stg_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
         }
 
         if (envs->g_size == 1) {
-                return;
+                return 1;
         }
 
         double u2, div, tmp1, tmp2, tmp3, tmp4;
@@ -682,6 +690,7 @@ void CINTg0_2e_stg_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
         }
 
         (*envs->f_g0_2d4d_simd1)(g, bc, envs);
+        return 1;
 }
 
 

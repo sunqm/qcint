@@ -69,9 +69,13 @@
 
 #define PUSH(RIJ, EXPIJ) \
         if (cum == SIMDD) { \
-                (*envs->f_g0_2e)(g, &bc, envs, cum); \
-                (*envs->f_gout)(gout, g, idx, envs); \
-                POP_PRIM2CTR; \
+                if ((*envs->f_g0_2e)(g, &bc, envs, cum)) { \
+                        (*envs->f_gout)(gout, g, idx, envs); \
+                        POP_PRIM2CTR; \
+                } else { \
+                        cum = 0; \
+                        np2c = 0; \
+                } \
         } \
         envs->ai[cum] = ai[ip]; \
         envs->aj[cum] = aj[jp]; \
@@ -114,18 +118,21 @@
 
 #define RUN_REST \
         if (cum == 1) { \
-                (*envs->f_g0_2e_simd1)(g, &bc, envs, 0); \
-                (*envs->f_gout_simd1)(gout, g, idx, envs); \
+                if ((*envs->f_g0_2e_simd1)(g, &bc, envs, 0)) { \
+                        (*envs->f_gout_simd1)(gout, g, idx, envs); \
+                        POP_PRIM2CTR; \
+                } \
         } else if (cum > 1) { \
                 r1 = MM_SET1(1.); \
                 for (i = 0; i < envs->nrys_roots; i++) { \
                         MM_STORE(bc.u+i*SIMDD, r1); \
                         MM_STORE(bc.w+i*SIMDD, r1); \
                 } \
-                (*envs->f_g0_2e)(g, &bc, envs, cum); \
-                (*envs->f_gout)(gout, g, idx, envs); \
-        } \
-        POP_PRIM2CTR
+                if ((*envs->f_g0_2e)(g, &bc, envs, cum)) { \
+                        (*envs->f_gout)(gout, g, idx, envs); \
+                        POP_PRIM2CTR; \
+                } \
+        }
 
 int CINT3c2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
 {
@@ -195,10 +202,11 @@ int CINT3c2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
         int non0idxi[i_prim*i_ctr];
         int non0idxj[j_prim*j_ctr];
         int non0idxk[k_prim*k_ctr];
+        double expcutoff = envs->expcutoff;
 
         *kempty = CINTset_pairdata(pdata, ai, aj, envs->ri, envs->rj,
                                    envs->li_ceil, envs->lj_ceil,
-                                   i_prim, j_prim, SQUARE(envs->rirj));
+                                   i_prim, j_prim, SQUARE(envs->rirj), expcutoff);
         if (*kempty) {
                 goto normal_end;
         }
@@ -233,7 +241,7 @@ int CINT3c2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
                                 *iempty = 1;
                         }
                         for (ip = 0; ip < i_prim; ip++, pdata_ij++) {
-                                if (pdata_ij->cceij < CUTOFF15) {
+                                if (pdata_ij->cceij < expcutoff) {
                                         PUSH(pdata_ij->rij, pdata_ij->eij);
                                 }
                         } // end loop i_prim
@@ -340,6 +348,7 @@ int CINT3c2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
         CINTOpt_non0coeff_byshell(non0idxk, non0ctrk, ck, k_prim, k_ctr);
         int *non0ctr[3] = {opt->non0ctr[i_sh], opt->non0ctr[j_sh], non0ctrk};
         int *non0idx[3] = {opt->sortedidx[i_sh], opt->sortedidx[j_sh], non0idxk};
+        double expcutoff = envs->expcutoff;
 
         INITSIMD;
 
@@ -348,7 +357,7 @@ int CINT3c2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
         if (opt->data_ptr == NULL) {
                 *kempty = CINTset_pairdata(pdata, ai, aj, envs->ri, envs->rj,
                                            envs->li_ceil, envs->lj_ceil,
-                                           i_prim, j_prim, SQUARE(envs->rirj));
+                                           i_prim, j_prim, SQUARE(envs->rirj), expcutoff);
                 if (*kempty) {
                         goto normal_end;
                 }
@@ -374,7 +383,7 @@ int CINT3c2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
                                 *iempty = 1;
                         }
                         for (ip = 0; ip < i_prim; ip++, pdata_ij++) {
-                                if (pdata_ij->cceij < CUTOFF15) {
+                                if (pdata_ij->cceij < expcutoff) {
                                         PUSH(pdata_ij->rij, pdata_ij->eij);
                                 }
                         } // end loop i_prim

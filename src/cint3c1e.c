@@ -206,6 +206,7 @@ int CINT3c1e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
         double common_factor = envs->common_factor * M_PI*SQRTPI
                 * CINTcommon_fac_sp(envs->i_l) * CINTcommon_fac_sp(envs->j_l)
                 * CINTcommon_fac_sp(envs->k_l);
+        double expcutoff = envs->expcutoff;
         INITSIMD;
 
         *kempty = 1;
@@ -230,7 +231,7 @@ int CINT3c1e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
                                 aiakrr = ai[ip] * ak[kp] * rr_ik;
                                 aiajrr = ai[ip] * aj[jp] * rr_ij;
                                 eijk = (aiajrr+aiakrr+ajakrr) / aijk;
-                                if (eijk > CUTOFF15) {
+                                if (eijk > expcutoff) {
                                         goto i_contracted;
                                 }
                                 PUSH(eijk);
@@ -333,6 +334,7 @@ int CINT3c1e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
         double common_factor = envs->common_factor * M_PI*SQRTPI
                 * CINTcommon_fac_sp(envs->i_l) * CINTcommon_fac_sp(envs->j_l)
                 * CINTcommon_fac_sp(envs->k_l);
+        double expcutoff = envs->expcutoff;
         int *idx = opt->index_xyz_array[envs->i_l*LMAX1*LMAX1
                                        +envs->j_l*LMAX1
                                        +envs->k_l];
@@ -363,7 +365,7 @@ int CINT3c1e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
                                 aiakrr = ai[ip] * ak[kp] * rr_ik;
                                 aiajrr = ai[ip] * aj[jp] * rr_ij;
                                 eijk = (aiajrr+aiakrr+ajakrr) / aijk;
-                                if (eijk > CUTOFF15) {
+                                if (eijk > expcutoff) {
                                         goto i_contracted;
                                 }
                                 PUSH(eijk);

@@ -69,6 +69,11 @@ void CINTinit_int2e_gtg_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
         envs->rl = env + atm(PTR_COORD, bas(ATOM_OF, l_sh));
 
         envs->common_factor = SQRTPI * .5;
+        if (env[PTR_EXPCUTOFF] == 0) {
+                envs->expcutoff = EXPCUTOFF;
+        } else {
+                envs->expcutoff = MAX(MIN_EXPCUTOFF, env[PTR_EXPCUTOFF]);
+        }
 
         envs->gbits = ng[GSHIFT];
         envs->ncomp_e1 = ng[POS_E1];
@@ -284,7 +289,7 @@ void CINTg0_2e_gtg(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
         MM_STORE(gx, r1);
         MM_STORE(gy, r1);
         if (envs->g_size == 1) {
-                return;
+                return 1;
         }
 
         double *b00 = bc->b00;
@@ -359,6 +364,7 @@ void CINTg0_2e_gtg(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
         MM_STORE(c0pz, MM_FMA (r0, r6, r3));
 
         (*envs->f_g0_2d4d)(g, bc, envs);
+        return 1;
 }
 
 void CINTg0_2e_gtg_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
@@ -390,7 +396,7 @@ void CINTg0_2e_gtg_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
         gy[0] = 1;
         gz[0] = fac1*sqrt(fac1) * exp(-t * x) * envs->fac[idsimd];
         if (envs->g_size == 1) {
-                return;
+                return 1;
         }
 
         double div, tmp1, tmp2, tmp3, tmp4;
@@ -426,4 +432,5 @@ void CINTg0_2e_gtg_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
         c0pz[0] = rklrx[2] + tmp3 * rijrkl[2];
 
         (*envs->f_g0_2d4d_simd1)(g, bc, envs);
+        return 1;
 }

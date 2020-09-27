@@ -351,6 +351,7 @@ static void _clenshaw_d1(double *rr, const double *x, double *u, int nroot)
 static void _matmul_14_14(double *imc, double *im, int nroot)
 {
     __MD o7 = MM_SET1(0.14285714285714285714);
+    __MD s0;
     __MD d0[14];
     int i, j;
     for (i = 0; i < nroot; i++) {
@@ -369,20 +370,21 @@ static void _matmul_14_14(double *imc, double *im, int nroot)
         d0[12] = MM_SET1(0.);
         d0[13] = MM_SET1(0.);
         for (j = 0; j < 14; j++) {
-            d0[0 ] += MM_LOAD(im+SIMDD*(j+14*i)) * MM_SET1(COS_14_14[j*14+0 ]);
-            d0[1 ] += MM_LOAD(im+SIMDD*(j+14*i)) * MM_SET1(COS_14_14[j*14+1 ]);
-            d0[2 ] += MM_LOAD(im+SIMDD*(j+14*i)) * MM_SET1(COS_14_14[j*14+2 ]);
-            d0[3 ] += MM_LOAD(im+SIMDD*(j+14*i)) * MM_SET1(COS_14_14[j*14+3 ]);
-            d0[4 ] += MM_LOAD(im+SIMDD*(j+14*i)) * MM_SET1(COS_14_14[j*14+4 ]);
-            d0[5 ] += MM_LOAD(im+SIMDD*(j+14*i)) * MM_SET1(COS_14_14[j*14+5 ]);
-            d0[6 ] += MM_LOAD(im+SIMDD*(j+14*i)) * MM_SET1(COS_14_14[j*14+6 ]);
-            d0[7 ] += MM_LOAD(im+SIMDD*(j+14*i)) * MM_SET1(COS_14_14[j*14+7 ]);
-            d0[8 ] += MM_LOAD(im+SIMDD*(j+14*i)) * MM_SET1(COS_14_14[j*14+8 ]);
-            d0[9 ] += MM_LOAD(im+SIMDD*(j+14*i)) * MM_SET1(COS_14_14[j*14+9 ]);
-            d0[10] += MM_LOAD(im+SIMDD*(j+14*i)) * MM_SET1(COS_14_14[j*14+10]);
-            d0[11] += MM_LOAD(im+SIMDD*(j+14*i)) * MM_SET1(COS_14_14[j*14+11]);
-            d0[12] += MM_LOAD(im+SIMDD*(j+14*i)) * MM_SET1(COS_14_14[j*14+12]);
-            d0[13] += MM_LOAD(im+SIMDD*(j+14*i)) * MM_SET1(COS_14_14[j*14+13]);
+            s0 = MM_LOAD(im+SIMDD*(j+14*i));
+            d0[0 ] += s0 * MM_SET1(COS_14_14[j*14+0 ]);
+            d0[1 ] += s0 * MM_SET1(COS_14_14[j*14+1 ]);
+            d0[2 ] += s0 * MM_SET1(COS_14_14[j*14+2 ]);
+            d0[3 ] += s0 * MM_SET1(COS_14_14[j*14+3 ]);
+            d0[4 ] += s0 * MM_SET1(COS_14_14[j*14+4 ]);
+            d0[5 ] += s0 * MM_SET1(COS_14_14[j*14+5 ]);
+            d0[6 ] += s0 * MM_SET1(COS_14_14[j*14+6 ]);
+            d0[7 ] += s0 * MM_SET1(COS_14_14[j*14+7 ]);
+            d0[8 ] += s0 * MM_SET1(COS_14_14[j*14+8 ]);
+            d0[9 ] += s0 * MM_SET1(COS_14_14[j*14+9 ]);
+            d0[10] += s0 * MM_SET1(COS_14_14[j*14+10]);
+            d0[11] += s0 * MM_SET1(COS_14_14[j*14+11]);
+            d0[12] += s0 * MM_SET1(COS_14_14[j*14+12]);
+            d0[13] += s0 * MM_SET1(COS_14_14[j*14+13]);
         }
         MM_STORE(imc+SIMDD*(0 +14*i), o7 * d0[0 ]);
         MM_STORE(imc+SIMDD*(1 +14*i), o7 * d0[1 ]);

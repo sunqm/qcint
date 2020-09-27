@@ -90,9 +90,13 @@
 
 #define PUSH(RIJ, RKL) \
         if (cum == SIMDD) { \
-                (*envs->f_g0_2e)(g, &bc, envs, cum); \
-                (*envs->f_gout)(gout, g, idx, envs); \
-                POP_PRIM2CTR; \
+                if ((*envs->f_g0_2e)(g, &bc, envs, cum)) { \
+                        (*envs->f_gout)(gout, g, idx, envs); \
+                        POP_PRIM2CTR; \
+                } else { \
+                        cum = 0; \
+                        np2c = 0; \
+                } \
         } \
         envs->ai[cum] = ai[ip]; \
         envs->aj[cum] = aj[jp]; \
@@ -142,18 +146,21 @@
 
 #define RUN_REST \
         if (cum == 1) { \
-                (*envs->f_g0_2e_simd1)(g, &bc, envs, 0); \
-                (*envs->f_gout_simd1)(gout, g, idx, envs); \
+                if ((*envs->f_g0_2e_simd1)(g, &bc, envs, 0)) { \
+                        (*envs->f_gout_simd1)(gout, g, idx, envs); \
+                        POP_PRIM2CTR; \
+                } \
         } else if (cum > 1) { \
                 r1 = MM_SET1(1.); \
                 for (i = 0; i < envs->nrys_roots; i++) { \
                         MM_STORE(bc.u+i*SIMDD, r1); \
                         MM_STORE(bc.w+i*SIMDD, r1); \
                 } \
-                (*envs->f_g0_2e)(g, &bc, envs, cum); \
-                (*envs->f_gout)(gout, g, idx, envs); \
-        } \
-        POP_PRIM2CTR
+                if ((*envs->f_g0_2e)(g, &bc, envs, cum)) { \
+                        (*envs->f_gout)(gout, g, idx, envs); \
+                        POP_PRIM2CTR; \
+                } \
+        }
 
 // little endian on x86
 //typedef union {
@@ -245,6 +252,7 @@ int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
         double rr_kl = SQUARE(envs->rkrl);
         double log_rr_kl = (envs->lk_ceil+envs->ll_ceil+1)*approx_log(rr_kl+1)/2;
         double akl, ekl, expijkl, ccekl, eijcutoff;
+        double expcutoff = envs->expcutoff;
         ALIGNMM double rkl[4];
         int non0ctri[i_prim];
         int non0ctrj[j_prim];
@@ -259,7 +267,7 @@ int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
         PairData *pdata_ij;
         *lempty = CINTset_pairdata(pdata_base, ai, aj, envs->ri, envs->rj,
                                    envs->li_ceil, envs->lj_ceil,
-                                   i_prim, j_prim, SQUARE(envs->rirj));
+                                   i_prim, j_prim, SQUARE(envs->rirj), expcutoff);
         if (*lempty) {
                 goto normal_end;
         }
@@ -284,10 +292,10 @@ int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
                         akl = 1 / (ak[kp] + al[lp]);
                         ekl = rr_kl * ak[kp] * al[lp] * akl;
                         ccekl = ekl - log_rr_kl;
-                        if (ccekl > CUTOFF15) {
+                        if (ccekl > expcutoff) {
                                 goto k_contracted;
                         }
-                        eijcutoff = CUTOFF15 - ccekl;
+                        eijcutoff = expcutoff - ccekl;
                         rkl[0] = (ak[kp]*rk[0] + al[lp]*rl[0]) * akl;
                         rkl[1] = (ak[kp]*rk[1] + al[lp]*rl[1]) * akl;
                         rkl[2] = (ak[kp]*rk[2] + al[lp]*rl[2]) * akl;
@@ -430,6 +438,7 @@ int CINT2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
         int *non0idxl = opt->sortedidx[l_sh];
         int *non0ctr[4] = {non0ctri, non0ctrj, non0ctrk, non0ctrl};
         int *non0idx[4] = {non0idxi, non0idxj, non0idxk, non0idxl};
+        double expcutoff = envs->expcutoff;
 
         INITSIMD;
 
@@ -438,7 +447,7 @@ int CINT2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
         for (lp = 0; lp < l_prim; lp++) {
                 INIT_GCTR_ADDR(k, l, common_factor);
                 for (kp = 0; kp < k_prim; kp++, pdata_kl++) {
-                        if (pdata_kl->cceij > CUTOFF15) {
+                        if (pdata_kl->cceij > expcutoff) {
                                 goto k_contracted;
                         }
                         INIT_GCTR_ADDR(j, k, fac1l);
@@ -447,8 +456,8 @@ int CINT2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
                         for (jp = 0; jp < j_prim; jp++) {
                                 INIT_GCTR_ADDR(i, j, fac1k);
                                 for (ip = 0; ip < i_prim; ip++, pdata_ij++) {
-                                        if (pdata_ij->cceij > CUTOFF15 ||
-                                            pdata_ij->cceij+pdata_kl->cceij > CUTOFF15) {
+                                        if (pdata_ij->cceij > expcutoff ||
+                                            pdata_ij->cceij+pdata_kl->cceij > expcutoff) {
                                                 goto i_contracted;
                                         }
                                         expijkl = pdata_ij->eij * pdata_kl->eij;

@@ -32,8 +32,8 @@
 #include "misc.h"
 #include "g2e.h"
 
-void CINTg0_2e_coulerf(double *g, Rys2eT *bc, CINTEnvVars *envs, int count);
-void CINTg0_2e_coulerf_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd);
+int CINTg0_2e_coulerf(double *g, Rys2eT *bc, CINTEnvVars *envs, int count);
+int CINTg0_2e_coulerf_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd);
 
 void CINTinit_int2e_coulerf_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
                                     int *atm, int natm, int *bas, int nbas, double *env)
@@ -63,6 +63,11 @@ void CINTinit_int2e_coulerf_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
         envs->nfl = (envs->l_l+1)*(envs->l_l+2)/2;
         envs->nf = envs->nfi * envs->nfk * envs->nfl * envs->nfj;
         envs->common_factor = 1;
+        if (env[PTR_EXPCUTOFF] == 0) {
+                envs->expcutoff = EXPCUTOFF;
+        } else {
+                envs->expcutoff = MAX(MIN_EXPCUTOFF, env[PTR_EXPCUTOFF]);
+        }
 
         envs->gbits = ng[GSHIFT];
         envs->ncomp_e1 = ng[POS_E1];
@@ -161,7 +166,7 @@ void CINTinit_int2e_coulerf_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
         }
 }
 
-void CINTg0_2e_coulerf(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
+int CINTg0_2e_coulerf(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
 {
         ALIGNMM double aij[SIMDD];
         ALIGNMM double akl[SIMDD];
@@ -241,7 +246,7 @@ void CINTg0_2e_coulerf(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
                 MM_STORE(gz+i*SIMDD, MM_MUL(MM_LOAD(w+i*SIMDD), r0));
         }
         if (envs->g_size == 1) {
-                return;
+                return 1;
         }
 
         if (omega > 0) {
@@ -321,9 +326,10 @@ void CINTg0_2e_coulerf(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
         }
 
         (*envs->f_g0_2d4d)(g, bc, envs);
+        return 1;
 }
 
-void CINTg0_2e_coulerf_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
+int CINTg0_2e_coulerf_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
 {
         double aij, akl, a0, a1, fac1;
         ALIGNMM double x[SIMDD];
@@ -366,7 +372,7 @@ void CINTg0_2e_coulerf_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsim
                 gz[i] = w[i*SIMDD] * fac1;
         }
         if (envs->g_size == 1) {
-                return;
+                return 1;
         }
 
         if (omega > 0) {
@@ -419,5 +425,6 @@ void CINTg0_2e_coulerf_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsim
         }
 
         (*envs->f_g0_2d4d_simd1)(g, bc, envs);
+        return 1;
 }
 
