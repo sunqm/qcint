@@ -48,7 +48,6 @@ static void rys_root2(double x, double *roots, double *weights);
 static void rys_root3(double x, double *roots, double *weights);
 static void rys_root4(double x, double *roots, double *weights);
 static void rys_root5(double x, double *roots, double *weights);
-static int R_droot(int nroots, double x, double *roots, double *weights);
 static int rys_qroot(int nroots, double x, double *roots, double *weights);
 static void polyfit_roots(int nroots, double x, double* rr, double* ww);
 #ifdef WITH_RANGE_COULOMB
@@ -1981,8 +1980,8 @@ static int _rdk_rys_roots(int nroots, double *fmt_ints,
                         exit(error);
 #else
                         return error;
-                }
 #endif
+                }
         }
 
         for (k = 0; k < nroots; ++k) {
