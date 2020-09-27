@@ -253,7 +253,7 @@ void _CINT_clenshaw_dc(double *rr, const double *x, double u, int nroots)
         int i, k;
         __m256d d0, d1, d2, d3;
         __m256d g0, g1, g2, g3;
-        __m512d u1 = MM_SET1(u);
+        __m256d u1 = MM_SET1(u);
         __m256d u2 = MM_SET1(u * 2.);
         __m256d half = MM_SET1(0.5);
         for (i = 0; i < nroots; ++i) {
