@@ -446,7 +446,7 @@ void _CINT_matmul_14_14(double *imc, double *im, int nroots)
         int i, j, k;
         for (i = 0; i < nroots; i++) {
                 for (j = 0; j < 14/SIMDD; j++) {
-                        d0[j] = 0;
+                        d0[j] = MM_SET1(0.);
                 }
                 for (j = 0; j < 14; j++) {
                         s = MM_SET1(im[j+14*i]);
