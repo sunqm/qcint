@@ -7,11 +7,11 @@
 
 #include <cint.h>
 
-typedef void (*CINTOptimizerFunction)(CINTOpt **opt,
-                                      int *atm, int natm, int *bas, int nbas, double *env);
-typedef int (*CINTIntegralFunction)(double *out, int *dims, int *shls,
-                                    int *atm, int natm, int *bas, int nbas, double *env,
-                                    CINTOpt *opt, double *cache);
+typedef void CINTOptimizerFunction(CINTOpt **opt,
+                                   int *atm, int natm, int *bas, int nbas, double *env);
+typedef int CINTIntegralFunction(double *out, int *dims, int *shls,
+                                 int *atm, int natm, int *bas, int nbas, double *env,
+                                 CINTOpt *opt, double *cache);
 /* Plain ERI (ij|kl) */
 CINTOptimizerFunction int2e_optimizer;
 CINTIntegralFunction int2e_cart;
