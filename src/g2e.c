@@ -1964,14 +1964,28 @@ int CINTg0_2e(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
                 ALIGNMM double tmp[SIMDD];
                 MM_STORE(tmp, MM_MUL(MM_LOAD(x), MM_LOAD(theta)));
                 int all_negligible = 1;
+                int n;
                 for (i = 0; i < count; i++) {
-                        all_negligible &= tmp[i] > envs->expcutoff;
+                        if (tmp[i] > envs->expcutoff) {
+                                all_negligible &= 1;
+                                for (n = 0; n < envs->nrys_roots; n++) {
+                                        u[n*SIMDD+i] = 0;
+                                        w[n*SIMDD+i] = 0;
+                                }
+                        } else {
+                                CINTerfc_rys_roots(envs->nrys_roots, x[i],
+                                                   sqrt(theta[i]), u+i, w+i);
+                        }
                 }
                 if (all_negligible) {
+                        // g still has to be evaluated since iempty (which
+                        // indicates whether g is zero) in cint2e is determined
+                        // before calling the g0_2e function.
+                        for (i = 0; i < envs->g_size * SIMDD * 3; i++) {
+                                g[i] = 0;
+                        }
                         return 0;
                 }
-                MM_STORE(tmp, MM_SQRT(MM_LOAD(theta)));
-                CINTerfc_rys_roots(envs->nrys_roots, x, tmp, u, w, count);
         } else {
                 CINTrys_roots(envs->nrys_roots, x, u, w, count);
         }

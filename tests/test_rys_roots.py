@@ -29,12 +29,9 @@ def cint_call(fname, nroots, x, low=None):
         start, end = end, end + SIMDD
         low0 = numpy.ndarray(SIMDD, buffer=buf.data[start:end])
         low0[0] = low
-        fun(ctypes.c_int(nroots),
-            x0.ctypes.data_as(ctypes.c_void_p),
-            low0.ctypes.data_as(ctypes.c_void_p),
+        fun(ctypes.c_int(nroots), ctypes.c_double(x), ctypes.c_double(low),
             r.ctypes.data_as(ctypes.c_void_p),
-            w.ctypes.data_as(ctypes.c_void_p),
-            ctypes.c_int(1))
+            w.ctypes.data_as(ctypes.c_void_p))
     return r[:,0], w[:,0]
 
 def check_turnover_point(fun1, fun2):

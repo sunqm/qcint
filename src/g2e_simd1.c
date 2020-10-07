@@ -1347,10 +1347,12 @@ int CINTg0_2e_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
         if (omega < 0) { // short-range part of range-separated Coulomb
                 // very small erfc() leads to ~0 weights
                 if (theta * x[0] > envs->expcutoff) {
+                        for (i = 0; i < envs->g_size * 3; i++) {
+                                g[i] = 0;
+                        }
                         return 0;
                 }
-                theta = sqrt(theta);
-                CINTerfc_rys_roots(envs->nrys_roots, x, &theta, u, w, 1);
+                CINTerfc_rys_roots(envs->nrys_roots, x[0], sqrt(theta), u, w);
         } else {
                 CINTrys_roots(envs->nrys_roots, x, u, w, 1);
         }

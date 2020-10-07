@@ -121,60 +121,52 @@ void CINTrys_roots(int nroots, double *RESTRICT x,
 /*
  * lower is the lower bound of the erfc integral
  */
-static void erfc_rys_aug_polyfits(int nroots, double *RESTRICT x, double *RESTRICT lower,
-                                  double *RESTRICT u, double *RESTRICT w, int count,
+static void erfc_rys_aug_polyfits(int nroots, double x, double lower,
+                                  double *RESTRICT u, double *RESTRICT w,
                                   double turnover_point)
 {
-        int i, error;
-        for (i = 0; i < count; i++) {
-                if (lower[i] < turnover_point) {
-                        error = erfc_rys_roots(nroots, x[i], lower[i], u+i, w+i);
-                }
-                if (error == 1 || lower[i] >= turnover_point) {
-                        // call polyfits for erfc roots and weights. It has
-                        // on average errors ~1e-7
-                        CINTerfc_rys_polyfits(nroots, x[i], lower[i], u+i, w+i);
-                }
+        int error;
+        if (lower < turnover_point) {
+                error = erfc_rys_roots(nroots, x, lower, u, w);
+        }
+        if (error == 1 || lower >= turnover_point) {
+                // call polyfits for erfc roots and weights. It has
+                // on average errors ~1e-7
+                CINTerfc_rys_polyfits(nroots, x, lower, u, w);
         }
 }
-void CINTerfc_rys_roots(int nroots, double *RESTRICT x, double *RESTRICT lower,
-                        double *RESTRICT u, double *RESTRICT w, int count)
+void CINTerfc_rys_roots(int nroots, double x, double lower,
+                        double *RESTRICT u, double *RESTRICT w)
 {
-        int i, error;
+        int error;
         switch (nroots) {
         case 1: case 2: case 3: case 4:
-                for (i = 0; i < count; i++) {
-                        error = erfc_rys_roots(nroots, x[i], lower[i], u+i, w+i);
-                        if (error == 1) {
-                                CINTerfc_rys_polyfits(nroots, x[i], lower[i], u+i, w+i);
-                        }
+                error = erfc_rys_roots(nroots, x, lower, u, w);
+                if (error == 1) {
+                        CINTerfc_rys_polyfits(nroots, x, lower, u, w);
                 }
                 break;
         case 5:
-                erfc_rys_aug_polyfits(nroots, x, lower, u, w, count, 0.8);
+                erfc_rys_aug_polyfits(nroots, x, lower, u, w, 0.8);
                 break;
         case 6:
-                erfc_rys_aug_polyfits(nroots, x, lower, u, w, count, 0.6);
+                erfc_rys_aug_polyfits(nroots, x, lower, u, w, 0.6);
                 break;
         case 7:
-                erfc_rys_aug_polyfits(nroots, x, lower, u, w, count, 0.4);
+                erfc_rys_aug_polyfits(nroots, x, lower, u, w, 0.4);
                 break;
         case 8:
-                erfc_rys_aug_polyfits(nroots, x, lower, u, w, count, 0.3);
+                erfc_rys_aug_polyfits(nroots, x, lower, u, w, 0.3);
                 break;
         case 9: case 10: case 11: case 12: case 13:
-                for (i = 0; i < count; i++) {
-                        CINTerfc_rys_polyfits(nroots, x[i], lower[i], u+i, w+i);
-                }
+                CINTerfc_rys_polyfits(nroots, x, lower, u, w);
                 break;
         default:
                 fprintf(stderr, "libcint erfc_rys_roots does not support nroots=%d\n", nroots);
 #ifndef KEEP_GOING
                 exit(1);
 #else
-                for (i = 0; i < count; i++) {
-                        error = erfc_rys_roots(nroots, x[i], lower[i], u+i, w+i);
-                }
+                error = erfc_rys_roots(nroots, x, lower, u, w);
 #endif
         }
 }

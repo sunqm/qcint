@@ -90,13 +90,9 @@
 
 #define PUSH(RIJ, RKL) \
         if (cum == SIMDD) { \
-                if ((*envs->f_g0_2e)(g, &bc, envs, cum)) { \
-                        (*envs->f_gout)(gout, g, idx, envs); \
-                        POP_PRIM2CTR; \
-                } else { \
-                        cum = 0; \
-                        np2c = 0; \
-                } \
+                (*envs->f_g0_2e)(g, &bc, envs, cum); \
+                (*envs->f_gout)(gout, g, idx, envs); \
+                POP_PRIM2CTR; \
         } \
         envs->ai[cum] = ai[ip]; \
         envs->aj[cum] = aj[jp]; \
@@ -146,20 +142,18 @@
 
 #define RUN_REST \
         if (cum == 1) { \
-                if ((*envs->f_g0_2e_simd1)(g, &bc, envs, 0)) { \
-                        (*envs->f_gout_simd1)(gout, g, idx, envs); \
-                        POP_PRIM2CTR; \
-                } \
+                (*envs->f_g0_2e_simd1)(g, &bc, envs, 0); \
+                (*envs->f_gout_simd1)(gout, g, idx, envs); \
+                POP_PRIM2CTR; \
         } else if (cum > 1) { \
                 r1 = MM_SET1(1.); \
                 for (i = 0; i < envs->nrys_roots; i++) { \
                         MM_STORE(bc.u+i*SIMDD, r1); \
                         MM_STORE(bc.w+i*SIMDD, r1); \
                 } \
-                if ((*envs->f_g0_2e)(g, &bc, envs, cum)) { \
-                        (*envs->f_gout)(gout, g, idx, envs); \
-                        POP_PRIM2CTR; \
-                } \
+                (*envs->f_g0_2e)(g, &bc, envs, cum); \
+                (*envs->f_gout)(gout, g, idx, envs); \
+                POP_PRIM2CTR; \
         }
 
 // little endian on x86
