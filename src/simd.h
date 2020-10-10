@@ -148,8 +148,15 @@ static inline void *_align_upwards(void *p, uintptr_t align)
                 var = (double *)_mm_malloc(sizeof(double)*(n), sizeof(double)*SIMDD); \
         }
 
-#define MALLOC_INSTACK(var, n) \
+// Simple malloc(sizeof(type(data)))
+#define MALLOC_DATA_INSTACK(var, n) \
+        var = (void *)cache; \
+        cache = (double *)(var + n);
+
+// malloc(sizeof(double)) with alignment
+#define MALLOC_ALIGNED_DOUBLE_INSTACK(var, n) \
         var = _align_upwards(cache, sizeof(double)*SIMDD); \
         cache = (double *)(var + n);
+#define MALLOC_INSTACK(var, n)  MALLOC_ALIGNED_DOUBLE_INSTACK(var, n)
 
 #endif
