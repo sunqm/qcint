@@ -116,7 +116,6 @@
         if (cum == 1) { \
                 (*envs->f_g0_2e_simd1)(g, &bc, envs, 0); \
                 (*envs->f_gout_simd1)(gout, g, idx, envs); \
-                POP_PRIM2CTR; \
         } else if (cum > 1) { \
                 r1 = MM_SET1(1.); \
                 for (i = 0; i < envs->nrys_roots; i++) { \
@@ -125,8 +124,8 @@
                 } \
                 (*envs->f_g0_2e)(g, &bc, envs, cum); \
                 (*envs->f_gout)(gout, g, idx, envs); \
-                POP_PRIM2CTR; \
-        }
+        } \
+        POP_PRIM2CTR
 
 int CINT3c2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
 {
@@ -151,6 +150,19 @@ int CINT3c2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
         double *cj = env + bas(PTR_COEFF, j_sh);
         double *ck = env + bas(PTR_COEFF, k_sh);
         double *coeff[3] = {ci, cj, ck};
+
+        double expcutoff = envs->expcutoff;
+        PairData pdata_buf[i_prim*j_prim];
+        double log_maxci[i_prim];
+        double log_maxcj[j_prim];
+        CINTOpt_log_max_pgto_coeff(log_maxci, ci, i_prim, i_ctr);
+        CINTOpt_log_max_pgto_coeff(log_maxcj, cj, j_prim, j_ctr);
+        if (CINTset_pairdata(pdata_buf, ai, aj, envs->ri, envs->rj,
+                             log_maxci, log_maxcj, envs->li_ceil, envs->lj_ceil,
+                             i_prim, j_prim, SQUARE(envs->rirj), expcutoff)) {
+                return 0;
+        }
+
         int n_comp = envs->ncomp_e1 * envs->ncomp_e2 * envs->ncomp_tensor;
         int nf = envs->nf;
         double fac1i, fac1j, fac1k;
@@ -188,7 +200,6 @@ int CINT3c2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
         g = gout + len0;  // for gx, gy, gz
 
         ALIGNMM Rys2eT bc;
-        PairData pdata[i_prim*j_prim];
         int idx[nf*3];
         int non0ctri[i_prim];
         int non0ctrj[j_prim];
@@ -196,14 +207,6 @@ int CINT3c2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
         int non0idxi[i_prim*i_ctr];
         int non0idxj[j_prim*j_ctr];
         int non0idxk[k_prim*k_ctr];
-        double expcutoff = envs->expcutoff;
-
-        *kempty = CINTset_pairdata(pdata, ai, aj, envs->ri, envs->rj,
-                                   envs->li_ceil, envs->lj_ceil,
-                                   i_prim, j_prim, SQUARE(envs->rirj), expcutoff);
-        if (*kempty) {
-                goto normal_end;
-        }
 
         CINTg4c_index_xyz(idx, envs);
         CINTOpt_non0coeff_byshell(non0idxi, non0ctri, coeff[0], i_prim, i_ctr);
@@ -226,7 +229,7 @@ int CINT3c2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
                         *jempty = 1;
                 }
 
-                pdata_ij = pdata;
+                pdata_ij = pdata_buf;
                 for (jp = 0; jp < j_prim; jp++) {
                         if (j_ctr == 1) {
                                 fac1j = fac1k * cj[jp];
@@ -264,8 +267,8 @@ int CINT3c2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
         int i_sh = shls[0];
         int j_sh = shls[1];
         int k_sh = shls[2];
-        if (opt->data_ptr != NULL &&
-            opt->data_ptr[i_sh*opt->nbas+j_sh] == NOVALUE) {
+        if (opt->pairdata != NULL &&
+            opt->pairdata[i_sh*opt->nbas+j_sh] == NOVALUE) {
                 return 0;
         }
         int *bas = envs->bas;
@@ -285,6 +288,22 @@ int CINT3c2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
         double *cj = env + bas(PTR_COEFF, j_sh);
         double *ck = env + bas(PTR_COEFF, k_sh);
         double *coeff[3] = {ci, cj, ck};
+        double expcutoff = envs->expcutoff;
+        PairData pdata_buf[i_prim*j_prim];
+        PairData *pdata_base, *pdata_ij;
+        if (opt->pairdata != NULL) {
+                pdata_base = opt->pairdata[i_sh*opt->nbas+j_sh];
+        } else {
+                double *log_maxci = opt->log_max_coeff[i_sh];
+                double *log_maxcj = opt->log_max_coeff[j_sh];
+                pdata_base = pdata_buf;
+                if (CINTset_pairdata(pdata_buf, ai, aj, envs->ri, envs->rj,
+                                     log_maxci, log_maxcj, envs->li_ceil, envs->lj_ceil,
+                                     i_prim, j_prim, SQUARE(envs->rirj), expcutoff)) {
+                        return 0;
+                }
+        }
+
         int n_comp = envs->ncomp_e1 * envs->ncomp_e2 * envs->ncomp_tensor;
         int nf = envs->nf;
         double fac1i, fac1j, fac1k;
@@ -342,23 +361,9 @@ int CINT3c2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
         CINTOpt_non0coeff_byshell(non0idxk, non0ctrk, ck, k_prim, k_ctr);
         int *non0ctr[3] = {opt->non0ctr[i_sh], opt->non0ctr[j_sh], non0ctrk};
         int *non0idx[3] = {opt->sortedidx[i_sh], opt->sortedidx[j_sh], non0idxk};
-        double expcutoff = envs->expcutoff;
 
         INITSIMD;
 
-        PairData pdata[i_prim*j_prim];
-        PairData *pdata_base, *pdata_ij;
-        if (opt->data_ptr == NULL) {
-                *kempty = CINTset_pairdata(pdata, ai, aj, envs->ri, envs->rj,
-                                           envs->li_ceil, envs->lj_ceil,
-                                           i_prim, j_prim, SQUARE(envs->rirj), expcutoff);
-                if (*kempty) {
-                        goto normal_end;
-                }
-                pdata_base = pdata;
-        } else {
-                pdata_base = opt->data + opt->data_ptr[i_sh*opt->nbas+j_sh];
-        }
         *kempty = 1;
         for (kp = 0; kp < k_prim; kp++) {
                 if (k_ctr == 1) {

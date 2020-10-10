@@ -144,7 +144,6 @@
         if (cum == 1) { \
                 (*envs->f_g0_2e_simd1)(g, &bc, envs, 0); \
                 (*envs->f_gout_simd1)(gout, g, idx, envs); \
-                POP_PRIM2CTR; \
         } else if (cum > 1) { \
                 r1 = MM_SET1(1.); \
                 for (i = 0; i < envs->nrys_roots; i++) { \
@@ -153,8 +152,8 @@
                 } \
                 (*envs->f_g0_2e)(g, &bc, envs, cum); \
                 (*envs->f_gout)(gout, g, idx, envs); \
-                POP_PRIM2CTR; \
-        }
+        } \
+        POP_PRIM2CTR
 
 // little endian on x86
 //typedef union {
@@ -198,6 +197,23 @@ int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
         double *ck = env + bas(PTR_COEFF, k_sh);
         double *cl = env + bas(PTR_COEFF, l_sh);
         double *coeff[4] = {ci, cj, ck, cl};
+        double expcutoff = envs->expcutoff;
+        PairData pdata_base[i_prim*j_prim];
+        PairData *pdata_ij;
+        double log_maxci[i_prim];
+        double log_maxcj[j_prim];
+        CINTOpt_log_max_pgto_coeff(log_maxci, ci, i_prim, i_ctr);
+        CINTOpt_log_max_pgto_coeff(log_maxcj, cj, j_prim, j_ctr);
+        if (CINTset_pairdata(pdata_base, ai, aj, envs->ri, envs->rj,
+                             log_maxci, log_maxcj, envs->li_ceil, envs->lj_ceil,
+                             i_prim, j_prim, SQUARE(envs->rirj), expcutoff)) {
+                return 0;
+        }
+        double log_maxck[k_prim];
+        double log_maxcl[l_prim];
+        CINTOpt_log_max_pgto_coeff(log_maxck, ck, k_prim, k_ctr);
+        CINTOpt_log_max_pgto_coeff(log_maxcl, cl, l_prim, l_ctr);
+
         double *rk = envs->rk;
         double *rl = envs->rl;
         int n_comp = envs->ncomp_e1 * envs->ncomp_e2 * envs->ncomp_tensor;
@@ -246,8 +262,11 @@ int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
         double rr_kl = SQUARE(envs->rkrl);
         double log_rr_kl = (envs->lk_ceil+envs->ll_ceil+1)*approx_log(rr_kl+1)/2;
         double akl, ekl, expijkl, ccekl, eijcutoff;
-        double expcutoff = envs->expcutoff;
         ALIGNMM double rkl[4];
+
+        int *idx = malloc(sizeof(int) * nf * 3);
+        CINTg4c_index_xyz(idx, envs);
+
         int non0ctri[i_prim];
         int non0ctrj[j_prim];
         int non0ctrk[k_prim];
@@ -256,18 +275,6 @@ int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
         int non0idxj[j_prim*j_ctr];
         int non0idxk[k_prim*k_ctr];
         int non0idxl[l_prim*l_ctr];
-
-        PairData pdata_base[i_prim*j_prim];
-        PairData *pdata_ij;
-        *lempty = CINTset_pairdata(pdata_base, ai, aj, envs->ri, envs->rj,
-                                   envs->li_ceil, envs->lj_ceil,
-                                   i_prim, j_prim, SQUARE(envs->rirj), expcutoff);
-        if (*lempty) {
-                goto normal_end;
-        }
-
-        int *idx = malloc(sizeof(int) * nf * 3);
-        CINTg4c_index_xyz(idx, envs);
         CINTOpt_non0coeff_byshell(non0idxi, non0ctri, coeff[0], i_prim, i_ctr);
         CINTOpt_non0coeff_byshell(non0idxj, non0ctrj, coeff[1], j_prim, j_ctr);
         CINTOpt_non0coeff_byshell(non0idxk, non0ctrk, coeff[2], k_prim, k_ctr);
@@ -285,11 +292,11 @@ int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
                 for (kp = 0; kp < k_prim; kp++) {
                         akl = 1 / (ak[kp] + al[lp]);
                         ekl = rr_kl * ak[kp] * al[lp] * akl;
-                        ccekl = ekl - log_rr_kl;
+                        ccekl = ekl - log_rr_kl - log_maxck[kp] - log_maxcl[lp];
                         if (ccekl > expcutoff) {
                                 goto k_contracted;
                         }
-                        eijcutoff = expcutoff - ccekl;
+                        eijcutoff = expcutoff - MAX(ccekl, 0);
                         rkl[0] = (ak[kp]*rk[0] + al[lp]*rl[0]) * akl;
                         rkl[1] = (ak[kp]*rk[1] + al[lp]*rl[1]) * akl;
                         rkl[2] = (ak[kp]*rk[2] + al[lp]*rl[2]) * akl;
@@ -327,7 +334,6 @@ k_contracted: ;
                 CINTdmat_transpose(out, gctr[SHLTYPl], nf*nc, n_comp);
         }
         free(idx);
-normal_end:
         return !*lempty;
 }
 
@@ -339,8 +345,9 @@ int CINT2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
         int j_sh = shls[1];
         int k_sh = shls[2];
         int l_sh = shls[3];
-        if ((opt->data_ptr[i_sh*opt->nbas+j_sh] == NOVALUE) ||
-            (opt->data_ptr[k_sh*opt->nbas+l_sh] == NOVALUE)) {
+        if (opt->pairdata != NULL &&
+            ((opt->pairdata[i_sh*opt->nbas+j_sh] == NOVALUE) ||
+             (opt->pairdata[k_sh*opt->nbas+l_sh] == NOVALUE))) {
                 return 0;
         }
         int *bas = envs->bas;
@@ -364,6 +371,33 @@ int CINT2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
         double *ck = env + bas(PTR_COEFF, k_sh);
         double *cl = env + bas(PTR_COEFF, l_sh);
         double *coeff[4] = {ci, cj, ck, cl};
+        double expcutoff = envs->expcutoff;
+        PairData _pairdata_buffer_ij[i_prim*j_prim];
+        PairData _pairdata_buffer_kl[k_prim*l_prim];
+        PairData *_pdata_ij, *_pdata_kl, *pdata_kl, *pdata_ij;
+        if (opt->pairdata != NULL) {
+                _pdata_ij = opt->pairdata[i_sh*opt->nbas+j_sh];
+                _pdata_kl = opt->pairdata[k_sh*opt->nbas+l_sh];
+        } else {
+                double *log_maxci = opt->log_max_coeff[i_sh];
+                double *log_maxcj = opt->log_max_coeff[j_sh];
+                _pdata_ij = _pairdata_buffer_ij;
+                if (CINTset_pairdata(_pdata_ij, ai, aj, envs->ri, envs->rj,
+                                     log_maxci, log_maxcj, envs->li_ceil, envs->lj_ceil,
+                                     i_prim, j_prim, SQUARE(envs->rirj), expcutoff)) {
+                        return 0;
+                }
+
+                double *log_maxck = opt->log_max_coeff[k_sh];
+                double *log_maxcl = opt->log_max_coeff[l_sh];
+                _pdata_kl = _pairdata_buffer_kl;
+                if (CINTset_pairdata(_pdata_kl, ak, al, envs->rk, envs->rl,
+                                     log_maxck, log_maxcl, envs->lk_ceil, envs->ll_ceil,
+                                     k_prim, l_prim, SQUARE(envs->rkrl), expcutoff)) {
+                        return 0;
+                }
+        }
+
         int n_comp = envs->ncomp_e1 * envs->ncomp_e2 * envs->ncomp_tensor;
         int nf = envs->nf;
         double fac1i, fac1j, fac1k, fac1l;
@@ -385,7 +419,6 @@ int CINT2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
         int lenj = ALIGN_UP(ngp[2], SIMDD);
         int lenk = ALIGN_UP(ngp[3], SIMDD);
         int lenl = ALIGN_UP(ngp[3] * l_ctr, SIMDD);
-
         double *gout, *g, *g1;
         double *gctr[4];
         double *bufctr[4];
@@ -410,7 +443,7 @@ int CINT2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
         double common_factor = envs->common_factor * (M_PI*M_PI*M_PI)*2/SQRTPI
                 * CINTcommon_fac_sp(envs->i_l) * CINTcommon_fac_sp(envs->j_l)
                 * CINTcommon_fac_sp(envs->k_l) * CINTcommon_fac_sp(envs->l_l);
-        double expijkl;
+        double expijkl, eijcutoff;
 
         int *idx = opt->index_xyz_array[envs->i_l*LMAX1*LMAX1*LMAX1
                                        +envs->j_l*LMAX1*LMAX1
@@ -422,6 +455,7 @@ int CINT2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
                 CINTg4c_index_xyz(idx, envs);
                 allocated_idx = 1;
         }
+
         int *non0ctri = opt->non0ctr[i_sh];
         int *non0ctrj = opt->non0ctr[j_sh];
         int *non0ctrk = opt->non0ctr[k_sh];
@@ -432,12 +466,10 @@ int CINT2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
         int *non0idxl = opt->sortedidx[l_sh];
         int *non0ctr[4] = {non0ctri, non0ctrj, non0ctrk, non0ctrl};
         int *non0idx[4] = {non0idxi, non0idxj, non0idxk, non0idxl};
-        double expcutoff = envs->expcutoff;
 
         INITSIMD;
 
-        PairData *pdata_kl, *pdata_ij;
-        pdata_kl = opt->data + opt->data_ptr[k_sh*opt->nbas+l_sh];
+        pdata_kl = _pdata_kl;
         for (lp = 0; lp < l_prim; lp++) {
                 INIT_GCTR_ADDR(k, l, common_factor);
                 for (kp = 0; kp < k_prim; kp++, pdata_kl++) {
@@ -446,12 +478,12 @@ int CINT2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
                         }
                         INIT_GCTR_ADDR(j, k, fac1l);
 
-                        pdata_ij = opt->data + opt->data_ptr[i_sh*opt->nbas+j_sh];
+                        eijcutoff = expcutoff - MAX(pdata_kl->cceij, 0);
+                        pdata_ij = _pdata_ij;
                         for (jp = 0; jp < j_prim; jp++) {
                                 INIT_GCTR_ADDR(i, j, fac1k);
                                 for (ip = 0; ip < i_prim; ip++, pdata_ij++) {
-                                        if (pdata_ij->cceij > expcutoff ||
-                                            pdata_ij->cceij+pdata_kl->cceij > expcutoff) {
+                                        if (pdata_ij->cceij > eijcutoff) {
                                                 goto i_contracted;
                                         }
                                         expijkl = pdata_ij->eij * pdata_kl->eij;

@@ -261,10 +261,10 @@ int CINT3c1e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
         int i_sh = shls[0];
         int j_sh = shls[1];
         int k_sh = shls[2];
-        if (opt->data_ptr != NULL &&
-            (opt->data_ptr[i_sh*opt->nbas+j_sh] == NOVALUE ||
-             opt->data_ptr[i_sh*opt->nbas+k_sh] == NOVALUE ||
-             opt->data_ptr[j_sh*opt->nbas+k_sh] == NOVALUE)) {
+        if (opt->pairdata != NULL &&
+            (opt->pairdata[i_sh*opt->nbas+j_sh] == NOVALUE ||
+             opt->pairdata[i_sh*opt->nbas+k_sh] == NOVALUE ||
+             opt->pairdata[j_sh*opt->nbas+k_sh] == NOVALUE)) {
                 return 0;
         }
         int *bas = envs->bas;

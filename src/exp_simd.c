@@ -33,6 +33,13 @@
  *                 http://www.chokkan.org/software/dist/fastexp.c
  */
 
+/*
+ * AVX512 instructions: time to evaluate 8 exps, CINTexp_cephes / built-in exp ~= 0.7
+ * latency of built-in exp ~= 27
+ * AVX2   instructions: time to evaluate 4 exps, CINTexp_cephes / built-in exp ~= 0.9
+ * latency of built-in exp ~= 55
+ */
+
 #include <math.h>
 #include "simd.h"
 

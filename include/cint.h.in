@@ -107,17 +107,15 @@
 typedef struct {
     double rij[3];
     double eij;
-    int cceij;
-    int _padding;
+    double cceij;
 } PairData;
 typedef struct {
     int **index_xyz_array; // ANG_MAX**4 pointers to index_xyz
     int **non0ctr;
     int **sortedidx;
     int nbas;
-
-    int *data_ptr;
-    PairData *data;
+    double **log_max_coeff;
+    PairData **pairdata;  // NULL indicates not-initialized, NO_VALUE can be skipped
 } CINTOpt;
 #endif
 

@@ -23,21 +23,20 @@
 typedef struct {
     double rij[3];
     double eij;
-    int cceij;
-    int _padding;
+    double cceij;
 } PairData;
 typedef struct {
     int **index_xyz_array; // LMAX1**4 pointers to index_xyz
     int **non0ctr;
     int **sortedidx;
     int nbas;
-
-    int *data_ptr;
-    PairData *data;
+    double **log_max_coeff;
+    PairData **pairdata;  // NULL indicates not-initialized, NO_VALUE can be skipped
 } CINTOpt;
 #endif
 
-#define NOVALUE    0xffffffff
+#define NOVALUE                 ((void *)0xffffffffffffffffuL)
+#define MAX_PGTO_FOR_PAIRDATA   2048
 
 void CINTinit_2e_optimizer(CINTOpt **opt, int *atm, int natm,
                            int *bas, int nbas, double *env);
@@ -45,12 +44,20 @@ void CINTinit_optimizer(CINTOpt **opt, int *atm, int natm,
                         int *bas, int nbas, double *env);
 void CINTdel_2e_optimizer(CINTOpt **opt);
 void CINTdel_optimizer(CINTOpt **opt);
+void CINTdel_pairdata_optimizer(CINTOpt *cintopt);
+void CINTOpt_log_max_pgto_coeff(double *log_maxc, double *coeff, int nprim, int nctr);
+void CINTOpt_set_log_maxc(CINTOpt *opt, int *atm, int natm,
+                          int *bas, int nbas, double *env);
 void CINTOpt_setij(CINTOpt *opt, int *ng,
                    int *atm, int natm, int *bas, int nbas, double *env);
 void CINTOpt_non0coeff_byshell(int *sortedidx, int *non0ctr, double *ci,
                                int iprim, int ictr);
 void CINTOpt_set_non0coeff(CINTOpt *opt, int *atm, int natm,
                            int *bas, int nbas, double *env);
+int CINTset_pairdata(PairData *pairdata, double *ai, double *aj, double *ri, double *rj,
+                     double *log_maxci, double *log_maxcj,
+                     int li_ceil, int lj_ceil, int iprim, int jprim,
+                     double rr_ij, double expcutoff);
 
 // optimizer examples
 void CINTno_optimizer(CINTOpt **opt, int *atm, int natm,
@@ -68,10 +75,6 @@ void CINTall_3c1e_optimizer(CINTOpt **opt, int *ng,
 
 void CINTall_2e_stg_optimizer(CINTOpt **opt, int *ng,
                               int *atm, int natm, int *bas, int nbas, double *env);
-
-int CINTset_pairdata(PairData *pdata, double *ai, double *aj, double *ri, double *rj,
-                     int li_ceil, int lj_ceil, int iprim, int jprim, double rr_ij,
-                     double expcutoff);
 
 #ifdef WITH_F12
 void CINTall_2e_stg_optimizer(CINTOpt **opt, int *ng,
