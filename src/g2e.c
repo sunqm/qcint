@@ -1967,12 +1967,12 @@ int CINTg0_2e(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
                 int n;
                 for (i = 0; i < count; i++) {
                         if (tmp[i] > envs->expcutoff) {
-                                all_negligible &= 1;
                                 for (n = 0; n < envs->nrys_roots; n++) {
                                         u[n*SIMDD+i] = 0;
                                         w[n*SIMDD+i] = 0;
                                 }
                         } else {
+                                all_negligible = 0;
                                 CINTerfc_rys_roots(envs->nrys_roots, x[i],
                                                    sqrt(theta[i]), u+i, w+i);
                         }
