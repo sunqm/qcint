@@ -112,7 +112,6 @@
         if (cum == 1) { \
                 (*envs->f_g0_2e_simd1)(g, &bc, envs, 0); \
                 (*envs->f_gout_simd1)(gout, g, idx, envs); \
-                POP_PRIM2CTR; \
         } else if (cum > 1) { \
                 r1 = MM_SET1(1.); \
                 for (i = 0; i < envs->nrys_roots; i++) { \
@@ -121,8 +120,8 @@
                 } \
                 (*envs->f_g0_2e)(g, &bc, envs, cum); \
                 (*envs->f_gout)(gout, g, idx, envs); \
-                POP_PRIM2CTR; \
-        }
+        } \
+        POP_PRIM2CTR;
 
 int CINT2c2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
 {
@@ -317,6 +316,11 @@ void CINTinit_int2c2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
         envs->nfl = 1;
         envs->nf = envs->nfi * envs->nfk;
         envs->common_factor = 1;
+        if (env[PTR_EXPCUTOFF] == 0) {
+                envs->expcutoff = EXPCUTOFF;
+        } else {
+                envs->expcutoff = MAX(MIN_EXPCUTOFF, env[PTR_EXPCUTOFF]);
+        }
 
         envs->gbits = ng[GSHIFT];
         envs->ncomp_e1 = ng[POS_E1];

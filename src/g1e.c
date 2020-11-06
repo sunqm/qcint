@@ -52,15 +52,15 @@ void CINTinit_int1e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
         envs->nfj = (envs->j_l+1)*(envs->j_l+2)/2;
         envs->nf = envs->nfi * envs->nfj;
         envs->common_factor = 1;
-
-        envs->gbits = ng[GSHIFT];
-        envs->ncomp_e1 = ng[POS_E1];
-        envs->ncomp_tensor = ng[TENSOR];
         if (env[PTR_EXPCUTOFF] == 0) {
                 envs->expcutoff = EXPCUTOFF;
         } else {
                 envs->expcutoff = MAX(MIN_EXPCUTOFF, env[PTR_EXPCUTOFF]);
         }
+
+        envs->gbits = ng[GSHIFT];
+        envs->ncomp_e1 = ng[POS_E1];
+        envs->ncomp_tensor = ng[TENSOR];
 
         envs->li_ceil = envs->i_l + ng[IINC];
         envs->lj_ceil = envs->j_l + ng[JINC];

@@ -39,6 +39,11 @@ void CINTinit_int2c2e_gtg_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
         envs->nfl = 1;
         envs->nf = envs->nfi * envs->nfk;
         envs->common_factor = SQRTPI * .5;
+        if (env[PTR_EXPCUTOFF] == 0) {
+                envs->expcutoff = EXPCUTOFF;
+        } else {
+                envs->expcutoff = MAX(MIN_EXPCUTOFF, env[PTR_EXPCUTOFF]);
+        }
 
         envs->gbits = ng[GSHIFT];
         envs->ncomp_e1 = ng[POS_E1];

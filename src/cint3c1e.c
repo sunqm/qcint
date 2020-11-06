@@ -406,11 +406,10 @@ i_contracted: ;
                 int i_prim = bas(NPRIM_OF, shls[0]); \
                 int j_prim = bas(NPRIM_OF, shls[1]); \
                 int k_prim = bas(NPRIM_OF, shls[2]); \
-                int ps = (i_prim*j_prim * 5 \
-                          + i_prim * x_ctr[0] \
+                int ps = (i_prim * x_ctr[0] \
                           + j_prim * x_ctr[1] \
                           + k_prim * x_ctr[2] \
-                          +(i_prim+j_prim)*2 + k_prim + envs->nf*3);
+                          + envs->nf*3);
 
 int CINT3c1e_cart_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
                       double *cache)
