@@ -1,3 +1,5 @@
+Version 4.0.4  (2020-11-06):
+	Fix bugs in cint2c2e short-range Coulomb integrals
 Version 4.0.3  (2020-10-06):
 	Fix bugs of uninitialized buffers for short-range Coulomb integrals
 Version 4.0.2  (2020-10-03):
