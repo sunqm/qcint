@@ -156,7 +156,7 @@ static inline void *_align_upwards(void *p, uintptr_t align)
 // malloc(sizeof(double)) with alignment
 #define MALLOC_ALIGNED_DOUBLE_INSTACK(var, n) \
         var = _align_upwards(cache, sizeof(double)*SIMDD); \
-        cache = (double *)var + (n);
+        cache = (double *)(var + (n));
 #define MALLOC_INSTACK(var, n)  MALLOC_ALIGNED_DOUBLE_INSTACK(var, n)
 
 #endif
