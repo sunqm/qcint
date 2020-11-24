@@ -1921,12 +1921,12 @@ static int R_dsmit(double *cs, double *fmt_ints, int n)
 static int _rdk_rys_roots(int nroots, double *fmt_ints,
                           double *roots, double *weights)
 {
-        int i, k, j, m, order;
+        int i, k, j, order;
         int nroots1 = nroots + 1;
         double cs[MXROOTS1*MXROOTS1];
         double rt[MXROOTS1];
         double *a;
-        double root, poly, wsum, dum;
+        double root, poly, dum;
 
         // to avoid numerical instability for very small fmt integrals
         if (fmt_ints[0] == 0) {
@@ -1937,8 +1937,8 @@ static int _rdk_rys_roots(int nroots, double *fmt_ints,
                 return 0;
         }
         if (nroots == 1) {
-                roots[k*SIMDD] = fmt_ints[1] / (fmt_ints[0] - fmt_ints[1]);
-                weights[k*SIMDD] = fmt_ints[0];
+                roots[SIMDD] = fmt_ints[1] / (fmt_ints[0] - fmt_ints[1]);
+                weights[SIMDD] = fmt_ints[0];
                 return 0;
         }
 
@@ -2003,7 +2003,7 @@ static int _rdk_rys_roots(int nroots, double *fmt_ints,
 static int erfc_rys_roots(int nroots, double x, double lower,
                           double *roots, double *weights)
 {
-        double fmt_ints[MXROOTS1*2];
+        double fmt_ints[MXROOTS*2+1];
         fmt_erfc_like(fmt_ints, x, lower, nroots*2);
         return _rdk_rys_roots(nroots, fmt_ints, roots, weights);
 }
@@ -2180,17 +2180,18 @@ static int R_qsmit(__float128 *cs, __float128 *fmt_ints, int n)
                         cs[k + j * MXROOTS1] = fac * v[k];
                 }
         }
+        return 0;
 }
 
 static int rys_qroot(int nroots, double x, double *roots, double *weights)
 {
-        int i, k, j, m, order;
+        int i, k, j, order;
         int nroots1 = nroots + 1;
         __float128 cs[MXROOTS1*MXROOTS1];
         __float128 rt[MXROOTS1];
         __float128 fmt_ints[MXROOTS*2+1];
         __float128 *a;
-        __float128 root, poly, wsum, dum;
+        __float128 root, poly, dum;
 
         qgamma_inc_like(fmt_ints, x, nroots*2);
         if (fmt_ints[0] == 0) {

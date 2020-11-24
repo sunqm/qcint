@@ -99,7 +99,7 @@ CINTg3c1e_nuc(g, envs, count, -1);
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
 int nfc = nf * 3;
-int ix, iy, iz, ia, n, i;
+int ix, iy, iz, n, i;
 DECLARE_GOUT;
 double *RESTRICT g0 = g;
 double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;

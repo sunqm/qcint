@@ -1551,7 +1551,7 @@ CINTg3c1e_nuc(g, envs, count, -1);
 int nf = envs->nf;
 int nrys_roots = envs->nrys_roots;
 int nfc = nf * ~a;~%" goutinc)
-      (format fout "int ix, iy, iz, ia, n, i;
+      (format fout "int ix, iy, iz, n, i;
 DECLARE_GOUT;
 double *RESTRICT g0 = g;~%")
       (loop

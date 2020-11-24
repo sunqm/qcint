@@ -183,7 +183,6 @@ static void CINTgout2e_int2e_breit_r1p2(double *RESTRICT gout, double *RESTRICT 
         double *RESTRICT g13 = g12 + envs->g_size * 3 * SIMDD;
         double *RESTRICT g14 = g13 + envs->g_size * 3 * SIMDD;
         double *RESTRICT g15 = g14 + envs->g_size * 3 * SIMDD;
-        double *RESTRICT g16 = g15 + envs->g_size * 3 * SIMDD;
         G2E_D_L(g1, g0, envs->i_l+2, envs->j_l+2, envs->k_l+0, envs->l_l+0);
         G2E_R0J(g3, g1, envs->i_l+1, envs->j_l+0, envs->k_l, envs->l_l);
         G2E_D_J(g4, g0, envs->i_l+1, envs->j_l+1, envs->k_l, envs->l_l);
@@ -236,7 +235,6 @@ static void CINTgout2e_int2e_breit_r1p2_simd1(double *RESTRICT gout, double *RES
         double *RESTRICT g13 = g12 + envs->g_size * 3 * SIMDD;
         double *RESTRICT g14 = g13 + envs->g_size * 3 * SIMDD;
         double *RESTRICT g15 = g14 + envs->g_size * 3 * SIMDD;
-        double *RESTRICT g16 = g15 + envs->g_size * 3 * SIMDD;
         G2E_D_L_SIMD1(g1, g0, envs->i_l+2, envs->j_l+2, envs->k_l+0, envs->l_l+0);
         G2E_R0J_SIMD1(g3, g1, envs->i_l+1, envs->j_l+0, envs->k_l, envs->l_l);
         G2E_D_J_SIMD1(g4, g0, envs->i_l+1, envs->j_l+1, envs->k_l, envs->l_l);
@@ -328,7 +326,6 @@ static void CINTgout2e_int2e_breit_r2p2(double *RESTRICT gout, double *RESTRICT 
         double *RESTRICT g13 = g12 + envs->g_size * 3 * SIMDD;
         double *RESTRICT g14 = g13 + envs->g_size * 3 * SIMDD;
         double *RESTRICT g15 = g14 + envs->g_size * 3 * SIMDD;
-        double *RESTRICT g16 = g15 + envs->g_size * 3 * SIMDD;
         G2E_R0L(g2, g0, envs->i_l+2, envs->j_l+1, envs->k_l+0, envs->l_l+1);
         G2E_D_L(g3, g2, envs->i_l+2, envs->j_l+1, envs->k_l+0, envs->l_l+0);
         G2E_D_J(g4, g0, envs->i_l+1, envs->j_l+0, envs->k_l, envs->l_l);
@@ -380,7 +377,6 @@ static void CINTgout2e_int2e_breit_r2p2_simd1(double *RESTRICT gout, double *RES
         double *RESTRICT g13 = g12 + envs->g_size * 3 * SIMDD;
         double *RESTRICT g14 = g13 + envs->g_size * 3 * SIMDD;
         double *RESTRICT g15 = g14 + envs->g_size * 3 * SIMDD;
-        double *RESTRICT g16 = g15 + envs->g_size * 3 * SIMDD;
         G2E_R0L_SIMD1(g2, g0, envs->i_l+2, envs->j_l+1, envs->k_l+0, envs->l_l+1);
         G2E_D_L_SIMD1(g3, g2, envs->i_l+2, envs->j_l+1, envs->k_l+0, envs->l_l+0);
         G2E_D_J_SIMD1(g4, g0, envs->i_l+1, envs->j_l+0, envs->k_l, envs->l_l);

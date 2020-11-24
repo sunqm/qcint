@@ -376,8 +376,8 @@ void CINTOpt_setij(CINTOpt *opt, int *ng,
                    int *atm, int natm, int *bas, int nbas, double *env)
 {
         int i, j, ip, jp;
-        int iprim, ictr, jprim, jctr, li, lj;
-        double *ai, *aj, *ri, *rj, *ci, *cj;
+        int iprim, jprim, li, lj;
+        double *ai, *aj, *ri, *rj;
         double expcutoff;
         if (env[PTR_EXPCUTOFF] == 0) {
                 expcutoff = EXPCUTOFF;
@@ -416,8 +416,6 @@ void CINTOpt_setij(CINTOpt *opt, int *ng,
                 ri = env + atm(PTR_COORD,bas(ATOM_OF,i));
                 ai = env + bas(PTR_EXP,i);
                 iprim = bas(NPRIM_OF,i);
-                ictr = bas(NCTR_OF,i);
-                ci = env + bas(PTR_COEFF,i);
                 li = bas(ANG_OF,i);
                 log_maxci = log_max_coeff[i];
 
@@ -425,8 +423,6 @@ void CINTOpt_setij(CINTOpt *opt, int *ng,
                         rj = env + atm(PTR_COORD,bas(ATOM_OF,j));
                         aj = env + bas(PTR_EXP,j);
                         jprim = bas(NPRIM_OF,j);
-                        jctr = bas(NCTR_OF,j);
-                        cj = env + bas(PTR_COEFF,j);
                         lj = bas(ANG_OF,j);
                         log_maxcj = log_max_coeff[j];
                         rr = (ri[0]-rj[0])*(ri[0]-rj[0])
