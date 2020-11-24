@@ -1937,8 +1937,8 @@ static int _rdk_rys_roots(int nroots, double *fmt_ints,
                 return 0;
         }
         if (nroots == 1) {
-                roots[SIMDD] = fmt_ints[1] / (fmt_ints[0] - fmt_ints[1]);
-                weights[SIMDD] = fmt_ints[0];
+                roots[0] = fmt_ints[1] / (fmt_ints[0] - fmt_ints[1]);
+                weights[0] = fmt_ints[0];
                 return 0;
         }
 
