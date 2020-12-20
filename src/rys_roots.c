@@ -125,11 +125,19 @@ static void erfc_rys_aug_polyfits(int nroots, double x, double lower,
                                   double *RESTRICT u, double *RESTRICT w,
                                   double turnover_point)
 {
-        int error;
+        int error = 0;
+        int i;
         if (lower < turnover_point) {
                 error = erfc_rys_roots(nroots, x, lower, u, w);
-        }
-        if (error == 1 || lower >= turnover_point) {
+                if (error == 0) {
+                        double fac = exp(-x * lower * lower);
+                        for (i = 0; i < nroots; i++) {
+                                w[i] *= fac;
+                        }
+                } else {
+                        CINTerfc_rys_polyfits(nroots, x, lower, u, w);
+                }
+        } else {
                 // call polyfits for erfc roots and weights. It has
                 // on average errors ~1e-7
                 CINTerfc_rys_polyfits(nroots, x, lower, u, w);
@@ -141,32 +149,72 @@ void CINTerfc_rys_roots(int nroots, double x, double lower,
         int error;
         switch (nroots) {
         case 1: case 2: case 3: case 4:
-                error = erfc_rys_roots(nroots, x, lower, u, w);
-                if (error == 1) {
-                        CINTerfc_rys_polyfits(nroots, x, lower, u, w);
-                }
+                erfc_rys_aug_polyfits(nroots, x, lower, u, w, 1.);
                 break;
         case 5:
-                erfc_rys_aug_polyfits(nroots, x, lower, u, w, 0.8);
+                if (x < 4.0) {
+                        erfc_rys_aug_polyfits(nroots, x, lower, u, w, 0.9);
+                } else {
+                        erfc_rys_aug_polyfits(nroots, x, lower, u, w, 1.);
+                }
                 break;
         case 6:
-                erfc_rys_aug_polyfits(nroots, x, lower, u, w, 0.6);
+                if (x < 2.4) {
+                        erfc_rys_aug_polyfits(nroots, x, lower, u, w, 0.7);
+                } else if (x < 8.) {
+                        erfc_rys_aug_polyfits(nroots, x, lower, u, w, 0.8);
+                } else {
+                        erfc_rys_aug_polyfits(nroots, x, lower, u, w, 0.9);
+                }
                 break;
         case 7:
-                erfc_rys_aug_polyfits(nroots, x, lower, u, w, 0.4);
+                if (x < .14) {
+                        erfc_rys_aug_polyfits(nroots, x, lower, u, w, 0.5);
+                } else if (x < 3.0) {
+                        erfc_rys_aug_polyfits(nroots, x, lower, u, w, 0.6);
+                } else if (x < 10.) {
+                        erfc_rys_aug_polyfits(nroots, x, lower, u, w, 0.7);
+                } else {
+                        erfc_rys_aug_polyfits(nroots, x, lower, u, w, 0.9);
+                }
                 break;
         case 8:
-                erfc_rys_aug_polyfits(nroots, x, lower, u, w, 0.3);
+                if (x < .15) {
+                        erfc_rys_aug_polyfits(nroots, x, lower, u, w, 0.4);
+                } else if (x < 4.0) {
+                        erfc_rys_aug_polyfits(nroots, x, lower, u, w, 0.5);
+                } else if (x < 9.) {
+                        erfc_rys_aug_polyfits(nroots, x, lower, u, w, 0.6);
+                } else {
+                        erfc_rys_aug_polyfits(nroots, x, lower, u, w, 0.8);
+                }
                 break;
-        case 9: case 10: case 11: case 12: case 13:
-                CINTerfc_rys_polyfits(nroots, x, lower, u, w);
+        case 9:
+                if (x < 2.2) {
+                        erfc_rys_aug_polyfits(nroots, x, lower, u, w, 0.2);
+                } else if (x < 5.0) {
+                        erfc_rys_aug_polyfits(nroots, x, lower, u, w, 0.3);
+                } else if (x < 9.0) {
+                        erfc_rys_aug_polyfits(nroots, x, lower, u, w, 0.4);
+                } else if (x < 15.0) {
+                        erfc_rys_aug_polyfits(nroots, x, lower, u, w, 0.5);
+                } else {
+                        erfc_rys_aug_polyfits(nroots, x, lower, u, w, 0.9);
+                }
+                break;
+        case 10: case 11: case 12: case 13:
+                if (x < 3.5) {
+                        erfc_rys_aug_polyfits(nroots, x, lower, u, w, 0.05);
+                } else if (x < 8.0) {
+                        erfc_rys_aug_polyfits(nroots, x, lower, u, w, 0.2);
+                } else {
+                        erfc_rys_aug_polyfits(nroots, x, lower, u, w, 0.6);
+                }
                 break;
         default:
                 fprintf(stderr, "libcint erfc_rys_roots does not support nroots=%d\n", nroots);
 #ifndef KEEP_GOING
                 exit(1);
-#else
-                error = erfc_rys_roots(nroots, x, lower, u, w);
 #endif
         }
 }
@@ -1690,17 +1738,17 @@ inline double _pow(double base, int exponent)
 
 /* This function evaluates the auxiliary integral,
  *
- *    _ 1           2
- *   /     2 m  -t u
- *   |    u    e      du,
- *  _/  s
+ *     2  _ 1           2
+ *  t s  /     2 m  -t u
+ * e     |    u    e      du,
+ *      _/  s
  *
  * by a power series expansion
  *
- * F[m] = int_l^1 u^{2m} e^{-t u^2} du
- *      = 1/(2m+1) int e^{-t u^2} d u^{2m+1}
- *      = 1/(2m+1) [e^{-t u^2} u^{2m+1}]_l^1 + (2t)/(2m+1) int u^{2m+2} e^{-t u^2} du
- *      = 1/(m+.5) (.5*e^{-t} - .5*e^{-t l^2} l^{2m+1}) + t F[m+1])
+ * F[m] = e^{t s^2} int_l^1 u^{2m} e^{-t u^2} du
+ *      = e^{t s^2} /(2m+1) int e^{-t u^2} d u^{2m+1}
+ *      = e^{t s^2} /(2m+1) [e^{-t u^2} u^{2m+1}]_l^1 + (2t)/(2m+1) int u^{2m+2} e^{-t u^2} du
+ *      = e^{t s^2} /(m+.5) (.5*e^{-t} - .5*e^{-t l^2} l^{2m+1}) + t F[m+1])
  */
 void fmt_erfc_like(double *f, double t, double lower, int m)
 {
@@ -1727,8 +1775,8 @@ void fmt_erfc_like(double *f, double t, double lower, int m)
         if (t < turnover_point) {
                 double b = m + 0.5;
                 double bi;
-                double e = .5 * exp(-t);
-                double e1 = .5 * exp(-t * lower2) * lower;
+                double e = .5 * exp(-t * (1 - lower2));
+                double e1 = .5 * lower;
                 e1 *= _pow(lower2, m);
                 double x = e;
                 double x1 = e1;
@@ -1754,10 +1802,13 @@ void fmt_erfc_like(double *f, double t, double lower, int m)
                 double tt = sqrt(t);
                 // erfc(a) - erfc(b) is more accurate than erf(b) - erf(a)
                 double val = pi2 / tt * (erfc(lower * tt) - erfc(tt));
+                if (val != 0) {
+                        val *= exp(t * lower2);
+                }
                 f[0] = val;
                 if (m > 0) {
-                        double e = exp(-t);
-                        double e1 = exp(-t*lower2) * lower;
+                        double e = exp(-t * (1 - lower2));
+                        double e1 = lower;
                         double b = .5 / t;
                         for (i = 0; i < m; i++) {
                                 val = b * ((2*i+1) * val - e + e1);
