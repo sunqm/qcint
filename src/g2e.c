@@ -66,7 +66,8 @@ void CINTinit_int2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
         if (env[PTR_EXPCUTOFF] == 0) {
                 envs->expcutoff = EXPCUTOFF;
         } else {
-                envs->expcutoff = MAX(MIN_EXPCUTOFF, env[PTR_EXPCUTOFF]);
+                // +1 to ensure accuracy. See comments in libcint/cint2e.c
+                envs->expcutoff = MAX(MIN_EXPCUTOFF, env[PTR_EXPCUTOFF]) + 1;
         }
 
         envs->gbits = ng[GSHIFT];
