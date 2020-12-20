@@ -132,7 +132,7 @@ static void erfc_rys_aug_polyfits(int nroots, double x, double lower,
                 if (error == 0) {
                         double fac = exp(-x * lower * lower);
                         for (i = 0; i < nroots; i++) {
-                                w[i] *= fac;
+                                w[i*SIMDD] *= fac;
                         }
                 } else {
                         CINTerfc_rys_polyfits(nroots, x, lower, u, w);
