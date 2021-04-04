@@ -1,8 +1,8 @@
 cmake_minimum_required (VERSION 2.6)
 project (qcint C)
 set(qcint_VERSION_MAJOR "4")
-set(qcint_VERSION_MINOR "0")
-set(qcint_VERSION_PATCH "8")
+set(qcint_VERSION_MINOR "1")
+set(qcint_VERSION_PATCH "0")
 set(qcint_VERSION_TWEAK "0")
 set(qcint_VERSION "${qcint_VERSION_MAJOR}.${qcint_VERSION_MINOR}.${qcint_VERSION_PATCH}")
 set(qcint_SOVERSION "${qcint_VERSION_MAJOR}")
@@ -67,8 +67,9 @@ set(cintSrc
   src/breit.c src/c2f.c src/cart2sph.c src/cint1e.c src/cint2c2e.c
   src/cint2e.c src/cint3c1e.c src/cint3c2e.c src/cint_bas.c src/fblas.c
   src/g1e.c src/g2e.c src/g2e_simd1.c src/g3c1e.c src/g3c2e.c
-  src/gout2e.c src/misc.c src/optimizer.c src/rys_roots.c src/exp_simd.c
-  src/cint1e_a.c src/cint3c1e_a.c src/polyfits.c
+  src/gout2e.c src/misc.c src/optimizer.c
+  src/fmt.c src/rys_wheeler.c src/eigh.c src/rys_roots.c src/polyfits.c
+  src/cint1e_a.c src/cint3c1e_a.c
   src/autocode/breit1.c src/autocode/dkb.c src/autocode/gaunt1.c
   src/autocode/grad1.c src/autocode/grad2.c src/autocode/hess.c
   src/autocode/int3c1e.c src/autocode/int3c2e.c src/autocode/intor1.c
@@ -79,7 +80,6 @@ if(WITH_RANGE_COULOMB)
 # defined in config.h
 #  add_definitions(-DWITH_RANGE_COULOMB)
   message("Enabled WITH_RANGE_COULOMB")
-  set(cintSrc ${cintSrc} src/erfc_roots.c)
 endif(WITH_RANGE_COULOMB)
 
 if(WITH_COULOMB_ERF)
@@ -114,7 +114,7 @@ if(MIN_EXPCUTOFF)
 endif()
 
 if(KEEP_GOING)
-  message("Whether to trigger hard exit for numerical issues in Rys quadrature")
+  message("Do not trigger hard exit for numerical issues in Rys quadrature")
   add_definitions(-DKEEP_GOING)
 endif()
 

@@ -313,7 +313,9 @@ void CINTg1e_nuc(double *g, CINTEnvVars *envs, int count, int nuc_id)
                 u[i] = 0;
                 w[i] = 0;
         }
-        CINTrys_roots(nrys_roots, x, u, w, count);
+        for (i = 0; i < count; i++) {
+                CINTrys_roots(nrys_roots, x[i], u+i, w+i);
+        }
 
         double *gx = g;
         double *gy = g + envs->g_size     * SIMDD;

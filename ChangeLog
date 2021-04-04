@@ -1,3 +1,9 @@
+Version 4.1.0  (2021-04-03):
+	* Add new Rys roots and weights algorithm
+        * Improve integral accuracy for high angular momentum basis
+        * Improve integral accuracy for short-range Coulomb integrals
+	* Add supports of 2-e integrals up to l=15
+
 Version 4.0.6  (2020-11-23):
 	Fix bug in rys_roots R_dnode function when R_dsmit fails to find all roots
 Version 4.0.5  (2020-11-13):

@@ -1352,12 +1352,12 @@ int CINTg0_2e_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
                         }
                         return 0;
                 }
-                CINTerfc_rys_roots(envs->nrys_roots, x[0], sqrt(theta), u, w);
+                CINTsr_rys_roots(envs->nrys_roots, x[0], sqrt(theta), u, w);
         } else {
-                CINTrys_roots(envs->nrys_roots, x, u, w, 1);
+                CINTrys_roots(envs->nrys_roots, x[0], u, w);
         }
 #else
-        CINTrys_roots(envs->nrys_roots, x, u, w, 1);
+        CINTrys_roots(envs->nrys_roots, x[0], u, w);
 #endif
 
         double *gx = g;
