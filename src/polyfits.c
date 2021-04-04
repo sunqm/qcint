@@ -356,8 +356,8 @@ void _CINT_clenshaw_d1(double *rr, const double *x, double u, int nroots)
                 d1 = u2 * g1 - d1 + x[2 +14+14*i];
                 g0 = u2 * d0 - g0 + x[1 +   14*i];
                 g1 = u2 * d1 - g1 + x[1 +14+14*i];
-                rr[i    *SIMDD] = u * g0 - d0 + x[14*i   ] * 0.5;
-                rr[(i+1)*SIMDD] = u * g1 - d1 + x[14*i+14] * 0.5;
+                rr[i    ] = u * g0 - d0 + x[14*i   ] * 0.5;
+                rr[(i+1)] = u * g1 - d1 + x[14*i+14] * 0.5;
         }
         if (i < nroots) {
                 d0 = 0;
@@ -374,10 +374,11 @@ void _CINT_clenshaw_d1(double *rr, const double *x, double u, int nroots)
                 g0 = u2 * d0 - g0 + x[3 +14*i];
                 d0 = u2 * g0 - d0 + x[2 +14*i];
                 g0 = u2 * d0 - g0 + x[1 +14*i];
-                rr[i*SIMDD] = u * g0 - d0 + x[14*i] * 0.5;
+                rr[i] = u * g0 - d0 + x[14*i] * 0.5;
         }
 }
 
+#if 0
 void _CINT_matmul_14_14(double *imc, double *im, int nroots)
 {
 #if (SIMDD == 8)
@@ -459,3 +460,4 @@ void _CINT_matmul_14_14(double *imc, double *im, int nroots)
         }
 #endif
 }
+#endif

@@ -42,7 +42,7 @@ void CINTsr_rys_polyfits(int nroots, double x, double lower, double* u, double* 
 
         double fac = exp(-x * lower * lower);
         for (k = 0; k < nroots; k++) {
-                u[k*SIMDD] = u[k*SIMDD] / (1 - u[k*SIMDD]);
-                w[k*SIMDD] *= fac;
+                u[k] = u[k] / (1 - u[k]);
+                w[k] *= fac;
         }
 }

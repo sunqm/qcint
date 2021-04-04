@@ -75,10 +75,10 @@ void CINTinit_int3c1e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
         envs->rj = env + atm(PTR_COORD, bas(ATOM_OF, j_sh));
         envs->rk = env + atm(PTR_COORD, bas(ATOM_OF, k_sh));
 
-        if (ng[RYS_ROOTS] == 0) {
+        if (ng[SLOT_RYS_ROOTS] == 0) {
                 envs->nrys_roots = (envs->li_ceil + envs->lj_ceil + envs->lk_ceil)/2 + 1;
         } else {
-                envs->nrys_roots = ng[RYS_ROOTS];
+                envs->nrys_roots = ng[SLOT_RYS_ROOTS];
         }
         int dli = envs->li_ceil + 1;
         int dlj = envs->lj_ceil + envs->lk_ceil + 1;
@@ -261,9 +261,7 @@ void CINTg3c1e_nuc(double *g, CINTEnvVars *envs, int count, int nuc_id)
                 u[i] = 0;
                 w[i] = 0;
         }
-        for (i = 0; i < count; i++) {
-                CINTrys_roots(nrys_roots, x[i], u+i, w+i);
-        }
+        _CINTrys_roots_batch(nrys_roots, x, u, w, count);
 
         double *gx = g;
         double *gy = g + envs->g_size     * SIMDD;

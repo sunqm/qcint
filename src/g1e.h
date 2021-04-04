@@ -91,7 +91,7 @@ typedef struct {
 } CINTEnvVars;
 #endif
 
-#define RYS_ROOTS       6
+#define SLOT_RYS_ROOTS       6
 void CINTinit_int1e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
                             int *atm, int natm, int *bas, int nbas, double *env);
 void CINTinit_int3c1e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,

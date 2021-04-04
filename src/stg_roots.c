@@ -403,18 +403,17 @@ static void _matmul_14_14(double *imc, double *im, int nroot)
     }
 }
 
-void CINTstg_roots(int nroots, double* ta, double* ua, double* rr, double* ww, int count)
+static void _stg_roots_part(int nroots, double* ta, double* ua, double* rr, double* ww, int count)
 {
   const double* x = DATA_X + (nroots-1)*nroots/2 * 19600;
   const double* w = DATA_W + (nroots-1)*nroots/2 * 19600;
   double u, uu, t, tt;
-  int i, k, iu, it;
+  int i, iu, it;
   int offset[SIMDD];
   double uu4[SIMDD];
-  ALIGNMM double im [SIMDD*14*nroots];
-  ALIGNMM double imc[SIMDD*14*nroots];
+  ALIGNMM double im [SIMDD*28*nroots];
+  ALIGNMM double *imc = im + SIMDD * 14 * nroots;
   ALIGNMM double tt4[SIMDD];
-  __MD r0;
 
   for (i = 0; i != count; ++i) {// loop over parameter set
       t = ta[i];
@@ -452,10 +451,28 @@ void CINTstg_roots(int nroots, double* ta, double* ua, double* rr, double* ww, i
   }
   _matmul_14_14(imc, im, nroots);
   _clenshaw_d1(ww, imc, tt4, nroots);
-  //uu = 1./sqrt(ua[i]);
-  r0 = MM_DIV(MM_SET1(1.), MM_SQRT(MM_LOAD(ua)));
-  for (k = 0; k < nroots; k++) {
-      MM_STORE(ww+k*SIMDD, MM_LOAD(ww+k*SIMDD) * r0);
-  }
 }
 
+void _CINTstg_roots_batch(int nroots, double* ta, double* ua, double* rr, double* ww, int count)
+{
+        _stg_roots_part(nroots, ta, ua, rr, ww, count);
+        //uu = 1./sqrt(ua[i]);
+        __MD r0 = MM_DIV(MM_SET1(1.), MM_SQRT(MM_LOAD(ua)));
+        int i;
+        for (i = 0; i < nroots; i++) {
+                MM_STORE(ww+i*SIMDD, MM_LOAD(ww+i*SIMDD) * r0);
+        }
+}
+
+void CINTstg_roots(int nroots, double ta, double ua, double* rr, double* ww)
+{
+        ALIGNMM double rtmp[SIMDD * 32];
+        ALIGNMM double *wtmp = rtmp + SIMDD * nroots;
+        _stg_roots_part(nroots, &ta, &ua, rtmp, wtmp, 1);
+        double uu = 1./sqrt(ua);
+        int i;
+        for (i = 0; i < nroots; i++) {
+                rr[i] = rtmp[i * SIMDD];
+                ww[i] = wtmp[i * SIMDD] * uu;
+        }
+}

@@ -1962,22 +1962,7 @@ int CINTg0_2e(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
 //ABORT        }
 #ifdef WITH_RANGE_COULOMB
         if (omega < 0) {
-                ALIGNMM double tmp[SIMDD];
-                MM_STORE(tmp, MM_MUL(MM_LOAD(x), MM_LOAD(theta)));
-                int all_negligible = 1;
-                int n;
-                for (i = 0; i < count; i++) {
-                        if (tmp[i] > envs->expcutoff) {
-                                for (n = 0; n < envs->nrys_roots; n++) {
-                                        u[n*SIMDD+i] = 0;
-                                        w[n*SIMDD+i] = 0;
-                                }
-                        } else {
-                                all_negligible = 0;
-                                CINTsr_rys_roots(envs->nrys_roots, x[i],
-                                                 sqrt(theta[i]), u+i, w+i);
-                        }
-                }
+                int all_negligible = _CINTsr_rys_roots_batch(envs, x, theta, u, w, count);
                 if (all_negligible) {
                         // g still has to be evaluated since iempty (which
                         // indicates whether g is zero) in cint2e is determined
@@ -1988,12 +1973,10 @@ int CINTg0_2e(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
                         return 0;
                 }
         } else {
-                for (i = 0; i < count; i++) {
-                        CINTrys_roots(envs->nrys_roots, x[i], u+i, w+i);
-                }
+                _CINTrys_roots_batch(nroots, x, u, w, count);
         }
 #else
-        CINTrys_roots(nroots, x, u, w, count);
+        _CINTrys_roots_batch(nroots, x, u, w, count);
 #endif
 
         double *gx = g;

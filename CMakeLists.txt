@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 2.6)
+cmake_minimum_required (VERSION 3.5)
 project (qcint C)
 set(qcint_VERSION_MAJOR "4")
 set(qcint_VERSION_MINOR "1")

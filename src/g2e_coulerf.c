@@ -233,7 +233,7 @@ int CINTg0_2e_coulerf(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
         MM_STORE(rklrx+1*SIMDD, MM_SUB(r4, MM_SET1(envs->rx_in_rklrx[1])));
         MM_STORE(rklrx+2*SIMDD, MM_SUB(r5, MM_SET1(envs->rx_in_rklrx[2])));
 
-        CINTrys_roots(nroots, x, u, w, count);
+        _CINTrys_roots_batch(nroots, x, u, w, count);
 
         double *gx = g;
         double *gy = gx + envs->g_size * SIMDD;
@@ -332,7 +332,6 @@ int CINTg0_2e_coulerf(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
 int CINTg0_2e_coulerf_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
 {
         double aij, akl, a0, a1, fac1;
-        ALIGNMM double x[SIMDD];
         double *rij = envs->rij;
         double *rkl = envs->rkl;
         double rijrkl[3];
@@ -360,8 +359,7 @@ int CINTg0_2e_coulerf_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd
         rijrkl[0] = rij[0*SIMDD+idsimd] - rkl[0*SIMDD+idsimd];
         rijrkl[1] = rij[1*SIMDD+idsimd] - rkl[1*SIMDD+idsimd];
         rijrkl[2] = rij[2*SIMDD+idsimd] - rkl[2*SIMDD+idsimd];
-        x[0] = a0 * SQUARE(rijrkl);
-        CINTrys_roots(nroots, x, u, w, 1);
+        CINTrys_roots(nroots, a0 * SQUARE(rijrkl), u, w);
 
         double *gx = g;
         double *gy = g + envs->g_size;
@@ -369,7 +367,7 @@ int CINTg0_2e_coulerf_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd
         for (i = 0; i < nroots; i++) {
                 gx[i] = 1;
                 gy[i] = 1;
-                gz[i] = w[i*SIMDD] * fac1;
+                gz[i] = w[i] * fac1;
         }
         if (envs->g_size == 1) {
                 return 1;
@@ -381,7 +379,7 @@ int CINTg0_2e_coulerf_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd
                  * so the rest code can be reused.
                  */
                 for (i = 0; i < nroots; i++) {
-                        u[i*SIMDD] /= u[i*SIMDD] + 1 - u[i*SIMDD] * theta;
+                        u[i] /= u[i] + 1 - u[i] * theta;
                 }
         }
 
@@ -407,7 +405,7 @@ int CINTg0_2e_coulerf_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd
                  *t2 = u(i)/(1+u(i))
                  *u2 = aij*akl/(aij+akl)*t2/(1-t2)
                  */
-                u2 = a0 * u[i*SIMDD];
+                u2 = a0 * u[i];
                 div = 1 / (u2 * (aij + akl) + a1);
                 tmp1 = u2 * div;
                 tmp4 = .5 * div;

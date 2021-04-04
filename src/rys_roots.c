@@ -73,6 +73,48 @@ static int segment_solve(int n, double x, double lower, double *u, double *w,
         return error;
 }
 
+int _CINTsr_rys_roots_batch(CINTEnvVars *envs, double *x, double *theta, double *u, double *w, int count)
+{
+        int nroots = envs->nrys_roots;
+        double expcutoff = envs->expcutoff;
+        double roots[MXRYSROOTS * 2];
+        double *weights = roots + nroots;
+        int i, k;
+        int all_negligible = 1;
+
+        for (i = 0; i < count; i++) {
+                // very small erfc() leads to ~0 weights
+                if (x[i] * theta[i] < expcutoff) {
+                        all_negligible = 0;
+                        CINTsr_rys_roots(nroots, x[i], sqrt(theta[i]), roots, weights);
+                        for (k = 0; k < nroots; k++) {
+                                u[k*SIMDD+i] = roots[k];
+                                w[k*SIMDD+i] = weights[k];
+                        }
+                } else {
+                        for (k = 0; k < nroots; k++) {
+                                u[k*SIMDD+i] = 0;
+                                w[k*SIMDD+i] = 0;
+                        }
+                }
+        }
+        return all_negligible;
+}
+
+void _CINTrys_roots_batch(int nroots, double *x, double *u, double *w, int count)
+{
+        double roots[MXRYSROOTS * 2];
+        double *weights = roots + nroots;
+        int i, k;
+        for (i = 0; i < count; i++) {
+                CINTrys_roots(nroots, x[i], roots, weights);
+                for (k = 0; k < nroots; k++) {
+                        u[k*SIMDD+i] = roots[k];
+                        w[k*SIMDD+i] = weights[k];
+                }
+        }
+}
+
 void CINTrys_roots(int nroots, double x, double *u, double *w)
 {
         switch (nroots) {
@@ -437,16 +479,16 @@ static void rys_root2(double X, double *roots, double *weights)
         if (X > 40.) {
                 weights[0] = sqrt(PIE4/X);
                 roots[0] = R12/(X-R12);
-                roots[SIMDD] = R22/(X-R22);
-                weights[SIMDD] = W22*weights[0];
-                weights[0] -= weights[SIMDD];
+                roots[1] = R22/(X-R22);
+                weights[1] = W22*weights[0];
+                weights[0] -= weights[1];
         } else if (X > 33.) {
                 weights[0] = sqrt(PIE4/X);
                 E = exp(-X);
                 roots[0]   = (POLY2_40[0]*X + POLY2_40[4])*E + R12/(X-R12);
-                roots[SIMDD]   = (POLY2_40[1]*X + POLY2_40[5])*E + R22/(X-R22);
-                weights[SIMDD] = (POLY2_40[2]*X + POLY2_40[6])*E + W22*weights[0];
-                weights[0] -= weights[SIMDD];
+                roots[1]   = (POLY2_40[1]*X + POLY2_40[5])*E + R22/(X-R22);
+                weights[1] = (POLY2_40[2]*X + POLY2_40[6])*E + W22*weights[0];
+                weights[0] -= weights[1];
         } else if (X > 15.) {
                 //for (n = 0; n < 4; n++) {
                 //        for (i = 0; i < 4; i++) {
@@ -463,12 +505,12 @@ static void rys_root2(double X, double *roots, double *weights)
                 POLYSUM4(s1, POLY2_33A, X1, 3);
                 E = exp(-X);
                 roots[0] = (s[0]*X + s1[0]) * E + R12/(X-R12);
-                roots[SIMDD] = (s[1]*X + s1[1]) * E + R22/(X-R22);
+                roots[1] = (s[1]*X + s1[1]) * E + R22/(X-R22);
                 weights[0] = s1[2]*E + sqrt(PIE4*X1);
                 F1 = (weights[0]-E)*X1*.5;
-                weights[SIMDD] = ((F1-weights[0])*roots[0]+F1)
-                           * (1.+roots[SIMDD])/(roots[SIMDD]-roots[0]);
-                weights[0] -= weights[SIMDD];
+                weights[1] = ((F1-weights[0])*roots[0]+F1)
+                           * (1.+roots[1])/(roots[1]-roots[0]);
+                weights[0] -= weights[1];
         } else if (X > 10.) {
                 X1 = 1/X;
                 //for (n = 0; n < 4; n++) {
@@ -486,12 +528,12 @@ static void rys_root2(double X, double *roots, double *weights)
 
                 E = exp(-X);
                 roots[0] = (s[0]*X + s1[0]) * E + R12/(X-R12);
-                roots[SIMDD] = (s[1]*X + s1[1]) * E + R22/(X-R22);
+                roots[1] = (s[1]*X + s1[1]) * E + R22/(X-R22);
                 weights[0] = s1[2]*E + sqrt(PIE4*X1);
                 F1 = (weights[0]-E)*X1*.5;
-                weights[SIMDD] = ((F1-weights[0])*roots[0]+F1)
-                           * (1.+roots[SIMDD])/(roots[SIMDD]-roots[0]);
-                weights[0] -= weights[SIMDD];
+                weights[1] = ((F1-weights[0])*roots[0]+F1)
+                           * (1.+roots[1])/(roots[1]-roots[0]);
+                weights[0] -= weights[1];
         } else if (X > 5.) {
                 E = exp(-X);
                 X1 = 1/X;
@@ -509,10 +551,10 @@ static void rys_root2(double X, double *roots, double *weights)
                 //}
                 POLYSUM4(s, POLY2_10, Y, 15);
                 roots[0] = s[0];
-                roots[SIMDD] = s[1];
-                weights[SIMDD] = ((F1-weights[0])*roots[0]+F1)
-                           * (1.+roots[SIMDD])/(roots[SIMDD]-roots[0]);
-                weights[0] -= weights[SIMDD];
+                roots[1] = s[1];
+                weights[1] = ((F1-weights[0])*roots[0]+F1)
+                           * (1.+roots[1])/(roots[1]-roots[0]);
+                weights[0] -= weights[1];
         } else if (X > 3.){
                 Y = X-4.0E+00;
                 //for (n = 0; n < 12; n++) {
@@ -522,13 +564,13 @@ static void rys_root2(double X, double *roots, double *weights)
                 //}
                 POLYSUM4(s, POLY2_5, Y, 12);
                 roots[0] = s[0];
-                roots[SIMDD] = s[1];
+                roots[1] = s[1];
                 F1 = s[2];
                 E  = exp(-X);
                 weights[0] = (X+X)*F1+E;
-                weights[SIMDD] = ((F1-weights[0])*roots[0]+F1)
-                           * (1.+roots[SIMDD])/(roots[SIMDD]-roots[0]);
-                weights[0] -= weights[SIMDD];
+                weights[1] = ((F1-weights[0])*roots[0]+F1)
+                           * (1.+roots[1])/(roots[1]-roots[0]);
+                weights[0] -= weights[1];
         } else if (X > 1.) {
                 Y = X-2.0E+00;
                 //for (n = 0; n < 12; n++) {
@@ -538,13 +580,13 @@ static void rys_root2(double X, double *roots, double *weights)
                 //}
                 POLYSUM4(s, POLY2_3, Y, 12);
                 roots[0] = s[0];
-                roots[SIMDD] = s[1];
+                roots[1] = s[1];
                 F1 = s[2];
                 E  = exp(-X);
                 weights[0] = (X+X)*F1+E;
-                weights[SIMDD] = ((F1-weights[0])*roots[0]+F1)
-                           * (1.+roots[SIMDD])/(roots[SIMDD]-roots[0]);
-                weights[0] -= weights[SIMDD];
+                weights[1] = ((F1-weights[0])*roots[0]+F1)
+                           * (1.+roots[1])/(roots[1]-roots[0]);
+                weights[0] -= weights[1];
         } else if (X > 3.e-7) {
                 //for (n = 0; n < 10; n++) {
                 //        for (i = 0; i < 4; i++) {
@@ -553,18 +595,18 @@ static void rys_root2(double X, double *roots, double *weights)
                 //}
                 POLYSUM4(s, POLY2_1, X, 10);
                 roots[0] = s[0];
-                roots[SIMDD] = s[1];
+                roots[1] = s[1];
                 F1 = s[2];
                 E  = exp(-X);
                 weights[0] = (X+X)*F1+E;
-                weights[SIMDD] = ((F1-weights[0])*roots[0]+F1)
-                           * (1.+roots[SIMDD])/(roots[SIMDD]-roots[0]);
-                weights[0] -= weights[SIMDD];
+                weights[1] = ((F1-weights[0])*roots[0]+F1)
+                           * (1.+roots[1])/(roots[1]-roots[0]);
+                weights[0] -= weights[1];
         } else {
                 roots[0] = 1.30693606237085E-01 -2.90430236082028E-02 *X;
-                roots[SIMDD] = 2.86930639376291E+00 -6.37623643058102E-01 *X;
+                roots[1] = 2.86930639376291E+00 -6.37623643058102E-01 *X;
                 weights[0] = 6.52145154862545E-01 -1.22713621927067E-01 *X;
-                weights[SIMDD] = 3.47854845137453E-01 -2.10619711404725E-01 *X;
+                weights[1] = 3.47854845137453E-01 -2.10619711404725E-01 *X;
         }
 }
 
@@ -685,11 +727,11 @@ static void rys_root3(double X, double *roots, double *weights)
 
         if (X < 3.e-7) {
                 roots[0] = 6.03769246832797E-02 -9.28875764357368E-03 *X;
-                roots[SIMDD] = 7.76823355931043E-01 -1.19511285527878E-01 *X;
-                roots[2*SIMDD] = 6.66279971938567E+00 -1.02504611068957E+00 *X;
+                roots[1] = 7.76823355931043E-01 -1.19511285527878E-01 *X;
+                roots[2] = 6.66279971938567E+00 -1.02504611068957E+00 *X;
                 weights[0] = 4.67913934572691E-01 -5.64876917232519E-02 *X;
-                weights[SIMDD] = 3.60761573048137E-01 -1.49077186455208E-01 *X;
-                weights[2*SIMDD] = 1.71324492379169E-01 -1.27768455150979E-01 *X;
+                weights[1] = 3.60761573048137E-01 -1.49077186455208E-01 *X;
+                weights[2] = 1.71324492379169E-01 -1.27768455150979E-01 *X;
         } else if (X < 1.) {
                 //for (n = 0; n < 10; n++) {
                 //        for (i = 0; i < 4; i++) {
@@ -698,20 +740,20 @@ static void rys_root3(double X, double *roots, double *weights)
                 //}
                 POLYSUM4(s, POLY3_1, X, 10);
                 roots[0] = s[0];
-                roots[SIMDD] = s[1];
-                roots[2*SIMDD] = s[2];
+                roots[1] = s[1];
+                roots[2] = s[2];
                 F2 = s[3];
                 E  = exp(-X);
                 F1 = ((X+X)*F2+E)/3.0E+00;
                 weights[0] = (X+X)*F1+E;
                 T1 = roots[0]/(roots[0]+1.0E+00);
-                T2 = roots[SIMDD]/(roots[SIMDD]+1.0E+00);
-                T3 = roots[2*SIMDD]/(roots[2*SIMDD]+1.0E+00);
+                T2 = roots[1]/(roots[1]+1.0E+00);
+                T3 = roots[2]/(roots[2]+1.0E+00);
                 A2 = F2-T1*F1;
                 A1 = F1-T1*weights[0];
-                weights[2*SIMDD] = (A2-T2*A1)/((T3-T2)*(T3-T1));
-                weights[SIMDD] = (T3*A1-A2)/((T3-T2)*(T2-T1));
-                weights[0] = weights[0]-weights[SIMDD]-weights[2*SIMDD];
+                weights[2] = (A2-T2*A1)/((T3-T2)*(T3-T1));
+                weights[1] = (T3*A1-A2)/((T3-T2)*(T2-T1));
+                weights[0] = weights[0]-weights[1]-weights[2];
         } else if (X < 3.) {
                 Y = X-2.0E+00;
                 //for (n = 0; n < 12; n++) {
@@ -721,20 +763,20 @@ static void rys_root3(double X, double *roots, double *weights)
                 //}
                 POLYSUM4(s, POLY3_3, Y, 12);
                 roots[0] = s[0];
-                roots[SIMDD] = s[1];
-                roots[2*SIMDD] = s[2];
+                roots[1] = s[1];
+                roots[2] = s[2];
                 F2 = s[3];
                 E  = exp(-X);
                 F1 = ((X+X)*F2+E)/3.0E+00;
                 weights[0] = (X+X)*F1+E;
                 T1 = roots[0]/(roots[0]+1.0E+00);
-                T2 = roots[SIMDD]/(roots[SIMDD]+1.0E+00);
-                T3 = roots[2*SIMDD]/(roots[2*SIMDD]+1.0E+00);
+                T2 = roots[1]/(roots[1]+1.0E+00);
+                T3 = roots[2]/(roots[2]+1.0E+00);
                 A2 = F2-T1*F1;
                 A1 = F1-T1*weights[0];
-                weights[2*SIMDD] = (A2-T2*A1)/((T3-T2)*(T3-T1));
-                weights[SIMDD] = (T3*A1-A2)/((T3-T2)*(T2-T1));
-                weights[0] = weights[0]-weights[SIMDD]-weights[2*SIMDD];
+                weights[2] = (A2-T2*A1)/((T3-T2)*(T3-T1));
+                weights[1] = (T3*A1-A2)/((T3-T2)*(T2-T1));
+                weights[0] = weights[0]-weights[1]-weights[2];
         } else if (X < 5.){
                 Y = X-4.0E+00;
                 //for (n = 0; n < 12; n++) {
@@ -744,20 +786,20 @@ static void rys_root3(double X, double *roots, double *weights)
                 //}
                 POLYSUM4(s, POLY3_5, Y, 12);
                 roots[0] = s[0];
-                roots[SIMDD] = s[1];
-                roots[2*SIMDD] = s[2];
+                roots[1] = s[1];
+                roots[2] = s[2];
                 F2 = s[3];
                 E  = exp(-X);
                 F1 = ((X+X)*F2+E)/3.0E+00;
                 weights[0] = (X+X)*F1+E;
                 T1 = roots[0]/(roots[0]+1.0E+00);
-                T2 = roots[SIMDD]/(roots[SIMDD]+1.0E+00);
-                T3 = roots[2*SIMDD]/(roots[2*SIMDD]+1.0E+00);
+                T2 = roots[1]/(roots[1]+1.0E+00);
+                T3 = roots[2]/(roots[2]+1.0E+00);
                 A2 = F2-T1*F1;
                 A1 = F1-T1*weights[0];
-                weights[2*SIMDD] = (A2-T2*A1)/((T3-T2)*(T3-T1));
-                weights[SIMDD] = (T3*A1-A2)/((T3-T2)*(T2-T1));
-                weights[0] = weights[0]-weights[SIMDD]-weights[2*SIMDD];
+                weights[2] = (A2-T2*A1)/((T3-T2)*(T3-T1));
+                weights[1] = (T3*A1-A2)/((T3-T2)*(T2-T1));
+                weights[0] = weights[0]-weights[1]-weights[2];
         } else if (X < 10) {
                 E = exp(-X);
                 X1 = 1/X;
@@ -775,16 +817,16 @@ static void rys_root3(double X, double *roots, double *weights)
                 //}
                 POLYSUM4(s, POLY3_10, Y, 14);
                 roots[0] = s[0];
-                roots[SIMDD] = s[1];
-                roots[2*SIMDD] = s[2];
+                roots[1] = s[1];
+                roots[2] = s[2];
                 T1 = roots[0]/(roots[0]+1.0E+00);
-                T2 = roots[SIMDD]/(roots[SIMDD]+1.0E+00);
-                T3 = roots[2*SIMDD]/(roots[2*SIMDD]+1.0E+00);
+                T2 = roots[1]/(roots[1]+1.0E+00);
+                T3 = roots[2]/(roots[2]+1.0E+00);
                 A2 = F2-T1*F1;
                 A1 = F1-T1*weights[0];
-                weights[2*SIMDD] = (A2-T2*A1)/((T3-T2)*(T3-T1));
-                weights[SIMDD] = (T3*A1-A2)/((T3-T2)*(T2-T1));
-                weights[0] = weights[0]-weights[SIMDD]-weights[2*SIMDD];
+                weights[2] = (A2-T2*A1)/((T3-T2)*(T3-T1));
+                weights[1] = (T3*A1-A2)/((T3-T2)*(T2-T1));
+                weights[0] = weights[0]-weights[1]-weights[2];
         } else if (X < 15) {
                 E = exp(-X);
                 X1 = 1/X;
@@ -801,16 +843,16 @@ static void rys_root3(double X, double *roots, double *weights)
                 //}
                 POLYSUM4(s, POLY3_15, Y, 14);
                 roots[0] = s[0];
-                roots[SIMDD] = s[1];
-                roots[2*SIMDD] = s[2];
+                roots[1] = s[1];
+                roots[2] = s[2];
                 T1 = roots[0]/(roots[0]+1.0E+00);
-                T2 = roots[SIMDD]/(roots[SIMDD]+1.0E+00);
-                T3 = roots[2*SIMDD]/(roots[2*SIMDD]+1.0E+00);
+                T2 = roots[1]/(roots[1]+1.0E+00);
+                T3 = roots[2]/(roots[2]+1.0E+00);
                 A2 = F2-T1*F1;
                 A1 = F1-T1*weights[0];
-                weights[2*SIMDD] = (A2-T2*A1)/((T3-T2)*(T3-T1));
-                weights[SIMDD] = (T3*A1-A2)/((T3-T2)*(T2-T1));
-                weights[0] = weights[0]-weights[SIMDD]-weights[2*SIMDD];
+                weights[2] = (A2-T2*A1)/((T3-T2)*(T3-T1));
+                weights[1] = (T3*A1-A2)/((T3-T2)*(T2-T1));
+                weights[0] = weights[0]-weights[1]-weights[2];
         } else if (X < 20) {
                 E = exp(-X);
                 X1 = 1/X;
@@ -827,19 +869,19 @@ static void rys_root3(double X, double *roots, double *weights)
                 //}
                 POLYSUM4(s1, POLY3_20A, X1, 4);
                 roots[0] = (s[0]*X + s1[0]) * E + R13/(X-R13);
-                roots[SIMDD] = (s[1]*X + s1[1]) * E + R23/(X-R23);
-                roots[2*SIMDD] = (s[2]*X + s1[2]) * E + R33/(X-R33);
+                roots[1] = (s[1]*X + s1[1]) * E + R23/(X-R23);
+                roots[2] = (s[2]*X + s1[2]) * E + R33/(X-R33);
                 weights[0] = s1[3]*E + sqrt(PIE4*X1);
                 F1 = (weights[0]-E)*X1*.5;
                 F2 = (F1+F1+F1-E)*X1*.5;
                 T1 = roots[0]/(roots[0]+1.0E+00);
-                T2 = roots[SIMDD]/(roots[SIMDD]+1.0E+00);
-                T3 = roots[2*SIMDD]/(roots[2*SIMDD]+1.0E+00);
+                T2 = roots[1]/(roots[1]+1.0E+00);
+                T3 = roots[2]/(roots[2]+1.0E+00);
                 A2 = F2-T1*F1;
                 A1 = F1-T1*weights[0];
-                weights[2*SIMDD] = (A2-T2*A1)/((T3-T2)*(T3-T1));
-                weights[SIMDD] = (T3*A1-A2)/((T3-T2)*(T2-T1));
-                weights[0] = weights[0]-weights[SIMDD]-weights[2*SIMDD];
+                weights[2] = (A2-T2*A1)/((T3-T2)*(T3-T1));
+                weights[1] = (T3*A1-A2)/((T3-T2)*(T2-T1));
+                weights[0] = weights[0]-weights[1]-weights[2];
         } else if (X < 33) {
                 E = exp(-X);
                 X1 = 1/X;
@@ -850,19 +892,19 @@ static void rys_root3(double X, double *roots, double *weights)
                 //}
                 POLYSUM4(s, POLY3_33, X, 4);
                 roots[0] = (s[0]*X-6.60344754467191E+02 *X1+1.64931462413877E+02)*E + R13/(X-R13);
-                roots[SIMDD] = (s[1]*X-6.30909125686731E+03 *X1+1.52231757709236E+03)*E + R23/(X-R23);
-                roots[2*SIMDD] = (s[2]*X-1.45734701095912E+04 *X1+2.69831813951849E+03)*E + R33/(X-R33);
+                roots[1] = (s[1]*X-6.30909125686731E+03 *X1+1.52231757709236E+03)*E + R23/(X-R23);
+                roots[2] = (s[2]*X-1.45734701095912E+04 *X1+2.69831813951849E+03)*E + R33/(X-R33);
                 weights[0] = ((1.9623264149430E-01*X1-4.9695241464490E-01)*X1 - 6.0156581186481E-05)*E + sqrt(PIE4*X1);
                 F1 = (weights[0]-E)*X1*.5;
                 F2 = (F1+F1+F1-E)*X1*.5;
                 T1 = roots[0]/(roots[0]+1.0E+00);
-                T2 = roots[SIMDD]/(roots[SIMDD]+1.0E+00);
-                T3 = roots[2*SIMDD]/(roots[2*SIMDD]+1.0E+00);
+                T2 = roots[1]/(roots[1]+1.0E+00);
+                T3 = roots[2]/(roots[2]+1.0E+00);
                 A2 = F2-T1*F1;
                 A1 = F1-T1*weights[0];
-                weights[2*SIMDD] = (A2-T2*A1)/((T3-T2)*(T3-T1));
-                weights[SIMDD] = (T3*A1-A2)/((T3-T2)*(T2-T1));
-                weights[0] = weights[0]-weights[SIMDD]-weights[2*SIMDD];
+                weights[2] = (A2-T2*A1)/((T3-T2)*(T3-T1));
+                weights[1] = (T3*A1-A2)/((T3-T2)*(T2-T1));
+                weights[0] = weights[0]-weights[1]-weights[2];
         } else if (X < 47) {
                 weights[0] = sqrt(PIE4/X);
                 E = exp(-X);
@@ -873,20 +915,20 @@ static void rys_root3(double X, double *roots, double *weights)
                 //}
                 POLYSUM4(s, POLY3_47, X, 3);
                 roots[0] = s[0]*E + R13/(X-R13);
-                roots[SIMDD] = s[1]*E + R23/(X-R23);
-                roots[2*SIMDD] = s[2]*E + R33/(X-R33);
-                weights[SIMDD] = s[3]*E + W23*weights[0];
-                weights[2*SIMDD] = (((1.52258947224714E-01*X-8.30661900042651E+00)*X +
+                roots[1] = s[1]*E + R23/(X-R23);
+                roots[2] = s[2]*E + R33/(X-R33);
+                weights[1] = s[3]*E + W23*weights[0];
+                weights[2] = (((1.52258947224714E-01*X-8.30661900042651E+00)*X +
                                      1.92977367967984E+02)*X-1.67787926005344E+03)*E + W33*weights[0];
-                weights[0] = weights[0]-weights[SIMDD]-weights[2*SIMDD];
+                weights[0] = weights[0]-weights[1]-weights[2];
         } else {
                 weights[0] = sqrt(PIE4/X);
                 roots[0] = R13/(X-R13);
-                roots[SIMDD] = R23/(X-R23);
-                roots[2*SIMDD] = R33/(X-R33);
-                weights[SIMDD] = W23*weights[0];
-                weights[2*SIMDD] = W33*weights[0];
-                weights[0] = weights[0]-weights[SIMDD]-weights[2*SIMDD];
+                roots[1] = R23/(X-R23);
+                roots[2] = R33/(X-R33);
+                weights[1] = W23*weights[0];
+                weights[2] = W33*weights[0];
+                weights[0] = weights[0]-weights[1]-weights[2];
         }
 }
 
@@ -1023,13 +1065,13 @@ static void rys_root4(double X, double roots[], double weights[])
 
         if (X <= 3.0E-7) {
                 roots[0] = 3.48198973061471E-02 -4.09645850660395E-03 *X;
-                roots[SIMDD] = 3.81567185080042E-01 -4.48902570656719E-02 *X;
-                roots[2*SIMDD] = 1.73730726945891E+00 -2.04389090547327E-01 *X;
-                roots[3*SIMDD] = 1.18463056481549E+01 -1.39368301742312E+00 *X;
+                roots[1] = 3.81567185080042E-01 -4.48902570656719E-02 *X;
+                roots[2] = 1.73730726945891E+00 -2.04389090547327E-01 *X;
+                roots[3] = 1.18463056481549E+01 -1.39368301742312E+00 *X;
                 weights[0] = 3.62683783378362E-01 -3.13844305713928E-02 *X;
-                weights[SIMDD] = 3.13706645877886E-01 -8.98046242557724E-02 *X;
-                weights[2*SIMDD] = 2.22381034453372E-01 -1.29314370958973E-01 *X;
-                weights[3*SIMDD] = 1.01228536290376E-01 -8.28299075414321E-02 *X;
+                weights[1] = 3.13706645877886E-01 -8.98046242557724E-02 *X;
+                weights[2] = 2.22381034453372E-01 -1.29314370958973E-01 *X;
+                weights[3] = 1.01228536290376E-01 -8.28299075414321E-02 *X;
         } else if (X <= 1.0) {
                 //for (n = 0; n < 3; n++) {
                 //        for (i = 0; i < 4; i++) {
@@ -1043,13 +1085,13 @@ static void rys_root4(double X, double roots[], double weights[])
                 //}
                 POLYSUM8(s, POLY4_1, X, 11);
                 weights[0] = s[0];
-                weights[SIMDD] = s[1];
-                weights[2*SIMDD] = s[2];
-                weights[3*SIMDD] = s[3];
+                weights[1] = s[1];
+                weights[2] = s[2];
+                weights[3] = s[3];
                 roots[0] = s[4];
-                roots[SIMDD] = s[5];
-                roots[2*SIMDD] = s[6];
-                roots[3*SIMDD] = s[7];
+                roots[1] = s[5];
+                roots[2] = s[6];
+                roots[3] = s[7];
         } else if (X <= 5) {
                 Y = X-3.0E+00;
                 //for (n = 0; n < 5; n++) {
@@ -1064,13 +1106,13 @@ static void rys_root4(double X, double roots[], double weights[])
                 //}
                 POLYSUM8(s, POLY4_5, Y, 16);
                 weights[0] = s[0];
-                weights[SIMDD] = s[1];
-                weights[2*SIMDD] = s[2];
-                weights[3*SIMDD] = s[3];
+                weights[1] = s[1];
+                weights[2] = s[2];
+                weights[3] = s[3];
                 roots[0] = s[4];
-                roots[SIMDD] = s[5];
-                roots[2*SIMDD] = s[6];
-                roots[3*SIMDD] = s[7];
+                roots[1] = s[5];
+                roots[2] = s[6];
+                roots[3] = s[7];
         } else if (X <= 10.0) {
                 Y = X-7.5E+00;
                 //for (n = 0; n < 3; n++) {
@@ -1085,13 +1127,13 @@ static void rys_root4(double X, double roots[], double weights[])
                 //}
                 POLYSUM8(s, POLY4_10, Y, 16);
                 weights[0] = s[0];
-                weights[SIMDD] = s[1];
-                weights[2*SIMDD] = s[2];
-                weights[3*SIMDD] = s[3];
+                weights[1] = s[1];
+                weights[2] = s[2];
+                weights[3] = s[3];
                 roots[0] = s[4];
-                roots[SIMDD] = s[5];
-                roots[2*SIMDD] = s[6];
-                roots[3*SIMDD] = s[7];
+                roots[1] = s[5];
+                roots[2] = s[6];
+                roots[3] = s[7];
         } else if (X <= 15) {
                 Y = X-12.5E+00;
                 E = exp(-X);
@@ -1101,17 +1143,17 @@ static void rys_root4(double X, double roots[], double weights[])
                 //        }
                 //}
                 POLYSUM8(s, POLY4_15, Y, 15);
-                weights[SIMDD] = s[1];
-                weights[2*SIMDD] = s[2];
-                weights[3*SIMDD] = s[3];
+                weights[1] = s[1];
+                weights[2] = s[2];
+                weights[3] = s[3];
                 roots[0] = s[4];
-                roots[SIMDD] = s[5];
-                roots[2*SIMDD] = s[6];
-                roots[3*SIMDD] = s[7];
+                roots[1] = s[5];
+                roots[2] = s[6];
+                roots[3] = s[7];
                 X1 = 1/X;
                 weights[0] = (((-1.8784686463512E-01*X1+2.2991849164985E-01)*X1 -
                         4.9893752514047E-01)*X1-2.1916512131607E-05)*E +
-                        sqrt(PIE4*X1)-weights[3*SIMDD]-weights[2*SIMDD]-weights[SIMDD];
+                        sqrt(PIE4*X1)-weights[3]-weights[2]-weights[1];
         } else if (X <= 20) {
                 Y = X-17.5E+00;
                 E = exp(-X);
@@ -1121,16 +1163,16 @@ static void rys_root4(double X, double roots[], double weights[])
                 //        }
                 //}
                 POLYSUM8(s, POLY4_20, Y, 13);
-                weights[SIMDD] = s[1];
-                weights[2*SIMDD] = s[2];
-                weights[3*SIMDD] = s[3]*Y+4.94171300536397E-05;
+                weights[1] = s[1];
+                weights[2] = s[2];
+                weights[3] = s[3]*Y+4.94171300536397E-05;
                 roots[0] = s[4];
-                roots[SIMDD] = s[5];
-                roots[2*SIMDD] = s[6];
-                roots[3*SIMDD] = s[7];
+                roots[1] = s[5];
+                roots[2] = s[6];
+                roots[3] = s[7];
                 X1 = 1/X;
                 weights[0] = ((+1.9623264149430E-01*X1-4.9695241464490E-01)*X1-6.0156581186481E-05)*E
-                        +sqrt(PIE4*X1)-weights[SIMDD]-weights[2*SIMDD]-weights[3*SIMDD];
+                        +sqrt(PIE4*X1)-weights[1]-weights[2]-weights[3];
         } else if (X <= 25) {
                 X1 = 1/X;
                 E = exp(-X);
@@ -1147,14 +1189,14 @@ static void rys_root4(double X, double roots[], double weights[])
                 //}
                 POLYSUM8(s1, POLY4_25A, X1, 4);
                 X1 = sqrt(PIE4*X1);
-                weights[SIMDD] = (s[1]*X+s1[1])*E + W24*X1;
-                weights[2*SIMDD] = (s[2]*X+s1[2])*E + W34*X1;
-                weights[3*SIMDD] =((s[3]*X+9.77683627474638E+02)*X+s1[3])*E + W44*X1;
-                weights[0] = s1[0]*E + X1-weights[SIMDD]-weights[2*SIMDD]-weights[3*SIMDD];
+                weights[1] = (s[1]*X+s1[1])*E + W24*X1;
+                weights[2] = (s[2]*X+s1[2])*E + W34*X1;
+                weights[3] =((s[3]*X+9.77683627474638E+02)*X+s1[3])*E + W44*X1;
+                weights[0] = s1[0]*E + X1-weights[1]-weights[2]-weights[3];
                 roots[0] = (s[4]*X+s1[4])*E + R14/(X-R14);
-                roots[SIMDD] = (s[5]*X+s1[5])*E + R24/(X-R24);
-                roots[2*SIMDD] = (s[6]*X+s1[6])*E + R34/(X-R34);
-                roots[3*SIMDD] = (s[7]*X+s1[7])*E + R44/(X-R44);
+                roots[1] = (s[5]*X+s1[5])*E + R24/(X-R24);
+                roots[2] = (s[6]*X+s1[6])*E + R34/(X-R34);
+                roots[3] = (s[7]*X+s1[7])*E + R44/(X-R44);
         } else if (X <= 35) {
                 X1 = 1/X;
                 E = exp(-X);
@@ -1171,44 +1213,44 @@ static void rys_root4(double X, double roots[], double weights[])
                 //}
                 POLYSUM8(s1, POLY4_35A, X1, 4);
                 X1 = sqrt(PIE4*X1);
-                weights[SIMDD] = (s[1]*X+s1[1])*E + W24*X1;
-                weights[2*SIMDD] = (s[2]*X+s1[2])*E + W34*X1;
-                weights[3*SIMDD] = (s[3]*X+5.55297573149528E+01)*E + W44*X1;
-                weights[0] = s1[0]*E + X1-weights[SIMDD]-weights[2*SIMDD]-weights[3*SIMDD];
+                weights[1] = (s[1]*X+s1[1])*E + W24*X1;
+                weights[2] = (s[2]*X+s1[2])*E + W34*X1;
+                weights[3] = (s[3]*X+5.55297573149528E+01)*E + W44*X1;
+                weights[0] = s1[0]*E + X1-weights[1]-weights[2]-weights[3];
                 roots[0] = (s[4]*X+s1[4])*E + R14/(X-R14);
-                roots[SIMDD] = (s[5]*X+s1[5])*E + R24/(X-R24);
-                roots[2*SIMDD] = (s[6]*X+s1[6])*E + R34/(X-R34);
-                roots[3*SIMDD] = (s[7]*X+s1[7])*E + R44/(X-R44);
+                roots[1] = (s[5]*X+s1[5])*E + R24/(X-R24);
+                roots[2] = (s[6]*X+s1[6])*E + R34/(X-R34);
+                roots[3] = (s[7]*X+s1[7])*E + R44/(X-R44);
         } else if (X <= 53) {
                 X1 = X * X;
                 E = exp(-X);
                 E *= X1*X1;
                 weights[0] = sqrt(PIE4/X);
-                roots[3*SIMDD] = ((-2.19135070169653E-03*X-1.19108256987623E-01)*X -
+                roots[3] = ((-2.19135070169653E-03*X-1.19108256987623E-01)*X -
                        7.50238795695573E-01)*E + R44/(X-R44);
-                roots[2*SIMDD] = ((-9.65842534508637E-04*X-4.49822013469279E-02)*X +
+                roots[2] = ((-9.65842534508637E-04*X-4.49822013469279E-02)*X +
                        6.08784033347757E-01)*E + R34/(X-R34);
-                roots[SIMDD] = ((-3.62569791162153E-04*X-9.09231717268466E-03)*X +
+                roots[1] = ((-3.62569791162153E-04*X-9.09231717268466E-03)*X +
                        1.84336760556262E-01)*E + R24/(X-R24);
                 roots[0] = ((-4.07557525914600E-05*X-6.88846864931685E-04)*X +
                        1.74725309199384E-02)*E + R14/(X-R14);
-                weights[3*SIMDD] = (( 5.76631982000990E-06*X-7.89187283804890E-05)*X +
+                weights[3] = (( 5.76631982000990E-06*X-7.89187283804890E-05)*X +
                        3.28297971853126E-04)*E + W44*weights[0];
-                weights[2*SIMDD] = (( 2.08294969857230E-04*X-3.77489954837361E-03)*X +
+                weights[2] = (( 2.08294969857230E-04*X-3.77489954837361E-03)*X +
                        2.09857151617436E-02)*E + W34*weights[0];
-                weights[SIMDD] = (( 6.16374517326469E-04*X-1.26711744680092E-02)*X +
+                weights[1] = (( 6.16374517326469E-04*X-1.26711744680092E-02)*X +
                        8.14504890732155E-02)*E + W24*weights[0];
-                weights[0] = weights[0]-weights[SIMDD]-weights[2*SIMDD]-weights[3*SIMDD];
+                weights[0] = weights[0]-weights[1]-weights[2]-weights[3];
         } else {
                 weights[0] = sqrt(PIE4/X);
                 roots[0] = R14/(X-R14);
-                roots[SIMDD] = R24/(X-R24);
-                roots[2*SIMDD] = R34/(X-R34);
-                roots[3*SIMDD] = R44/(X-R44);
-                weights[3*SIMDD] = W44*weights[0];
-                weights[2*SIMDD] = W34*weights[0];
-                weights[SIMDD] = W24*weights[0];
-                weights[0] = weights[0]-weights[SIMDD]-weights[2*SIMDD]-weights[3*SIMDD];
+                roots[1] = R24/(X-R24);
+                roots[2] = R34/(X-R34);
+                roots[3] = R44/(X-R44);
+                weights[3] = W44*weights[0];
+                weights[2] = W34*weights[0];
+                weights[1] = W24*weights[0];
+                weights[0] = weights[0]-weights[1]-weights[2]-weights[3];
         }
 }
 
@@ -1456,15 +1498,15 @@ static void rys_root5(double X, double roots[], double weights[])
 
         if (X < 3.e-7){
                 roots[0] = 2.26659266316985E-02 -2.15865967920897E-03 *X;
-                roots[SIMDD] = 2.31271692140903E-01 -2.20258754389745E-02 *X;
-                roots[2*SIMDD] = 8.57346024118836E-01 -8.16520023025515E-02 *X;
-                roots[3*SIMDD] = 2.97353038120346E+00 -2.83193369647137E-01 *X;
-                roots[4*SIMDD] = 1.84151859759051E+01 -1.75382723579439E+00 *X;
+                roots[1] = 2.31271692140903E-01 -2.20258754389745E-02 *X;
+                roots[2] = 8.57346024118836E-01 -8.16520023025515E-02 *X;
+                roots[3] = 2.97353038120346E+00 -2.83193369647137E-01 *X;
+                roots[4] = 1.84151859759051E+01 -1.75382723579439E+00 *X;
                 weights[0] = 2.95524224714752E-01 -1.96867576909777E-02 *X;
-                weights[SIMDD] = 2.69266719309995E-01 -5.61737590184721E-02 *X;
-                weights[2*SIMDD] = 2.19086362515981E-01 -9.71152726793658E-02 *X;
-                weights[3*SIMDD] = 1.49451349150580E-01 -1.02979262193565E-01 *X;
-                weights[4*SIMDD] = 6.66713443086877E-02 -5.73782817488315E-02 *X;
+                weights[1] = 2.69266719309995E-01 -5.61737590184721E-02 *X;
+                weights[2] = 2.19086362515981E-01 -9.71152726793658E-02 *X;
+                weights[3] = 1.49451349150580E-01 -1.02979262193565E-01 *X;
+                weights[4] = 6.66713443086877E-02 -5.73782817488315E-02 *X;
         } else if (X < 1.0){
                 //for (n = 0; n < 8; n++) {
                 //        for (i = 0; i < 8; i++) {
@@ -1479,15 +1521,15 @@ static void rys_root5(double X, double roots[], double weights[])
                 //}
                 POLYSUM4(s1, POLY5_1W, X, 11);
                 roots[0] = s[0];
-                roots[SIMDD] = s[1];
-                roots[2*SIMDD] = s[2];
-                roots[3*SIMDD] = s[3];
-                roots[4*SIMDD] = s[4];
+                roots[1] = s[1];
+                roots[2] = s[2];
+                roots[3] = s[3];
+                roots[4] = s[4];
                 weights[0] = s[5];
-                weights[SIMDD] = s1[0];
-                weights[2*SIMDD] = s1[1];
-                weights[3*SIMDD] = s1[2];
-                weights[4*SIMDD] = s1[3];
+                weights[1] = s1[0];
+                weights[2] = s1[1];
+                weights[3] = s1[2];
+                weights[4] = s1[3];
         } else if (X < 5.0) {
                 Y = X-3.0E+00;
                 //for (n = 0; n < 11; n++) {
@@ -1503,15 +1545,15 @@ static void rys_root5(double X, double roots[], double weights[])
                 //}
                 POLYSUM4(s1, POLY5_5W, Y, 16);
                 roots[0] = s[0];
-                roots[SIMDD] = s[1];
-                roots[2*SIMDD] = s[2];
-                roots[3*SIMDD] = s[3];
-                roots[4*SIMDD] = s[4];
+                roots[1] = s[1];
+                roots[2] = s[2];
+                roots[3] = s[3];
+                roots[4] = s[4];
                 weights[0] = s[5];
-                weights[SIMDD] = s1[0];
-                weights[2*SIMDD] = s1[1];
-                weights[3*SIMDD] = s1[2];
-                weights[4*SIMDD] = s1[3];
+                weights[1] = s1[0];
+                weights[2] = s1[1];
+                weights[3] = s1[2];
+                weights[4] = s1[3];
         } else if (X < 10.0) {
                 Y = X-7.5E+00;
                 //for (n = 0; n < 12; n++) {
@@ -1527,15 +1569,15 @@ static void rys_root5(double X, double roots[], double weights[])
                 //}
                 POLYSUM4(s1, POLY5_10W, Y, 17);
                 roots[0] = s[0];
-                roots[SIMDD] = s[1];
-                roots[2*SIMDD] = s[2];
-                roots[3*SIMDD] = s[3];
-                roots[4*SIMDD] = s[4];
+                roots[1] = s[1];
+                roots[2] = s[2];
+                roots[3] = s[3];
+                roots[4] = s[4];
                 weights[0] = s[5];
-                weights[SIMDD] = s1[0];
-                weights[2*SIMDD] = s1[1];
-                weights[3*SIMDD] = s1[2];
-                weights[4*SIMDD] = s1[3];
+                weights[1] = s1[0];
+                weights[2] = s1[1];
+                weights[3] = s1[2];
+                weights[4] = s1[3];
         } else if (X < 15.0) {
                 Y = X-12.5E+00;
                 //for (n = 0; n < 13; n++) {
@@ -1551,15 +1593,15 @@ static void rys_root5(double X, double roots[], double weights[])
                 //}
                 POLYSUM4(s1, POLY5_15W, Y, 16);
                 roots[0] = s[0];
-                roots[SIMDD] = s[1];
-                roots[2*SIMDD] = s[2];
-                roots[3*SIMDD] = s[3];
-                roots[4*SIMDD] = s[4];
+                roots[1] = s[1];
+                roots[2] = s[2];
+                roots[3] = s[3];
+                roots[4] = s[4];
                 weights[0] = s[5];
-                weights[SIMDD] = s[6];
-                weights[2*SIMDD] = s[7];
-                weights[3*SIMDD] = s1[0];
-                weights[4*SIMDD] = s1[1];
+                weights[1] = s[6];
+                weights[2] = s[7];
+                weights[3] = s1[0];
+                weights[4] = s1[1];
         } else if (X < 20.0){
                 Y = X-17.5E+00;
                 //for (n = 0; n < 13; n++) {
@@ -1575,15 +1617,15 @@ static void rys_root5(double X, double roots[], double weights[])
                 //}
                 POLYSUM4(s1, POLY5_20W, Y, 15);
                 roots[0] = s[0];
-                roots[SIMDD] = s[1];
-                roots[2*SIMDD] = s[2];
-                roots[3*SIMDD] = s[3];
-                roots[4*SIMDD] = s[4];
+                roots[1] = s[1];
+                roots[2] = s[2];
+                roots[3] = s[3];
+                roots[4] = s[4];
                 weights[0] = s[5];
-                weights[SIMDD] = s[6];
-                weights[2*SIMDD] = s[7];
-                weights[3*SIMDD] = s1[0];
-                weights[4*SIMDD] = s1[1];
+                weights[1] = s[6];
+                weights[2] = s[7];
+                weights[3] = s1[0];
+                weights[4] = s1[1];
         } else if (X < 25.0) {
                 Y = X-22.5E+00;
                 //for (n = 0; n < 12; n++) {
@@ -1599,15 +1641,15 @@ static void rys_root5(double X, double roots[], double weights[])
                 //}
                 POLYSUM4(s1, POLY5_25W, Y, 14);
                 roots[0] = s[0];
-                roots[SIMDD] = s[1];
-                roots[2*SIMDD] = s[2];
-                roots[3*SIMDD] = s[3];
-                roots[4*SIMDD] = s[4];
+                roots[1] = s[1];
+                roots[2] = s[2];
+                roots[3] = s[3];
+                roots[4] = s[4];
                 weights[0] = s[5];
-                weights[SIMDD] = s[6];
-                weights[2*SIMDD] = s[7];
-                weights[3*SIMDD] = s1[0];
-                weights[4*SIMDD] = s1[1];
+                weights[1] = s[6];
+                weights[2] = s[7];
+                weights[3] = s1[0];
+                weights[4] = s1[1];
         } else if (X < 40) {
                 weights[0] = sqrt(PIE4/X);
                 E = exp(-X);
@@ -1624,15 +1666,15 @@ static void rys_root5(double X, double roots[], double weights[])
                 //}
                 POLYSUM4(s1, POLY5_40W, X, 10);
                 roots[0] = s[0]*E + R15/(X-R15);
-                roots[SIMDD] = s[1]*E + R25/(X-R25);
-                roots[2*SIMDD] = s[2]*E + R35/(X-R35);
-                roots[3*SIMDD] = s[3]*E + R45/(X-R45);
-                roots[4*SIMDD] = s[4]*E + R55/(X-R55);
-                weights[SIMDD] = s[6] *E + W25*weights[0];
-                weights[2*SIMDD] = s[7] *E + W35*weights[0];
-                weights[3*SIMDD] = s1[0]*E + W45*weights[0];
-                weights[4*SIMDD] = s1[1]*E + W55*weights[0];
-                weights[0] = weights[0]-0.01962E+00*E-weights[SIMDD]-weights[2*SIMDD]-weights[3*SIMDD]-weights[4*SIMDD];
+                roots[1] = s[1]*E + R25/(X-R25);
+                roots[2] = s[2]*E + R35/(X-R35);
+                roots[3] = s[3]*E + R45/(X-R45);
+                roots[4] = s[4]*E + R55/(X-R55);
+                weights[1] = s[6] *E + W25*weights[0];
+                weights[2] = s[7] *E + W35*weights[0];
+                weights[3] = s1[0]*E + W45*weights[0];
+                weights[4] = s1[1]*E + W55*weights[0];
+                weights[0] = weights[0]-0.01962E+00*E-weights[1]-weights[2]-weights[3]-weights[4];
         } else if (X < 59.0) {
                 weights[0] = sqrt(PIE4/X);
                 E = exp(-X);
@@ -1646,10 +1688,10 @@ static void rys_root5(double X, double roots[], double weights[])
                 //}
                 POLYSUM8(s, POLY5_59, X, 4);
                 roots[0] = s[0]*E + R15/(X-R15);
-                roots[SIMDD] = s[1]*E + R25/(X-R25);
-                roots[2*SIMDD] = s[2]*E + R35/(X-R35);
-                roots[3*SIMDD] = s[3]*E + R45/(X-R45);
-                roots[4*SIMDD] = s[4]*E + R55/(X-R55);
+                roots[1] = s[1]*E + R25/(X-R25);
+                roots[2] = s[2]*E + R35/(X-R35);
+                roots[3] = s[3]*E + R45/(X-R45);
+                roots[4] = s[4]*E + R55/(X-R55);
                 E *= XXX;
                 //for (n = 0; n < 3; n++) {
                 //        for (i = 0; i < 4; i++) {
@@ -1657,23 +1699,23 @@ static void rys_root5(double X, double roots[], double weights[])
                 //        }
                 //}
                 POLYSUM4(s1, POLY5_59W, X, 3);
-                weights[SIMDD] = s1[0]*E + W25*weights[0];
-                weights[2*SIMDD] = s1[1]*E + W35*weights[0];
-                weights[3*SIMDD] = s1[2]*E + W45*weights[0];
-                weights[4*SIMDD] = s1[3]*E + W55*weights[0];
-                weights[0] = weights[0]-weights[SIMDD]-weights[2*SIMDD]-weights[3*SIMDD]-weights[4*SIMDD];
+                weights[1] = s1[0]*E + W25*weights[0];
+                weights[2] = s1[1]*E + W35*weights[0];
+                weights[3] = s1[2]*E + W45*weights[0];
+                weights[4] = s1[3]*E + W55*weights[0];
+                weights[0] = weights[0]-weights[1]-weights[2]-weights[3]-weights[4];
         } else {
                 weights[0] = sqrt(PIE4/X);
                 roots[0] = R15/(X-R15);
-                roots[SIMDD] = R25/(X-R25);
-                roots[2*SIMDD] = R35/(X-R35);
-                roots[3*SIMDD] = R45/(X-R45);
-                roots[4*SIMDD] = R55/(X-R55);
-                weights[SIMDD] = W25*weights[0];
-                weights[2*SIMDD] = W35*weights[0];
-                weights[3*SIMDD] = W45*weights[0];
-                weights[4*SIMDD] = W55*weights[0];
-                weights[0] = weights[0]-weights[SIMDD]-weights[2*SIMDD]-weights[3*SIMDD]-weights[4*SIMDD];
+                roots[1] = R25/(X-R25);
+                roots[2] = R35/(X-R35);
+                roots[3] = R45/(X-R45);
+                roots[4] = R55/(X-R55);
+                weights[1] = W25*weights[0];
+                weights[2] = W35*weights[0];
+                weights[3] = W45*weights[0];
+                weights[4] = W55*weights[0];
+                weights[0] = weights[0]-weights[1]-weights[2]-weights[3]-weights[4];
         }
 }
 
@@ -1701,7 +1743,7 @@ static void polyfit_roots(int nroots, double x, double* rr, double* ww)
         _CINT_clenshaw_d1(rr, datax+offset, tt, nroots);
         _CINT_clenshaw_d1(ww, dataw+offset, tt, nroots);
         for (k = 0; k < nroots; k++) {
-                rr[k*SIMDD] = rr[k*SIMDD] / (1.-rr[k*SIMDD]);
+                rr[k] = rr[k] / (1.-rr[k]);
         }
 }
 
@@ -1807,9 +1849,7 @@ static int R_dsmit(double *cs, double *fmt_ints, int n)
         fac = -fmt_ints[1] / fmt_ints[0];
         tmp = fmt_ints[2] + fac * fmt_ints[1];
         if (tmp <= 0) {
-#ifndef KEEP_GOING
                 fprintf(stderr, "libcint::rys_roots negative value in sqrt for roots %d (j=1)\n", n-1);
-#endif
                 SET_ZERO(cs, n, 1);
                 return 1;
         }
@@ -1835,9 +1875,7 @@ static int R_dsmit(double *cs, double *fmt_ints, int n)
                 }
 
                 if (fac <= 0) {
-#ifndef KEEP_GOING
                         fprintf(stderr, "libcint::rys_roots negative value in sqrt for roots %d (j=%d)\n", n-1, j);
-#endif
                         // set rest coefficients to 0
                         SET_ZERO(cs, n, j);
                         return j;
@@ -1868,8 +1906,8 @@ static int _rdk_rys_roots(int nroots, double *fmt_ints,
         // to avoid numerical instability for very small fmt integrals
         if (fmt_ints[0] == 0) {
                 for (k = 0; k < nroots; ++k) {
-                        roots[k*SIMDD] = 0;
-                        weights[k*SIMDD] = 0;
+                        roots[k] = 0;
+                        weights[k] = 0;
                 }
                 return 0;
         }
@@ -1917,8 +1955,8 @@ static int _rdk_rys_roots(int nroots, double *fmt_ints,
                 // from these high order Rys polynomials are negligible. Only the
                 // roots obtained from lower polynomials are used.
                 if (root == 1) {
-                        roots[k*SIMDD] = 0;
-                        weights[k*SIMDD] = 0;
+                        roots[k] = 0;
+                        weights[k] = 0;
                         continue;
                 }
 
@@ -1930,8 +1968,8 @@ static int _rdk_rys_roots(int nroots, double *fmt_ints,
                         POLYNOMIAL_VALUE1(poly, a, order, root);
                         dum += poly * poly;
                 }
-                roots[k*SIMDD] = root / (1 - root);
-                weights[k*SIMDD] = 1 / dum;
+                roots[k] = root / (1 - root);
+                weights[k] = 1 / dum;
         }
         return 0;
 }
@@ -2068,9 +2106,7 @@ static int R_lsmit(long double *cs, long double *fmt_ints, int n)
         fac = -fmt_ints[1] / fmt_ints[0];
         tmp = fmt_ints[2] + fac * fmt_ints[1];
         if (tmp <= 0) {
-#ifndef KEEP_GOING
                 fprintf(stderr, "libcint::rys_roots negative value in sqrt for roots %d (j=1)\n", n-1);
-#endif
                 SET_ZERO(cs, n, 1);
                 return 1;
         }
@@ -2096,9 +2132,7 @@ static int R_lsmit(long double *cs, long double *fmt_ints, int n)
                 }
 
                 if (fac <= 0) {
-#ifndef KEEP_GOING
                         fprintf(stderr, "libcint::rys_roots negative value in sqrt for roots %d (j=%d)\n", n-1, j);
-#endif
                         // set rest coefficients to 0
                         SET_ZERO(cs, n, j);
                         return j;
@@ -2130,8 +2164,8 @@ int CINTlrys_schmidt(int nroots, double x, double lower, double *roots, double *
 
         if (fmt_ints[0] == 0) {
                 for (k = 0; k < nroots; ++k) {
-                        roots[k*SIMDD] = 0;
-                        weights[k*SIMDD] = 0;
+                        roots[k] = 0;
+                        weights[k] = 0;
                 }
                 return 0;
         }
@@ -2174,8 +2208,8 @@ int CINTlrys_schmidt(int nroots, double x, double lower, double *roots, double *
         for (k = 0; k < nroots; ++k) {
                 root = rt[k];
                 if (root == 1) {
-                        roots[k*SIMDD] = 0;
-                        weights[k*SIMDD] = 0;
+                        roots[k] = 0;
+                        weights[k] = 0;
                         continue;
                 }
 
@@ -2187,8 +2221,8 @@ int CINTlrys_schmidt(int nroots, double x, double lower, double *roots, double *
                         POLYNOMIAL_VALUE1(poly, a, order, root);
                         dum += poly * poly;
                 }
-                roots[k*SIMDD] = root / (1 - root);
-                weights[k*SIMDD] = 1 / dum;
+                roots[k] = root / (1 - root);
+                weights[k] = 1 / dum;
         }
         return 0;
 }
@@ -2285,9 +2319,7 @@ static int R_qsmit(__float128 *cs, __float128 *fmt_ints, int n)
         fac = -fmt_ints[1] / fmt_ints[0];
         tmp = fmt_ints[2] + fac * fmt_ints[1];
         if (tmp <= 0) {
-#ifndef KEEP_GOING
                 fprintf(stderr, "libcint::rys_roots negative value in sqrt for roots %d (j=1)\n", n-1);
-#endif
                 SET_ZERO(cs, n, 1);
                 return 1;
         }
@@ -2313,9 +2345,7 @@ static int R_qsmit(__float128 *cs, __float128 *fmt_ints, int n)
                 }
 
                 if (fac <= 0) {
-#ifndef KEEP_GOING
                         fprintf(stderr, "libcint::rys_roots negative value in sqrt for roots %d (j=%d)\n", n-1, j);
-#endif
                         // set rest coefficients to 0
                         SET_ZERO(cs, n, j);
                         return j;
@@ -2347,8 +2377,8 @@ int CINTqrys_schmidt(int nroots, double x, double lower, double *roots, double *
 
         if (fmt_ints[0] == 0) {
                 for (k = 0; k < nroots; ++k) {
-                        roots[k*SIMDD] = 0;
-                        weights[k*SIMDD] = 0;
+                        roots[k] = 0;
+                        weights[k] = 0;
                 }
                 return 0;
         }
@@ -2391,8 +2421,8 @@ int CINTqrys_schmidt(int nroots, double x, double lower, double *roots, double *
         for (k = 0; k < nroots; ++k) {
                 root = rt[k];
                 if (root == 1) {
-                        roots[k*SIMDD] = 0;
-                        weights[k*SIMDD] = 0;
+                        roots[k] = 0;
+                        weights[k] = 0;
                         continue;
                 }
 
@@ -2404,8 +2434,8 @@ int CINTqrys_schmidt(int nroots, double x, double lower, double *roots, double *
                         POLYNOMIAL_VALUE1(poly, a, order, root);
                         dum += poly * poly;
                 }
-                roots[k*SIMDD] = root / (1 - root);
-                weights[k*SIMDD] = 1 / dum;
+                roots[k] = root / (1 - root);
+                weights[k] = 1 / dum;
         }
         return 0;
 }

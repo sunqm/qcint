@@ -1312,7 +1312,7 @@ void CINTg0_2e_il2d4d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs)
 int CINTg0_2e_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
 {
         double aij, akl, a0, a1, fac1;
-        ALIGNMM double x[SIMDD];
+        double x;
         double *rij = envs->rij;
         double *rkl = envs->rkl;
         double rijrkl[3];
@@ -1341,23 +1341,23 @@ int CINTg0_2e_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
         rijrkl[0] = rij[0*SIMDD+idsimd] - rkl[0*SIMDD+idsimd];
         rijrkl[1] = rij[1*SIMDD+idsimd] - rkl[1*SIMDD+idsimd];
         rijrkl[2] = rij[2*SIMDD+idsimd] - rkl[2*SIMDD+idsimd];
-        x[0] = a0 * SQUARE(rijrkl);
+        x = a0 * SQUARE(rijrkl);
 
 #ifdef WITH_RANGE_COULOMB
         if (omega < 0) { // short-range part of range-separated Coulomb
                 // very small erfc() leads to ~0 weights
-                if (theta * x[0] > envs->expcutoff) {
+                if (theta * x > envs->expcutoff) {
                         for (i = 0; i < envs->g_size * 3; i++) {
                                 g[i] = 0;
                         }
                         return 0;
                 }
-                CINTsr_rys_roots(envs->nrys_roots, x[0], sqrt(theta), u, w);
+                CINTsr_rys_roots(envs->nrys_roots, x, sqrt(theta), u, w);
         } else {
-                CINTrys_roots(envs->nrys_roots, x[0], u, w);
+                CINTrys_roots(envs->nrys_roots, x, u, w);
         }
 #else
-        CINTrys_roots(envs->nrys_roots, x[0], u, w);
+        CINTrys_roots(envs->nrys_roots, x, u, w);
 #endif
 
         double *gx = g;
@@ -1366,7 +1366,7 @@ int CINTg0_2e_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
         for (i = 0; i < envs->nrys_roots; i++) {
                 gx[i] = 1;
                 gy[i] = 1;
-                gz[i] = w[i*SIMDD] * fac1;
+                gz[i] = w[i] * fac1;
         }
         if (envs->g_size == 1) {
                 return 1;
@@ -1379,7 +1379,7 @@ int CINTg0_2e_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
                  * so the rest code can be reused.
                  */
                 for (i = 0; i < envs->nrys_roots; i++) {
-                        u[i*SIMDD] /= u[i*SIMDD] + 1 - u[i*SIMDD] * theta;
+                        u[i] /= u[i] + 1 - u[i] * theta;
                 }
         }
 #endif
@@ -1406,7 +1406,7 @@ int CINTg0_2e_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
                  *t2 = u(i)/(1+u(i))
                  *u2 = aij*akl/(aij+akl)*t2/(1-t2)
                  */
-                u2 = a0 * u[i*SIMDD];
+                u2 = a0 * u[i];
                 div = 1 / (u2 * (aij + akl) + a1);
                 tmp1 = u2 * div;
                 tmp4 = .5 * div;

@@ -3457,8 +3457,8 @@ static int rys_wheeler_partial(int n, double *alpha, double *beta, double *momen
         int error = _CINTdiagonalize(n, a, b+1, eig, c0);
 
         for (i = 0; i < n; i++) {
-                roots[i*SIMDD] = eig[i] / (1 - eig[i]);
-                weights[i*SIMDD] = c0[i * n] * c0[i * n] * mu0;
+                roots[i] = eig[i] / (1 - eig[i]);
+                weights[i] = c0[i * n] * c0[i * n] * mu0;
         }
         return error;
 }
@@ -3636,8 +3636,8 @@ static int lrys_wheeler_partial(int n, long double *alpha, long double *beta, lo
         int error = _CINTdiagonalize(n, da, db+1, eig, c0);
 
         for (i = 0; i < n; i++) {
-                roots[i*SIMDD] = eig[i] / (1 - eig[i]);
-                weights[i*SIMDD] = c0[i * n] * c0[i * n] * mu0;
+                roots[i] = eig[i] / (1 - eig[i]);
+                weights[i] = c0[i * n] * c0[i * n] * mu0;
         }
         return error;
 }
@@ -6283,8 +6283,8 @@ static int qrys_wheeler_partial(int n, __float128 *alpha, __float128 *beta, __fl
         int error = _CINTdiagonalize(n, da, db+1, eig, c0);
 
         for (i = 0; i < n; i++) {
-                roots[i*SIMDD] = eig[i] / (1 - eig[i]);
-                weights[i*SIMDD] = c0[i * n] * c0[i * n] * mu0;
+                roots[i] = eig[i] / (1 - eig[i]);
+                weights[i] = c0[i * n] * c0[i * n] * mu0;
         }
         return error;
 }
