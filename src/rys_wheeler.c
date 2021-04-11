@@ -10,7 +10,6 @@
 #include <float.h>
 #include <math.h>
 #include "cint_const.h"
-#include "simd.h"
 #include "rys_roots.h"
 
 #define SQRTPIE4      .8862269254527580136490837416705725913987747280611935641069038949264
@@ -3436,7 +3435,6 @@ static int rys_wheeler_partial(int n, double *alpha, double *beta, double *momen
         double a[MXRYSROOTS + MXRYSROOTS + MXRYSROOTS*MXRYSROOTS];
         double *b = a + n;
         double *c0 = b + n;
-        double eig[MXRYSROOTS];
         double mu0 = moments[0];
         int first_seen = 1;
         int i;
@@ -3447,6 +3445,8 @@ static int rys_wheeler_partial(int n, double *alpha, double *beta, double *momen
                 if (b[i] < 1e-14) {
                         // very likely we will get numerical issues
                         if (!first_seen || b[i] < 0.) {
+                                fprintf(stderr, "libcint rys_wheeler singlur value n=%d i=%d b=%g\n",
+                                        n, i, b[i]);
                                 return i;
                         }
                         first_seen = 0;
@@ -3454,10 +3454,10 @@ static int rys_wheeler_partial(int n, double *alpha, double *beta, double *momen
                 b[i] = sqrt(b[i]);
         }
 
-        int error = _CINTdiagonalize(n, a, b+1, eig, c0);
+        int error = _CINTdiagonalize(n, a, b+1, roots, c0);
 
         for (i = 0; i < n; i++) {
-                roots[i] = eig[i] / (1 - eig[i]);
+                roots[i] = roots[i] / (1 - roots[i]);
                 weights[i] = c0[i * n] * c0[i * n] * mu0;
         }
         return error;
@@ -3613,7 +3613,6 @@ static int lrys_wheeler_partial(int n, long double *alpha, long double *beta, lo
         double da[MXRYSROOTS + MXRYSROOTS + MXRYSROOTS*MXRYSROOTS];
         double *db = da + n;
         double *c0 = db + n;
-        double eig[MXRYSROOTS];
         double mu0 = moments[0];
         int first_seen = 1;
         int i;
@@ -3625,6 +3624,8 @@ static int lrys_wheeler_partial(int n, long double *alpha, long double *beta, lo
                 if (b[i] < 1e-19) {
                         // very likely we will get numerical issues
                         if (!first_seen || b[i] < 0.) {
+                                fprintf(stderr, "libcint rys_wheeler singlur value n=%d i=%d b=%g\n",
+                                        n, i, (double)b[i]);
                                 return i;
                         }
                         first_seen = 0;
@@ -3633,10 +3634,10 @@ static int lrys_wheeler_partial(int n, long double *alpha, long double *beta, lo
                 db[i] = sqrtl(b[i]);
         }
 
-        int error = _CINTdiagonalize(n, da, db+1, eig, c0);
+        int error = _CINTdiagonalize(n, da, db+1, roots, c0);
 
         for (i = 0; i < n; i++) {
-                roots[i] = eig[i] / (1 - eig[i]);
+                roots[i] = roots[i] / (1 - roots[i]);
                 weights[i] = c0[i * n] * c0[i * n] * mu0;
         }
         return error;
@@ -6261,7 +6262,6 @@ static int qrys_wheeler_partial(int n, __float128 *alpha, __float128 *beta, __fl
         double *db = da + n;
         double *c0 = db + n;
         double mu0 = moments[0];
-        double eig[MXRYSROOTS];
         int first_seen = 1;
         int i;
 
@@ -6272,6 +6272,8 @@ static int qrys_wheeler_partial(int n, __float128 *alpha, __float128 *beta, __fl
                 if (b[i] < 1e-32) {
                         // very likely we will get numerical issues
                         if (!first_seen || b[i] < 0.) {
+                                fprintf(stderr, "libcint rys_wheeler singlur value n=%d i=%d b=%g\n",
+                                        n, i, (double)b[i]);
                                 return i;
                         }
                         first_seen = 0;
@@ -6280,10 +6282,10 @@ static int qrys_wheeler_partial(int n, __float128 *alpha, __float128 *beta, __fl
                 db[i] = sqrtq(b[i]);
         }
 
-        int error = _CINTdiagonalize(n, da, db+1, eig, c0);
+        int error = _CINTdiagonalize(n, da, db+1, roots, c0);
 
         for (i = 0; i < n; i++) {
-                roots[i] = eig[i] / (1 - eig[i]);
+                roots[i] = roots[i] / (1 - roots[i]);
                 weights[i] = c0[i * n] * c0[i * n] * mu0;
         }
         return error;

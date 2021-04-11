@@ -10,12 +10,11 @@ def fp(a):
 
 cint = ctypes.CDLL('../build/libcint.so')
 def cint_call(fname, nroots, x, low=None):
-    r = numpy.ndarray(nroots)
-    w = numpy.ndarray(nroots)
+    r = numpy.zeros(nroots)
+    w = numpy.zeros(nroots)
     fun = getattr(cint, fname)
     if low is None:
-        fun(ctypes.c_int(nroots),
-            ctypes.c_double(x),
+        fun(ctypes.c_int(nroots), ctypes.c_double(x),
             r.ctypes.data_as(ctypes.c_void_p),
             w.ctypes.data_as(ctypes.c_void_p))
     else:
