@@ -1,3 +1,6 @@
+Version 4.1.2  (2021-04-10):
+	* Fix a bug due to significant digits of float128 in the core Fmt integrals
+	* Fix compiling error for stg, coulomb_erf integral code
 Version 4.1.0  (2021-04-03):
 	* Add new Rys roots and weights algorithm
         * Improve integral accuracy for high angular momentum basis
