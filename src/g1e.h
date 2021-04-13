@@ -120,13 +120,13 @@ void CINTx1k_1e(double *f, double *g, double *rk,
 
 void CINTprim_to_ctr(double *gc, int nf, double *gp,
                      int inc, int nprim, int nctr, double *pcoeff);
-void CINTprim_to_ctr_0(double *gc, double *gp, double *coeff, int nf,
+void CINTprim_to_ctr_0(double *gc, double *gp, double *coeff, size_t nf,
                        int nprim, int nctr, int non0ctr, int *sortedidx);
-void CINTprim_to_ctr_1(double *gc, double *gp, double *coeff, int nf,
+void CINTprim_to_ctr_1(double *gc, double *gp, double *coeff, size_t nf,
                        int nprim, int nctr, int non0ctr, int *sortedidx);
-void CINTiprim_to_ctr_0(double *gc, double *gp, double *coeff, int nf,
+void CINTiprim_to_ctr_0(double *gc, double *gp, double *coeff, size_t nf,
                         int nprim, int nctr, int non0ctr, int *sortedidx);
-void CINTiprim_to_ctr_1(double *gc, double *gp, double *coeff, int nf,
+void CINTiprim_to_ctr_1(double *gc, double *gp, double *coeff, size_t nf,
                         int nprim, int nctr, int non0ctr, int *sortedidx);
 void CINTsort_gout(double *sout, double *gout, int nf, int count);
 

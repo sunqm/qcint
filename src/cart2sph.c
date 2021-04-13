@@ -7343,8 +7343,8 @@ void c2s_dset0(double *out, int *dims, int *counts)
         int ni = dims[0];
         int nj = dims[1];
         int nk = dims[2];
-        int nij = ni * nj;
-        int nijk = nij * nk;
+        size_t nij = ni * nj;
+        size_t nijk = nij * nk;
         int i, j, k, l;
         if (dims == counts) {
                 for (i = 0; i < nijk * counts[3]; i++) {
@@ -7373,8 +7373,8 @@ void c2s_zset0(double complex *out, int *dims, int *counts)
         int ni = dims[0];
         int nj = dims[1];
         int nk = dims[2];
-        int nij = ni * nj;
-        int nijk = nij * nk;
+        size_t nij = ni * nj;
+        size_t nijk = nij * nk;
         int i, j, k, l;
         if (dims == counts) {
                 for (i = 0; i < nijk * counts[3]; i++) {

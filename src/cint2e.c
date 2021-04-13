@@ -19,7 +19,8 @@
  */
 
 #include <stdlib.h>
-#include <string.h>
+#include <stdio.h>
+#include <stdint.h>
 #include <math.h>
 #include "cint_bas.h"
 #include "misc.h"
@@ -218,7 +219,7 @@ int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
         double *rk = envs->rk;
         double *rl = envs->rl;
         int n_comp = envs->ncomp_e1 * envs->ncomp_e2 * envs->ncomp_tensor;
-        int nf = envs->nf;
+        size_t nf = envs->nf;
         double fac1i, fac1j, fac1k, fac1l;
         int ip, jp, kp, lp, i, it, im;
         int empty[4] = {1, 1, 1, 1};
@@ -251,18 +252,18 @@ int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
                 * CINTcommon_fac_sp(envs->i_l) * CINTcommon_fac_sp(envs->j_l)
                 * CINTcommon_fac_sp(envs->k_l) * CINTcommon_fac_sp(envs->l_l);
 
-        int ngp[4];
+        size_t ngp[4];
         ngp[0] = nf * n_comp;
         ngp[1] = ngp[0] * i_ctr;
         ngp[2] = ngp[1] * j_ctr;
         ngp[3] = ngp[2] * k_ctr;
         // (irys,i,j,k,l,coord,0:1); +1 for nabla-r12
         int leng = envs->g_size * 3 * ((1<<envs->gbits)+1) * SIMDD;
-        int len0 = ngp[0] * SIMDD;
-        int leni = ALIGN_UP(ngp[1], SIMDD);
-        int lenj = ALIGN_UP(ngp[2], SIMDD);
-        int lenk = ALIGN_UP(ngp[3], SIMDD);
-        int lenl = ALIGN_UP(ngp[3] * l_ctr, SIMDD);
+        size_t len0 = ngp[0] * SIMDD;
+        size_t leni = ALIGN_UP(ngp[1], SIMDD);
+        size_t lenj = ALIGN_UP(ngp[2], SIMDD);
+        size_t lenk = ALIGN_UP(ngp[3], SIMDD);
+        size_t lenl = ALIGN_UP(ngp[3] * l_ctr, SIMDD);
 
         double *gout, *g, *g1;
         double *gctr[4];
@@ -402,7 +403,7 @@ int CINT2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
         }
 
         int n_comp = envs->ncomp_e1 * envs->ncomp_e2 * envs->ncomp_tensor;
-        int nf = envs->nf;
+        size_t nf = envs->nf;
         double fac1i, fac1j, fac1k, fac1l;
         int ip, jp, kp, lp, i, it, im;
         int empty[4] = {1, 1, 1, 1};
@@ -420,18 +421,18 @@ int CINT2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
                 CINTg4c_index_xyz(idx, envs);
         }
 
-        int ngp[4];
+        size_t ngp[4];
         ngp[0] = nf * n_comp;
         ngp[1] = ngp[0] * i_ctr;
         ngp[2] = ngp[1] * j_ctr;
         ngp[3] = ngp[2] * k_ctr;
         // (irys,i,j,k,l,coord,0:1); +1 for nabla-r12
         int leng = envs->g_size * 3 * ((1<<envs->gbits)+1) * SIMDD;
-        int len0 = ngp[0] * SIMDD;
-        int leni = ALIGN_UP(ngp[1], SIMDD);
-        int lenj = ALIGN_UP(ngp[2], SIMDD);
-        int lenk = ALIGN_UP(ngp[3], SIMDD);
-        int lenl = ALIGN_UP(ngp[3] * l_ctr, SIMDD);
+        size_t len0 = ngp[0] * SIMDD;
+        size_t leni = ALIGN_UP(ngp[1], SIMDD);
+        size_t lenj = ALIGN_UP(ngp[2], SIMDD);
+        size_t lenk = ALIGN_UP(ngp[3], SIMDD);
+        size_t lenl = ALIGN_UP(ngp[3] * l_ctr, SIMDD);
         double *gout, *g, *g1;
         double *gctr[4];
         double *bufctr[4];
@@ -521,32 +522,39 @@ k_contracted: ;
                 int j_prim = bas(NPRIM_OF, shls[1]); \
                 int k_prim = bas(NPRIM_OF, shls[2]); \
                 int l_prim = bas(NPRIM_OF, shls[3]); \
-                int ps = ((i_prim*j_prim + k_prim*l_prim) * 5 \
+                size_t ps = ((i_prim*j_prim + k_prim*l_prim) * 5 \
                           + i_prim * x_ctr[0] \
                           + j_prim * x_ctr[1] \
                           + k_prim * x_ctr[2] \
                           + l_prim * x_ctr[3] \
-                          +(i_prim+j_prim+k_prim+l_prim)*2 + envs->nf*3);
+                          +(i_prim+j_prim+k_prim+l_prim)*2 + nf*3);
 
 int CINT2e_cart_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
                     double *cache)
 {
         int *x_ctr = envs->x_ctr;
-        int nc = envs->nf * x_ctr[0] * x_ctr[1] * x_ctr[2] * x_ctr[3];
+        size_t nf = envs->nf;
+        size_t nc = nf * x_ctr[0] * x_ctr[1] * x_ctr[2] * x_ctr[3];
         int n_comp = envs->ncomp_e1 * envs->ncomp_e2 * envs->ncomp_tensor;
         if (out == NULL) {
                 PAIRDATA_NON0IDX_SIZE(pdata_size);
                 int leng = envs->g_size*3*((1<<envs->gbits)+1)*SIMDD;
-                int len0 = envs->nf*n_comp * SIMDD;
-                int cache_size = leng + len0 + nc*n_comp*2 + SIMDD*4 + pdata_size;
+                size_t len0 = nf*n_comp * SIMDD;
+                size_t cache_size = leng + len0 + nc*n_comp*2 + SIMDD*4 + pdata_size;
+                if (cache_size >= INT32_MAX) {
+                        fprintf(stderr, "CINT2e_cart_drv cache_size overflow: "
+                                "cache_size %ld > %d, nf %ld, nc %ld, n_comp %d\n",
+                                cache_size, INT32_MAX, nf, nc, n_comp);
+                        cache_size = 0;
+                }
                 return cache_size;
         }
         double *stack = NULL;
         if (cache == NULL) {
                 PAIRDATA_NON0IDX_SIZE(pdata_size);
                 int leng = envs->g_size*3*((1<<envs->gbits)+1)*SIMDD;
-                int len0 = envs->nf*n_comp * SIMDD;
-                int cache_size = leng + len0 + nc*n_comp*2 + SIMDD*4 + pdata_size;
+                size_t len0 = nf*n_comp * SIMDD;
+                size_t cache_size = leng + len0 + nc*n_comp*2 + SIMDD*4 + pdata_size;
                 stack = _mm_malloc(sizeof(double)*cache_size, sizeof(double)*SIMDD);
                 cache = stack;
         }
@@ -587,23 +595,30 @@ int CINT2e_spheric_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
                        double *cache)
 {
         int *x_ctr = envs->x_ctr;
-        int nc = envs->nf * x_ctr[0] * x_ctr[1] * x_ctr[2] * x_ctr[3];
+        size_t nf = envs->nf;
+        size_t nc = nf * x_ctr[0] * x_ctr[1] * x_ctr[2] * x_ctr[3];
         int n_comp = envs->ncomp_e1 * envs->ncomp_e2 * envs->ncomp_tensor;
         if (out == NULL) {
                 PAIRDATA_NON0IDX_SIZE(pdata_size);
                 int leng = envs->g_size*3*((1<<envs->gbits)+1)*SIMDD;
-                int len0 = envs->nf*n_comp * SIMDD;
-                int cache_size = MAX(leng+len0+nc*n_comp*2 + pdata_size,
-                                     nc*n_comp+envs->nf*4) + SIMDD*4;
+                size_t len0 = nf*n_comp * SIMDD;
+                size_t cache_size = MAX(leng+len0+nc*n_comp*2 + pdata_size,
+                                     nc*n_comp+nf*4) + SIMDD*4;
+                if (cache_size >= INT32_MAX) {
+                        fprintf(stderr, "CINT2e_spinor_drv cache_size overflow: "
+                                "cache_size %ld > %d, nf %ld, nc %ld, n_comp %d\n",
+                                cache_size, INT32_MAX, nf, nc, n_comp);
+                        cache_size = 0;
+                }
                 return cache_size;
         }
         double *stack = NULL;
         if (cache == NULL) {
                 PAIRDATA_NON0IDX_SIZE(pdata_size);
                 int leng = envs->g_size*3*((1<<envs->gbits)+1)*SIMDD;
-                int len0 = envs->nf*n_comp * SIMDD;
-                int cache_size = MAX(leng+len0+nc*n_comp*2 + pdata_size,
-                                     nc*n_comp+envs->nf*4) + SIMDD*4;
+                size_t len0 = nf*n_comp * SIMDD;
+                size_t cache_size = MAX(leng+len0+nc*n_comp*2 + pdata_size,
+                                     nc*n_comp+nf*4) + SIMDD*4;
                 stack = _mm_malloc(sizeof(double)*cache_size, sizeof(double)*SIMDD);
                 cache = stack;
         }
@@ -651,27 +666,34 @@ int CINT2e_spinor_drv(double complex *out, int *dims, CINTEnvVars *envs, CINTOpt
         counts[2] = CINTcgto_spinor(shls[2], bas);
         counts[3] = CINTcgto_spinor(shls[3], bas);
         int *x_ctr = envs->x_ctr;
-        int nc = envs->nf * x_ctr[0] * x_ctr[1] * x_ctr[2] * x_ctr[3];
+        size_t nf = envs->nf;
+        size_t nc = nf * x_ctr[0] * x_ctr[1] * x_ctr[2] * x_ctr[3];
         int n_comp = envs->ncomp_e1 * envs->ncomp_e2 * envs->ncomp_tensor;
         int n1 = counts[0] * envs->nfk * x_ctr[2]
                            * envs->nfl * x_ctr[3] * counts[1];
         if (out == NULL) {
                 PAIRDATA_NON0IDX_SIZE(pdata_size);
                 int leng = envs->g_size*3*((1<<envs->gbits)+1)*SIMDD;
-                int len0 = envs->nf*n_comp * SIMDD;
-                int cache_size = MAX(leng+len0+nc*n_comp*2 + pdata_size,
+                size_t len0 = nf*n_comp * SIMDD;
+                size_t cache_size = MAX(leng+len0+nc*n_comp*2 + pdata_size,
                                      nc*n_comp + n1*envs->ncomp_e2*OF_CMPLX
-                                     + envs->nf*32*OF_CMPLX) + SIMDD*4;
+                                     + nf*32*OF_CMPLX) + SIMDD*4;
+                if (cache_size >= INT32_MAX) {
+                        fprintf(stderr, "CINT2e_spheric_drv cache_size overflow: "
+                                "cache_size %ld > %d, nf %ld, nc %ld, n_comp %d\n",
+                                cache_size, INT32_MAX, nf, nc, n_comp);
+                        cache_size = 0;
+                }
                 return cache_size;
         }
         double *stack = NULL;
         if (cache == NULL) {
                 PAIRDATA_NON0IDX_SIZE(pdata_size);
                 int leng = envs->g_size*3*((1<<envs->gbits)+1)*SIMDD;
-                int len0 = envs->nf*n_comp * SIMDD;
-                int cache_size = MAX(leng+len0+nc*n_comp*2 + pdata_size,
+                size_t len0 = nf*n_comp * SIMDD;
+                size_t cache_size = MAX(leng+len0+nc*n_comp*2 + pdata_size,
                                      nc*n_comp + n1*envs->ncomp_e2*OF_CMPLX
-                                     + envs->nf*32*OF_CMPLX) + SIMDD*4;
+                                     + nf*32*OF_CMPLX) + SIMDD*4;
                 stack = _mm_malloc(sizeof(double)*cache_size, sizeof(double)*SIMDD);
                 cache = stack;
         }

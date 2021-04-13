@@ -609,10 +609,11 @@ MM_STORE(fz+n*SIMDD, MM_FMA(r2, MM_LOAD(gz+n*SIMDD), MM_LOAD(p1z+n*SIMDD)));
 }
 
 
-void CINTprim_to_ctr_0(double *RESTRICT gc, double *RESTRICT gp, double *RESTRICT coeff, int nf,
+void CINTprim_to_ctr_0(double *RESTRICT gc, double *RESTRICT gp, double *RESTRICT coeff, size_t nf,
                        int nprim, int nctr, int non0ctr, int *sortedidx)
 {
-        int n, i;
+        int i;
+        size_t n;
         double c0, c1, c2, c3;
         double *RESTRICT p0;
         double *RESTRICT p1;
@@ -740,10 +741,11 @@ void CINTprim_to_ctr_0(double *RESTRICT gc, double *RESTRICT gp, double *RESTRIC
         }
 }
 
-void CINTprim_to_ctr_1(double *RESTRICT gc, double *RESTRICT gp, double *RESTRICT coeff, int nf,
+void CINTprim_to_ctr_1(double *RESTRICT gc, double *RESTRICT gp, double *RESTRICT coeff, size_t nf,
                        int nprim, int nctr, int non0ctr, int *sortedidx)
 {
-        int n, i;
+        int i;
+        size_t n;
         double c0, c1, c2, c3;
         double *RESTRICT p0;
         double *RESTRICT p1;
@@ -877,7 +879,7 @@ double CINTcommon_fac_sp(int l)
 }
 
 
-void CINTiprim_to_ctr_0(double *RESTRICT gc, double *RESTRICT gp, double *RESTRICT coeff, int nf,
+void CINTiprim_to_ctr_0(double *RESTRICT gc, double *RESTRICT gp, double *RESTRICT coeff, size_t nf,
                         int nprim, int nctr, int non0ctr, int *sortedidx)
 {
         int i;
@@ -927,7 +929,7 @@ void CINTiprim_to_ctr_0(double *RESTRICT gc, double *RESTRICT gp, double *RESTRI
         }
 }
 
-void CINTiprim_to_ctr_1(double *RESTRICT gc, double *RESTRICT gp, double *RESTRICT coeff, int nf,
+void CINTiprim_to_ctr_1(double *RESTRICT gc, double *RESTRICT gp, double *RESTRICT coeff, size_t nf,
                         int nprim, int nctr, int non0ctr, int *sortedidx)
 {
         int i;
