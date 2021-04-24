@@ -15,10 +15,10 @@ set(CMAKE_VERBOSE_MAKEFILE OFF)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -O2")
 if ("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel") 
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -unroll-aggressive -ipo ")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-math-errno -fomit-frame-pointer")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-math-errno")
 else()
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -funroll-loops -ftree-vectorize -ffast-math")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-math-errno -fno-strict-overflow -fomit-frame-pointer")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-math-errno")
 endif()
 
 

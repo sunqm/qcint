@@ -328,7 +328,7 @@ int int1e_cache_size(CINTEnvVars *envs)
         int leng = envs->g_size*3*((1<<envs->gbits)+1)*SIMDD;
         int len0 = envs->nf*n_comp * SIMDD;
         int cache_size = MAX(leng+len0*2+nc*n_comp*2,
-                             nc*n_comp + envs->nf*8*OF_CMPLX) + SIMDD*2;
+                             nc*n_comp + envs->nf*8*OF_CMPLX) + SIMDD*3;
         return cache_size;
 }
 

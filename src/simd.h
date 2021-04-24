@@ -111,31 +111,12 @@
 #define RESTRICT
 #endif
 
-#define ALIGN_UP(x, align)  ((x+align-1) & (-(align)))
-
 static inline void *_align_upwards(void *p, uintptr_t align)
 {
         uintptr_t a = (uintptr_t)p;
-        a = ALIGN_UP(a, align);
+        a = (a + align - 1) & (-align);
         return (void *)a;
 }
-
-#define MALLOC_DOUBLE(var, n) \
-        double *var; \
-        int __##var##len = 0; \
-        if ((n) <= STATIC_DOUBLE_SIZE) { \
-                __##var##len = n; \
-        } \
-        double __##var##cache[__##var##len] ALIGNMM; \
-        if (__##var##len == 0) { \
-                var = (double *)_mm_malloc(sizeof(double)*(n), sizeof(double)*SIMDD); \
-        } else { \
-                var = __##var##cache; \
-        }
-#define FREE(var) \
-        if (__##var##len == 0) { \
-                _mm_free(var); \
-        }
 
 #define MALLOC_DOUBLE_WITHCACHE(var, n, cache) \
         double *var; \
@@ -150,8 +131,8 @@ static inline void *_align_upwards(void *p, uintptr_t align)
 
 // Simple malloc(sizeof(type(data)))
 #define MALLOC_DATA_INSTACK(var, n) \
-        var = (void *)cache; \
-        cache = (void *)(((uintptr_t)(var + (n)) + 7) & (-(uintptr_t)8));
+        var = _align_upwards(cache, sizeof(double)); \
+        cache = (double *)(var + (n));
 
 // malloc(sizeof(double)) with alignment
 #define MALLOC_ALIGNED_DOUBLE_INSTACK(var, n) \
