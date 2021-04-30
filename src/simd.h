@@ -24,7 +24,6 @@
 #include <stdint.h>
 #include <immintrin.h>
 #include <mm_malloc.h>
-#include "cint_const.h"
 
 #ifdef __AVX512F__
 #define SIMDD   8
@@ -111,19 +110,14 @@
 #define RESTRICT
 #endif
 
-static inline void *_align_upwards(void *p, uintptr_t align)
-{
-        uintptr_t a = (uintptr_t)p;
-        a = (a + align - 1) & (-align);
-        return (void *)a;
-}
+#define ALIGN_UP(x, align)  (((uintptr_t)(x) + (uintptr_t)(align) - 1) & (-(uintptr_t)(align)))
 
 #define MALLOC_DOUBLE_WITHCACHE(var, n, cache) \
         double *var; \
         int __##var##len = 0; \
         if (cache != NULL) { \
                 __##var##len = n; \
-                var = _align_upwards(cache, sizeof(double)*SIMDD); \
+                var = (void *)ALIGN_UP(cache, sizeof(double)*SIMDD); \
                 cache = var + __##var##len; \
         } else { \
                 var = (double *)_mm_malloc(sizeof(double)*(n), sizeof(double)*SIMDD); \
@@ -131,12 +125,12 @@ static inline void *_align_upwards(void *p, uintptr_t align)
 
 // Simple malloc(sizeof(type(data)))
 #define MALLOC_DATA_INSTACK(var, n) \
-        var = _align_upwards(cache, sizeof(double)); \
+        var = (void *)ALIGN_UP(cache, sizeof(double)); \
         cache = (double *)(var + (n));
 
 // malloc(sizeof(double)) with alignment
 #define MALLOC_ALIGNED_DOUBLE_INSTACK(var, n) \
-        var = _align_upwards(cache, sizeof(double)*SIMDD); \
+        var = (void *)ALIGN_UP(cache, sizeof(double)*SIMDD); \
         cache = (double *)(var + (n));
 #define MALLOC_INSTACK(var, n)  MALLOC_ALIGNED_DOUBLE_INSTACK(var, n)
 

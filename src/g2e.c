@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
-#include "cint_const.h"
+#include "config.h"
 #include "cint_bas.h"
 #include "misc.h"
 #include "simd.h"
@@ -30,9 +30,9 @@
 #include "g2e.h"
 
 #define DEF_GXYZ(type, G, GX, GY, GZ) \
-        type *GX = G; \
-        type *GY = G + envs->g_size     * SIMDD; \
-        type *GZ = G + envs->g_size * 2 * SIMDD
+        type *RESTRICT GX = G; \
+        type *RESTRICT GY = G + envs->g_size     * SIMDD; \
+        type *RESTRICT GZ = G + envs->g_size * 2 * SIMDD
 
 
 void CINTinit_int2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
@@ -265,26 +265,29 @@ void CINTg4c_index_xyz(int *idx, CINTEnvVars *envs)
 void CINTg0_2e_2d(double *g, Rys2eT *bc, CINTEnvVars *envs)
 {
         int nroots = envs->nrys_roots;
-        int i, j, m, n;
+        int i, m, n;
         DEF_GXYZ(double, g, gx, gy, gz);
         int nmax = envs->li_ceil + envs->lj_ceil;
         int mmax = envs->lk_ceil + envs->ll_ceil;
         int dm = envs->g2d_klmax;
         int dn = envs->g2d_ijmax;
-        double *c00x = bc->c00x;
-        double *c00y = bc->c00y;
-        double *c00z = bc->c00z;
-        double *c0px = bc->c0px;
-        double *c0py = bc->c0py;
-        double *c0pz = bc->c0pz;
-        double *b01 = bc->b01;
-        double *b00 = bc->b00;
-        double *b10 = bc->b10;
-        double *p0x, *p0y, *p0z;
-        double *p1x, *p1y, *p1z;
-        double *p2x, *p2y, *p2z;
-        //double xm, xn;
-        __MD r0, r1, rxm, rxn;
+        double *RESTRICT c00x = bc->c00x;
+        double *RESTRICT c00y = bc->c00y;
+        double *RESTRICT c00z = bc->c00z;
+        double *RESTRICT c0px = bc->c0px;
+        double *RESTRICT c0py = bc->c0py;
+        double *RESTRICT c0pz = bc->c0pz;
+        double *RESTRICT b01 = bc->b01;
+        double *RESTRICT b00 = bc->b00;
+        double *RESTRICT b10 = bc->b10;
+        double *RESTRICT p0x, *RESTRICT p0y, *RESTRICT p0z;
+        double *RESTRICT p1x, *RESTRICT p1y, *RESTRICT p1z;
+        __MD r0, r1;
+        __MD r0x, r0y, r0z;
+        __MD r1x, r1y, r1z;
+        __MD r2x, r2y, r2z;
+        __MD rcx, rcy, rcz;
+
         if (nmax > 0) {
                 p0x = gx + dn * SIMDD;
                 p0y = gy + dn * SIMDD;
@@ -292,152 +295,145 @@ void CINTg0_2e_2d(double *g, Rys2eT *bc, CINTEnvVars *envs)
                 p1x = gx - dn * SIMDD;
                 p1y = gy - dn * SIMDD;
                 p1z = gz - dn * SIMDD;
-                // gx(irys,0,1) = c00(irys) * gx(irys,0,0)
                 for (i = 0; i < nroots; i++) {
-//for (k = 0; k < SIMDD; k++) {
-//        p0x[i*SIMDD+k] = c00x[i*SIMDD+k] * gx[i*SIMDD+k];
-//        p0y[i*SIMDD+k] = c00y[i*SIMDD+k] * gy[i*SIMDD+k];
-//        p0z[i*SIMDD+k] = c00z[i*SIMDD+k] * gz[i*SIMDD+k];
-//}
-MM_STORE(p0x+i*SIMDD, MM_LOAD(c00x+i*SIMDD) * MM_LOAD(gx+i*SIMDD));
-MM_STORE(p0y+i*SIMDD, MM_LOAD(c00y+i*SIMDD) * MM_LOAD(gy+i*SIMDD));
-MM_STORE(p0z+i*SIMDD, MM_LOAD(c00z+i*SIMDD) * MM_LOAD(gz+i*SIMDD));
+                        r2x = MM_LOAD(gx+i*SIMDD);
+                        r2y = MM_LOAD(gy+i*SIMDD);
+                        r2z = MM_LOAD(gz+i*SIMDD);
+                        rcx = MM_LOAD(c00x+i*SIMDD);
+                        rcy = MM_LOAD(c00y+i*SIMDD);
+                        rcz = MM_LOAD(c00z+i*SIMDD);
+                        r0x = rcx * r2x;
+                        r0y = rcy * r2y;
+                        r0z = rcz * r2z;
+                        MM_STORE(p0x+i*SIMDD, r0x);
+                        MM_STORE(p0y+i*SIMDD, r0y);
+                        MM_STORE(p0z+i*SIMDD, r0z);
+                        for (n = 1; n < nmax; n++) {
+                                r0 = MM_MUL(MM_SET1(n), MM_LOAD(b10+i*SIMDD));
+                                r1x = rcx * r0x + r0 * r2x;
+                                r1y = rcy * r0y + r0 * r2y;
+                                r1z = rcz * r0z + r0 * r2z;
+                                MM_STORE(p0x+(i+n*dn)*SIMDD, r1x);
+                                MM_STORE(p0y+(i+n*dn)*SIMDD, r1y);
+                                MM_STORE(p0z+(i+n*dn)*SIMDD, r1z);
+                                r2x = r0x;
+                                r2y = r0y;
+                                r2z = r0z;
+                                r0x = r1x;
+                                r0y = r1y;
+                                r0z = r1z;
+                        }
                 }
-                // gx(irys,0,n+1) = c00(irys)*gx(irys,0,n)
-                // + n*b10(irys)*gx(irys,0,n-1)
-                //for (n = 1, xn = 1; n < nmax; n++, xn+=1) {
-                rxn = MM_SET1(0.);
-                for (n = 1; n < nmax; n++) {
-                rxn = MM_ADD(rxn, MM_SET1(1.));
-                for (i = 0, j = n*dn; i < nroots; i++, j++) {
-//for (k = 0; k < SIMDD; k++) {
-//        p0x[j+k] = c00x[i*SIMDD+k] * gx[j+k] + xn * b10[i*SIMDD+k] * p1x[j+k];
-//        p0y[j+k] = c00y[i*SIMDD+k] * gy[j+k] + xn * b10[i*SIMDD+k] * p1y[j+k];
-//        p0z[j+k] = c00z[i*SIMDD+k] * gz[j+k] + xn * b10[i*SIMDD+k] * p1z[j+k];
-//}
-r0 = MM_MUL(rxn, MM_LOAD(b10+i*SIMDD));
-MM_STORE(p0x+j*SIMDD, MM_LOAD(c00x+i*SIMDD) * MM_LOAD(gx+j*SIMDD) + r0 * MM_LOAD(p1x+j*SIMDD));
-MM_STORE(p0y+j*SIMDD, MM_LOAD(c00y+i*SIMDD) * MM_LOAD(gy+j*SIMDD) + r0 * MM_LOAD(p1y+j*SIMDD));
-MM_STORE(p0z+j*SIMDD, MM_LOAD(c00z+i*SIMDD) * MM_LOAD(gz+j*SIMDD) + r0 * MM_LOAD(p1z+j*SIMDD));
-                } }
         }
 
         if (mmax > 0) {
                 p0x = gx + dm * SIMDD;
                 p0y = gy + dm * SIMDD;
                 p0z = gz + dm * SIMDD;
-                p1x = gx - dm * SIMDD;
-                p1y = gy - dm * SIMDD;
-                p1z = gz - dm * SIMDD;
-                // gx(irys,1,0) = c0p(irys) * gx(irys,0,0)
                 for (i = 0; i < nroots; i++) {
-//for (k = 0; k < SIMDD; k++) {
-//        p0x[i*SIMDD+k] = c0px[i*SIMDD+k] * gx[i*SIMDD+k];
-//        p0y[i*SIMDD+k] = c0py[i*SIMDD+k] * gy[i*SIMDD+k];
-//        p0z[i*SIMDD+k] = c0pz[i*SIMDD+k] * gz[i*SIMDD+k];
-//}
-MM_STORE(p0x+i*SIMDD, MM_LOAD(c0px+i*SIMDD) * MM_LOAD(gx+i*SIMDD));
-MM_STORE(p0y+i*SIMDD, MM_LOAD(c0py+i*SIMDD) * MM_LOAD(gy+i*SIMDD));
-MM_STORE(p0z+i*SIMDD, MM_LOAD(c0pz+i*SIMDD) * MM_LOAD(gz+i*SIMDD));
+                        r2x = MM_LOAD(gx+i*SIMDD);
+                        r2y = MM_LOAD(gy+i*SIMDD);
+                        r2z = MM_LOAD(gz+i*SIMDD);
+                        rcx = MM_LOAD(c0px+i*SIMDD);
+                        rcy = MM_LOAD(c0py+i*SIMDD);
+                        rcz = MM_LOAD(c0pz+i*SIMDD);
+                        r0x = rcx * r2x;
+                        r0y = rcy * r2y;
+                        r0z = rcz * r2z;
+                        MM_STORE(p0x+i*SIMDD, r0x);
+                        MM_STORE(p0y+i*SIMDD, r0y);
+                        MM_STORE(p0z+i*SIMDD, r0z);
+                        for (m = 1; m < mmax; m++) {
+                                r0 = MM_MUL(MM_SET1(m), MM_LOAD(b01+i*SIMDD));
+                                r1x = rcx * r0x + r0 * r2x;
+                                r1y = rcy * r0y + r0 * r2y;
+                                r1z = rcz * r0z + r0 * r2z;
+                                MM_STORE(p0x+(i+m*dm)*SIMDD, r1x);
+                                MM_STORE(p0y+(i+m*dm)*SIMDD, r1y);
+                                MM_STORE(p0z+(i+m*dm)*SIMDD, r1z);
+                                r2x = r0x;
+                                r2y = r0y;
+                                r2z = r0z;
+                                r0x = r1x;
+                                r0y = r1y;
+                                r0z = r1z;
+                        }
                 }
-                // gx(irys,m+1,0) = c0p(irys)*gx(irys,m,0)
-                // + m*b01(irys)*gx(irys,m-1,0)
-                //for (m = 1, xm = 1; m < mmax; m++, xm+=1) {
-                rxm = MM_SET1(0.);
-                for (m = 1; m < mmax; m++) {
-                rxm = MM_ADD(rxm, MM_SET1(1.));
-                for (i = 0, j = m*dm; i < nroots; i++, j++) {
-//for (k = 0; k < SIMDD; k++) {
-//        p0x[j+k] = c0px[i*SIMDD+k] * gx[j+k] + xm * b01[i*SIMDD+k] * p1x[j+k];
-//        p0y[j+k] = c0py[i*SIMDD+k] * gy[j+k] + xm * b01[i*SIMDD+k] * p1y[j+k];
-//        p0z[j+k] = c0pz[i*SIMDD+k] * gz[j+k] + xm * b01[i*SIMDD+k] * p1z[j+k];
-//}
-r0 = MM_MUL(rxm, MM_LOAD(b01+i*SIMDD));
-MM_STORE(p0x+j*SIMDD, MM_LOAD(c0px+i*SIMDD) * MM_LOAD(gx+j*SIMDD) + r0 * MM_LOAD(p1x+j*SIMDD));
-MM_STORE(p0y+j*SIMDD, MM_LOAD(c0py+i*SIMDD) * MM_LOAD(gy+j*SIMDD) + r0 * MM_LOAD(p1y+j*SIMDD));
-MM_STORE(p0z+j*SIMDD, MM_LOAD(c0pz+i*SIMDD) * MM_LOAD(gz+j*SIMDD) + r0 * MM_LOAD(p1z+j*SIMDD));
-                } }
         }
 
         if (nmax > 0 && mmax > 0) {
-                p0x = gx  + dn * SIMDD;
-                p0y = gy  + dn * SIMDD;
-                p0z = gz  + dn * SIMDD;
-                p1x = p0x + dm * SIMDD;
-                p1y = p0y + dm * SIMDD;
-                p1z = p0z + dm * SIMDD;
-                // gx(irys,1,1) = c0p(irys)*gx(irys,0,1)
-                // + b00(irys)*gx(irys,0,0)
+                p0x = gx + (dm + dn) * SIMDD;
+                p0y = gy + (dm + dn) * SIMDD;
+                p0z = gz + (dm + dn) * SIMDD;
+                p1x = gx + dn * SIMDD;
+                p1y = gy + dn * SIMDD;
+                p1z = gz + dn * SIMDD;
                 for (i = 0; i < nroots; i++) {
-//for (k = 0; k < SIMDD; k++) {
-//        p1x[i*SIMDD+k] = c0px[i*SIMDD+k] * p0x[i*SIMDD+k] +  b00[i*SIMDD+k] * gx[i*SIMDD+k];
-//        p1y[i*SIMDD+k] = c0py[i*SIMDD+k] * p0y[i*SIMDD+k] +  b00[i*SIMDD+k] * gy[i*SIMDD+k];
-//        p1z[i*SIMDD+k] = c0pz[i*SIMDD+k] * p0z[i*SIMDD+k] +  b00[i*SIMDD+k] * gz[i*SIMDD+k];
-//}
-r0 = MM_LOAD(b00+i*SIMDD);
-MM_STORE(p1x+i*SIMDD, MM_LOAD(c0px+i*SIMDD) * MM_LOAD(p0x+i*SIMDD) + r0 * MM_LOAD(gx+i*SIMDD));
-MM_STORE(p1y+i*SIMDD, MM_LOAD(c0py+i*SIMDD) * MM_LOAD(p0y+i*SIMDD) + r0 * MM_LOAD(gy+i*SIMDD));
-MM_STORE(p1z+i*SIMDD, MM_LOAD(c0pz+i*SIMDD) * MM_LOAD(p0z+i*SIMDD) + r0 * MM_LOAD(gz+i*SIMDD));
-                }
-
-                p0x = gx + dm * SIMDD;
-                p0y = gy + dm * SIMDD;
-                p0z = gz + dm * SIMDD;
-                p1x = gx - dn * SIMDD;
-                p1y = gy - dn * SIMDD;
-                p1z = gz - dn * SIMDD;
-                p2x = gx - dm * SIMDD;
-                p2y = gy - dm * SIMDD;
-                p2z = gz - dm * SIMDD;
-                // gx(irys,m+1,1) = c0p(irys)*gx(irys,m,1)
-                // + m*b01(irys)*gx(irys,m-1,1)
-                // + b00(irys)*gx(irys,m,0)
-                //for (m = 1, xm = 1; m < mmax; m++, xm+=1) {
-                rxm = MM_SET1(0.);
-                for (m = 1; m < mmax; m++) {
-                        rxm = MM_ADD(rxm, MM_SET1(1.));
-                        for (i = 0, j = m*dm+dn; i < nroots; i++, j++) {
-//for (k = 0; k < SIMDD; k++) {
-//         p0x[j+k] = c0px[i*SIMDD+k] * gx[j+k] + xm * b01[i*SIMDD+k] * p2x[j+k] + b00[i*SIMDD+k] * p1x[j+k];
-//         p0y[j+k] = c0py[i*SIMDD+k] * gy[j+k] + xm * b01[i*SIMDD+k] * p2y[j+k] + b00[i*SIMDD+k] * p1y[j+k];
-//         p0z[j+k] = c0pz[i*SIMDD+k] * gz[j+k] + xm * b01[i*SIMDD+k] * p2z[j+k] + b00[i*SIMDD+k] * p1z[j+k];
-//}
-r0 = MM_MUL(rxm, MM_LOAD(b01+i*SIMDD));
-r1 = MM_LOAD(b00+i*SIMDD);
-MM_STORE(p0x+j*SIMDD, MM_LOAD(c0px+i*SIMDD) * MM_LOAD(gx+j*SIMDD) + r0 * MM_LOAD(p2x+j*SIMDD) + r1 * MM_LOAD(p1x+j*SIMDD));
-MM_STORE(p0y+j*SIMDD, MM_LOAD(c0py+i*SIMDD) * MM_LOAD(gy+j*SIMDD) + r0 * MM_LOAD(p2y+j*SIMDD) + r1 * MM_LOAD(p1y+j*SIMDD));
-MM_STORE(p0z+j*SIMDD, MM_LOAD(c0pz+i*SIMDD) * MM_LOAD(gz+j*SIMDD) + r0 * MM_LOAD(p2z+j*SIMDD) + r1 * MM_LOAD(p1z+j*SIMDD));
-                        }
-                }
-
-                p0x = gx + dn * SIMDD;
-                p0y = gy + dn * SIMDD;
-                p0z = gz + dn * SIMDD;
-                // gx(irys,m,n+1) = c00(irys)*gx(irys,m,n)
-                // + n*b10(irys)*gx(irys,m,n-1)
-                // + m*b00(irys)*gx(irys,m-1,n)
-                //for (m = 1, xm = 1; m <= mmax; m++, xm+=1) {
-                rxm = MM_SET1(0.);
-                for (m = 1; m <= mmax; m++) {
-                        rxm = MM_ADD(rxm, MM_SET1(1.));
-                        //for (n = 1, xn = 1; n < nmax; n++, xn+=1) {
-                        rxn = MM_SET1(0.);
+                        r0 = MM_LOAD(b00+i*SIMDD);
+                        r1x = MM_LOAD(c0px+i*SIMDD) * MM_LOAD(gx+(i+dn)*SIMDD) + r0 * MM_LOAD(gx+i*SIMDD);
+                        r1y = MM_LOAD(c0py+i*SIMDD) * MM_LOAD(gy+(i+dn)*SIMDD) + r0 * MM_LOAD(gy+i*SIMDD);
+                        r1z = MM_LOAD(c0pz+i*SIMDD) * MM_LOAD(gz+(i+dn)*SIMDD) + r0 * MM_LOAD(gz+i*SIMDD);
+                        MM_STORE(p0x+i*SIMDD, r1x);
+                        MM_STORE(p0y+i*SIMDD, r1y);
+                        MM_STORE(p0z+i*SIMDD, r1z);
+                        r2x = MM_LOAD(gx+(i+dm)*SIMDD);
+                        r2y = MM_LOAD(gy+(i+dm)*SIMDD);
+                        r2z = MM_LOAD(gz+(i+dm)*SIMDD);
+                        rcx = MM_LOAD(c00x+i*SIMDD);
+                        rcy = MM_LOAD(c00y+i*SIMDD);
+                        rcz = MM_LOAD(c00z+i*SIMDD);
                         for (n = 1; n < nmax; n++) {
-                                rxn = MM_ADD(rxn, MM_SET1(1.));
-                                for (i = 0, j = m*dm+n*dn; i < nroots; i++, j++) {
-//for (k = 0; k < SIMDD; k++) {
-//         p0x[j+k] = c00x[i*SIMDD+k] * gx[j+k] + xn * b10[i*SIMDD+k] * p1x[j+k] + xm * b00[i*SIMDD+k] * p2x[j+k];
-//         p0y[j+k] = c00y[i*SIMDD+k] * gy[j+k] + xn * b10[i*SIMDD+k] * p1y[j+k] + xm * b00[i*SIMDD+k] * p2y[j+k];
-//         p0z[j+k] = c00z[i*SIMDD+k] * gz[j+k] + xn * b10[i*SIMDD+k] * p1z[j+k] + xm * b00[i*SIMDD+k] * p2z[j+k];
-//}
-r0 = MM_MUL(rxn, MM_LOAD(b10+i*SIMDD));
-r1 = MM_MUL(rxm, MM_LOAD(b00+i*SIMDD));
-MM_STORE(p0x+j*SIMDD, MM_LOAD(c00x+i*SIMDD) * MM_LOAD(gx+j*SIMDD) + r0 * MM_LOAD(p1x+j*SIMDD) + r1 * MM_LOAD(p2x+j*SIMDD));
-MM_STORE(p0y+j*SIMDD, MM_LOAD(c00y+i*SIMDD) * MM_LOAD(gy+j*SIMDD) + r0 * MM_LOAD(p1y+j*SIMDD) + r1 * MM_LOAD(p2y+j*SIMDD));
-MM_STORE(p0z+j*SIMDD, MM_LOAD(c00z+i*SIMDD) * MM_LOAD(gz+j*SIMDD) + r0 * MM_LOAD(p1z+j*SIMDD) + r1 * MM_LOAD(p2z+j*SIMDD));
-                                }
+                                r1 = MM_SET1(n) * MM_LOAD(b10+i*SIMDD);
+                                r0x = rcx * r1x + r1 * r2x + r0 * MM_LOAD(gx+(i+n*dn)*SIMDD);
+                                r0y = rcy * r1y + r1 * r2y + r0 * MM_LOAD(gy+(i+n*dn)*SIMDD);
+                                r0z = rcz * r1z + r1 * r2z + r0 * MM_LOAD(gz+(i+n*dn)*SIMDD);
+                                MM_STORE(p0x+(i+n*dn)*SIMDD, r0x);
+                                MM_STORE(p0y+(i+n*dn)*SIMDD, r0y);
+                                MM_STORE(p0z+(i+n*dn)*SIMDD, r0z);
+                                r2x = r1x;
+                                r2y = r1y;
+                                r2z = r1z;
+                                r1x = r0x;
+                                r1y = r0y;
+                                r1z = r0z;
                         }
+
                 }
+
+                for (m = 1; m < mmax; m++) {
+                for (i = 0; i < nroots; i++) {
+                        r0 = MM_LOAD(b00+i*SIMDD);
+                        r1 = MM_SET1(m) * MM_LOAD(b01+i*SIMDD);
+                        r1x = MM_LOAD(c0px+i*SIMDD) * MM_LOAD(p1x+(i+m*dm)*SIMDD) + r1 * MM_LOAD(p1x+(i+(m-1)*dm)*SIMDD) + r0 * MM_LOAD(gx+(i+m*dm)*SIMDD);
+                        r1y = MM_LOAD(c0py+i*SIMDD) * MM_LOAD(p1y+(i+m*dm)*SIMDD) + r1 * MM_LOAD(p1y+(i+(m-1)*dm)*SIMDD) + r0 * MM_LOAD(gy+(i+m*dm)*SIMDD);
+                        r1z = MM_LOAD(c0pz+i*SIMDD) * MM_LOAD(p1z+(i+m*dm)*SIMDD) + r1 * MM_LOAD(p1z+(i+(m-1)*dm)*SIMDD) + r0 * MM_LOAD(gz+(i+m*dm)*SIMDD);
+                        MM_STORE(p0x+(i+m*dm)*SIMDD, r1x);
+                        MM_STORE(p0y+(i+m*dm)*SIMDD, r1y);
+                        MM_STORE(p0z+(i+m*dm)*SIMDD, r1z);
+
+                        r2x = MM_LOAD(gx+(i+(m+1)*dm)*SIMDD);
+                        r2y = MM_LOAD(gy+(i+(m+1)*dm)*SIMDD);
+                        r2z = MM_LOAD(gz+(i+(m+1)*dm)*SIMDD);
+                        rcx = MM_LOAD(c00x+i*SIMDD);
+                        rcy = MM_LOAD(c00y+i*SIMDD);
+                        rcz = MM_LOAD(c00z+i*SIMDD);
+                        r0 = MM_SET1(m + 1) * r0;
+                        for (n = 1; n < nmax; n++) {
+                                r1 = MM_SET1(n) * MM_LOAD(b10+i*SIMDD);
+                                r0x = rcx * r1x + r1 * r2x + r0 * MM_LOAD(gx+(i+m*dm+n*dn)*SIMDD);
+                                r0y = rcy * r1y + r1 * r2y + r0 * MM_LOAD(gy+(i+m*dm+n*dn)*SIMDD);
+                                r0z = rcz * r1z + r1 * r2z + r0 * MM_LOAD(gz+(i+m*dm+n*dn)*SIMDD);
+                                MM_STORE(p0x+(i+m*dm+n*dn)*SIMDD, r0x);
+                                MM_STORE(p0y+(i+m*dm+n*dn)*SIMDD, r0y);
+                                MM_STORE(p0z+(i+m*dm+n*dn)*SIMDD, r0z);
+                                r2x = r1x;
+                                r2y = r1y;
+                                r2z = r1z;
+                                r1x = r0x;
+                                r1y = r0y;
+                                r1z = r0z;
+                        }
+                } }
         }
 }
 
@@ -466,7 +462,12 @@ void CINTg0_lj_4d(double *g, CINTEnvVars *envs)
         double *rirj = envs->rirj;
         double *rkrl = envs->rkrl;
         DEF_GXYZ(double, g, gx, gy, gz);
-        double *p1x, *p1y, *p1z, *p2x, *p2y, *p2z;
+        double *RESTRICT p1x;
+        double *RESTRICT p1y;
+        double *RESTRICT p1z;
+        double *RESTRICT p2x;
+        double *RESTRICT p2y;
+        double *RESTRICT p2z;
         __MD rx = MM_SET1(rirj[0]);
         __MD ry = MM_SET1(rirj[1]);
         __MD rz = MM_SET1(rirj[2]);
@@ -541,7 +542,12 @@ void CINTg0_kj_4d(double *g, CINTEnvVars *envs)
         double *rirj = envs->rirj;
         double *rkrl = envs->rkrl;
         DEF_GXYZ(double, g, gx, gy, gz);
-        double *p1x, *p1y, *p1z, *p2x, *p2y, *p2z;
+        double *RESTRICT p1x;
+        double *RESTRICT p1y;
+        double *RESTRICT p1z;
+        double *RESTRICT p2x;
+        double *RESTRICT p2y;
+        double *RESTRICT p2z;
         __MD rx = MM_SET1(rirj[0]);
         __MD ry = MM_SET1(rirj[1]);
         __MD rz = MM_SET1(rirj[2]);
@@ -616,7 +622,12 @@ void CINTg0_il_4d(double *g, CINTEnvVars *envs)
         double *rirj = envs->rirj;
         double *rkrl = envs->rkrl;
         DEF_GXYZ(double, g, gx, gy, gz);
-        double *p1x, *p1y, *p1z, *p2x, *p2y, *p2z;
+        double *RESTRICT p1x;
+        double *RESTRICT p1y;
+        double *RESTRICT p1z;
+        double *RESTRICT p2x;
+        double *RESTRICT p2y;
+        double *RESTRICT p2z;
         __MD rx = MM_SET1(rkrl[0]);
         __MD ry = MM_SET1(rkrl[1]);
         __MD rz = MM_SET1(rkrl[2]);
@@ -691,7 +702,12 @@ void CINTg0_ik_4d(double *g, CINTEnvVars *envs)
         double *rirj = envs->rirj;
         double *rkrl = envs->rkrl;
         DEF_GXYZ(double, g, gx, gy, gz);
-        double *p1x, *p1y, *p1z, *p2x, *p2y, *p2z;
+        double *RESTRICT p1x;
+        double *RESTRICT p1y;
+        double *RESTRICT p1z;
+        double *RESTRICT p2x;
+        double *RESTRICT p2y;
+        double *RESTRICT p2z;
         __MD rx = MM_SET1(rkrl[0]);
         __MD ry = MM_SET1(rkrl[1]);
         __MD rz = MM_SET1(rkrl[2]);
@@ -2135,6 +2151,7 @@ void CINTnabla1i_2e(double *f, double *g,
                 double *RESTRICT p2y = gy + di * SIMDD;
                 double *RESTRICT p2z = gz + di * SIMDD;
                 __MD ri;
+
                 for (j = 0; j <= lj; j++)
                 for (l = 0; l <= ll; l++)
                 for (k = 0; k <= lk; k++) {
@@ -2200,6 +2217,7 @@ void CINTnabla1j_2e(double *f, double *g,
                 double *RESTRICT p2y = gy + dj * SIMDD;
                 double *RESTRICT p2z = gz + dj * SIMDD;
                 __MD rj;
+
                 //f(...,0,...) = -2*aj*g(...,1,...)
                 for (l = 0; l <= ll; l++) {
                 for (k = 0; k <= lk; k++) {
@@ -2271,6 +2289,7 @@ void CINTnabla1k_2e(double *f, double *g,
                 double *RESTRICT p2y = gy + dk * SIMDD;
                 double *RESTRICT p2z = gz + dk * SIMDD;
                 __MD rk;
+
                 for (j = 0; j <= lj; j++)
                 for (l = 0; l <= ll; l++) {
                         ptr = dj * j + dl * l;
@@ -2340,6 +2359,7 @@ void CINTnabla1l_2e(double *f, double *g,
                 double *RESTRICT p2y = gy + dl * SIMDD;
                 double *RESTRICT p2z = gz + dl * SIMDD;
                 __MD rl;
+
                 for (j = 0; j <= lj; j++) {
                         //f(...,0,...) = -2*al*g(...,1,...)
                         for (k = 0; k <= lk; k++) {
@@ -2409,6 +2429,7 @@ void CINTx1i_2e(double *f, double *g, double *ri,
                 double *RESTRICT p1x = gx + di * SIMDD;
                 double *RESTRICT p1y = gy + di * SIMDD;
                 double *RESTRICT p1z = gz + di * SIMDD;
+
                 for (j = 0; j <= lj; j++)
                 for (l = 0; l <= ll; l++) {
                 for (k = 0; k <= lk; k++) {
@@ -2460,6 +2481,7 @@ void CINTx1j_2e(double *f, double *g, double *rj,
                 double *RESTRICT p1x = gx + dj * SIMDD;
                 double *RESTRICT p1y = gy + dj * SIMDD;
                 double *RESTRICT p1z = gz + dj * SIMDD;
+
                 for (j = 0; j <= lj; j++)
                 for (l = 0; l <= ll; l++) {
                 for (k = 0; k <= lk; k++) {
@@ -2511,6 +2533,7 @@ void CINTx1k_2e(double *f, double *g, double *rk,
                 double *RESTRICT p1x = gx + dk * SIMDD;
                 double *RESTRICT p1y = gy + dk * SIMDD;
                 double *RESTRICT p1z = gz + dk * SIMDD;
+
                 for (j = 0; j <= lj; j++)
                 for (l = 0; l <= ll; l++) {
                 for (k = 0; k <= lk; k++) {
@@ -2562,6 +2585,7 @@ void CINTx1l_2e(double *f, double *g, double *rl,
                 double *RESTRICT p1x = gx + dl * SIMDD;
                 double *RESTRICT p1y = gy + dl * SIMDD;
                 double *RESTRICT p1z = gz + dl * SIMDD;
+
                 for (j = 0; j <= lj; j++)
                 for (l = 0; l <= ll; l++) {
                 for (k = 0; k <= lk; k++) {

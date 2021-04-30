@@ -19,7 +19,6 @@
  */
 
 #include "config.h"
-#include "cint_const.h"
 #include "g1e.h"
 
 void CINTrys_roots(int nroots, double x, double *u, double *w);

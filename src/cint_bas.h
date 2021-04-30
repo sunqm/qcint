@@ -18,10 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "cint_const.h"
-
-#define bas(SLOT,I)     bas[BAS_SLOTS * (I) + (SLOT)]
-#define atm(SLOT,I)     atm[ATM_SLOTS * (I) + (SLOT)]
+#include "config.h"
 
 int CINTlen_cart(const int l);
 int CINTlen_spinor(const int bas_id, const int *bas);

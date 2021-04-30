@@ -7,8 +7,9 @@
 #include "g2e.h"
 #include "optimizer.h"
 #include "cint2e.h"
+#include "cart2sph.h"
 
-int int3c2e_gtg_sph(double *out, int *dims, int *shls, int *atm, int natm,
+CACHE_SIZE_T int3c2e_gtg_sph(double *out, int *dims, int *shls, int *atm, int natm,
                   int *bas, int nbas, double *env, CINTOpt *opt, double *cache)
 {
         int ng[] = {0, 0, 0, 0, 0, 1, 1, 1};
@@ -16,7 +17,7 @@ int int3c2e_gtg_sph(double *out, int *dims, int *shls, int *atm, int natm,
         CINTinit_int3c2e_gtg_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
         envs.f_gout = &CINTgout2e;
         envs.f_gout_simd1 = &CINTgout2e_simd1;
-        return CINT3c2e_spheric_drv(out, dims, &envs, opt, cache);
+        return CINT3c2e_drv(out, dims, &envs, opt, cache, &c2s_sph_3c2e1, 0);
 }
 void int3c2e_gtg_optimizer(CINTOpt **opt, int *atm, int natm,
                          int *bas, int nbas, double *env)

@@ -34,10 +34,11 @@ typedef struct {
         int j_l;
         int k_l;
         int l_l;
-        int nfi;  // number of cartesion components
+        int nfi;  // number of cartesian components
         int nfj;
-        int nfk;
-        int nfl;
+        // in int1e_grids, the grids_offset and the number of grids
+        union {int nfk; int grids_offset;};
+        union {int nfl; int ngrids;};
         int nf;  // = nfi*nfj*nfk*nfl;
         int _padding;
         int x_ctr[4];
@@ -71,7 +72,7 @@ typedef struct {
         double *ri;
         double *rj;
         double *rk;
-        double *rl;
+        union {double *rl; double *grids;};
 
         int (*f_g0_2e)();
         int (*f_g0_2e_simd1)();
@@ -91,7 +92,6 @@ typedef struct {
 } CINTEnvVars;
 #endif
 
-#define SLOT_RYS_ROOTS       6
 void CINTinit_int1e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
                             int *atm, int natm, int *bas, int nbas, double *env);
 void CINTinit_int3c1e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,

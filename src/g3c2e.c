@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
-#include "cint_const.h"
+#include "config.h"
 #include "cint_bas.h"
 #include "simd.h"
 #include "misc.h"
@@ -140,8 +140,8 @@ void CINTinit_int3c2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
 #ifdef WITH_GTG
 void CINTg0_2e_lj2d4d_regular(double *g, Rys2eT *bc, CINTEnvVars *envs);
 void CINTg0_2e_lj2d4d_simd1_regular(double *g, Rys2eT *bc, CINTEnvVars *envs);
-void CINTg0_2e_gtg(double *g, Rys2eT *bc, CINTEnvVars *envs, int count);
-void CINTg0_2e_gtg_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd);
+int CINTg0_2e_gtg(double *g, Rys2eT *bc, CINTEnvVars *envs, int count);
+int CINTg0_2e_gtg_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd);
 
 void CINTinit_int3c2e_gtg_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
                                   int *atm, int natm, int *bas, int nbas, double *env)

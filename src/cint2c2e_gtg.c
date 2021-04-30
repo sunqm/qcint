@@ -3,15 +3,18 @@
  */
 
 #include <stdlib.h>
+#include <stdio.h>
 #include "cint_bas.h"
 #include "g2e.h"
 #include "optimizer.h"
 #include "cint2e.h"
+#include "misc.h"
+#include "cart2sph.h"
 
 
 #ifdef WITH_GTG
-void CINTg0_2e_gtg(double *g, Rys2eT *bc, CINTEnvVars *envs, int count);
-void CINTg0_2e_gtg_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd);
+int CINTg0_2e_gtg(double *g, Rys2eT *bc, CINTEnvVars *envs, int count);
+int CINTg0_2e_gtg_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd);
 
 void CINTinit_int2c2e_gtg_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
                                   int *atm, int natm, int *bas, int nbas, double *env)
@@ -98,7 +101,7 @@ void CINTinit_int2c2e_gtg_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
 }
 #endif
 
-int int2c2e_gtg_sph(double *out, int *dims, int *shls, int *atm, int natm,
+CACHE_SIZE_T int2c2e_gtg_sph(double *out, int *dims, int *shls, int *atm, int natm,
                   int *bas, int nbas, double *env, CINTOpt *opt, double *cache)
 {
         int ng[] = {0, 0, 0, 0, 0, 1, 1, 1};
@@ -106,7 +109,7 @@ int int2c2e_gtg_sph(double *out, int *dims, int *shls, int *atm, int natm,
         CINTinit_int2c2e_gtg_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
         envs.f_gout = &CINTgout2e;
         envs.f_gout_simd1 = &CINTgout2e_simd1;
-        return CINT2c2e_spheric_drv(out, dims, &envs, opt, cache);
+        return CINT2c2e_drv(out, dims, &envs, opt, cache, &c2s_sph_1e);
 }
 void int2c2e_gtg_optimizer(CINTOpt **opt, int *atm, int natm,
                          int *bas, int nbas, double *env)
@@ -115,14 +118,21 @@ void int2c2e_gtg_optimizer(CINTOpt **opt, int *atm, int natm,
         CINTall_2c2e_gtg_optimizer(opt, ng, atm, natm, bas, nbas, env);
 }
 
-#define ALL_CINT(NAME) \
-int c##NAME##_sph(double *out, int *shls, int *atm, int natm, \
-            int *bas, int nbas, double *env, CINTOpt *opt) { \
-        return NAME##_sph(out, NULL, shls, atm, natm, bas, nbas, env, opt, NULL); \
-} \
-void c##NAME##_sph_optimizer(CINTOpt **opt, int *atm, int natm, \
-                         int *bas, int nbas, double *env) { \
-        NAME##_optimizer(opt, atm, natm, bas, nbas, env); \
+CACHE_SIZE_T int2c2e_gtg_cart(double *out, int *dims, int *shls, int *atm, int natm,
+                     int *bas, int nbas, double *env, CINTOpt *opt, double *cache)
+{
+        int ng[] = {0, 0, 0, 0, 0, 1, 1, 1};
+        CINTEnvVars envs;
+        CINTinit_int2c2e_gtg_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+        envs.f_gout = &CINTgout2e;
+        envs.f_gout_simd1 = &CINTgout2e_simd1;
+        return CINT2c2e_drv(out, dims, &envs, opt, cache, &c2s_cart_1e);
+}
+
+CACHE_SIZE_T int2c2e_gtg_spinor(double complex *out, int *dims, int *shls, int *atm, int natm,
+                     int *bas, int nbas, double *env, CINTOpt *opt, double *cache)
+{
+        fprintf(stderr, "int2c2e_gtg_spinor not implemented\n");
 }
 
 ALL_CINT(int2c2e_gtg)

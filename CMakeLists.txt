@@ -1,8 +1,8 @@
 cmake_minimum_required (VERSION 3.5)
 project (qcint C)
 set(qcint_VERSION_MAJOR "4")
-set(qcint_VERSION_MINOR "1")
-set(qcint_VERSION_PATCH "3")
+set(qcint_VERSION_MINOR "4")
+set(qcint_VERSION_PATCH "0")
 set(qcint_VERSION_TWEAK "0")
 set(qcint_VERSION "${qcint_VERSION_MAJOR}.${qcint_VERSION_MINOR}.${qcint_VERSION_PATCH}")
 set(qcint_SOVERSION "${qcint_VERSION_MAJOR}")
@@ -12,8 +12,9 @@ if ("${CMAKE_BUILD_TYPE}" STREQUAL "")
   set(CMAKE_BUILD_TYPE RELWITHDEBINFO)
 endif()
 set(CMAKE_VERBOSE_MAKEFILE OFF)
+option(BUILD_MARCH_NATIVE "gcc flag -march=native" on)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -O2")
-if ("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel") 
+if ("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -unroll-aggressive -ipo ")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-math-errno")
 else()
@@ -21,16 +22,8 @@ else()
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-math-errno")
 endif()
 
-
-if (${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION} VERSION_GREATER 2.8.3)
-  if (${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION} VERSION_GREATER 3.0.0)
-    cmake_policy(SET CMP0042 NEW) 
-  endif()
-  include(GNUInstallDirs)
-else ()
-  set(CMAKE_INSTALL_LIBDIR lib CACHE PATH "lib")
-  set(CMAKE_INSTALL_INCLUDEDIR include CACHE PATH "include")
-endif ()
+cmake_policy(SET CMP0042 NEW)
+include(GNUInstallDirs)
 #set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
@@ -63,17 +56,19 @@ configure_file(
   "${PROJECT_SOURCE_DIR}/include/cint.h.in"
   "${PROJECT_BINARY_DIR}/include/cint.h")
 
-set(cintSrc 
+set(cintSrc
   src/breit.c src/c2f.c src/cart2sph.c src/cint1e.c src/cint2c2e.c
   src/cint2e.c src/cint3c1e.c src/cint3c2e.c src/cint_bas.c src/fblas.c
   src/g1e.c src/g2e.c src/g2e_simd1.c src/g3c1e.c src/g3c2e.c
   src/gout2e.c src/misc.c src/optimizer.c
   src/fmt.c src/rys_wheeler.c src/eigh.c src/rys_roots.c src/polyfits.c
   src/cint1e_a.c src/cint3c1e_a.c
+  src/cint1e_grids.c src/g1e_grids.c
   src/autocode/breit1.c src/autocode/dkb.c src/autocode/gaunt1.c
   src/autocode/grad1.c src/autocode/grad2.c src/autocode/hess.c
   src/autocode/int3c1e.c src/autocode/int3c2e.c src/autocode/intor1.c
-  src/autocode/intor2.c src/autocode/intor3.c src/autocode/intor4.c)
+  src/autocode/intor2.c src/autocode/intor3.c src/autocode/intor4.c
+  src/autocode/int1e_grids1.c)
 
 #option(WITH_RANGE_COULOMB "Range separated Coulomb" on)
 if(WITH_RANGE_COULOMB)

@@ -214,3 +214,8 @@
   '("int3c1e_iprinv"            ( p \, \| rinv \| ))
 )
 
+(gen-cint "int1e_grids1.c"
+  '("int1e_grids_ip"            ( nabla \| grids \| ))
+  '("int1e_grids_ipvip"         ( nabla \| grids \| nabla ))
+  '("int1e_grids_spvsp"         ( sigma dot p \| grids \| sigma dot p ))
+)

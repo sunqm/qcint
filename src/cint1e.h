@@ -20,16 +20,18 @@
 
 #include <complex.h>
 
-int CINT1e_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
+CACHE_SIZE_T CINT1e_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
                double *cache, void (*f_c2s)());
-int CINT1e_spinor_drv(double complex *out, int *dims, CINTEnvVars *envs,
+CACHE_SIZE_T CINT1e_spinor_drv(double complex *out, int *dims, CINTEnvVars *envs,
                       CINTOpt *opt, double *cache, void (*f_c2s)());
 int int1e_cache_size(CINTEnvVars *envs);
 
-int CINT3c1e_cart_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
-                      double *cache);
-int CINT3c1e_spheric_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
-                         double *cache);
-int CINT3c1e_spinor_drv(double complex *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
+CACHE_SIZE_T CINT3c1e_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
+                          double *cache, void (*f_c2s)());
+CACHE_SIZE_T CINT3c1e_spinor_drv(double complex *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
                         double *cache, void (*f_e1_c2s)());
-int int3c1e_cache_size(CINTEnvVars *envs);
+
+CACHE_SIZE_T CINT1e_grids_spinor_drv(double complex *out, int *dims, CINTEnvVars *envs,
+                             double *cache, void (*f_c2s)());
+CACHE_SIZE_T CINT1e_grids_drv(double *out, int *dims, CINTEnvVars *envs,
+                      double *cache, void (*f_c2s)());

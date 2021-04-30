@@ -22,16 +22,17 @@
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
-#include "cint_const.h"
+#include "config.h"
 #include "cint_bas.h"
 #include "simd.h"
 #include "g2e.h"
 #include "rys_roots.h"
+#include "misc.h"
 
 void CINTg0_2e_lj2d4d_regular(double *g, Rys2eT *bc, CINTEnvVars *envs);
 void CINTg0_2e_lj2d4d_simd1_regular(double *g, Rys2eT *bc, CINTEnvVars *envs);
-void CINTg0_2e_gtg(double *g, Rys2eT *bc, CINTEnvVars *envs, int count);
-void CINTg0_2e_gtg_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd);
+int CINTg0_2e_gtg(double *g, Rys2eT *bc, CINTEnvVars *envs, int count);
+int CINTg0_2e_gtg_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd);
 void CINTg0_lj_4d(double *g, CINTEnvVars *envs);
 void CINTg0_lj_4d_simd1(double *g, CINTEnvVars *envs);
 
@@ -196,7 +197,7 @@ void CINTg0_2e_lj2d4d_simd1_regular(double *g, Rys2eT *bc, CINTEnvVars *envs)
 /*
  * g[i,k,l,j] = < ik | lj > = ( i j | k l )
  */
-void CINTg0_2e_gtg(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
+int CINTg0_2e_gtg(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
 {
         const double zeta = envs->env[PTR_GTG_ZETA];
         double *gx = g;
@@ -280,7 +281,10 @@ void CINTg0_2e_gtg(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
         ra = MM_MUL(MM_LOAD(a0), ra);
         ra = MM_MUL(MM_LOAD(t), ra);
         MM_STORE(x, -ra);
-        CINTexp_cephes(t, x);
+        int k;
+        for (k = 0; k < count; k++) {
+                t[k] = exp(x[k]);
+        }
         ra = MM_LOAD(fac1);
         r1 = MM_MUL(MM_SQRT(ra), ra);
         r2 = MM_MUL(MM_LOAD(t), MM_LOAD(envs->fac));
@@ -367,7 +371,7 @@ void CINTg0_2e_gtg(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
         return 1;
 }
 
-void CINTg0_2e_gtg_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
+int CINTg0_2e_gtg_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
 {
         const double aij = envs->ai[idsimd] + envs->aj[idsimd];
         const double akl = envs->ak[idsimd] + envs->al[idsimd];
