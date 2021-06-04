@@ -95,7 +95,7 @@ int CINTg0_1e_grids(double *RESTRICT g, const double fac, CINTEnvVars *envs,
 
 #ifdef WITH_RANGE_COULOMB
         const double omega = envs->env[PTR_RANGE_OMEGA];
-        double theta, sqrt_theta;
+        double theta, sqrt_theta, aij_theta;
 
         if (omega == 0) {
                 fac1 = fac / aij;
@@ -103,6 +103,7 @@ int CINTg0_1e_grids(double *RESTRICT g, const double fac, CINTEnvVars *envs,
                         x = aij * RGSQUARE(rijrg, ig);
                         CINTrys_roots(nroots, x, ubuf, wbuf);
                         for (i = 0; i < nroots; i++) {
+                                // transform to t^2
                                 u[ig+GRID_BLKSIZE*i] = ubuf[i] / (ubuf[i] + 1);
                                 w[ig+GRID_BLKSIZE*i] = wbuf[i] * fac1;
                         }
@@ -110,7 +111,7 @@ int CINTg0_1e_grids(double *RESTRICT g, const double fac, CINTEnvVars *envs,
         } else if (omega < 0) { // short-range part of range-separated Coulomb
                 theta = omega * omega / (omega * omega + aij);
                 sqrt_theta = sqrt(theta);
-                fac1 = fac * sqrt_theta / aij;
+                fac1 = fac / aij;
                 for (ig = 0; ig < bgrids; ig++) {
                         x = aij * RGSQUARE(rijrg, ig);
                         if (theta * x > envs->expcutoff) {
@@ -129,13 +130,14 @@ int CINTg0_1e_grids(double *RESTRICT g, const double fac, CINTEnvVars *envs,
                 }
         } else {  // long-range part of range-separated Coulomb
                 theta = omega * omega / (omega * omega + aij);
-                aij *= theta;
                 fac1 = fac * sqrt(theta) / aij;
+                aij_theta = aij * theta;
                 for (ig = 0; ig < bgrids; ig++) {
-                        x = aij * RGSQUARE(rijrg, ig);
+                        x = aij_theta * RGSQUARE(rijrg, ig);
                         CINTrys_roots(nroots, x, ubuf, wbuf);
                         for (i = 0; i < nroots; i++) {
-                                u[ig+GRID_BLKSIZE*i] = ubuf[i] / (ubuf[i] + 1 - ubuf[i] * theta);
+                                // u stores t^2 = tau^2 * theta
+                                u[ig+GRID_BLKSIZE*i] = ubuf[i] / (ubuf[i] + 1) * theta;
                                 w[ig+GRID_BLKSIZE*i] = wbuf[i] * fac1;
                         }
                 }
