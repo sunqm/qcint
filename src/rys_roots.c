@@ -73,34 +73,6 @@ static int segment_solve(int n, double x, double lower, double *u, double *w,
         return error;
 }
 
-int _CINTsr_rys_roots_batch(CINTEnvVars *envs, double *x, double *theta, double *u, double *w, int count)
-{
-        int nroots = envs->nrys_roots;
-        double expcutoff = envs->expcutoff;
-        double roots[MXRYSROOTS * 2];
-        double *weights = roots + nroots;
-        int i, k;
-        int all_negligible = 1;
-
-        for (i = 0; i < count; i++) {
-                // very small erfc() leads to ~0 weights
-                if (x[i] * theta[i] < expcutoff) {
-                        all_negligible = 0;
-                        CINTsr_rys_roots(nroots, x[i], sqrt(theta[i]), roots, weights);
-                        for (k = 0; k < nroots; k++) {
-                                u[k*SIMDD+i] = roots[k];
-                                w[k*SIMDD+i] = weights[k];
-                        }
-                } else {
-                        for (k = 0; k < nroots; k++) {
-                                u[k*SIMDD+i] = 0;
-                                w[k*SIMDD+i] = 0;
-                        }
-                }
-        }
-        return all_negligible;
-}
-
 void _CINTrys_roots_batch(int nroots, double *x, double *u, double *w, int count)
 {
         double roots[MXRYSROOTS * 2];
@@ -250,7 +222,35 @@ void CINTsr_rys_roots(int nroots, double x, double lower, double *u, double *w)
 #endif
         }
 }
-#endif
+
+int _CINTsr_rys_roots_batch(CINTEnvVars *envs, double *x, double *theta, double *u, double *w, int count)
+{
+        int nroots = envs->nrys_roots;
+        double expcutoff = envs->expcutoff;
+        double roots[MXRYSROOTS * 2];
+        double *weights = roots + nroots;
+        int i, k;
+        int all_negligible = 1;
+
+        for (i = 0; i < count; i++) {
+                // very small erfc() leads to ~0 weights
+                if (x[i] * theta[i] < expcutoff) {
+                        all_negligible = 0;
+                        CINTsr_rys_roots(nroots, x[i], sqrt(theta[i]), roots, weights);
+                        for (k = 0; k < nroots; k++) {
+                                u[k*SIMDD+i] = roots[k];
+                                w[k*SIMDD+i] = weights[k];
+                        }
+                } else {
+                        for (k = 0; k < nroots; k++) {
+                                u[k*SIMDD+i] = 0;
+                                w[k*SIMDD+i] = 0;
+                        }
+                }
+        }
+        return all_negligible;
+}
+#endif  // WITH_RANGE_COULOMB
 
 static void rys_root1(double X, double *roots, double *weights)
 {
