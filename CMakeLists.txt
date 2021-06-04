@@ -17,7 +17,7 @@ if(BUILD_MARCH_NATIVE)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -O2")
 else()
   # This appears to be the lowest version that compiles
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msse3")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msse3 -O2")
 endif()
 if ("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -unroll-aggressive -ipo ")
