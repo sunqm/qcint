@@ -29,6 +29,7 @@
 #include <math.h>
 #include "config.h"
 #include "simd.h"
+#include "misc.h"
 #include "rys_roots.h"
 
 #ifdef HAVE_QUADMATH_H
@@ -154,14 +155,30 @@ static int segment_solve1(int n, double x, double lower, double *u, double *w,
 void CINTsr_rys_roots(int nroots, double x, double lower, double *u, double *w)
 {
         switch (nroots) {
-        case 1: case 2: case 3:
+        case 1:
                 CINTrys_schmidt(nroots, x, lower, u, w);
+                break;
+        case 2:
+                if (lower < 0.99) {
+                        CINTrys_schmidt(nroots, x, lower, u, w);
+                } else {
+                        CINTqrys_schmidt(nroots, x, lower, u, w);
+                }
+                break;
+        case 3:
+                if (lower < 0.9) {
+                        CINTrys_schmidt(nroots, x, lower, u, w);
+                } else if (lower < 0.94) {
+                        segment_solve(nroots, x, lower, u, w, 10, CINTlrys_jacobi, CINTqrys_schmidt);
+                } else {
+                        CINTqrys_jacobi(nroots, x, lower, u, w);
+                }
                 break;
         case 4:
                 if (lower < 0.85) {
                         CINTrys_schmidt(nroots, x, lower, u, w);
                 } else if (lower < 0.9) {
-                        segment_solve(nroots, x, lower, u, w, 6, CINTlrys_jacobi, CINTrys_schmidt);
+                        segment_solve(nroots, x, lower, u, w, 10, CINTlrys_jacobi, CINTlrys_laguerre);
                 } else {
                         CINTqrys_jacobi(nroots, x, lower, u, w);
                 }
@@ -226,15 +243,19 @@ void CINTsr_rys_roots(int nroots, double x, double lower, double *u, double *w)
 int _CINTsr_rys_roots_batch(CINTEnvVars *envs, double *x, double *theta, double *u, double *w, int count)
 {
         int nroots = envs->nrys_roots;
-        double expcutoff = envs->expcutoff;
         double roots[MXRYSROOTS * 2];
         double *weights = roots + nroots;
         int i, k;
         int all_negligible = 1;
+        // FIXME:
+        // very small erfc() leads to ~0 weights. They can cause
+        // numerical issue in sr_rys_roots Use this cutoff as a
+        // temporary solution to avoid the numerical issue
+        double temp_cutoff = MIN(envs->expcutoff, EXPCUTOFF_SR - nroots);
 
         for (i = 0; i < count; i++) {
                 // very small erfc() leads to ~0 weights
-                if (x[i] * theta[i] < expcutoff) {
+                if (x[i] * theta[i] < temp_cutoff) {
                         all_negligible = 0;
                         CINTsr_rys_roots(nroots, x[i], sqrt(theta[i]), roots, weights);
                         for (k = 0; k < nroots; k++) {
@@ -2110,7 +2131,7 @@ static int R_lsmit(long double *cs, long double *fmt_ints, int n)
         fac = -fmt_ints[1] / fmt_ints[0];
         tmp = fmt_ints[2] + fac * fmt_ints[1];
         if (tmp <= 0) {
-                fprintf(stderr, "libcint::rys_roots negative value in sqrt for roots %d (j=1)\n", n-1);
+                fprintf(stderr, "libcint::rys_roots negative value in sqrtl for roots %d (j=1)\n", n-1);
                 SET_ZERO(cs, n, 1);
                 return 1;
         }
@@ -2136,7 +2157,7 @@ static int R_lsmit(long double *cs, long double *fmt_ints, int n)
                 }
 
                 if (fac <= 0) {
-                        fprintf(stderr, "libcint::rys_roots negative value in sqrt for roots %d (j=%d)\n", n-1, j);
+                        fprintf(stderr, "libcint::rys_roots negative value in sqrtl for roots %d (j=%d)\n", n-1, j);
                         // set rest coefficients to 0
                         SET_ZERO(cs, n, j);
                         return j;
@@ -2163,7 +2184,7 @@ int CINTlrys_schmidt(int nroots, double x, double lower, double *roots, double *
         if (lower == 0) {
                 lgamma_inc_like(fmt_ints, x, nroots*2);
         } else {
-                fmt1_lerfc_like(fmt_ints, x, lower, nroots*2);
+                fmt_lerfc_like(fmt_ints, x, lower, nroots*2);
         }
 
         if (fmt_ints[0] == 0) {
@@ -2323,7 +2344,7 @@ static int R_qsmit(__float128 *cs, __float128 *fmt_ints, int n)
         fac = -fmt_ints[1] / fmt_ints[0];
         tmp = fmt_ints[2] + fac * fmt_ints[1];
         if (tmp <= 0) {
-                fprintf(stderr, "libcint::rys_roots negative value in sqrt for roots %d (j=1)\n", n-1);
+                fprintf(stderr, "libcint::rys_roots negative value in sqrtq for roots %d (j=1)\n", n-1);
                 SET_ZERO(cs, n, 1);
                 return 1;
         }
@@ -2349,7 +2370,7 @@ static int R_qsmit(__float128 *cs, __float128 *fmt_ints, int n)
                 }
 
                 if (fac <= 0) {
-                        fprintf(stderr, "libcint::rys_roots negative value in sqrt for roots %d (j=%d)\n", n-1, j);
+                        fprintf(stderr, "libcint::rys_roots negative value in sqrtq for roots %d (j=%d)\n", n-1, j);
                         // set rest coefficients to 0
                         SET_ZERO(cs, n, j);
                         return j;
