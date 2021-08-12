@@ -3,9 +3,9 @@ qcint (quick libcint)
 
 An optimized libcint branch for X86 platform
 
-version 4.4.3
+version 4.4.4
 
-2021-07-22
+2021-08-07
 
 
 What is qcint
