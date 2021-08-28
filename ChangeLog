@@ -1,3 +1,5 @@
+Version 4.4.5  (2021-08-28):
+	* Fix Rys-polynomial roots for SSE3 instructions
 Version 4.4.4  (2021-08-07):
 	* Fix Cartesian-spherical and Cartesian-spinor transformation coefficients
 Version 4.4.3  (2021-07-22):

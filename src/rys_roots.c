@@ -390,8 +390,8 @@ static void rys_root1(double X, double *roots, double *weights)
         } \
         MM_STORE(S  , r1); \
         MM_STORE(S+2, r2); \
-        MM_STORE(S+4, r2); \
-        MM_STORE(S+6, r2);
+        MM_STORE(S+4, r3); \
+        MM_STORE(S+6, r4);
 
 #else // AVX-512
 #define POLYSUM4(S, POLY, X, COUNT) \
