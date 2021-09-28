@@ -1,3 +1,5 @@
+Version 4.4.6  (2021-09-27):
+	* Fix uninitialized variables in rys_roots
 Version 4.4.5  (2021-08-28):
 	* Fix Rys-polynomial roots for SSE3 instructions
 Version 4.4.4  (2021-08-07):
