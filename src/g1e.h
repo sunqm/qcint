@@ -18,79 +18,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "cint.h"
 #include "simd.h"
-#if !defined HAVE_DEFINED_CINTENVVARS_H
-#define HAVE_DEFINED_CINTENVVARS_H
-// ref to CINTinit_int1e_EnvVars, CINTinit_int2e_EnvVars
-typedef struct {
-        int *atm;
-        int *bas;
-        double *env;
-        int *shls;
-        int natm;
-        int nbas;
-
-        int i_l;
-        int j_l;
-        int k_l;
-        int l_l;
-        int nfi;  // number of cartesian components
-        int nfj;
-        // in int1e_grids, the grids_offset and the number of grids
-        union {int nfk; int grids_offset;};
-        union {int nfl; int ngrids;};
-        int nf;  // = nfi*nfj*nfk*nfl;
-        int _padding;
-        int x_ctr[4];
-
-        int gbits;
-        int ncomp_e1; // = 1 if spin free, = 4 when spin included, it
-        int ncomp_e2; // corresponds to POSX,POSY,POSZ,POS1, see cint_const.h
-        int ncomp_tensor; // e.g. = 3 for gradients
-
-        /* values may diff based on the g0_2d4d algorithm */
-        int li_ceil; // power of x, == i_l if nabla is involved, otherwise == i_l
-        int lj_ceil;
-        int lk_ceil;
-        int ll_ceil;
-        int g_stride_i; // nrys_roots * shift of (i++,k,l,j)
-        int g_stride_k; // nrys_roots * shift of (i,k++,l,j)
-        int g_stride_l; // nrys_roots * shift of (i,k,l++,j)
-        int g_stride_j; // nrys_roots * shift of (i,k,l,j++)
-        int nrys_roots;
-        int g_size;  // ref to cint2e.c g = malloc(sizeof(double)*g_size)
-
-        int g2d_ijmax;
-        int g2d_klmax;
-        double common_factor;
-        double expcutoff;
-        double rirj[3]; // diff by sign in different g0_2d4d algorithm
-        double rkrl[3];
-        double *rx_in_rijrx;
-        double *rx_in_rklrx;
-
-        double *ri;
-        double *rj;
-        double *rk;
-        union {double *rl; double *grids;};
-
-        int (*f_g0_2e)();
-        int (*f_g0_2e_simd1)();
-        void (*f_g0_2d4d)();
-        void (*f_g0_2d4d_simd1)();
-        void (*f_gout)();
-        void (*f_gout_simd1)();
-
-        /* values are assigned during calculation */
-        ALIGNMM double ai[SIMDD];
-        ALIGNMM double aj[SIMDD];
-        ALIGNMM double ak[SIMDD];
-        ALIGNMM double al[SIMDD];
-        ALIGNMM double fac[SIMDD];
-        ALIGNMM double rij[SIMDD*3];
-        ALIGNMM double rkl[SIMDD*3];
-} CINTEnvVars;
-#endif
 
 void CINTinit_int1e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
                             int *atm, int natm, int *bas, int nbas, double *env);

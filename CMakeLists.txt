@@ -39,8 +39,6 @@ if(QUADMATH_FOUND)
   set(HAVE_QUADMATH_H 1 CACHE INTERNAL "Have QUADMATH")
 endif()
 
-find_package(BLAS REQUIRED)
-
 include(CheckFunctionExists)
 set(CMAKE_REQUIRED_INCLUDES math.h)
 set(CMAKE_REQUIRED_LIBRARIES m)
@@ -101,6 +99,7 @@ if(WITH_GTG)
     src/cint2c2e_gtg.c)
   add_definitions(-DWITH_GTG)
   message("Enabled WITH_GTG")
+  message("Enabled WITH_GTG. Note there are bugs in gtg type integrals")
 endif(WITH_GTG)
 
 if(PYPZPX)
@@ -147,7 +146,6 @@ set_target_properties(cint PROPERTIES
   VERSION ${qcint_VERSION}
   SOVERSION ${qcint_SOVERSION}
   LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
-target_link_libraries(cint ${BLAS_LIBRARIES})
 if(QUADMATH_FOUND)
   target_link_libraries(cint quadmath)
 endif()

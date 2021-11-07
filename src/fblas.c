@@ -28,7 +28,7 @@
 
 #define OF_CMPLX        2
 
-void CINTdset0(const int n, double *x)
+void CINTdset0(int n, double *x)
 {
         int i;
         for (i = 0; i < n; i++) {
@@ -40,8 +40,7 @@ void CINTdset0(const int n, double *x)
 /*
  * v = a * x + y
  */
-void CINTdaxpy2v(const int n, const double a,
-                 const double *x, const double *y, double *v)
+void CINTdaxpy2v(int n, double a, double *x, double *y, double *v)
 {
         //cblas_dcopy(n, y, 1, v, 1);
         //cblas_daxpy(n, a, x, 1, v, 1);
@@ -54,7 +53,7 @@ void CINTdaxpy2v(const int n, const double a,
 /*
  * a[m,n] -> a_t[n,m]
  */
-void CINTdmat_transpose(double *a_t, const double *a, const int m, const int n)
+void CINTdmat_transpose(double *a_t, double *a, int m, int n)
 {
         int i, j, k;
         double *pa1, *pa2, *pa3;
@@ -98,10 +97,51 @@ void CINTdmat_transpose(double *a_t, const double *a, const int m, const int n)
 }
 
 /*
+ * a_t[n,m] += a[m,n]
+ */
+void CINTdplus_transpose(double *a_t, double *a, int m, int n)
+{
+        int i, j, k;
+
+        for (j = 0; j < n-3; j+=4) {
+#pragma GCC ivdep
+                for (i = 0; i < m; i++) {
+                        a_t[(j+0)*m+i] += a[i*n+j+0];
+                        a_t[(j+1)*m+i] += a[i*n+j+1];
+                        a_t[(j+2)*m+i] += a[i*n+j+2];
+                        a_t[(j+3)*m+i] += a[i*n+j+3];
+                }
+        }
+
+        switch (n-j) {
+        case 1:
+#pragma GCC ivdep
+                for (i = 0; i < m; i++) {
+                        a_t[j*m+i] += a[i*n+j];
+                }
+                break;
+        case 2:
+#pragma GCC ivdep
+                for (i = 0; i < m; i++) {
+                        a_t[(j+0)*m+i] += a[i*n+j+0];
+                        a_t[(j+1)*m+i] += a[i*n+j+1];
+                }
+                break;
+        case 3:
+#pragma GCC ivdep
+                for (i = 0; i < m; i++) {
+                        a_t[(j+0)*m+i] += a[i*n+j+0];
+                        a_t[(j+1)*m+i] += a[i*n+j+1];
+                        a_t[(j+2)*m+i] += a[i*n+j+2];
+                }
+                break;
+        }
+}
+
+/*
  * a[m,n] -> a_t[n,m]
  */
-void CINTzmat_transpose(double complex *a_t, const double complex *a,
-                        const int m, const int n)
+void CINTzmat_transpose(double complex *a_t, double complex *a, int m, int n)
 {
         int i, j;
 
@@ -129,8 +169,7 @@ void CINTzmat_transpose(double complex *a_t, const double complex *a,
         }
 }
 
-void CINTzmat_dagger(double complex *a_t, const double complex *a,
-                     const int m, const int n)
+void CINTzmat_dagger(double complex *a_t, double complex *a, int m, int n)
 {
         int i, j;
 

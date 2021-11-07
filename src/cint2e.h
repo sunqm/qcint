@@ -26,7 +26,8 @@ void CINT2e_core(double *gout, double *g, double fac1i,
 void CINTgout2e      (double *gout, double *g, int *idx, CINTEnvVars *envs);
 void CINTgout2e_simd1(double *gout, double *g, int *idx, CINTEnvVars *envs);
 
-int CINT2e_loop(double *gctr, CINTEnvVars *envs, CINTOpt *opt, double *cache);
+int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache, int *empty);
+int CINT2e_loop(double *out, CINTEnvVars *envs, double *cache, int *empty);
 
 CACHE_SIZE_T CINT2e_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
                         double *cache, void (*f_c2s)());

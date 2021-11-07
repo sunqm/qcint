@@ -22,15 +22,12 @@
 extern "C" {
 #endif
 #include <complex.h>
-void CINTdset0(const int n, double *x);
-void CINTdaxpy2v(const int n, const double a,
-                 const double *x, const double *y, double *v);
-void CINTdmat_transpose(double *a_t, const double *a,
-                        const int m, const int n);
-void CINTzmat_transpose(double complex *a_t, const double complex *a,
-                        const int m, const int n);
-void CINTzmat_dagger(double complex *a_c, const double complex *a,
-                     const int m, const int n);
+void CINTdset0(int n, double *x);
+void CINTdaxpy2v(const int n, double a, double *x, double *y, double *v);
+void CINTdmat_transpose(double *a_t, double *a, int m, int n);
+void CINTdplus_transpose(double *a_t, double *a, int m, int n);
+void CINTzmat_transpose(double complex *a_t, double complex *a, int m, int n);
+void CINTzmat_dagger(double complex *a_c, double complex *a, int m, int n);
 
 void CINTdgemm_NN(int m, int n, int k,
                   double *a, double *b, double *c);

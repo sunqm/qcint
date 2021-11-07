@@ -24,9 +24,9 @@
 #include <stdint.h>
 #include <immintrin.h>
 #include <mm_malloc.h>
+#include "cint.h"
 
 #ifdef __AVX512F__
-#define SIMDD   8
 #define __MD            __m512d
 #define MM_LOAD         _mm512_load_pd
 #define MM_LOADU        _mm512_loadu_pd
@@ -47,7 +47,6 @@
                         y[4] = exp(-x[4]); y[5] = exp(-x[5]); y[6] = exp(-x[6]); y[7] = exp(-x[7])
 
 #elif __AVX__
-#define SIMDD   4
 #define __MD            __m256d
 #define MM_LOAD         _mm256_load_pd
 #define MM_LOADU        _mm256_loadu_pd
@@ -71,7 +70,6 @@
 #define MM_EXPN(y,x,rx) y[0] = exp(-x[0]); y[1] = exp(-x[1]); y[2] = exp(-x[2]); y[3] = exp(-x[3])
 
 #elif __SSE3__
-#define SIMDD   2
 #define __MD            __m128d
 #define MM_LOAD         _mm_load_pd
 #define MM_LOADU        _mm_loadu_pd
@@ -96,18 +94,6 @@
 #endif
 #define MM_EXPN(y,x,rx) y[0] = exp(-x[0]); y[1] = exp(-x[1])
 
-#endif
-
-#if defined(__GNUC__)
-#define ALIGN16 __attribute__((aligned(16)))
-#define ALIGN32 __attribute__((aligned(32)))
-#define ALIGNMM __attribute__((aligned(SIMDD*8)))
-#define RESTRICT __restrict__
-#else
-#define ALIGN16
-#define ALIGN32
-#define ALIGNMM
-#define RESTRICT
 #endif
 
 #define ALIGN_UP(x, align)  (((uintptr_t)(x) + (uintptr_t)(align) - 1) & (-(uintptr_t)(align)))

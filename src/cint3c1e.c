@@ -116,9 +116,17 @@
         } \
         POP_PRIM2CTR
 
+#define TRANSPOSE(a) \
+        if (*empty) { \
+                CINTdmat_transpose(out, a, nf*nc, n_comp); \
+        } else { \
+                CINTdplus_transpose(out, a, nf*nc, n_comp); \
+        } \
+        *empty = 0;
+
 void CINTg3c1e_ovlp(double *g, CINTEnvVars *envs, int count);
 
-int CINT3c1e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
+int CINT3c1e_loop_nopt(double *out, CINTEnvVars *envs, double *cache, int *empty)
 {
         int *shls = envs->shls;
         int *bas = envs->bas;
@@ -147,10 +155,10 @@ int CINT3c1e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
         int nf = envs->nf;
         double fac1j, fac1k;
         int ip, jp, kp, i, it, im;
-        int empty[3] = {1, 1, 1};
-        int *iempty = empty + 0;
-        int *jempty = empty + 1;
-        int *kempty = empty + 2;
+        int _empty[3] = {1, 1, 1};
+        int *iempty = _empty + 0;
+        int *jempty = _empty + 1;
+        int *kempty = _empty + 2;
 
         int *idx;
         MALLOC_DATA_INSTACK(idx, nf * 3);
@@ -191,6 +199,7 @@ int CINT3c1e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
                 // patch SIMDD for leni, lenj with s functions
                 MALLOC_INSTACK(g1, lenk+SIMDD);
                 gctr[SHLTYPk] = out;
+                kempty = empty;
         } else {
                 // enlarge out by SIMDD, for leni, lenj with s functions
                 cache += SIMDD;
@@ -213,7 +222,6 @@ int CINT3c1e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
         const double rr_jk = SQUARE(envs->rkrl);
         INITSIMD;
 
-        *kempty = 1;
         for (kp = 0; kp < k_prim; kp++) {
                 if (k_ctr == 1) {
                         fac1k = common_factor * ck[kp];
@@ -253,18 +261,19 @@ i_contracted: ;
 
         if (n_comp > 1 && !*kempty) {
                 int nc = i_ctr * j_ctr * k_ctr;
-                CINTdmat_transpose(out, gctr[SHLTYPk], nf*nc, n_comp);
+                TRANSPOSE(gctr[SHLTYPk]);
         }
-        return !*kempty;
+        return !*empty;
 }
 
 
-int CINT3c1e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
+int CINT3c1e_loop(double *out, CINTEnvVars *envs, double *cache, int *empty)
 {
         int *shls  = envs->shls;
         int i_sh = shls[0];
         int j_sh = shls[1];
         int k_sh = shls[2];
+        CINTOpt *opt = envs->opt;
         if (opt->pairdata != NULL &&
             (opt->pairdata[i_sh*opt->nbas+j_sh] == NOVALUE ||
              opt->pairdata[i_sh*opt->nbas+k_sh] == NOVALUE ||
@@ -294,10 +303,10 @@ int CINT3c1e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
         int nf = envs->nf;
         double fac1j, fac1k;
         int ip, jp, kp, i, it, im;
-        int empty[3] = {1, 1, 1};
-        int *iempty = empty + 0;
-        int *jempty = empty + 1;
-        int *kempty = empty + 2;
+        int _empty[3] = {1, 1, 1};
+        int *iempty = _empty + 0;
+        int *jempty = _empty + 1;
+        int *kempty = _empty + 2;
 
         int *idx = opt->index_xyz_array[envs->i_l*LMAX1*LMAX1
                                        +envs->j_l*LMAX1
@@ -324,6 +333,7 @@ int CINT3c1e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
                 // patch SIMDD for leni, lenj with s functions
                 MALLOC_INSTACK(g1, lenk+SIMDD);
                 gctr[SHLTYPk] = out;
+                kempty = empty;
         } else {
                 // enlarge out by SIMDD, for leni, lenj with s functions
                 cache += SIMDD;
@@ -352,7 +362,6 @@ int CINT3c1e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
         int *non0idx[3] = {opt->sortedidx[i_sh], opt->sortedidx[j_sh], opt->sortedidx[k_sh]};
         INITSIMD;
 
-        *kempty = 1;
         for (kp = 0; kp < k_prim; kp++) {
                 if (k_ctr == 1) {
                         fac1k = common_factor * ck[kp];
@@ -392,9 +401,9 @@ i_contracted: ;
 
         if (n_comp > 1 && !*kempty) {
                 int nc = i_ctr * j_ctr * k_ctr;
-                CINTdmat_transpose(out, gctr[SHLTYPk], nf*nc, n_comp);
+                TRANSPOSE(gctr[SHLTYPk]);
         }
-        return !*kempty;
+        return !*empty;
 }
 
 
@@ -437,15 +446,17 @@ CACHE_SIZE_T CINT3c1e_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *op
         double *gctr;
         MALLOC_INSTACK(gctr, nc*n_comp);
 
-        int n, has_value;
+        int n;
+        int empty = 1;
         if (opt != NULL) {
-                has_value = CINT3c1e_loop(gctr, envs, opt, cache);
+                envs->opt = opt;
+                CINT3c1e_loop(gctr, envs, cache, &empty);
         } else {
-                has_value = CINT3c1e_loop_nopt(gctr, envs, cache);
+                CINT3c1e_loop_nopt(gctr, envs, cache, &empty);
         }
 
         int counts[4];
-        if (f_c2s == c2s_sph_3c2e1) {
+        if (f_c2s == c2s_sph_3c1e || f_c2s == c2s_sph_3c2e1) {
                 counts[0] = (envs->i_l*2+1) * x_ctr[0];
                 counts[1] = (envs->j_l*2+1) * x_ctr[1];
                 counts[2] = (envs->k_l*2+1) * x_ctr[2];
@@ -460,7 +471,7 @@ CACHE_SIZE_T CINT3c1e_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *op
                 dims = counts;
         }
         int nout = dims[0] * dims[1] * dims[2];
-        if (has_value) {
+        if (!empty) {
                 for (n = 0; n < n_comp; n++) {
                         (*f_c2s)(out+nout*n, gctr+nc*n, dims, envs, cache);
                 }
@@ -472,7 +483,7 @@ CACHE_SIZE_T CINT3c1e_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *op
         if (stack != NULL) {
                 free(stack);
         }
-        return has_value;
+        return !empty;
 }
 CACHE_SIZE_T CINT3c1e_spinor_drv(double complex *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
                         double *cache, void (*f_e1_c2s)())

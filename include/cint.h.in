@@ -145,6 +145,29 @@
 #define bas(SLOT,I)     bas[BAS_SLOTS * (I) + (SLOT)]
 #define atm(SLOT,I)     atm[ATM_SLOTS * (I) + (SLOT)]
 
+#include <immintrin.h>
+#include <mm_malloc.h>
+
+#ifdef __AVX512F__
+#define SIMDD   8
+#elif __AVX__
+#define SIMDD   4
+#elif __SSE3__
+#define SIMDD   2
+#endif
+
+#if defined(__GNUC__)
+#define ALIGN16 __attribute__((aligned(16)))
+#define ALIGN32 __attribute__((aligned(32)))
+#define ALIGNMM __attribute__((aligned(SIMDD*8)))
+#define RESTRICT __restrict__
+#else
+#define ALIGN16
+#define ALIGN32
+#define ALIGNMM
+#define RESTRICT
+#endif
+
 #if !defined HAVE_DEFINED_CINTOPT_H
 #define HAVE_DEFINED_CINTOPT_H
 typedef struct {
@@ -153,16 +176,86 @@ typedef struct {
     double cceij;
 } PairData;
 typedef struct {
-    int **index_xyz_array; // ANG_MAX**4 pointers to index_xyz
+    int **index_xyz_array; // LMAX1**4 pointers to index_xyz
     int **non0ctr;
     int **sortedidx;
     int nbas;
     double **log_max_coeff;
     PairData **pairdata;  // NULL indicates not-initialized, NO_VALUE can be skipped
 } CINTOpt;
-#endif
 
-#include <complex.h>
+typedef struct {
+        int *atm;
+        int *bas;
+        double *env;
+        int *shls;
+        int natm;
+        int nbas;
+
+        int i_l;
+        int j_l;
+        int k_l;
+        int l_l;
+        int nfi;  // number of cartesian components
+        int nfj;
+        // in int1e_grids, the grids_offset and the number of grids
+        union {int nfk; int grids_offset;};
+        union {int nfl; int ngrids;};
+        int nf;  // = nfi*nfj*nfk*nfl;
+        int _padding;
+        int x_ctr[4];
+
+        int gbits;
+        int ncomp_e1; // = 1 if spin free, = 4 when spin included, it
+        int ncomp_e2; // corresponds to POSX,POSY,POSZ,POS1, see cint.h
+        int ncomp_tensor; // e.g. = 3 for gradients
+
+        /* values may diff based on the g0_2d4d algorithm */
+        int li_ceil; // power of x, == i_l if nabla is involved, otherwise == i_l
+        int lj_ceil;
+        int lk_ceil;
+        int ll_ceil;
+        int g_stride_i; // nrys_roots * shift of (i++,k,l,j)
+        int g_stride_k; // nrys_roots * shift of (i,k++,l,j)
+        int g_stride_l; // nrys_roots * shift of (i,k,l++,j)
+        int g_stride_j; // nrys_roots * shift of (i,k,l,j++)
+        int nrys_roots;
+        int g_size;  // ref to cint2e.c g = malloc(sizeof(double)*g_size)
+
+        int g2d_ijmax;
+        int g2d_klmax;
+        double common_factor;
+        double expcutoff;
+        double rirj[3]; // diff by sign in different g0_2d4d algorithm
+        double rkrl[3];
+        double *rx_in_rijrx;
+        double *rx_in_rklrx;
+
+        double *ri;
+        double *rj;
+        double *rk;
+        // in int2e or int3c2e, the coordinates of the fourth shell
+        // in int1e_grids, the pointer for the grids coordinates
+        union {double *rl; double *grids;};
+
+        int (*f_g0_2e)();
+        int (*f_g0_2e_simd1)();
+        void (*f_g0_2d4d)();
+        void (*f_g0_2d4d_simd1)();
+        void (*f_gout)();
+        void (*f_gout_simd1)();
+        CINTOpt *opt;
+
+        /* values are assigned during calculation */
+        ALIGNMM double ai[SIMDD];
+        ALIGNMM double aj[SIMDD];
+        ALIGNMM double ak[SIMDD];
+        ALIGNMM double al[SIMDD];
+        ALIGNMM double fac[SIMDD];
+        ALIGNMM double rij[SIMDD*3];
+        ALIGNMM double rkl[SIMDD*3];
+} CINTEnvVars;
+#endif
 
 int CINTlen_cart(const int l);
 int CINTlen_spinor(const int bas_id, const int *bas);
@@ -188,14 +281,6 @@ void CINTshells_spinor_offset(int ao_loc[], const int *bas, const int nbas);
 double *CINTc2s_bra_sph(double *sph, int nket, double *cart, int l);
 double *CINTc2s_ket_sph(double *sph, int nket, double *cart, int l);
 double *CINTc2s_ket_sph1(double *sph, double *cart, int lds, int ldc, int l);
-void CINTc2s_ket_spinor_sf1(double complex *gspa, double complex *gspb, double *gcart,
-                            int lds, int ldc, int nctr, int l, int kappa);
-void CINTc2s_iket_spinor_sf1(double complex *gspa, double complex *gspb, double *gcart,
-                             int lds, int ldc, int nctr, int l, int kappa);
-void CINTc2s_ket_spinor_si1(double complex *gspa, double complex *gspb, double *gcart,
-                            int lds, int ldc, int nctr, int l, int kappa);
-void CINTc2s_iket_spinor_si1(double complex *gspa, double complex *gspb, double *gcart,
-                             int lds, int ldc, int nctr, int l, int kappa);
 
 
 double CINTgto_norm(int n, double a);
@@ -225,3 +310,15 @@ int cint2e(double *opijkl, int *shls,
 void cint2e_optimizer(CINTOpt **opt, int *atm, int natm,
                       int *bas, int nbas, double *env);
 
+#ifndef __cplusplus
+#include <complex.h>
+
+void CINTc2s_ket_spinor_sf1(double complex *gspa, double complex *gspb, double *gcart,
+                            int lds, int ldc, int nctr, int l, int kappa);
+void CINTc2s_iket_spinor_sf1(double complex *gspa, double complex *gspb, double *gcart,
+                             int lds, int ldc, int nctr, int l, int kappa);
+void CINTc2s_ket_spinor_si1(double complex *gspa, double complex *gspb, double *gcart,
+                            int lds, int ldc, int nctr, int l, int kappa);
+void CINTc2s_iket_spinor_si1(double complex *gspa, double complex *gspb, double *gcart,
+                             int lds, int ldc, int nctr, int l, int kappa);
+#endif

@@ -5219,8 +5219,8 @@ void c2s_sph_1e_grids(double *out, double *gctr, int *dims,
         int bgrids, bgrids_di, bgrids_nfi;
         int buflen = GRID_BLKSIZE * nfi * dj;
         double *buf1, *buf2;
-        MALLOC_ALIGN8_INSTACK(buf1, buflen);
-        MALLOC_ALIGN8_INSTACK(buf2, buflen);
+        MALLOC_INSTACK(buf1, buflen);
+        MALLOC_INSTACK(buf2, buflen);
         double *pij;
         double *tmp1;
 
@@ -5298,10 +5298,10 @@ void c2s_sf_1e_grids(double complex *out, double *gctr, int *dims,
         int bgrids, bgrids_di;
         int buflen = GRID_BLKSIZE * di * nf2j;
         double *tmp1R, *tmp1I, *tmp2R, *tmp2I;
-        MALLOC_ALIGN8_INSTACK(tmp1R, buflen);
-        MALLOC_ALIGN8_INSTACK(tmp1I, buflen);
-        MALLOC_ALIGN8_INSTACK(tmp2R, buflen);
-        MALLOC_ALIGN8_INSTACK(tmp2I, buflen);
+        MALLOC_INSTACK(tmp1R, buflen);
+        MALLOC_INSTACK(tmp1I, buflen);
+        MALLOC_INSTACK(tmp2R, buflen);
+        MALLOC_INSTACK(tmp2I, buflen);
         double complex *pij;
 
         for (grids_offset = 0; grids_offset < ngrids; grids_offset += GRID_BLKSIZE) {
@@ -5345,10 +5345,10 @@ void c2s_sf_1e_gridsi(double complex *out, double *gctr, int *dims,
         int bgrids, bgrids_di;
         int buflen = GRID_BLKSIZE * di * nf2j;
         double *tmp1R, *tmp1I, *tmp2R, *tmp2I;
-        MALLOC_ALIGN8_INSTACK(tmp1R, buflen);
-        MALLOC_ALIGN8_INSTACK(tmp1I, buflen);
-        MALLOC_ALIGN8_INSTACK(tmp2R, buflen);
-        MALLOC_ALIGN8_INSTACK(tmp2I, buflen);
+        MALLOC_INSTACK(tmp1R, buflen);
+        MALLOC_INSTACK(tmp1I, buflen);
+        MALLOC_INSTACK(tmp2R, buflen);
+        MALLOC_INSTACK(tmp2I, buflen);
         double complex *pij;
 
         for (grids_offset = 0; grids_offset < ngrids; grids_offset += GRID_BLKSIZE) {
@@ -5397,10 +5397,10 @@ void c2s_si_1e_grids(double complex *out, double *gctr, int *dims,
         double *gc_1 = gc_z + ngrids * nf * i_ctr * j_ctr;
         int buflen = GRID_BLKSIZE * di * nf2j;
         double *tmp1R, *tmp1I, *tmp2R, *tmp2I;
-        MALLOC_ALIGN8_INSTACK(tmp1R, buflen);
-        MALLOC_ALIGN8_INSTACK(tmp1I, buflen);
-        MALLOC_ALIGN8_INSTACK(tmp2R, buflen);
-        MALLOC_ALIGN8_INSTACK(tmp2I, buflen);
+        MALLOC_INSTACK(tmp1R, buflen);
+        MALLOC_INSTACK(tmp1I, buflen);
+        MALLOC_INSTACK(tmp2R, buflen);
+        MALLOC_INSTACK(tmp2I, buflen);
         double complex *pij;
 
         for (grids_offset = 0; grids_offset < ngrids; grids_offset += GRID_BLKSIZE) {
@@ -5453,10 +5453,10 @@ void c2s_si_1e_gridsi(double complex *out, double *gctr, int *dims,
         double *gc_1 = gc_z + ngrids * nf * i_ctr * j_ctr;
         int buflen = GRID_BLKSIZE * di * nf2j;
         double *tmp1R, *tmp1I, *tmp2R, *tmp2I;
-        MALLOC_ALIGN8_INSTACK(tmp1R, buflen);
-        MALLOC_ALIGN8_INSTACK(tmp1I, buflen);
-        MALLOC_ALIGN8_INSTACK(tmp2R, buflen);
-        MALLOC_ALIGN8_INSTACK(tmp2I, buflen);
+        MALLOC_INSTACK(tmp1R, buflen);
+        MALLOC_INSTACK(tmp1I, buflen);
+        MALLOC_INSTACK(tmp2R, buflen);
+        MALLOC_INSTACK(tmp2I, buflen);
         double complex *pij;
 
         for (grids_offset = 0; grids_offset < ngrids; grids_offset += GRID_BLKSIZE) {

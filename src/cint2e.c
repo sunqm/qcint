@@ -89,6 +89,14 @@
         cum = 0; \
         np2c = 0;
 
+#define TRANSPOSE(a) \
+        if (*empty) { \
+                CINTdmat_transpose(out, a, nf*nc, n_comp); \
+                *empty = 0; \
+        } else { \
+                CINTdplus_transpose(out, a, nf*nc, n_comp); \
+        } \
+
 #define PUSH(RIJ, RKL) \
         if (cum == SIMDD) { \
                 (*envs->f_g0_2e)(g, &bc, envs, cum); \
@@ -170,7 +178,7 @@ static inline double approx_log(double x)
         return 3;
 }
 
-int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
+int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache, int *empty)
 {
         int *shls = envs->shls;
         int *bas = envs->bas;
@@ -189,6 +197,8 @@ int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
         int l_prim = bas(NPRIM_OF, l_sh);
         int *x_ctr = envs->x_ctr;
         int x_prim[4] = {i_prim, j_prim, k_prim, l_prim};
+        double *rk = envs->rk;
+        double *rl = envs->rl;
         double *ai = env + bas(PTR_EXP, i_sh);
         double *aj = env + bas(PTR_EXP, j_sh);
         double *ak = env + bas(PTR_EXP, k_sh);
@@ -216,17 +226,15 @@ int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
         CINTOpt_log_max_pgto_coeff(log_maxck, ck, k_prim, k_ctr);
         CINTOpt_log_max_pgto_coeff(log_maxcl, cl, l_prim, l_ctr);
 
-        double *rk = envs->rk;
-        double *rl = envs->rl;
         int n_comp = envs->ncomp_e1 * envs->ncomp_e2 * envs->ncomp_tensor;
         size_t nf = envs->nf;
         double fac1i, fac1j, fac1k, fac1l;
         int ip, jp, kp, lp, i, it, im;
-        int empty[4] = {1, 1, 1, 1};
-        int *iempty = empty + 0;
-        int *jempty = empty + 1;
-        int *kempty = empty + 2;
-        int *lempty = empty + 3;
+        int _empty[4] = {1, 1, 1, 1};
+        int *iempty = _empty + 0;
+        int *jempty = _empty + 1;
+        int *kempty = _empty + 2;
+        int *lempty = _empty + 3;
 
         int *idx;
         MALLOC_DATA_INSTACK(idx, nf * 3);
@@ -272,6 +280,7 @@ int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
                 // patch SIMDD*2 for leni, lenj, lenk with s functions
                 MALLOC_INSTACK(g1, lenl+SIMDD*2);
                 bufctr[SHLTYPl] = out;
+                lempty = empty;
         } else {
                 // enlarge sizeo of out by SIMDD*2, for leni, lenj, lenk with s functions
                 cache += SIMDD*2;
@@ -293,7 +302,6 @@ int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
 
         INITSIMD;
 
-        *lempty = 1;
         for (lp = 0; lp < l_prim; lp++) {
                 INIT_GCTR_ADDR(k, l, common_factor);
                 for (kp = 0; kp < k_prim; kp++) {
@@ -338,19 +346,20 @@ k_contracted: ;
 
         if (n_comp > 1 && !*lempty) {
                 int nc = i_ctr * j_ctr * k_ctr * l_ctr;
-                CINTdmat_transpose(out, gctr[SHLTYPl], nf*nc, n_comp);
+                TRANSPOSE(gctr[SHLTYPl]);
         }
-        return !*lempty;
+        return !*empty;
 }
 
 
-int CINT2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
+int CINT2e_loop(double *out, CINTEnvVars *envs, double *cache, int *empty)
 {
         int *shls  = envs->shls;
         int i_sh = shls[0];
         int j_sh = shls[1];
         int k_sh = shls[2];
         int l_sh = shls[3];
+        CINTOpt *opt = envs->opt;
         if (opt->pairdata != NULL &&
             ((opt->pairdata[i_sh*opt->nbas+j_sh] == NOVALUE) ||
              (opt->pairdata[k_sh*opt->nbas+l_sh] == NOVALUE))) {
@@ -406,11 +415,11 @@ int CINT2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
         size_t nf = envs->nf;
         double fac1i, fac1j, fac1k, fac1l;
         int ip, jp, kp, lp, i, it, im;
-        int empty[4] = {1, 1, 1, 1};
-        int *iempty = empty + 0;
-        int *jempty = empty + 1;
-        int *kempty = empty + 2;
-        int *lempty = empty + 3;
+        int _empty[4] = {1, 1, 1, 1};
+        int *iempty = _empty + 0;
+        int *jempty = _empty + 1;
+        int *kempty = _empty + 2;
+        int *lempty = _empty + 3;
 
         int *idx = opt->index_xyz_array[envs->i_l*LMAX1*LMAX1*LMAX1
                                        +envs->j_l*LMAX1*LMAX1
@@ -440,6 +449,7 @@ int CINT2e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
                 // patch SIMDD*2 for leni, lenj, lenk with s functions
                 MALLOC_INSTACK(g1, lenl+SIMDD*2);
                 bufctr[SHLTYPl] = out;
+                lempty = empty;
         } else {
                 // enlarge out by SIMDD*2, for leni, lenj, lenk with s functions
                 cache += SIMDD*2;
@@ -510,10 +520,12 @@ k_contracted: ;
 
         if (n_comp > 1 && !*lempty) {
                 int nc = i_ctr * j_ctr * k_ctr * l_ctr;
-                CINTdmat_transpose(out, gctr[SHLTYPl], nf*nc, n_comp);
+                TRANSPOSE(gctr[SHLTYPl]);
         }
-        return !*lempty;
+        return !*empty;
 }
+
+int (*CINT2e_1111_loop)(double *, CINTEnvVars *, double *, int *) = &CINT2e_loop;
 
 #define PAIRDATA_NON0IDX_SIZE(ps) \
                 int *bas = envs->bas; \
@@ -538,10 +550,10 @@ CACHE_SIZE_T CINT2e_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
         int n_comp = envs->ncomp_e1 * envs->ncomp_e2 * envs->ncomp_tensor;
         if (out == NULL) {
                 PAIRDATA_NON0IDX_SIZE(pdata_size);
-                int leng = envs->g_size*3*((1<<envs->gbits)+1)*SIMDD;
+                size_t leng = envs->g_size*3*((1<<envs->gbits)+1)*SIMDD;
                 size_t len0 = nf*n_comp * SIMDD;
                 size_t cache_size = MAX(leng+len0+nc*n_comp*3 + pdata_size,
-                                     nc*n_comp+nf*4) + SIMDD*4;
+                                        nc*n_comp+nf*4) + SIMDD*4;
 #ifndef CACHE_SIZE_I8
                 if (cache_size >= INT32_MAX) {
                         fprintf(stderr, "CINT2e_drv cache_size overflow: "
@@ -555,21 +567,23 @@ CACHE_SIZE_T CINT2e_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
         double *stack = NULL;
         if (cache == NULL) {
                 PAIRDATA_NON0IDX_SIZE(pdata_size);
-                int leng = envs->g_size*3*((1<<envs->gbits)+1)*SIMDD;
+                size_t leng = envs->g_size*3*((1<<envs->gbits)+1)*SIMDD;
                 size_t len0 = nf*n_comp * SIMDD;
                 size_t cache_size = MAX(leng+len0+nc*n_comp*3 + pdata_size,
-                                     nc*n_comp+nf*4) + SIMDD*4;
+                                        nc*n_comp+nf*4) + SIMDD*4;
                 stack = _mm_malloc(sizeof(double)*cache_size, sizeof(double)*SIMDD);
                 cache = stack;
         }
         double *gctr;
         MALLOC_INSTACK(gctr, nc*n_comp);
 
-        int n, has_value;
+        int n;
+        int empty = 1;
         if (opt != NULL) {
-                has_value = CINT2e_loop(gctr, envs, opt, cache);
+                envs->opt = opt;
+                CINT2e_loop(gctr, envs, cache, &empty);
         } else {
-                has_value = CINT2e_loop_nopt(gctr, envs, cache);
+                CINT2e_loop_nopt(gctr, envs, cache, &empty);
         }
 
         int counts[4];
@@ -588,7 +602,7 @@ CACHE_SIZE_T CINT2e_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
                 dims = counts;
         }
         int nout = dims[0] * dims[1] * dims[2] * dims[3];
-        if (has_value) {
+        if (!empty) {
                 for (n = 0; n < n_comp; n++) {
                         (*f_c2s)(out+nout*n, gctr+nc*n, dims, envs, cache);
                 }
@@ -600,7 +614,7 @@ CACHE_SIZE_T CINT2e_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
         if (stack != NULL) {
                 free(stack);
         }
-        return has_value;
+        return !empty;
 }
 CACHE_SIZE_T CINT2e_spinor_drv(double complex *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
                       double *cache, void (*f_e1_c2s)(), void (*f_e2_c2s)())
@@ -620,7 +634,7 @@ CACHE_SIZE_T CINT2e_spinor_drv(double complex *out, int *dims, CINTEnvVars *envs
                            * envs->nfl * x_ctr[3] * counts[1];
         if (out == NULL) {
                 PAIRDATA_NON0IDX_SIZE(pdata_size);
-                int leng = envs->g_size*3*((1<<envs->gbits)+1)*SIMDD;
+                size_t leng = envs->g_size*3*((1<<envs->gbits)+1)*SIMDD;
                 size_t len0 = nf*n_comp * SIMDD;
                 size_t cache_size = MAX(leng+len0+nc*n_comp*3 + pdata_size,
                                      nc*n_comp + n1*envs->ncomp_e2*OF_CMPLX
@@ -638,7 +652,7 @@ CACHE_SIZE_T CINT2e_spinor_drv(double complex *out, int *dims, CINTEnvVars *envs
         double *stack = NULL;
         if (cache == NULL) {
                 PAIRDATA_NON0IDX_SIZE(pdata_size);
-                int leng = envs->g_size*3*((1<<envs->gbits)+1)*SIMDD;
+                size_t leng = envs->g_size*3*((1<<envs->gbits)+1)*SIMDD;
                 size_t len0 = nf*n_comp * SIMDD;
                 size_t cache_size = MAX(leng+len0+nc*n_comp*3 + pdata_size,
                                      nc*n_comp + n1*envs->ncomp_e2*OF_CMPLX
@@ -649,19 +663,20 @@ CACHE_SIZE_T CINT2e_spinor_drv(double complex *out, int *dims, CINTEnvVars *envs
         double *gctr;
         MALLOC_INSTACK(gctr, nc*n_comp);
 
-        int n, m, has_value;
-
+        int n, m;
+        int empty = 1;
         if (opt != NULL) {
-                has_value = CINT2e_loop(gctr, envs, opt, cache);
+                envs->opt = opt;
+                CINT2e_loop(gctr, envs, cache, &empty);
         } else {
-                has_value = CINT2e_loop_nopt(gctr, envs, cache);
+                CINT2e_loop_nopt(gctr, envs, cache, &empty);
         }
 
         if (dims == NULL) {
                 dims = counts;
         }
         int nout = dims[0] * dims[1] * dims[2] * dims[3];
-        if (has_value) {
+        if (!empty) {
                 double complex *opij;
                 MALLOC_INSTACK(opij, n1*envs->ncomp_e2);
                 for (n = 0; n < envs->ncomp_tensor; n++) {
@@ -679,7 +694,7 @@ CACHE_SIZE_T CINT2e_spinor_drv(double complex *out, int *dims, CINTEnvVars *envs
         if (stack != NULL) {
                 free(stack);
         }
-        return has_value;
+        return !empty;
 }
 
 CACHE_SIZE_T int2e_sph(double *out, int *dims, int *shls, int *atm, int natm,
