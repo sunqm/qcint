@@ -54,7 +54,7 @@ void CINTinit_int1e_grids_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
                              r[ig+GRID_BLKSIZE*1]*r[ig+GRID_BLKSIZE*1] + \
                              r[ig+GRID_BLKSIZE*2]*r[ig+GRID_BLKSIZE*2])
 
-int CINTg0_1e_grids(double *RESTRICT g, const double fac, CINTEnvVars *envs,
+int CINTg0_1e_grids(double *RESTRICT g, CINTEnvVars *envs,
                     double *cache, double *RESTRICT gridsT)
 {
         int ngrids = envs->ngrids;
@@ -98,7 +98,7 @@ int CINTg0_1e_grids(double *RESTRICT g, const double fac, CINTEnvVars *envs,
         double theta, sqrt_theta, aij_theta;
 
         if (omega == 0) {
-                fac1 = fac / aij;
+                fac1 = envs->fac[0] / aij;
                 for (ig = 0; ig < bgrids; ig++) {
                         x = aij * RGSQUARE(rijrg, ig);
                         CINTrys_roots(nroots, x, ubuf, wbuf);
@@ -111,7 +111,7 @@ int CINTg0_1e_grids(double *RESTRICT g, const double fac, CINTEnvVars *envs,
         } else if (omega < 0) { // short-range part of range-separated Coulomb
                 theta = omega * omega / (omega * omega + aij);
                 sqrt_theta = sqrt(theta);
-                fac1 = fac / aij;
+                fac1 = envs->fac[0] / aij;
                 // FIXME:
                 // very small erfc() leads to ~0 weights. They can cause
                 // numerical issue in sr_rys_roots Use this cutoff as a
@@ -135,7 +135,7 @@ int CINTg0_1e_grids(double *RESTRICT g, const double fac, CINTEnvVars *envs,
                 }
         } else {  // long-range part of range-separated Coulomb
                 theta = omega * omega / (omega * omega + aij);
-                fac1 = fac * sqrt(theta) / aij;
+                fac1 = envs->fac[0] * sqrt(theta) / aij;
                 aij_theta = aij * theta;
                 for (ig = 0; ig < bgrids; ig++) {
                         x = aij_theta * RGSQUARE(rijrg, ig);
@@ -148,7 +148,7 @@ int CINTg0_1e_grids(double *RESTRICT g, const double fac, CINTEnvVars *envs,
                 }
         }
 #else
-        fac1 = fac / aij;
+        fac1 = envs->fac[0] / aij;
         for (ig = 0; ig < bgrids; ig++) {
                 x = aij * RGSQUARE(rijrg, ig);
                 CINTrys_roots(nroots, x, ubuf, wbuf);

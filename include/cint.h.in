@@ -249,6 +249,7 @@ typedef struct {
         CINTOpt *opt;
 
         /* values are assigned during calculation */
+        int *idx;
         ALIGNMM double ai[SIMDD];
         ALIGNMM double aj[SIMDD];
         ALIGNMM double ak[SIMDD];

@@ -181,7 +181,8 @@ int CINT1e_grids_loop(double *gctr, CINTEnvVars *envs, double *cache)
                                         fac1i = fac1j*expij;
                                 }
 
-                                CINTg0_1e_grids(g, fac1i, envs, cache, gridsT);
+                                envs->fac[0] = fac1i;
+                                CINTg0_1e_grids(g, envs, cache, gridsT);
                                 (*envs->f_gout)(gout, g, idx, envs, *gempty);
                                 PRIM2CTR(i, gout, bgrids * nf * n_comp);
                         }
