@@ -90,13 +90,10 @@ double CINTsquare_dist(const double *r1, const double *r2)
         return r12[0] * r12[0] + r12[1] * r12[1] + r12[2] * r12[2];
 }
 
-static int factorial(int n)
+static double _gaussian_int(int n, double alpha)
 {
-        int i, fact = 1;
-        for (i = 1; i <= n; i++) {
-                fact *= i;
-        }
-        return fact;
+        double n1 = (n + 1) * .5;
+        return exp(lgamma(n1)) / (2. * pow(alpha, n1));
 }
 
 /*
@@ -109,7 +106,5 @@ static int factorial(int n)
  */
 double CINTgto_norm(int n, double a)
 {
-        double nn = pow(2, (2*n+3)) * factorial(n+1) * pow((2*a), (n+1.5)) \
-                / (factorial(2*n+2) * sqrt(M_PI));
-        return sqrt(nn);
+        return 1. / sqrt(_gaussian_int(n*2+2, 2*a));
 }
