@@ -810,6 +810,240 @@ return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_1e);
 } // int1e_iprinvip_spinor
 ALL_CINT1E(int1e_iprinvip)
 //ALL_CINT1E_FORTRAN_(cint1e_iprinvip)
+/* <NABLA NABLA i|RC |j> */
+void CINTgout1e_int1e_ipipr(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+CINTg1e_ovlp(g, envs, count);
+int nf = envs->nf;
+int nfc = nf * 27;
+int ix, iy, iz, n;
+DECLARE_GOUT;
+double *RESTRICT g0 = g;
+double *RESTRICT g1 = g0  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g2 = g1  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g3 = g2  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g4 = g3  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g5 = g4  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g6 = g5  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g7 = g6  + envs->g_size * 3 * SIMDD;
+double drj[3];
+drj[0] = envs->rj[0] - envs->env[PTR_COMMON_ORIG+0];
+drj[1] = envs->rj[1] - envs->env[PTR_COMMON_ORIG+1];
+drj[2] = envs->rj[2] - envs->env[PTR_COMMON_ORIG+2];
+__MD r1;
+__MD rs[27];
+G1E_RCJ(g1, g0, envs->i_l+2, envs->j_l+0, 0);
+G1E_D_I(g2, g0, envs->i_l+1, envs->j_l, 0);
+G1E_D_I(g3, g1, envs->i_l+1, envs->j_l, 0);
+G1E_D_I(g4, g0, envs->i_l+0, envs->j_l, 0);
+G1E_D_I(g5, g1, envs->i_l+0, envs->j_l, 0);
+G1E_D_I(g6, g2, envs->i_l+0, envs->j_l, 0);
+G1E_D_I(g7, g3, envs->i_l+0, envs->j_l, 0);
+for (n = 0; n < nf; n++) {
+ix = idx[0+n*3];
+iy = idx[1+n*3];
+iz = idx[2+n*3];
+rs[0] = MM_LOAD(g7+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[1] = MM_LOAD(g6+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[2] = MM_LOAD(g6+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[3] = MM_LOAD(g5+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[4] = MM_LOAD(g4+ix*SIMDD) * MM_LOAD(g3+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[5] = MM_LOAD(g4+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[6] = MM_LOAD(g5+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
+rs[7] = MM_LOAD(g4+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
+rs[8] = MM_LOAD(g4+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g3+iz*SIMDD);
+rs[9] = MM_LOAD(g3+ix*SIMDD) * MM_LOAD(g4+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[10] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g5+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[11] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g4+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[12] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g6+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[13] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g7+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[14] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g6+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[15] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g4+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
+rs[16] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g5+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
+rs[17] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g4+iy*SIMDD) * MM_LOAD(g3+iz*SIMDD);
+rs[18] = MM_LOAD(g3+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g4+iz*SIMDD);
+rs[19] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g4+iz*SIMDD);
+rs[20] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g5+iz*SIMDD);
+rs[21] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g4+iz*SIMDD);
+rs[22] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g3+iy*SIMDD) * MM_LOAD(g4+iz*SIMDD);
+rs[23] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g5+iz*SIMDD);
+rs[24] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g6+iz*SIMDD);
+rs[25] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g6+iz*SIMDD);
+rs[26] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g7+iz*SIMDD);
+r1 = + rs[0]; GOUT_SCATTER(gout, n*27+0, r1);
+r1 = + rs[1]; GOUT_SCATTER(gout, n*27+1, r1);
+r1 = + rs[2]; GOUT_SCATTER(gout, n*27+2, r1);
+r1 = + rs[9]; GOUT_SCATTER(gout, n*27+3, r1);
+r1 = + rs[10]; GOUT_SCATTER(gout, n*27+4, r1);
+r1 = + rs[11]; GOUT_SCATTER(gout, n*27+5, r1);
+r1 = + rs[18]; GOUT_SCATTER(gout, n*27+6, r1);
+r1 = + rs[19]; GOUT_SCATTER(gout, n*27+7, r1);
+r1 = + rs[20]; GOUT_SCATTER(gout, n*27+8, r1);
+r1 = + rs[3]; GOUT_SCATTER(gout, n*27+9, r1);
+r1 = + rs[4]; GOUT_SCATTER(gout, n*27+10, r1);
+r1 = + rs[5]; GOUT_SCATTER(gout, n*27+11, r1);
+r1 = + rs[12]; GOUT_SCATTER(gout, n*27+12, r1);
+r1 = + rs[13]; GOUT_SCATTER(gout, n*27+13, r1);
+r1 = + rs[14]; GOUT_SCATTER(gout, n*27+14, r1);
+r1 = + rs[21]; GOUT_SCATTER(gout, n*27+15, r1);
+r1 = + rs[22]; GOUT_SCATTER(gout, n*27+16, r1);
+r1 = + rs[23]; GOUT_SCATTER(gout, n*27+17, r1);
+r1 = + rs[6]; GOUT_SCATTER(gout, n*27+18, r1);
+r1 = + rs[7]; GOUT_SCATTER(gout, n*27+19, r1);
+r1 = + rs[8]; GOUT_SCATTER(gout, n*27+20, r1);
+r1 = + rs[15]; GOUT_SCATTER(gout, n*27+21, r1);
+r1 = + rs[16]; GOUT_SCATTER(gout, n*27+22, r1);
+r1 = + rs[17]; GOUT_SCATTER(gout, n*27+23, r1);
+r1 = + rs[24]; GOUT_SCATTER(gout, n*27+24, r1);
+r1 = + rs[25]; GOUT_SCATTER(gout, n*27+25, r1);
+r1 = + rs[26]; GOUT_SCATTER(gout, n*27+26, r1);
+}}
+void int1e_ipipr_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
+int ng[] = {2, 1, 0, 0, 3, 1, 1, 27};
+CINTall_1e_optimizer(opt, ng, atm, natm, bas, nbas, env);
+}
+CACHE_SIZE_T int1e_ipipr_cart(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {2, 1, 0, 0, 3, 1, 1, 27};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_ipipr;
+return CINT1e_drv(out, dims, &envs, opt, cache, &c2s_cart_1e);
+} // int1e_ipipr_cart
+CACHE_SIZE_T int1e_ipipr_sph(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {2, 1, 0, 0, 3, 1, 1, 27};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_ipipr;
+return CINT1e_drv(out, dims, &envs, opt, cache, &c2s_sph_1e);
+} // int1e_ipipr_sph
+CACHE_SIZE_T int1e_ipipr_spinor(double complex *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {2, 1, 0, 0, 3, 1, 1, 27};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_ipipr;
+return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_1e);
+} // int1e_ipipr_spinor
+ALL_CINT1E(int1e_ipipr)
+//ALL_CINT1E_FORTRAN_(cint1e_ipipr)
+/* <NABLA i|RC |NABLA j> */
+void CINTgout1e_int1e_iprip(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
+CINTg1e_ovlp(g, envs, count);
+int nf = envs->nf;
+int nfc = nf * 27;
+int ix, iy, iz, n;
+DECLARE_GOUT;
+double *RESTRICT g0 = g;
+double *RESTRICT g1 = g0  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g2 = g1  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g3 = g2  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g4 = g3  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g5 = g4  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g6 = g5  + envs->g_size * 3 * SIMDD;
+double *RESTRICT g7 = g6  + envs->g_size * 3 * SIMDD;
+double drj[3];
+drj[0] = envs->rj[0] - envs->env[PTR_COMMON_ORIG+0];
+drj[1] = envs->rj[1] - envs->env[PTR_COMMON_ORIG+1];
+drj[2] = envs->rj[2] - envs->env[PTR_COMMON_ORIG+2];
+__MD r1;
+__MD rs[27];
+G1E_D_J(g1, g0, envs->i_l+1, envs->j_l+0, 0);
+G1E_RCJ(g2, g0, envs->i_l+1, envs->j_l+1, 0);
+G1E_D_J(g3, g2, envs->i_l+1, envs->j_l+0, 0);
+G1E_D_I(g4, g0, envs->i_l+0, envs->j_l, 0);
+G1E_D_I(g5, g1, envs->i_l+0, envs->j_l, 0);
+G1E_D_I(g6, g2, envs->i_l+0, envs->j_l, 0);
+G1E_D_I(g7, g3, envs->i_l+0, envs->j_l, 0);
+for (n = 0; n < nf; n++) {
+ix = idx[0+n*3];
+iy = idx[1+n*3];
+iz = idx[2+n*3];
+rs[0] = MM_LOAD(g7+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[1] = MM_LOAD(g6+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[2] = MM_LOAD(g6+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[3] = MM_LOAD(g5+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[4] = MM_LOAD(g4+ix*SIMDD) * MM_LOAD(g3+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[5] = MM_LOAD(g4+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[6] = MM_LOAD(g5+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
+rs[7] = MM_LOAD(g4+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
+rs[8] = MM_LOAD(g4+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g3+iz*SIMDD);
+rs[9] = MM_LOAD(g3+ix*SIMDD) * MM_LOAD(g4+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[10] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g5+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[11] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g4+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[12] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g6+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[13] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g7+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[14] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g6+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[15] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g4+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
+rs[16] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g5+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
+rs[17] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g4+iy*SIMDD) * MM_LOAD(g3+iz*SIMDD);
+rs[18] = MM_LOAD(g3+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g4+iz*SIMDD);
+rs[19] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g4+iz*SIMDD);
+rs[20] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g5+iz*SIMDD);
+rs[21] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g4+iz*SIMDD);
+rs[22] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g3+iy*SIMDD) * MM_LOAD(g4+iz*SIMDD);
+rs[23] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g5+iz*SIMDD);
+rs[24] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g6+iz*SIMDD);
+rs[25] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g6+iz*SIMDD);
+rs[26] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g7+iz*SIMDD);
+r1 = + rs[0]; GOUT_SCATTER(gout, n*27+0, r1);
+r1 = + rs[1]; GOUT_SCATTER(gout, n*27+1, r1);
+r1 = + rs[2]; GOUT_SCATTER(gout, n*27+2, r1);
+r1 = + rs[3]; GOUT_SCATTER(gout, n*27+3, r1);
+r1 = + rs[4]; GOUT_SCATTER(gout, n*27+4, r1);
+r1 = + rs[5]; GOUT_SCATTER(gout, n*27+5, r1);
+r1 = + rs[6]; GOUT_SCATTER(gout, n*27+6, r1);
+r1 = + rs[7]; GOUT_SCATTER(gout, n*27+7, r1);
+r1 = + rs[8]; GOUT_SCATTER(gout, n*27+8, r1);
+r1 = + rs[9]; GOUT_SCATTER(gout, n*27+9, r1);
+r1 = + rs[10]; GOUT_SCATTER(gout, n*27+10, r1);
+r1 = + rs[11]; GOUT_SCATTER(gout, n*27+11, r1);
+r1 = + rs[12]; GOUT_SCATTER(gout, n*27+12, r1);
+r1 = + rs[13]; GOUT_SCATTER(gout, n*27+13, r1);
+r1 = + rs[14]; GOUT_SCATTER(gout, n*27+14, r1);
+r1 = + rs[15]; GOUT_SCATTER(gout, n*27+15, r1);
+r1 = + rs[16]; GOUT_SCATTER(gout, n*27+16, r1);
+r1 = + rs[17]; GOUT_SCATTER(gout, n*27+17, r1);
+r1 = + rs[18]; GOUT_SCATTER(gout, n*27+18, r1);
+r1 = + rs[19]; GOUT_SCATTER(gout, n*27+19, r1);
+r1 = + rs[20]; GOUT_SCATTER(gout, n*27+20, r1);
+r1 = + rs[21]; GOUT_SCATTER(gout, n*27+21, r1);
+r1 = + rs[22]; GOUT_SCATTER(gout, n*27+22, r1);
+r1 = + rs[23]; GOUT_SCATTER(gout, n*27+23, r1);
+r1 = + rs[24]; GOUT_SCATTER(gout, n*27+24, r1);
+r1 = + rs[25]; GOUT_SCATTER(gout, n*27+25, r1);
+r1 = + rs[26]; GOUT_SCATTER(gout, n*27+26, r1);
+}}
+void int1e_iprip_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
+int ng[] = {1, 2, 0, 0, 3, 1, 1, 27};
+CINTall_1e_optimizer(opt, ng, atm, natm, bas, nbas, env);
+}
+CACHE_SIZE_T int1e_iprip_cart(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {1, 2, 0, 0, 3, 1, 1, 27};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_iprip;
+return CINT1e_drv(out, dims, &envs, opt, cache, &c2s_cart_1e);
+} // int1e_iprip_cart
+CACHE_SIZE_T int1e_iprip_sph(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {1, 2, 0, 0, 3, 1, 1, 27};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_iprip;
+return CINT1e_drv(out, dims, &envs, opt, cache, &c2s_sph_1e);
+} // int1e_iprip_sph
+CACHE_SIZE_T int1e_iprip_spinor(double complex *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {1, 2, 0, 0, 3, 1, 1, 27};
+CINTEnvVars envs;
+CINTinit_int1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_iprip;
+return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_1e);
+} // int1e_iprip_spinor
+ALL_CINT1E(int1e_iprip)
+//ALL_CINT1E_FORTRAN_(cint1e_iprip)
 /* <k NABLA NABLA i|R12 |j l> : i,j \in electron 1; k,l \in electron 2
  * = (NABLA NABLA i j|R12 |k l) */
 void CINTgout2e_int2e_ipip1(double *RESTRICT gout,
