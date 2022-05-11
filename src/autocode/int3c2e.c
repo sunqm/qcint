@@ -178,7 +178,7 @@ envs.f_gout_simd1 = &CINTgout2e_int3c2e_ip1_simd1;
 return CINT3c2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_3c2e1);
 } // int3c2e_ip1_spinor
 ALL_CINT(int3c2e_ip1)
-//ALL_CINT_FORTRAN_(cint3c2e_ip1)
+ALL_CINT_FORTRAN_(int3c2e_ip1)
 /* (i j|R12 |NABLA k) */
 static void CINTgout2e_int3c2e_ip2(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
@@ -323,7 +323,7 @@ envs.f_gout_simd1 = &CINTgout2e_int3c2e_ip2_simd1;
 return CINT3c2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_3c2e1);
 } // int3c2e_ip2_spinor
 ALL_CINT(int3c2e_ip2)
-//ALL_CINT_FORTRAN_(cint3c2e_ip2)
+ALL_CINT_FORTRAN_(int3c2e_ip2)
 /* (P* i DOT P j|R12 |k) */
 static void CINTgout2e_int3c2e_pvp1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
@@ -522,7 +522,7 @@ envs.f_gout_simd1 = &CINTgout2e_int3c2e_pvp1_simd1;
 return CINT3c2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_3c2e1);
 } // int3c2e_pvp1_spinor
 ALL_CINT(int3c2e_pvp1)
-//ALL_CINT_FORTRAN_(cint3c2e_pvp1)
+ALL_CINT_FORTRAN_(int3c2e_pvp1)
 /* (P* i CROSS P j|R12 |k) */
 static void CINTgout2e_int3c2e_pvxp1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
@@ -725,7 +725,7 @@ envs.f_gout_simd1 = &CINTgout2e_int3c2e_pvxp1_simd1;
 return CINT3c2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_3c2e1);
 } // int3c2e_pvxp1_spinor
 ALL_CINT(int3c2e_pvxp1)
-//ALL_CINT_FORTRAN_(cint3c2e_pvxp1)
+ALL_CINT_FORTRAN_(int3c2e_pvxp1)
 /* (NABLA i |R12 |j) */
 void CINTgout2e_int2c2e_ip1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
@@ -865,7 +865,7 @@ int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache
 fprintf(stderr, "&c2s_sf_1e_spinor not implementedn");
 }
 ALL_CINT(int2c2e_ip1)
-//ALL_CINT_FORTRAN_(cint2c2e_ip1)
+ALL_CINT_FORTRAN_(int2c2e_ip1)
 /* (i |R12 |NABLA j) */
 void CINTgout2e_int2c2e_ip2(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
@@ -1005,7 +1005,7 @@ int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache
 fprintf(stderr, "&c2s_sf_1e_spinor not implementedn");
 }
 ALL_CINT(int2c2e_ip2)
-//ALL_CINT_FORTRAN_(cint2c2e_ip2)
+ALL_CINT_FORTRAN_(int2c2e_ip2)
 /* (G i j|R12 |k) */
 static void CINTgout2e_int3c2e_ig1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
@@ -1203,7 +1203,7 @@ return 0; }
 return CINT3c2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_3c2e1);
 } // int3c2e_ig1_spinor
 ALL_CINT(int3c2e_ig1)
-//ALL_CINT_FORTRAN_(cint3c2e_ig1)
+ALL_CINT_FORTRAN_(int3c2e_ig1)
 /* (SIGMA DOT P i SIGMA DOT P j|R12 |k) */
 static void CINTgout2e_int3c2e_spsp1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
@@ -1408,7 +1408,7 @@ envs.f_gout_simd1 = &CINTgout2e_int3c2e_spsp1_simd1;
 return CINT3c2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_3c2e1);
 } // int3c2e_spsp1_spinor
 ALL_CINT(int3c2e_spsp1)
-//ALL_CINT_FORTRAN_(cint3c2e_spsp1)
+ALL_CINT_FORTRAN_(int3c2e_spsp1)
 /* (NABLA SIGMA DOT P i SIGMA DOT P j|R12 |k) */
 static void CINTgout2e_int3c2e_ipspsp1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
@@ -1581,7 +1581,7 @@ envs.f_gout_simd1 = &CINTgout2e_int3c2e_ipspsp1_simd1;
 return CINT3c2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_3c2e1);
 } // int3c2e_ipspsp1_spinor
 ALL_CINT(int3c2e_ipspsp1)
-//ALL_CINT_FORTRAN_(cint3c2e_ipspsp1)
+ALL_CINT_FORTRAN_(int3c2e_ipspsp1)
 /* (SIGMA DOT P i SIGMA DOT P j|R12 |NABLA k) */
 static void CINTgout2e_int3c2e_spsp1ip2(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
@@ -1754,7 +1754,7 @@ envs.f_gout_simd1 = &CINTgout2e_int3c2e_spsp1ip2_simd1;
 return CINT3c2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_3c2e1);
 } // int3c2e_spsp1ip2_spinor
 ALL_CINT(int3c2e_spsp1ip2)
-//ALL_CINT_FORTRAN_(cint3c2e_spsp1ip2)
+ALL_CINT_FORTRAN_(int3c2e_spsp1ip2)
 /* (NABLA NABLA i j|R12 |k) */
 static void CINTgout2e_int3c2e_ipip1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
@@ -1969,7 +1969,7 @@ envs.f_gout_simd1 = &CINTgout2e_int3c2e_ipip1_simd1;
 return CINT3c2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_3c2e1);
 } // int3c2e_ipip1_spinor
 ALL_CINT(int3c2e_ipip1)
-//ALL_CINT_FORTRAN_(cint3c2e_ipip1)
+ALL_CINT_FORTRAN_(int3c2e_ipip1)
 /* (i j|R12 |NABLA NABLA k) */
 static void CINTgout2e_int3c2e_ipip2(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
@@ -2184,7 +2184,7 @@ envs.f_gout_simd1 = &CINTgout2e_int3c2e_ipip2_simd1;
 return CINT3c2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_3c2e1);
 } // int3c2e_ipip2_spinor
 ALL_CINT(int3c2e_ipip2)
-//ALL_CINT_FORTRAN_(cint3c2e_ipip2)
+ALL_CINT_FORTRAN_(int3c2e_ipip2)
 /* (NABLA i NABLA j|R12 |k) */
 static void CINTgout2e_int3c2e_ipvip1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
@@ -2399,7 +2399,7 @@ envs.f_gout_simd1 = &CINTgout2e_int3c2e_ipvip1_simd1;
 return CINT3c2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_3c2e1);
 } // int3c2e_ipvip1_spinor
 ALL_CINT(int3c2e_ipvip1)
-//ALL_CINT_FORTRAN_(cint3c2e_ipvip1)
+ALL_CINT_FORTRAN_(int3c2e_ipvip1)
 /* (NABLA i j|R12 |NABLA k) */
 static void CINTgout2e_int3c2e_ip1ip2(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
@@ -2614,7 +2614,7 @@ envs.f_gout_simd1 = &CINTgout2e_int3c2e_ip1ip2_simd1;
 return CINT3c2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_3c2e1);
 } // int3c2e_ip1ip2_spinor
 ALL_CINT(int3c2e_ip1ip2)
-//ALL_CINT_FORTRAN_(cint3c2e_ip1ip2)
+ALL_CINT_FORTRAN_(int3c2e_ip1ip2)
 /* (NABLA NABLA i |R12 |j) */
 void CINTgout2e_int2c2e_ipip1(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
@@ -2824,7 +2824,7 @@ int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache
 fprintf(stderr, "&c2s_sf_1e_spinor not implementedn");
 }
 ALL_CINT(int2c2e_ipip1)
-//ALL_CINT_FORTRAN_(cint2c2e_ipip1)
+ALL_CINT_FORTRAN_(int2c2e_ipip1)
 /* (NABLA i |R12 |NABLA j) */
 void CINTgout2e_int2c2e_ip1ip2(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs) {
@@ -3034,4 +3034,4 @@ int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache
 fprintf(stderr, "&c2s_sf_1e_spinor not implementedn");
 }
 ALL_CINT(int2c2e_ip1ip2)
-//ALL_CINT_FORTRAN_(cint2c2e_ip1ip2)
+ALL_CINT_FORTRAN_(int2c2e_ip1ip2)

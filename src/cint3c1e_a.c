@@ -84,7 +84,7 @@ CACHE_SIZE_T int3c1e_r2_origk_spinor(double complex *out, int *dims, int *shls,
         return CINT3c1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_3c2e1);
 } // int3c1e_r2_origk_spinor
 ALL_CINT(int3c1e_r2_origk)
-//ALL_CINT_FORTRAN_(cint3c1e_r2_origk)
+ALL_CINT_FORTRAN_(int3c1e_r2_origk)
 
 /* based on
  * '("int3c1e_r4_origk" ( \, \, r dot r r dot r))
@@ -162,7 +162,7 @@ CACHE_SIZE_T int3c1e_r4_origk_spinor(double complex *out, int *dims, int *shls,
 return CINT3c1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_3c2e1);
 } // int3c1e_r4_origk_spinor
 ALL_CINT(int3c1e_r4_origk)
-//ALL_CINT_FORTRAN_(cint3c1e_r4_origk)
+ALL_CINT_FORTRAN_(int3c1e_r4_origk)
 
 /* based on
  * '("int3c1e_r6_origk" ( \, \, r dot r r dot r r dot r))
@@ -299,4 +299,4 @@ CACHE_SIZE_T int3c1e_r6_origk_spinor(double complex *out, int *dims, int *shls,
         return CINT3c1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_3c2e1);
 } // int3c1e_r6_origk_spinor
 ALL_CINT(int3c1e_r6_origk)
-//ALL_CINT_FORTRAN_(cint3c1e_r6_origk)
+ALL_CINT_FORTRAN_(int3c1e_r6_origk)

@@ -298,7 +298,7 @@ CACHE_SIZE_T int2e_breit_r1p2_spinor(double complex *out, int *dims, int *shls,
         return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_2e1i, &c2s_sf_2e2i);
 } // int2e_breit_r1p2_spinor
 ALL_CINT(int2e_breit_r1p2)
-//ALL_CINT_FORTRAN_(int2e_breit_r1p2)
+ALL_CINT_FORTRAN_(int2e_breit_r1p2)
 
 /* based on
  * '("int2e_breit_r2p2"  ( nabla \, r0 \| dot nabla-r12 \| \, nabla ))
@@ -439,4 +439,4 @@ CACHE_SIZE_T int2e_breit_r2p2_spinor(double complex *out, int *dims, int *shls,
         return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_2e1i, &c2s_sf_2e2i);
 } // int2e_breit_r2p2_spinor
 ALL_CINT(int2e_breit_r2p2)
-//ALL_CINT_FORTRAN_(int2e_breit_r2p2)
+ALL_CINT_FORTRAN_(int2e_breit_r2p2)

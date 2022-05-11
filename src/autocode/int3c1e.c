@@ -94,7 +94,7 @@ envs.f_gout = &CINTgout1e_int3c1e_p2;
 return CINT3c1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_3c2e1);
 } // int3c1e_p2_spinor
 ALL_CINT(int3c1e_p2)
-//ALL_CINT_FORTRAN_(cint3c1e_p2)
+ALL_CINT_FORTRAN_(int3c1e_p2)
 static void CINTgout1e_int3c1e_iprinv(double *RESTRICT gout,
 double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs, int count) {
 CINTg3c1e_nuc(g, envs, count, -1);
@@ -151,4 +151,4 @@ envs.f_gout = &CINTgout1e_int3c1e_iprinv;
 return CINT3c1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_3c2e1i);
 } // int3c1e_iprinv_spinor
 ALL_CINT(int3c1e_iprinv)
-//ALL_CINT_FORTRAN_(cint3c1e_iprinv)
+ALL_CINT_FORTRAN_(int3c1e_iprinv)

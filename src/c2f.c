@@ -154,7 +154,7 @@ double cintgto_norm_(int *n, double *a)
  */
 /* in Fortran, pass an integer(8) to hold the pointer of CINTOpt */
 //typedef long CINTOptPtrAsInteger8;
-/*
+
 typedef long CINTOptPtrAsInteger8;
 void cintinit_2e_optimizer_(CINTOptPtrAsInteger8 *optptr,
                             int *atm, int *natm,
@@ -178,5 +178,5 @@ void cintdel_optimizer_(CINTOptPtrAsInteger8 *optptr)
 {
         cintdel_2e_optimizer_(optptr);
 }
-*/
+
 #endif
