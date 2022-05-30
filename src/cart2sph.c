@@ -4037,6 +4037,7 @@ double *(*c2s_bra_sph[])() = {
         a_bra_cart2spheric,
         a_bra_cart2spheric,
         a_bra_cart2spheric,
+        a_bra_cart2spheric,
 };
 
 double *(*c2s_ket_sph[])(double *gsph, double *gcart,
@@ -4056,6 +4057,7 @@ double *(*c2s_ket_sph[])(double *gsph, double *gcart,
         a_ket_cart2spheric,
         a_ket_cart2spheric,
         a_ket_cart2spheric,
+        a_ket_cart2spheric,
 };
 
 double *(*c2s_ket_sph1[])(double *gsph, double *gcart,
@@ -4065,6 +4067,7 @@ double *(*c2s_ket_sph1[])(double *gsph, double *gcart,
         d_ket_cart2spheric,
         f_ket_cart2spheric,
         g_ket_cart2spheric,
+        a_ket_cart2spheric,
         a_ket_cart2spheric,
         a_ket_cart2spheric,
         a_ket_cart2spheric,
