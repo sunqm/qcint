@@ -4675,7 +4675,7 @@ static void zcopy_ij(double complex *out, double *gctrR, double *gctrI,
         } }
 }
 
-static void dcopy_grids_ij(double *out, const double *gctr,
+static void dcopy_grids_ij(double *out, const double *gctr, const int counts,
                            const int ngrids, const int ni, const int nj,
                            const int mgrids, const int mi, const int mj)
 {
@@ -4686,7 +4686,7 @@ static void dcopy_grids_ij(double *out, const double *gctr,
         for (j = 0; j < mj; j++) {
                 for (i = 0; i < mi; i++) {
 #pragma GCC ivdep
-                for (m = 0; m < mgrids; m++) {
+                for (m = 0; m < counts; m++) {
                         out[i*ngrids+m] = gctr[i*mgrids+m];
                 } }
                 out += ngi;
@@ -4695,6 +4695,7 @@ static void dcopy_grids_ij(double *out, const double *gctr,
 }
 
 static void zcopy_grids_ij(double complex *out, double *gctrR, double *gctrI,
+                           const int counts,
                            const int ngrids, const int ni, const int nj,
                            const int mgrids, const int mi, const int mj)
 {
@@ -4706,7 +4707,7 @@ static void zcopy_grids_ij(double complex *out, double *gctrR, double *gctrI,
         for (j = 0; j < mj; j++) {
                 for (i = 0; i < mi; i++) {
 #pragma GCC ivdep
-                for (m = 0; m < mgrids; m++) {
+                for (m = 0; m < counts; m++) {
                         dout[(i*ngrids+m)*OF_CMPLX  ] = gctrR[i*mgrids+m];
                         dout[(i*ngrids+m)*OF_CMPLX+1] = gctrI[i*mgrids+m];
                 } }
@@ -5219,7 +5220,7 @@ void c2s_sph_1e_grids(double *out, double *gctr, int *dims,
         int nfi = envs->nfi;
         int nf = envs->nf;
         int ic, jc, grids_offset;
-        int bgrids, bgrids_di, bgrids_nfi;
+        int bgrids, bgrids_raw, bgrids_di, bgrids_nfi;
         int buflen = GRID_BLKSIZE * nfi * dj;
         double *buf1, *buf2;
         MALLOC_INSTACK(buf1, buflen);
@@ -5228,7 +5229,8 @@ void c2s_sph_1e_grids(double *out, double *gctr, int *dims,
         double *tmp1;
 
         for (grids_offset = 0; grids_offset < ngrids; grids_offset += GRID_BLKSIZE) {
-                bgrids = MIN(ngrids - grids_offset, GRID_BLKSIZE);
+                bgrids_raw = MIN(ngrids - grids_offset, GRID_BLKSIZE);
+                bgrids = ALIGN_UP(bgrids_raw, SIMDD);
                 bgrids_di = bgrids * di;
                 bgrids_nfi = bgrids * nfi;
                 for (jc = 0; jc < j_ctr; jc++) {
@@ -5236,7 +5238,7 @@ void c2s_sph_1e_grids(double *out, double *gctr, int *dims,
                         tmp1 = (c2s_ket_sph[j_l])(buf1, gctr, bgrids_nfi, bgrids_nfi, j_l);
                         tmp1 = sph2e_inner(buf2, tmp1, i_l, bgrids, dj, bgrids_di, bgrids_nfi);
                         pij = out + Ng * (ofj * jc + di * ic) + grids_offset;
-                        dcopy_grids_ij(pij, tmp1, Ng, ni, nj, bgrids, di, dj);
+                        dcopy_grids_ij(pij, tmp1, bgrids_raw, Ng, ni, nj, bgrids, di, dj);
                         gctr += bgrids * nf;
                 } }
         }
@@ -5256,15 +5258,16 @@ void c2s_cart_1e_grids(double *out, double *gctr, int *dims,
         int nf = envs->nf;
         int ofj = ni * nfj;
         int ic, jc, grids_offset;
-        int bgrids;
+        int bgrids, bgrids_raw;
         double *pij;
 
         for (grids_offset = 0; grids_offset < ngrids; grids_offset += GRID_BLKSIZE) {
-                bgrids = MIN(ngrids - grids_offset, GRID_BLKSIZE);
+                bgrids_raw = MIN(ngrids - grids_offset, GRID_BLKSIZE);
+                bgrids = ALIGN_UP(bgrids_raw, SIMDD);
                 for (jc = 0; jc < j_ctr; jc++) {
                 for (ic = 0; ic < i_ctr; ic++) {
                         pij = out + Ng * (ofj * jc + nfi * ic) + grids_offset;
-                        dcopy_grids_ij(pij, gctr, Ng, ni, nj, bgrids, nfi, nfj);
+                        dcopy_grids_ij(pij, gctr, bgrids_raw, Ng, ni, nj, bgrids, nfi, nfj);
                         gctr += bgrids * nf;
                 } }
         }
@@ -5298,7 +5301,7 @@ void c2s_sf_1e_grids(double complex *out, double *gctr, int *dims,
         int nf2j = nfj + nfj;
         int nf = envs->nf;
         int ic, jc, grids_offset;
-        int bgrids, bgrids_di;
+        int bgrids, bgrids_raw, bgrids_di;
         int buflen = GRID_BLKSIZE * di * nf2j;
         double *tmp1R, *tmp1I, *tmp2R, *tmp2I;
         MALLOC_INSTACK(tmp1R, buflen);
@@ -5308,14 +5311,15 @@ void c2s_sf_1e_grids(double complex *out, double *gctr, int *dims,
         double complex *pij;
 
         for (grids_offset = 0; grids_offset < ngrids; grids_offset += GRID_BLKSIZE) {
-                bgrids = MIN(ngrids - grids_offset, GRID_BLKSIZE);
+                bgrids_raw = MIN(ngrids - grids_offset, GRID_BLKSIZE);
+                bgrids = ALIGN_UP(bgrids_raw, SIMDD);
                 bgrids_di = bgrids * di;
                 for (jc = 0; jc < j_ctr; jc++) {
                 for (ic = 0; ic < i_ctr; ic++) {
                         a_bra1_cart2spinor_sf(tmp1R, tmp1I, NULL, NULL, NULL, gctr, bgrids, nfj, i_kp, i_l);
                         a_ket_cart2spinor(tmp2R, tmp2I, tmp1R, tmp1I, bgrids_di, j_kp, j_l);
                         pij = out + Ng * (ofj * jc + di * ic) + grids_offset;
-                        zcopy_grids_ij(pij, tmp2R, tmp2I, Ng, ni, nj, bgrids, di, dj);
+                        zcopy_grids_ij(pij, tmp2R, tmp2I, bgrids_raw, Ng, ni, nj, bgrids, di, dj);
                         gctr += bgrids * nf;
                 } }
         }
@@ -5345,7 +5349,7 @@ void c2s_sf_1e_gridsi(double complex *out, double *gctr, int *dims,
         int nf2j = nfj + nfj;
         int nf = envs->nf;
         int ic, jc, grids_offset;
-        int bgrids, bgrids_di;
+        int bgrids, bgrids_raw, bgrids_di;
         int buflen = GRID_BLKSIZE * di * nf2j;
         double *tmp1R, *tmp1I, *tmp2R, *tmp2I;
         MALLOC_INSTACK(tmp1R, buflen);
@@ -5355,14 +5359,15 @@ void c2s_sf_1e_gridsi(double complex *out, double *gctr, int *dims,
         double complex *pij;
 
         for (grids_offset = 0; grids_offset < ngrids; grids_offset += GRID_BLKSIZE) {
-                bgrids = MIN(ngrids - grids_offset, GRID_BLKSIZE);
+                bgrids_raw = MIN(ngrids - grids_offset, GRID_BLKSIZE);
+                bgrids = ALIGN_UP(bgrids_raw, SIMDD);
                 bgrids_di = bgrids * di;
                 for (jc = 0; jc < j_ctr; jc++) {
                 for (ic = 0; ic < i_ctr; ic++) {
                         a_bra1_cart2spinor_sf(tmp1R, tmp1I, NULL, NULL, NULL, gctr, bgrids, nfj, i_kp, i_l);
                         a_iket_cart2spinor(tmp2R, tmp2I, tmp1R, tmp1I, bgrids_di, j_kp, j_l);
                         pij = out + Ng * (ofj * jc + di * ic) + grids_offset;
-                        zcopy_grids_ij(pij, tmp2R, tmp2I, Ng, ni, nj, bgrids, di, dj);
+                        zcopy_grids_ij(pij, tmp2R, tmp2I, bgrids_raw, Ng, ni, nj, bgrids, di, dj);
                         gctr += bgrids * nf;
                 } }
         }
@@ -5392,12 +5397,13 @@ void c2s_si_1e_grids(double complex *out, double *gctr, int *dims,
         int nf2i = nfi + nfi;
         int nf2j = nfj + nfj;
         int nf = envs->nf;
+        int ngrids_nf = ALIGN_UP(ngrids, SIMDD) * nf;
         int ic, jc, grids_offset;
-        int bgrids, bgrids_di, bgrids_nf;
+        int bgrids, bgrids_raw, bgrids_di, bgrids_nf;
         double *gc_x = gctr;
-        double *gc_y = gc_x + ngrids * nf * i_ctr * j_ctr;
-        double *gc_z = gc_y + ngrids * nf * i_ctr * j_ctr;
-        double *gc_1 = gc_z + ngrids * nf * i_ctr * j_ctr;
+        double *gc_y = gc_x + ngrids_nf * i_ctr * j_ctr;
+        double *gc_z = gc_y + ngrids_nf * i_ctr * j_ctr;
+        double *gc_1 = gc_z + ngrids_nf * i_ctr * j_ctr;
         int buflen = GRID_BLKSIZE * di * nf2j;
         double *tmp1R, *tmp1I, *tmp2R, *tmp2I;
         MALLOC_INSTACK(tmp1R, buflen);
@@ -5407,7 +5413,8 @@ void c2s_si_1e_grids(double complex *out, double *gctr, int *dims,
         double complex *pij;
 
         for (grids_offset = 0; grids_offset < ngrids; grids_offset += GRID_BLKSIZE) {
-                bgrids = MIN(ngrids - grids_offset, GRID_BLKSIZE);
+                bgrids_raw = MIN(ngrids - grids_offset, GRID_BLKSIZE);
+                bgrids = ALIGN_UP(bgrids_raw, SIMDD);
                 bgrids_di = bgrids * di;
                 bgrids_nf = bgrids * nf;
                 for (jc = 0; jc < j_ctr; jc++) {
@@ -5415,7 +5422,7 @@ void c2s_si_1e_grids(double complex *out, double *gctr, int *dims,
                         a_bra1_cart2spinor_si(tmp1R, tmp1I, gc_x, gc_y, gc_z, gc_1, bgrids, nfj, i_kp, i_l);
                         a_ket_cart2spinor(tmp2R, tmp2I, tmp1R, tmp1I, bgrids_di, j_kp, j_l);
                         pij = out + Ng * (ofj * jc + di * ic) + grids_offset;
-                        zcopy_grids_ij(pij, tmp2R, tmp2I, Ng, ni, nj, bgrids, di, dj);
+                        zcopy_grids_ij(pij, tmp2R, tmp2I, bgrids_raw, Ng, ni, nj, bgrids, di, dj);
                         gc_x += bgrids_nf;
                         gc_y += bgrids_nf;
                         gc_z += bgrids_nf;
@@ -5448,12 +5455,13 @@ void c2s_si_1e_gridsi(double complex *out, double *gctr, int *dims,
         int nf2i = nfi + nfi;
         int nf2j = nfj + nfj;
         int nf = envs->nf;
+        int ngrids_nf = ALIGN_UP(ngrids, SIMDD) * nf;
         int ic, jc, grids_offset;
-        int bgrids, bgrids_di, bgrids_nf;
+        int bgrids, bgrids_raw, bgrids_di, bgrids_nf;
         double *gc_x = gctr;
-        double *gc_y = gc_x + ngrids * nf * i_ctr * j_ctr;
-        double *gc_z = gc_y + ngrids * nf * i_ctr * j_ctr;
-        double *gc_1 = gc_z + ngrids * nf * i_ctr * j_ctr;
+        double *gc_y = gc_x + ngrids_nf * i_ctr * j_ctr;
+        double *gc_z = gc_y + ngrids_nf * i_ctr * j_ctr;
+        double *gc_1 = gc_z + ngrids_nf * i_ctr * j_ctr;
         int buflen = GRID_BLKSIZE * di * nf2j;
         double *tmp1R, *tmp1I, *tmp2R, *tmp2I;
         MALLOC_INSTACK(tmp1R, buflen);
@@ -5463,7 +5471,8 @@ void c2s_si_1e_gridsi(double complex *out, double *gctr, int *dims,
         double complex *pij;
 
         for (grids_offset = 0; grids_offset < ngrids; grids_offset += GRID_BLKSIZE) {
-                bgrids = MIN(ngrids - grids_offset, GRID_BLKSIZE);
+                bgrids_raw = MIN(ngrids - grids_offset, GRID_BLKSIZE);
+                bgrids = ALIGN_UP(bgrids_raw, SIMDD);
                 bgrids_di = bgrids * di;
                 bgrids_nf = bgrids * nf;
                 for (jc = 0; jc < j_ctr; jc++) {
@@ -5471,7 +5480,7 @@ void c2s_si_1e_gridsi(double complex *out, double *gctr, int *dims,
                         a_bra1_cart2spinor_si(tmp1R, tmp1I, gc_x, gc_y, gc_z, gc_1, bgrids, nfj, i_kp, i_l);
                         a_iket_cart2spinor(tmp2R, tmp2I, tmp1R, tmp1I, bgrids_di, j_kp, j_l);
                         pij = out + Ng * (ofj * jc + di * ic) + grids_offset;
-                        zcopy_grids_ij(pij, tmp2R, tmp2I, Ng, ni, nj, bgrids, di, dj);
+                        zcopy_grids_ij(pij, tmp2R, tmp2I, bgrids_raw, Ng, ni, nj, bgrids, di, dj);
                         gc_x += bgrids_nf;
                         gc_y += bgrids_nf;
                         gc_z += bgrids_nf;
