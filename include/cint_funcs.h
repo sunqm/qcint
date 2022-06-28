@@ -11,7 +11,7 @@
 #define HAVE_DEFINED_CINTINTEGRALFUNCTION
 typedef void CINTOptimizerFunction(CINTOpt **opt,
                                    int *atm, int natm, int *bas, int nbas, double *env);
-typedef int CINTIntegralFunction(double *out, int *dims, int *shls,
+typedef CACHE_SIZE_T CINTIntegralFunction(double *out, int *dims, int *shls,
                                  int *atm, int natm, int *bas, int nbas, double *env,
                                  CINTOpt *opt, double *cache);
 #endif
@@ -124,6 +124,12 @@ extern CINTIntegralFunction int1e_r2_cart;
 extern CINTIntegralFunction int1e_r2_sph;
 extern CINTIntegralFunction int1e_r2_spinor;
 
+/* <i|RC DOT RC RC DOT RC |j> */
+extern CINTOptimizerFunction int1e_r4_optimizer;
+extern CINTIntegralFunction int1e_r4_cart;
+extern CINTIntegralFunction int1e_r4_sph;
+extern CINTIntegralFunction int1e_r4_spinor;
+
 /* <i|RC RC |j> */
 extern CINTOptimizerFunction int1e_rr_optimizer;
 extern CINTIntegralFunction int1e_rr_cart;
@@ -226,7 +232,7 @@ extern CINTIntegralFunction int1e_ggovlp_cart;
 extern CINTIntegralFunction int1e_ggovlp_sph;
 extern CINTIntegralFunction int1e_ggovlp_spinor;
 
-/* <i|G G NABLA DOT NABLA |j> */
+/* <i|G G P DOT P |j> */
 extern CINTOptimizerFunction int1e_ggkin_optimizer;
 extern CINTIntegralFunction int1e_ggkin_cart;
 extern CINTIntegralFunction int1e_ggkin_sph;
@@ -856,6 +862,18 @@ extern CINTIntegralFunction int1e_iprinvip_cart;
 extern CINTIntegralFunction int1e_iprinvip_sph;
 extern CINTIntegralFunction int1e_iprinvip_spinor;
 
+/* <NABLA NABLA i|RC |j> */
+extern CINTOptimizerFunction int1e_ipipr_optimizer;
+extern CINTIntegralFunction int1e_ipipr_cart;
+extern CINTIntegralFunction int1e_ipipr_sph;
+extern CINTIntegralFunction int1e_ipipr_spinor;
+
+/* <NABLA i|RC |NABLA j> */
+extern CINTOptimizerFunction int1e_iprip_optimizer;
+extern CINTIntegralFunction int1e_iprip_cart;
+extern CINTIntegralFunction int1e_iprip_sph;
+extern CINTIntegralFunction int1e_iprip_spinor;
+
 /* (NABLA NABLA i j|R12 |k l) */
 extern CINTOptimizerFunction int2e_ipip1_optimizer;
 extern CINTIntegralFunction int2e_ipip1_cart;
@@ -1041,4 +1059,46 @@ extern CINTOptimizerFunction int3c1e_iprinv_optimizer;
 extern CINTIntegralFunction int3c1e_iprinv_cart;
 extern CINTIntegralFunction int3c1e_iprinv_sph;
 extern CINTIntegralFunction int3c1e_iprinv_spinor;
+
+/* <NABLA NABLA NABLA i|NUC |j> */
+extern CINTOptimizerFunction int1e_ipipipnuc_optimizer;
+extern CINTIntegralFunction int1e_ipipipnuc_cart;
+extern CINTIntegralFunction int1e_ipipipnuc_sph;
+extern CINTIntegralFunction int1e_ipipipnuc_spinor;
+
+/* <NABLA NABLA NABLA i|RINV |j> */
+extern CINTOptimizerFunction int1e_ipipiprinv_optimizer;
+extern CINTIntegralFunction int1e_ipipiprinv_cart;
+extern CINTIntegralFunction int1e_ipipiprinv_sph;
+extern CINTIntegralFunction int1e_ipipiprinv_spinor;
+
+/* <NABLA NABLA i|NUC |NABLA j> */
+extern CINTOptimizerFunction int1e_ipipnucip_optimizer;
+extern CINTIntegralFunction int1e_ipipnucip_cart;
+extern CINTIntegralFunction int1e_ipipnucip_sph;
+extern CINTIntegralFunction int1e_ipipnucip_spinor;
+
+/* <NABLA NABLA i|RINV |NABLA j> */
+extern CINTOptimizerFunction int1e_ipiprinvip_optimizer;
+extern CINTIntegralFunction int1e_ipiprinvip_cart;
+extern CINTIntegralFunction int1e_ipiprinvip_sph;
+extern CINTIntegralFunction int1e_ipiprinvip_spinor;
+
+/* <NABLA i| 1/r_{grids} |j> */
+extern CINTOptimizerFunction int1e_grids_ip_optimizer;
+extern CINTIntegralFunction int1e_grids_ip_cart;
+extern CINTIntegralFunction int1e_grids_ip_sph;
+extern CINTIntegralFunction int1e_grids_ip_spinor;
+
+/* <NABLA i| 1/r_{grids} |NABLA j> */
+extern CINTOptimizerFunction int1e_grids_ipvip_optimizer;
+extern CINTIntegralFunction int1e_grids_ipvip_cart;
+extern CINTIntegralFunction int1e_grids_ipvip_sph;
+extern CINTIntegralFunction int1e_grids_ipvip_spinor;
+
+/* <SIGMA DOT P i| 1/r_{grids} |SIGMA DOT P j> */
+extern CINTOptimizerFunction int1e_grids_spvsp_optimizer;
+extern CINTIntegralFunction int1e_grids_spvsp_cart;
+extern CINTIntegralFunction int1e_grids_spvsp_sph;
+extern CINTIntegralFunction int1e_grids_spvsp_spinor;
 
