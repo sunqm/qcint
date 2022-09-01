@@ -1418,7 +1418,7 @@ envs.f_gout = &CINTgout1e_int1e_r4;
 return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_1e);
 } // int1e_r4_spinor
 ALL_CINT1E(int1e_r4)
-//ALL_CINT1E_FORTRAN_(cint1e_r4)
+ALL_CINT1E_FORTRAN_(int1e_r4)
 /* <i|RC RC |j> */
 void CINTgout1e_int1e_rr(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 CINTg1e_ovlp(g, envs, count);
