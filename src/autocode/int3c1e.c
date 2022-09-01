@@ -151,4 +151,4 @@ envs.f_gout = &CINTgout1e_int3c1e_iprinv;
 return CINT3c1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_3c2e1i);
 } // int3c1e_iprinv_spinor
 ALL_CINT(int3c1e_iprinv)
-ALL_CINT_FORTRAN_(int3c1e_iprinv)
+//ALL_CINT_FORTRAN_(cint3c1e_iprinv)
