@@ -118,8 +118,8 @@ static int *_allocate_index_xyz(CINTOpt *opt, int max_l, int l_allow, int order)
 {
         int i;
         int cumcart = (l_allow+1) * (l_allow+2) * (l_allow+3) / 6;
-        int ll = max_l + 1;
-        int cc = cumcart;
+        size_t ll = max_l + 1;
+        size_t cc = cumcart;
         for (i = 1; i < order; i++) {
                 ll *= LMAX1;
                 cc *= cumcart;
@@ -146,7 +146,7 @@ static void gen_idx(CINTOpt *opt, void (*finit)(), void (*findex_xyz)(),
         int *buf = _allocate_index_xyz(opt, max_l, l_allow, order);
 
         CINTEnvVars envs;
-        int shls[4];
+        int shls[4] = {0,};
         if (order == 2) {
                 for (i = 0; i <= l_allow; i++) {
                 for (j = 0; j <= l_allow; j++) {
@@ -154,7 +154,7 @@ static void gen_idx(CINTOpt *opt, void (*finit)(), void (*findex_xyz)(),
                         (*finit)(&envs, ng, shls, atm, natm, fakebas, fakenbas, env);
                         ptr = i*LMAX1 + j;
                         opt->index_xyz_array[ptr] = buf;
-                        (*findex_xyz)(opt->index_xyz_array[ptr], &envs);
+                        (*findex_xyz)(buf, &envs);
                         buf += envs.nf * 3;
                 } }
 
@@ -166,7 +166,7 @@ static void gen_idx(CINTOpt *opt, void (*finit)(), void (*findex_xyz)(),
                         (*finit)(&envs, ng, shls, atm, natm, fakebas, fakenbas, env);
                         ptr = i*LMAX1*LMAX1 + j*LMAX1 + k;
                         opt->index_xyz_array[ptr] = buf;
-                        (*findex_xyz)(opt->index_xyz_array[ptr], &envs);
+                        (*findex_xyz)(buf, &envs);
                         buf += envs.nf * 3;
                 } } }
 
@@ -182,7 +182,7 @@ static void gen_idx(CINTOpt *opt, void (*finit)(), void (*findex_xyz)(),
                             + k*LMAX1
                             + l;
                         opt->index_xyz_array[ptr] = buf;
-                        (*findex_xyz)(opt->index_xyz_array[ptr], &envs);
+                        (*findex_xyz)(buf, &envs);
                         buf += envs.nf * 3;
                 } } } }
         }
@@ -259,7 +259,7 @@ void CINTall_2e_stg_optimizer(CINTOpt **opt, int *ng,
                 4, 6, ng, atm, natm, bas, nbas, env);
 }
 #endif
- 
+
 #ifdef WITH_GTG
 void CINTall_2e_gtg_optimizer(CINTOpt **opt, int *ng,
                               int *atm, int natm, int *bas, int nbas, double *env)
