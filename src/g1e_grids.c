@@ -54,7 +54,7 @@ void CINTinit_int1e_grids_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
                              r[ig+GRID_BLKSIZE*1]*r[ig+GRID_BLKSIZE*1] + \
                              r[ig+GRID_BLKSIZE*2]*r[ig+GRID_BLKSIZE*2])
 
-int CINTg0_1e_grids(double *RESTRICT g, CINTEnvVars *envs,
+int CINTg0_1e_grids(double *RESTRICT g, double cutoff, CINTEnvVars *envs,
                     double *cache, double *RESTRICT gridsT)
 {
         int ngrids = envs->ngrids;

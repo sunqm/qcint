@@ -1344,7 +1344,8 @@ void CINTg0_2e_il2d4d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs)
 /*
  * g[i,k,l,j] = < ik | lj > = ( i j | k l )
  */
-int CINTg0_2e_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
+int CINTg0_2e_simd1(double *g, double *cutoff,
+                    Rys2eT *bc, CINTEnvVars *envs, int idsimd)
 {
         int nroots = envs->nrys_roots;
         double aij, akl, a0, a1, fac1;
@@ -1381,12 +1382,9 @@ int CINTg0_2e_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
 
 #ifdef WITH_RANGE_COULOMB
         if (omega < 0) { // short-range part of range-separated Coulomb
-                // FIXME:
                 // very small erfc() leads to ~0 weights. They can cause
-                // numerical issue in sr_rys_roots Use this cutoff as a
-                // temporary solution to avoid the numerical issue
-                double temp_cutoff = MIN(envs->expcutoff, EXPCUTOFF_SR - nroots);
-                if (theta * x > temp_cutoff) {
+                // numerical issue in sr_rys_roots.
+                if (theta * x > cutoff[idsimd] || theta * x > EXPCUTOFF_SR) {
                         for (i = 0; i < envs->g_size * 3; i++) {
                                 g[i] = 0;
                         }

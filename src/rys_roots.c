@@ -251,22 +251,20 @@ void CINTsr_rys_roots(int nroots, double x, double lower, double *u, double *w)
         }
 }
 
-int _CINTsr_rys_roots_batch(CINTEnvVars *envs, double *x, double *theta, double *u, double *w, int count)
+int _CINTsr_rys_roots_batch(CINTEnvVars *envs, double *x, double *theta,
+                            double *u, double *w, double *cutoff, int count)
 {
         int nroots = envs->nrys_roots;
         double roots[MXRYSROOTS * 2];
         double *weights = roots + nroots;
         int i, k;
         int all_negligible = 1;
-        // FIXME:
-        // very small erfc() leads to ~0 weights. They can cause
-        // numerical issue in sr_rys_roots Use this cutoff as a
-        // temporary solution to avoid the numerical issue
-        double temp_cutoff = MIN(envs->expcutoff, EXPCUTOFF_SR - nroots);
+        double xt;
 
         for (i = 0; i < count; i++) {
                 // very small erfc() leads to ~0 weights
-                if (x[i] * theta[i] < temp_cutoff) {
+                xt = x[i] * theta[i]; 
+                if (xt < cutoff[i] && xt < EXPCUTOFF_SR) {
                         all_negligible = 0;
                         CINTsr_rys_roots(nroots, x[i], sqrt(theta[i]), roots, weights);
                         for (k = 0; k < nroots; k++) {

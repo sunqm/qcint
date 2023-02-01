@@ -99,7 +99,7 @@
 
 #define PUSH(RIJ, RKL) \
         if (cum == SIMDD) { \
-                (*envs->f_g0_2e)(g, &bc, envs, cum); \
+                (*envs->f_g0_2e)(g, cutoff, &bc, envs, cum); \
                 (*envs->f_gout)(gout, g, idx, envs); \
                 POP_PRIM2CTR; \
         } \
@@ -115,6 +115,7 @@
         envs->rkl[2*SIMDD+cum] = *(RKL+2); \
         fac1i = fac1j * expijkl; \
         envs->fac[cum] = fac1i; \
+        cutoff[cum] = eijcutoff - pdata_ij->cceij; \
         if (*iempty) { \
                 fp2c[np2c] = CINTiprim_to_ctr_0; \
                 *iempty = 0; \
@@ -151,7 +152,7 @@
 
 #define RUN_REST \
         if (cum == 1) { \
-                (*envs->f_g0_2e_simd1)(g, &bc, envs, 0); \
+                (*envs->f_g0_2e_simd1)(g, cutoff, &bc, envs, 0); \
                 (*envs->f_gout_simd1)(gout, g, idx, envs); \
         } else if (cum > 1) { \
                 r1 = MM_SET1(1.); \
@@ -159,24 +160,10 @@
                         MM_STORE(bc.u+i*SIMDD, r1); \
                         MM_STORE(bc.w+i*SIMDD, r1); \
                 } \
-                (*envs->f_g0_2e)(g, &bc, envs, cum); \
+                (*envs->f_g0_2e)(g, cutoff, &bc, envs, cum); \
                 (*envs->f_gout)(gout, g, idx, envs); \
         } \
         POP_PRIM2CTR
-
-// little endian on x86
-//typedef union {
-//    double d;
-//    unsigned short s[4];
-//} type_IEEE754;
-static inline double approx_log(double x)
-{
-        //type_IEEE754 y;
-        //y.d = x;
-        //return ((double)(y.s[3] >> 4) - 1023) * 0.7;
-        //return log(x);
-        return 3;
-}
 
 int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache, int *empty)
 {
@@ -209,6 +196,7 @@ int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache, int *empty)
         double *cl = env + bas(PTR_COEFF, l_sh);
         double *coeff[4] = {ci, cj, ck, cl};
         double expcutoff = envs->expcutoff;
+        double rr_ij = SQUARE(envs->rirj);
         double *log_maxci, *log_maxcj, *log_maxck, *log_maxcl;
         PairData *pdata_base, *pdata_ij;
         MALLOC_DATA_INSTACK(log_maxci, i_prim+j_prim+k_prim+l_prim);
@@ -220,7 +208,7 @@ int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache, int *empty)
         CINTOpt_log_max_pgto_coeff(log_maxcj, cj, j_prim, j_ctr);
         if (CINTset_pairdata(pdata_base, ai, aj, envs->ri, envs->rj,
                              log_maxci, log_maxcj, envs->li_ceil, envs->lj_ceil,
-                             i_prim, j_prim, SQUARE(envs->rirj), expcutoff)) {
+                             i_prim, j_prim, rr_ij, expcutoff, env)) {
                 return 0;
         }
         CINTOpt_log_max_pgto_coeff(log_maxck, ck, k_prim, k_ctr);
@@ -295,10 +283,48 @@ int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache, int *empty)
         g = gout + len0;  // for gx, gy, gz
 
         ALIGNMM Rys2eT bc;
-        double rr_kl = SQUARE(envs->rkrl);
-        double log_rr_kl = (envs->lk_ceil+envs->ll_ceil+1)*approx_log(rr_kl+1)/2;
-        double akl, ekl, expijkl, ccekl, eijcutoff;
+        ALIGNMM double cutoff[SIMDD];
         ALIGNMM double rkl[4];
+        double rr_kl = SQUARE(envs->rkrl);
+        double log_rr_kl, akl, ekl, expijkl, ccekl, eijcutoff;
+        akl = ak[k_prim-1] + al[l_prim-1];
+        log_rr_kl = 1.7 - 1.5 * approx_log(akl);
+        int lkl = envs->lk_ceil + envs->ll_ceil;
+#ifdef WITH_RANGE_COULOMB
+        double omega = env[PTR_RANGE_OMEGA];
+        if (omega < 0) {
+                // Normally the factor
+                //    (aj*d/aij+theta*R)^li * (ai*d/aij+theta*R)^lj * pi^1.5/aij^{(li+lj+3)/2}
+                // is a good approximation for polynomial parts in SR-ERIs.
+                //    <~ (aj*d/aij+theta*R)^li * (ai*d/aij+theta*R)^lj * (pi/aij)^1.5
+                //    <~ (d+theta*R)^li * (d+theta*R)^lj * (pi/aij)^1.5
+                if (envs->nrys_roots > 1) {
+                        double r_guess = 8.;
+                        double omega2 = omega * omega;
+                        int lij = envs->li_ceil + envs->lj_ceil;
+                        if (lij > 0) {
+                                double aij = ai[i_prim-1] + aj[j_prim-1];
+                                double dist_ij = sqrt(rr_ij);
+                                double theta = omega2 / (omega2 + aij);
+                                expcutoff += lij * approx_log(
+                                        (dist_ij+theta*r_guess+1.)/(dist_ij+1.));
+                        }
+                        if (lkl > 0) {
+                                double theta = omega2 / (omega2 + akl);
+                                log_rr_kl += lkl * approx_log(
+                                        sqrt(rr_kl) + theta*r_guess + 1.);
+                        }
+                }
+        } else {
+                if (lkl > 0) {
+                        log_rr_kl += lkl * approx_log(sqrt(rr_kl) + 1.);
+                }
+        }
+#else
+        if (lkl > 0) {
+                log_rr_kl += lkl * approx_log(sqrt(rr_kl) + 1.);
+        }
+#endif
 
         INITSIMD;
 
@@ -397,7 +423,7 @@ int CINT2e_loop(double *out, CINTEnvVars *envs, double *cache, int *empty)
                 MALLOC_DATA_INSTACK(_pdata_ij, i_prim*j_prim + k_prim*l_prim);
                 if (CINTset_pairdata(_pdata_ij, ai, aj, envs->ri, envs->rj,
                                      log_maxci, log_maxcj, envs->li_ceil, envs->lj_ceil,
-                                     i_prim, j_prim, SQUARE(envs->rirj), expcutoff)) {
+                                     i_prim, j_prim, SQUARE(envs->rirj), expcutoff, env)) {
                         return 0;
                 }
 
@@ -406,7 +432,7 @@ int CINT2e_loop(double *out, CINTEnvVars *envs, double *cache, int *empty)
                 _pdata_kl = _pdata_ij + i_prim*j_prim;
                 if (CINTset_pairdata(_pdata_kl, ak, al, envs->rk, envs->rl,
                                      log_maxck, log_maxcl, envs->lk_ceil, envs->ll_ceil,
-                                     k_prim, l_prim, SQUARE(envs->rkrl), expcutoff)) {
+                                     k_prim, l_prim, SQUARE(envs->rkrl), expcutoff, env)) {
                         return 0;
                 }
         }
@@ -479,6 +505,7 @@ int CINT2e_loop(double *out, CINTEnvVars *envs, double *cache, int *empty)
         int *non0idxl = opt->sortedidx[l_sh];
         int *non0ctr[4] = {non0ctri, non0ctrj, non0ctrk, non0ctrl};
         int *non0idx[4] = {non0idxi, non0idxj, non0idxk, non0idxl};
+        ALIGNMM double cutoff[SIMDD];
 
         INITSIMD;
 

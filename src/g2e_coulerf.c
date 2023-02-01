@@ -32,8 +32,10 @@
 #include "misc.h"
 #include "g2e.h"
 
-int CINTg0_2e_coulerf(double *g, Rys2eT *bc, CINTEnvVars *envs, int count);
-int CINTg0_2e_coulerf_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd);
+int CINTg0_2e_coulerf(double *g, double *cutoff,
+                      Rys2eT *bc, CINTEnvVars *envs, int count);
+int CINTg0_2e_coulerf_simd1(double *g, double *cutoff,
+                            Rys2eT *bc, CINTEnvVars *envs, int idsimd);
 
 void CINTinit_int2e_coulerf_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
                                     int *atm, int natm, int *bas, int nbas, double *env)
@@ -166,7 +168,8 @@ void CINTinit_int2e_coulerf_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
         }
 }
 
-int CINTg0_2e_coulerf(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
+int CINTg0_2e_coulerf(double *g, double *cutoff,
+                      Rys2eT *bc, CINTEnvVars *envs, int count)
 {
         ALIGNMM double aij[SIMDD];
         ALIGNMM double akl[SIMDD];
@@ -329,7 +332,8 @@ int CINTg0_2e_coulerf(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
         return 1;
 }
 
-int CINTg0_2e_coulerf_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
+int CINTg0_2e_coulerf_simd1(double *g, double *cutoff,
+                            Rys2eT *bc, CINTEnvVars *envs, int idsimd)
 {
         double aij, akl, a0, a1, fac1;
         double *rij = envs->rij;

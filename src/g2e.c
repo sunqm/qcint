@@ -1868,7 +1868,7 @@ void CINTg0_2e_il2d4d(double *g, Rys2eT *bc, CINTEnvVars *envs)
 /*
  * g[i,k,l,j] = < ik | lj > = ( i j | k l )
  */
-int CINTg0_2e(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
+int CINTg0_2e(double *g, double *cutoff, Rys2eT *bc, CINTEnvVars *envs, int count)
 {
         ALIGNMM double aij[SIMDD];
         ALIGNMM double akl[SIMDD];
@@ -1978,7 +1978,8 @@ int CINTg0_2e(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
 //ABORT        }
 #ifdef WITH_RANGE_COULOMB
         if (omega < 0) {
-                int all_negligible = _CINTsr_rys_roots_batch(envs, x, theta, u, w, count);
+                int all_negligible = _CINTsr_rys_roots_batch(
+                        envs, x, theta, u, w, cutoff, count);
                 if (all_negligible) {
                         // g still has to be evaluated since iempty (which
                         // indicates whether g is zero) in cint2e is determined
