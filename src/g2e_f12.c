@@ -190,7 +190,8 @@ void CINTg0_2e_stg_lj2d4d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs)
         CINTg0_lj_4d_simd1(g, envs);
 }
 
-int CINTg0_2e_yp(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
+int CINTg0_2e_yp(double *g, double *cutoff,
+                 Rys2eT *bc, CINTEnvVars *envs, int count)
 {
         ALIGNMM double aij[SIMDD];
         ALIGNMM double akl[SIMDD];
@@ -341,7 +342,8 @@ int CINTg0_2e_yp(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
         return 1;
 }
 
-int CINTg0_2e_yp_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
+int CINTg0_2e_yp_simd1(double *g, double *cutoff,
+                       Rys2eT *bc, CINTEnvVars *envs, int idsimd)
 {
         const double aij = envs->ai[idsimd] + envs->aj[idsimd];
         const double akl = envs->ak[idsimd] + envs->al[idsimd];
