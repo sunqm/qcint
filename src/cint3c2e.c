@@ -440,19 +440,19 @@ CACHE_SIZE_T CINT3c2e_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *op
         int n_comp = envs->ncomp_e1 * envs->ncomp_e2 * envs->ncomp_tensor;
         if (out == NULL) {
                 PAIRDATA_NON0IDX_SIZE(pdata_size);
-                int leng = envs->g_size*3*((1<<envs->gbits)+1)*SIMDD;
-                int len0 = envs->nf*n_comp * SIMDD;
-                int cache_size = MAX(leng+len0+nc*n_comp*2 + pdata_size,
-                                     nc*n_comp+envs->nf*3) + SIMDD*4;
+                size_t leng = envs->g_size*3*((1<<envs->gbits)+1)*SIMDD;
+                size_t len0 = envs->nf*n_comp * SIMDD;
+                size_t cache_size = MAX(leng+len0+nc*n_comp*2 + pdata_size,
+                                        nc*n_comp+envs->nf*3) + SIMDD*4;
                 return cache_size;
         }
         double *stack = NULL;
         if (cache == NULL) {
                 PAIRDATA_NON0IDX_SIZE(pdata_size);
-                int leng = envs->g_size*3*((1<<envs->gbits)+1)*SIMDD;
-                int len0 = envs->nf*n_comp * SIMDD;
-                int cache_size = MAX(leng+len0+nc*n_comp*2 + pdata_size,
-                                     nc*n_comp+envs->nf*3) + SIMDD*4;
+                size_t leng = envs->g_size*3*((1<<envs->gbits)+1)*SIMDD;
+                size_t len0 = envs->nf*n_comp * SIMDD;
+                size_t cache_size = MAX(leng+len0+nc*n_comp*2 + pdata_size,
+                                        nc*n_comp+envs->nf*3) + SIMDD*4;
                 stack = _mm_malloc(sizeof(double)*cache_size, sizeof(double)*SIMDD);
                 cache = stack;
         }

@@ -78,7 +78,7 @@
         envs->ai[cum] = ai[ip]; \
         envs->ak[cum] = ak[kp]; \
         envs->fac[cum] = fac1k; \
-        envs->fac[cum] = expcutoff; \
+        cutoff[cum] = expcutoff; \
         if (*iempty) { \
                 fp2c[np2c] = CINTiprim_to_ctr_0; \
                 *iempty = 0; \
