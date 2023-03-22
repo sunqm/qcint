@@ -1813,7 +1813,8 @@ static int R_dnode(double *a, double *roots, int order)
                         continue;
                 }
                 if (p0 * p1init > 0) {
-                        fprintf(stderr, "ROOT NUMBER %d WAS NOT FOUND FOR POLYNOMIAL OF ORDER %d\n", m, order);
+                        fprintf(stderr, "ROOT NUMBER %d WAS NOT FOUND FOR POLYNOMIAL OF ORDER %d\n",
+                                m, order);
                         return 1;
                 }
                 if (x0 <= x1init) {
@@ -1836,7 +1837,7 @@ static int R_dnode(double *a, double *roots, int order)
                         xi = x0 + (x0 - x1) / (p1 - p0) * p0;
                 }
                 n = 0;
-                while (x1 > accrt+x0 || x0 > x1+accrt) {
+                while (x1 > x1*accrt+x0 || x0 > x1+x1*accrt) {
                         n++;
                         if (n > 200) {
                                 fprintf(stderr, "libcint::rys_roots NO CONV. IN R_dnode\n");
@@ -1914,9 +1915,12 @@ static int R_dsmit(double *cs, double *fmt_ints, int n)
                 }
 
                 if (fac <= 0) {
-                        fprintf(stderr, "libcint::rys_roots negative value in sqrt for roots %d (j=%d)\n", n-1, j);
                         // set rest coefficients to 0
                         SET_ZERO(cs, n, j);
+                        if (fac == 0) {
+                                return 0;
+                        }
+                        fprintf(stderr, "libcint::rys_roots negative value in sqrt for roots %d (j=%d)\n", n-1, j);
                         return j;
                 }
                 fac = 1 / sqrt(fac);
@@ -2079,9 +2083,12 @@ static int R_lsmit(long double *cs, long double *fmt_ints, int n)
                 }
 
                 if (fac <= 0) {
-                        fprintf(stderr, "libcint::rys_roots negative value in sqrtl for roots %d (j=%d)\n", n-1, j);
                         // set rest coefficients to 0
                         SET_ZERO(cs, n, j);
+                        if (fac == 0) {
+                                return 0;
+                        }
+                        fprintf(stderr, "libcint::rys_roots negative value in sqrtl for roots %d (j=%d)\n", n-1, j);
                         return j;
                 }
                 fac = 1 / SQRTL(fac);
@@ -2206,9 +2213,12 @@ static int R_qsmit(__float128 *cs, __float128 *fmt_ints, int n)
                 }
 
                 if (fac <= 0) {
-                        fprintf(stderr, "libcint::rys_roots negative value in sqrtq for roots %d (j=%d)\n", n-1, j);
                         // set rest coefficients to 0
                         SET_ZERO(cs, n, j);
+                        if (fac == 0) {
+                                return 0;
+                        }
+                        fprintf(stderr, "libcint::rys_roots negative value in sqrtq for roots %d (j=%d)\n", n-1, j);
                         return j;
                 }
                 fac = 1.q / sqrtq(fac);
