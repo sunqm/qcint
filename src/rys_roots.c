@@ -40,6 +40,7 @@
 
 #define PIE4        0.78539816339744827900
 #define THRESHOLD_ZERO  (DBL_EPSILON * 8)
+#define SMALLX_LIMIT    3e-7
 
 static int rys_root1(double x, double *roots, double *weights);
 static int rys_root2(double x, double *roots, double *weights);
@@ -85,12 +86,23 @@ void _CINTrys_roots_batch(int nroots, double *x, double *u, double *w, int count
 
 void CINTrys_roots(int nroots, double x, double *u, double *w)
 {
-        if (x < THRESHOLD_ZERO) {
+        if (x < SMALLX_LIMIT) {
                 int off = nroots * (nroots - 1) / 2;
                 int i;
                 for (i = 0; i < nroots; i++)  {
-                        u[i] = ROOTS_FOR_X0[off + i];
-                        w[i] = WEIGHTS_FOR_X0[off + i];
+                        u[i] = POLY_SMALLX_R0[off+i] + POLY_SMALLX_R1[off+i] * x;
+                        w[i] = POLY_SMALLX_W0[off+i] + POLY_SMALLX_W1[off+i] * x;
+                }
+                return;
+        } else if (x > 500) {
+                int off = nroots * (nroots - 1) / 2;
+                int i;
+                double rt;
+                double t = sqrt(PIE4/x);
+                for (i = 0; i < nroots; i++)  {
+                        rt = POLY_LARGEX_RT[off+i];
+                        u[i] = rt / (x - rt);
+                        w[i] = POLY_LARGEX_WW[off+i] * t;
                 }
                 return;
         }
@@ -117,7 +129,6 @@ void CINTrys_roots(int nroots, double x, double *u, double *w)
                 break;
         default:
                 err = segment_solve(nroots, x, 0., u, w, 50, CINTqrys_jacobi, CINTqrys_laguerre);
-                break;
         }
         if (err) {
                 fprintf(stderr, "rys_roots fails: nroots=%d x=%g\n",
