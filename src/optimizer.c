@@ -292,20 +292,6 @@ void CINTall_2c2e_gtg_optimizer(CINTOpt **opt, int *ng,
 }
 #endif
 
-
-// little endian on x86
-typedef union {
-    double d;
-    unsigned short s[4];
-} type_IEEE754;
-// ~4 times faster than built-in log
-static inline double approx_log(double x)
-{
-        type_IEEE754 y;
-        y.d = x;
-        return ((y.s[3] >> 4) - 1023 + 1) * 0.693145751953125;
-}
-
 void CINTOpt_log_max_pgto_coeff(double *log_maxc, double *coeff, int nprim, int nctr)
 {
         int i, ip;
@@ -349,11 +335,35 @@ void CINTOpt_set_log_maxc(CINTOpt *opt, int *atm, int natm,
 int CINTset_pairdata(PairData *pairdata, double *ai, double *aj, double *ri, double *rj,
                      double *log_maxci, double *log_maxcj,
                      int li_ceil, int lj_ceil, int iprim, int jprim,
-                     double rr_ij, double expcutoff)
+                     double rr_ij, double expcutoff, double *env)
 {
         int ip, jp, n;
-        double aij, eij, cceij;
-        double log_rr_ij = (li_ceil+lj_ceil+1) * approx_log(rr_ij+1) / 2;
+        double aij, eij, cceij, wj;
+        // Normally
+        //    (aj*d/sqrt(aij)+1)^li * (ai*d/sqrt(aij)+1)^lj
+        //    * pi^1.5/aij^{(li+lj+3)/2} * exp(-ai*aj/aij*rr_ij)
+        // is a good approximation for overlap integrals.
+        //    <~ (aj*d/aij+1/sqrt(aij))^li * (ai*d/aij+1/sqrt(aij))^lj * (pi/aij)^1.5
+        //    <~ (d+1/sqrt(aij))^(li+lj) * (pi/aij)^1.5
+        aij = ai[iprim-1] + aj[jprim-1];
+        double log_rr_ij = 1.7 - 1.5 * approx_log(aij);
+        int lij = li_ceil + lj_ceil;
+        if (lij > 0) {
+                double dist_ij = sqrt(rr_ij);
+#ifdef WITH_RANGE_COULOMB
+                double omega = env[PTR_RANGE_OMEGA];
+                if (omega < 0) {
+                        double r_guess = 8.;
+                        double omega2 = omega * omega;
+                        double theta = omega2 / (omega2 + aij);
+                        log_rr_ij += lij * approx_log(dist_ij + theta*r_guess + 1.);
+                } else {
+                        log_rr_ij += lij * approx_log(dist_ij + 1.);
+                }
+#else
+                log_rr_ij += lij * approx_log(dist_ij + 1.);
+#endif
+        }
         PairData *pdata;
 
         int empty = 1;
@@ -366,14 +376,15 @@ int CINTset_pairdata(PairData *pairdata, double *ai, double *aj, double *ri, dou
                         pdata->cceij = cceij;
                         if (cceij < expcutoff) {
                                 empty = 0;
-                                pdata->rij[0] = (ai[ip]*ri[0] + aj[jp]*rj[0]) * aij;
-                                pdata->rij[1] = (ai[ip]*ri[1] + aj[jp]*rj[1]) * aij;
-                                pdata->rij[2] = (ai[ip]*ri[2] + aj[jp]*rj[2]) * aij;
+                                wj = aj[jp] * aij;
+                                pdata->rij[0] = ri[0] + wj * (rj[0]-ri[0]);
+                                pdata->rij[1] = ri[1] + wj * (rj[1]-ri[1]);
+                                pdata->rij[2] = ri[2] + wj * (rj[2]-ri[2]);
                                 pdata->eij = exp(-eij);
                         } else {
-                                pdata->rij[0] = 0;
-                                pdata->rij[1] = 0;
-                                pdata->rij[2] = 0;
+                                pdata->rij[0] = 1e18;
+                                pdata->rij[1] = 1e18;
+                                pdata->rij[2] = 1e18;
                                 pdata->eij = 0;
                         }
                 }
@@ -439,7 +450,7 @@ void CINTOpt_setij(CINTOpt *opt, int *ng,
                            + (ri[2]-rj[2])*(ri[2]-rj[2]);
 
                         empty = CINTset_pairdata(pdata, ai, aj, ri, rj, log_maxci, log_maxcj,
-                                                 li+ijkl_inc, lj, iprim, jprim, rr, expcutoff);
+                                                 li+ijkl_inc, lj, iprim, jprim, rr, expcutoff, env);
                         if (i == 0 && j == 0) {
                                 opt->pairdata[0] = pdata;
                                 pdata += iprim * jprim;

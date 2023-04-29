@@ -42,7 +42,7 @@ void CINTOpt_set_non0coeff(CINTOpt *opt, int *atm, int natm,
 int CINTset_pairdata(PairData *pairdata, double *ai, double *aj, double *ri, double *rj,
                      double *log_maxci, double *log_maxcj,
                      int li_ceil, int lj_ceil, int iprim, int jprim,
-                     double rr_ij, double expcutoff);
+                     double rr_ij, double expcutoff, double *env);
 
 // optimizer examples
 void CINTno_optimizer(CINTOpt **opt, int *atm, int natm,
@@ -60,14 +60,11 @@ void CINTall_3c1e_optimizer(CINTOpt **opt, int *ng,
 void CINTall_1e_grids_optimizer(CINTOpt **opt, int *ng,
                                 int *atm, int natm, int *bas, int nbas, double *env);
 
-void CINTall_2e_stg_optimizer(CINTOpt **opt, int *ng,
-                              int *atm, int natm, int *bas, int nbas, double *env);
-
 #ifdef WITH_F12
 void CINTall_2e_stg_optimizer(CINTOpt **opt, int *ng,
                               int *atm, int natm, int *bas, int nbas, double *env);
 #endif
- 
+
 #ifdef WITH_GTG
 void CINTall_2e_gtg_optimizer(CINTOpt **opt, int *ng,
                               int *atm, int natm, int *bas, int nbas, double *env);
@@ -75,4 +72,25 @@ void CINTall_3c2e_gtg_optimizer(CINTOpt **opt, int *ng,
                                 int *atm, int natm, int *bas, int nbas, double *env);
 void CINTall_2c2e_gtg_optimizer(CINTOpt **opt, int *ng,
                                 int *atm, int natm, int *bas, int nbas, double *env);
+#endif
+
+#ifndef HAVE_DEFINED_APPROX_LOG
+#define HAVE_DEFINED_APPROX_LOG
+#ifdef __X86__
+//// little endian on x86
+//typedef union {
+//    double d;
+//    unsigned short s[4];
+//} type_IEEE754;
+//// ~4 times faster than built-in log
+//static inline double approx_log(double x)
+//{
+//        type_IEEE754 y;
+//        y.d = x;
+//        return ((y.s[3] >> 4) - 1023 + 1) * 0.693145751953125;
+//}
+#define approx_log      log
+#else
+#define approx_log      log
+#endif
 #endif

@@ -29,10 +29,14 @@
 #include "rys_roots.h"
 #include "misc.h"
 
-void CINTg0_2e_lj2d4d_regular(double *g, Rys2eT *bc, CINTEnvVars *envs);
-void CINTg0_2e_lj2d4d_simd1_regular(double *g, Rys2eT *bc, CINTEnvVars *envs);
-int CINTg0_2e_gtg(double *g, Rys2eT *bc, CINTEnvVars *envs, int count);
-int CINTg0_2e_gtg_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd);
+void CINTg0_2e_lj2d4d_regular(double *g, double *cutoff,
+                              Rys2eT *bc, CINTEnvVars *envs);
+void CINTg0_2e_lj2d4d_simd1_regular(double *g, double *cutoff,
+                                    Rys2eT *bc, CINTEnvVars *envs);
+int CINTg0_2e_gtg(double *g, double *cutoff,
+                  Rys2eT *bc, CINTEnvVars *envs, int count);
+int CINTg0_2e_gtg_simd1(double *g, double *cutoff,
+                        Rys2eT *bc, CINTEnvVars *envs, int idsimd);
 void CINTg0_lj_4d(double *g, CINTEnvVars *envs);
 void CINTg0_lj_4d_simd1(double *g, CINTEnvVars *envs);
 
@@ -197,7 +201,8 @@ void CINTg0_2e_lj2d4d_simd1_regular(double *g, Rys2eT *bc, CINTEnvVars *envs)
 /*
  * g[i,k,l,j] = < ik | lj > = ( i j | k l )
  */
-int CINTg0_2e_gtg(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
+int CINTg0_2e_gtg(double *g, double *cutoff,
+                  Rys2eT *bc, CINTEnvVars *envs, int count)
 {
         const double zeta = envs->env[PTR_GTG_ZETA];
         double *gx = g;
@@ -371,7 +376,8 @@ int CINTg0_2e_gtg(double *g, Rys2eT *bc, CINTEnvVars *envs, int count)
         return 1;
 }
 
-int CINTg0_2e_gtg_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd)
+int CINTg0_2e_gtg_simd1(double *g, double *cutoff,
+                        Rys2eT *bc, CINTEnvVars *envs, int idsimd)
 {
         const double aij = envs->ai[idsimd] + envs->aj[idsimd];
         const double akl = envs->ak[idsimd] + envs->al[idsimd];

@@ -64,11 +64,11 @@ int CINT1e_grids_loop(double *gctr, CINTEnvVars *envs, double *cache)
         CINTOpt_log_max_pgto_coeff(log_maxcj, cj, j_prim, j_ctr);
         if (CINTset_pairdata(pdata_base, ai, aj, envs->ri, envs->rj,
                              log_maxci, log_maxcj, envs->li_ceil, envs->lj_ceil,
-                             i_prim, j_prim, SQUARE(envs->rirj), expcutoff)) {
+                             i_prim, j_prim, SQUARE(envs->rirj), expcutoff, env)) {
                 return 0;
         }
 
-        double fac1i, fac1j, expij;
+        double fac1i, fac1j, expij, cutoff;
         double *rij;
         int ip, jp, i, grids_offset, bgrids;
         int empty[4] = {1, 1, 1, 1};
@@ -169,6 +169,7 @@ int CINT1e_grids_loop(double *gctr, CINTEnvVars *envs, double *cache)
                                 if (pdata_ij->cceij > expcutoff) {
                                         continue;
                                 }
+                                cutoff = expcutoff - pdata_ij->cceij;
                                 envs->ai[0] = ai[ip];
                                 expij = pdata_ij->eij;
                                 rij = pdata_ij->rij;
@@ -182,7 +183,7 @@ int CINT1e_grids_loop(double *gctr, CINTEnvVars *envs, double *cache)
                                 }
 
                                 envs->fac[0] = fac1i;
-                                CINTg0_1e_grids(g, envs, cache, gridsT);
+                                CINTg0_1e_grids(g, cutoff, envs, cache, gridsT);
                                 (*envs->f_gout)(gout, g, idx, envs, *gempty);
                                 PRIM2CTR(i, gout, bgrids * nf * n_comp);
                         }

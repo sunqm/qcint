@@ -69,7 +69,7 @@
 
 #define PUSH(RIJ, EXPIJ) \
         if (cum == SIMDD) { \
-                (*envs->f_g0_2e)(g, &bc, envs, cum); \
+                (*envs->f_g0_2e)(g, cutoff, &bc, envs, cum); \
                 (*envs->f_gout)(gout, g, idx, envs); \
                 POP_PRIM2CTR; \
         } \
@@ -81,6 +81,7 @@
         envs->rij[2*SIMDD+cum] = *(RIJ+2); \
         fac1i = fac1j * EXPIJ; \
         envs->fac[cum] = fac1i; \
+        cutoff[cum] = expcutoff - pdata_ij->cceij; \
         if (*iempty) { \
                 fp2c[np2c] = CINTiprim_to_ctr_0; \
                 *iempty = 0; \
@@ -114,7 +115,7 @@
 
 #define RUN_REST \
         if (cum == 1) { \
-                (*envs->f_g0_2e_simd1)(g, &bc, envs, 0); \
+                (*envs->f_g0_2e_simd1)(g, cutoff, &bc, envs, 0); \
                 (*envs->f_gout_simd1)(gout, g, idx, envs); \
         } else if (cum > 1) { \
                 r1 = MM_SET1(1.); \
@@ -122,7 +123,7 @@
                         MM_STORE(bc.u+i*SIMDD, r1); \
                         MM_STORE(bc.w+i*SIMDD, r1); \
                 } \
-                (*envs->f_g0_2e)(g, &bc, envs, cum); \
+                (*envs->f_g0_2e)(g, cutoff, &bc, envs, cum); \
                 (*envs->f_gout)(gout, g, idx, envs); \
         } \
         POP_PRIM2CTR
@@ -169,7 +170,7 @@ int CINT3c2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache, int *empty
         CINTOpt_log_max_pgto_coeff(log_maxcj, cj, j_prim, j_ctr);
         if (CINTset_pairdata(pdata_base, ai, aj, envs->ri, envs->rj,
                              log_maxci, log_maxcj, envs->li_ceil, envs->lj_ceil,
-                             i_prim, j_prim, SQUARE(envs->rirj), expcutoff)) {
+                             i_prim, j_prim, SQUARE(envs->rirj), expcutoff, env)) {
                 return 0;
         }
 
@@ -233,6 +234,7 @@ int CINT3c2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache, int *empty
         g = gout + len0;  // for gx, gy, gz
 
         ALIGNMM Rys2eT bc;
+        ALIGNMM double cutoff[SIMDD];
         INITSIMD;
 
         PairData *pdata_ij;
@@ -313,7 +315,7 @@ int CINT3c2e_loop(double *out, CINTEnvVars *envs, double *cache, int *empty)
                 MALLOC_DATA_INSTACK(pdata_base, i_prim*j_prim);
                 if (CINTset_pairdata(pdata_base, ai, aj, envs->ri, envs->rj,
                                      log_maxci, log_maxcj, envs->li_ceil, envs->lj_ceil,
-                                     i_prim, j_prim, SQUARE(envs->rirj), expcutoff)) {
+                                     i_prim, j_prim, SQUARE(envs->rirj), expcutoff, env)) {
                         return 0;
                 }
         }
@@ -376,7 +378,7 @@ int CINT3c2e_loop(double *out, CINTEnvVars *envs, double *cache, int *empty)
         g = gout + len0;  // for gx, gy, gz
 
         ALIGNMM Rys2eT bc;
-
+        ALIGNMM double cutoff[SIMDD];
         INITSIMD;
 
         for (kp = 0; kp < k_prim; kp++) {
@@ -438,19 +440,19 @@ CACHE_SIZE_T CINT3c2e_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *op
         int n_comp = envs->ncomp_e1 * envs->ncomp_e2 * envs->ncomp_tensor;
         if (out == NULL) {
                 PAIRDATA_NON0IDX_SIZE(pdata_size);
-                int leng = envs->g_size*3*((1<<envs->gbits)+1)*SIMDD;
-                int len0 = envs->nf*n_comp * SIMDD;
-                int cache_size = MAX(leng+len0+nc*n_comp*2 + pdata_size,
-                                     nc*n_comp+envs->nf*3) + SIMDD*4;
+                size_t leng = envs->g_size*3*((1<<envs->gbits)+1)*SIMDD;
+                size_t len0 = envs->nf*n_comp * SIMDD;
+                size_t cache_size = MAX(leng+len0+nc*n_comp*2 + pdata_size,
+                                        nc*n_comp+envs->nf*3) + SIMDD*4;
                 return cache_size;
         }
         double *stack = NULL;
         if (cache == NULL) {
                 PAIRDATA_NON0IDX_SIZE(pdata_size);
-                int leng = envs->g_size*3*((1<<envs->gbits)+1)*SIMDD;
-                int len0 = envs->nf*n_comp * SIMDD;
-                int cache_size = MAX(leng+len0+nc*n_comp*2 + pdata_size,
-                                     nc*n_comp+envs->nf*3) + SIMDD*4;
+                size_t leng = envs->g_size*3*((1<<envs->gbits)+1)*SIMDD;
+                size_t len0 = envs->nf*n_comp * SIMDD;
+                size_t cache_size = MAX(leng+len0+nc*n_comp*2 + pdata_size,
+                                        nc*n_comp+envs->nf*3) + SIMDD*4;
                 stack = _mm_malloc(sizeof(double)*cache_size, sizeof(double)*SIMDD);
                 cache = stack;
         }

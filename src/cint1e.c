@@ -108,20 +108,6 @@
         } \
         POP_PRIM2CTR
 
-// little endian on x86
-//typedef union {
-//    double d;
-//    unsigned short s[4];
-//} type_IEEE754;
-static double approx_log(double x)
-{
-        //type_IEEE754 y;
-        //y.d = x;
-        //return ((double)(y.s[3] >> 4) - 1023) * 0.7;
-        //return log(x);
-        return 2.5;
-}
-
 int CINT1e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
 {
         int *shls = envs->shls;

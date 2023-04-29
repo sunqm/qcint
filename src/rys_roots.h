@@ -25,7 +25,8 @@ void CINTrys_roots(int nroots, double x, double *u, double *w);
 void _CINTrys_roots_batch(int nroots, double *x, double *u, double *w, int count);
 void CINTsr_rys_roots(int nroots, double x, double lower, double *u, double *w);
 void CINTsr_rys_polyfits(int nroots, double x, double lower, double *u, double *w);
-int _CINTsr_rys_roots_batch(CINTEnvVars *envs, double *x, double *theta, double *u, double *w, int count);
+int _CINTsr_rys_roots_batch(CINTEnvVars *envs, double *x, double *theta,
+                            double *u, double *w, double *cutoff, int count);
 
 void CINTstg_roots(int nroots, double ta, double ua, double* rr, double* ww);
 void _CINTstg_roots_batch(int nroots, double *ta, double *ua, double* rr, double* ww, int count);

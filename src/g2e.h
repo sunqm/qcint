@@ -53,8 +53,10 @@ void CINTinit_int2e_stg_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
 void CINTinit_int2e_yp_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
                                int *atm, int natm, int *bas, int nbas, double *env);
 
-int CINTg0_2e(double *g, Rys2eT *bc, CINTEnvVars *envs, int count);
-int CINTg0_2e_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd);
+int CINTg0_2e(double *g, double *cutoff,
+              Rys2eT *bc, CINTEnvVars *envs, int count);
+int CINTg0_2e_simd1(double *g, double *cutoff,
+                    Rys2eT *bc, CINTEnvVars *envs, int idsimd);
 void CINTg0_2e_2d(double *g, Rys2eT *bc, CINTEnvVars *envs);
 void CINTg0_2e_2d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs);
 void CINTg0_2e_lj2d4d(double *g, Rys2eT *bc, CINTEnvVars *envs);

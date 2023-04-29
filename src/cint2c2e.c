@@ -71,13 +71,14 @@
 
 #define PUSH \
         if (cum == SIMDD) { \
-                (*envs->f_g0_2e)(g, &bc, envs, cum); \
+                (*envs->f_g0_2e)(g, cutoff, &bc, envs, cum); \
                 (*envs->f_gout)(gout, g, idx, envs); \
                 POP_PRIM2CTR; \
         } \
         envs->ai[cum] = ai[ip]; \
         envs->ak[cum] = ak[kp]; \
         envs->fac[cum] = fac1k; \
+        cutoff[cum] = expcutoff; \
         if (*iempty) { \
                 fp2c[np2c] = CINTiprim_to_ctr_0; \
                 *iempty = 0; \
@@ -110,7 +111,7 @@
 
 #define RUN_REST \
         if (cum == 1) { \
-                (*envs->f_g0_2e_simd1)(g, &bc, envs, 0); \
+                (*envs->f_g0_2e_simd1)(g, cutoff, &bc, envs, 0); \
                 (*envs->f_gout_simd1)(gout, g, idx, envs); \
         } else if (cum > 1) { \
                 r1 = MM_SET1(1.); \
@@ -118,7 +119,7 @@
                         MM_STORE(bc.u+i*SIMDD, r1); \
                         MM_STORE(bc.w+i*SIMDD, r1); \
                 } \
-                (*envs->f_g0_2e)(g, &bc, envs, cum); \
+                (*envs->f_g0_2e)(g, cutoff, &bc, envs, cum); \
                 (*envs->f_gout)(gout, g, idx, envs); \
         } \
         POP_PRIM2CTR;
@@ -149,6 +150,7 @@ int CINT2c2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache, int *empty
         double *ci = env + bas(PTR_COEFF, i_sh);
         double *ck = env + bas(PTR_COEFF, k_sh);
         double *coeff[2] = {ci, ck};
+        double expcutoff = envs->expcutoff;
         int n_comp = envs->ncomp_e1 * envs->ncomp_e2 * envs->ncomp_tensor;
         int nf = envs->nf;
         double fac1k;
@@ -179,6 +181,7 @@ int CINT2c2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache, int *empty
         g = gout + len0;  // for gx, gy, gz
 
         ALIGNMM Rys2eT bc;
+        ALIGNMM double cutoff[SIMDD];
         int *idx;
         MALLOC_INSTACK(idx, envs->nf * 3);
         int *non0ctri, *non0ctrk;
@@ -238,6 +241,7 @@ int CINT2c2e_loop(double *out, CINTEnvVars *envs, double *cache, int *empty)
         double *ci = env + bas(PTR_COEFF, i_sh);
         double *ck = env + bas(PTR_COEFF, k_sh);
         double *coeff[2] = {ci, ck};
+        double expcutoff = envs->expcutoff;
         int n_comp = envs->ncomp_e1 * envs->ncomp_e2 * envs->ncomp_tensor;
         int nf = envs->nf;
         double fac1k;
@@ -268,6 +272,7 @@ int CINT2c2e_loop(double *out, CINTEnvVars *envs, double *cache, int *empty)
         g = gout + len0;  // for gx, gy, gz
 
         ALIGNMM Rys2eT bc;
+        ALIGNMM double cutoff[SIMDD];
         double common_factor = envs->common_factor * (M_PI*M_PI*M_PI)*2/SQRTPI
                 * CINTcommon_fac_sp(envs->i_l) * CINTcommon_fac_sp(envs->k_l);
 
