@@ -432,897 +432,1385 @@ void CINTg0_ik_4d_simd1(double *g, CINTEnvVars *envs)
                 }
         } } }
 }
-/************* some special g0_4d results *************/
-/* 4 digits stand for i_ceil, k_ceil, l_ceil, j_ceil */
-static inline void _make_rc(double *rc, double *cx, double *cy, double *cz, double *r)
+
+static inline void _g0_2d4d_0000(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        rc[0] = r[0] + cx[0];
-        rc[1] = r[0] + cx[1];
-        rc[2] = r[1] + cy[0];
-        rc[3] = r[1] + cy[1];
-        rc[4] = r[2] + cz[0];
-        rc[5] = r[2] + cz[1];
+        //g[0] = 1;
+        //g[1] = 1;
+        //g[2] = w[0];
 }
-static inline void _g0_lj_4d_0001(double *g, double *cx, double *cy, double *cz,
-                                  double *r)
+
+static inline void _g0_2d4d_0001(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        g[1] = cx[0];
-        g[3] = cy[0];
-        g[5] = cz[0] * g[4];
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        //g[0] = 1;
+        g[1] = cpx[0];
+        //g[2] = 1;
+        g[3] = cpy[0];
+        //g[4] = w[0];
+        g[5] = cpz[0] * g[4];
 }
-static inline void _g0_lj_4d_1000(double *g, double *cx, double *cy, double *cz,
-                                  double *r)
+
+static inline void _g0_2d4d_0002(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        g[1] = r[0] + cx[0];
-        g[5] = r[1] + cy[0];
-        g[9] =(r[2] + cz[0]) * g[8];
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b01 = bc->b01;
+        //g[0] = 1;
+        //g[1] = 1;
+        g[2] = cpx[0];
+        g[3] = cpx[1];
+        g[4] = cpx[0] * cpx[0] + b01[0];
+        g[5] = cpx[1] * cpx[1] + b01[1];
+        //g[6] = 1;
+        //g[7] = 1;
+        g[8] = cpy[0];
+        g[9] = cpy[1];
+        g[10] = cpy[0] * cpy[0] + b01[0];
+        g[11] = cpy[1] * cpy[1] + b01[1];
+        //g[12] = w[0];
+        //g[13] = w[1];
+        g[14] = cpz[0] * g[12];
+        g[15] = cpz[1] * g[13];
+        g[16] = cpz[0] * g[14] + b01[0] * g[12];
+        g[17] = cpz[1] * g[15] + b01[1] * g[13];
 }
-static inline void _g0_lj_4d_0002(double *g, double *cx, double *cy, double *cz,
-                                  double *b, double *r)
+
+static inline void _g0_2d4d_0003(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        g[2 ] = cx[0];
-        g[3 ] = cx[1];
-        g[8 ] = cy[0];
-        g[9 ] = cy[1];
-        g[14] = cz[0] * g[12];
-        g[15] = cz[1] * g[13];
-        g[4 ] = cx[0] * cx[0] + b[0];
-        g[5 ] = cx[1] * cx[1] + b[1];
-        g[10] = cy[0] * cy[0] + b[0];
-        g[11] = cy[1] * cy[1] + b[1];
-        g[16] =(cz[0] * cz[0] + b[0])* g[12];
-        g[17] =(cz[1] * cz[1] + b[1])* g[13];
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b01 = bc->b01;
+        //g[0] = 1;
+        //g[1] = 1;
+        g[2] = cpx[0];
+        g[3] = cpx[1];
+        g[4] = cpx[0] * cpx[0] + b01[0];
+        g[5] = cpx[1] * cpx[1] + b01[1];
+        g[6] = cpx[0] * (g[4] + 2 * b01[0]);
+        g[7] = cpx[1] * (g[5] + 2 * b01[1]);
+        //g[8] = 1;
+        //g[9] = 1;
+        g[10] = cpy[0];
+        g[11] = cpy[1];
+        g[12] = cpy[0] * cpy[0] + b01[0];
+        g[13] = cpy[1] * cpy[1] + b01[1];
+        g[14] = cpy[0] * (g[12] + 2 * b01[0]);
+        g[15] = cpy[1] * (g[13] + 2 * b01[1]);
+        //g[16] = w[0];
+        //g[17] = w[1];
+        g[18] = cpz[0] * g[16];
+        g[19] = cpz[1] * g[17];
+        g[20] = cpz[0] * g[18] + b01[0] * g[16];
+        g[21] = cpz[1] * g[19] + b01[1] * g[17];
+        g[22] = cpz[0] * g[20] + 2 * b01[0] * g[18];
+        g[23] = cpz[1] * g[21] + 2 * b01[1] * g[19];
 }
-static inline void _g0_lj_4d_1001(double *g, double *cx, double *cy, double *cz,
-                                  double *b, double *r)
+
+static inline void _g0_2d4d_0010(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        double rc[6];
-        _make_rc(rc, cx, cy, cz, r);
-        g[4 ] = cx[0];
-        g[5 ] = cx[1];
-        g[16] = cy[0];
-        g[17] = cy[1];
-        g[28] = cz[0] * g[24];
-        g[29] = cz[1] * g[25];
-        g[2 ] = rc[0];
-        g[3 ] = rc[1];
-        g[14] = rc[2];
-        g[15] = rc[3];
-        g[26] = rc[4] * g[24];
-        g[27] = rc[5] * g[25];
-        g[6 ] = rc[0] * cx[0] + b[0];
-        g[7 ] = rc[1] * cx[1] + b[1];
-        g[18] = rc[2] * cy[0] + b[0];
-        g[19] = rc[3] * cy[1] + b[1];
-        g[30] =(rc[4] * cz[0] + b[0])* g[24];
-        g[31] =(rc[5] * cz[1] + b[1])* g[25];
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        //g[0] = 1;
+        g[1] = cpx[0];
+        //g[2] = 1;
+        g[3] = cpy[0];
+        //g[4] = w[0];
+        g[5] = cpz[0] * g[4];
 }
-static inline void _g0_lj_4d_2000(double *g, double *cx, double *cy, double *cz,
-                                  double *b, double *r)
+
+static inline void _g0_2d4d_0011(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        double rc[6];
-        _make_rc(rc, cx, cy, cz, r);
-        g[2 ] = rc[0];
-        g[3 ] = rc[1];
-        g[20] = rc[2];
-        g[21] = rc[3];
-        g[38] = rc[4] * g[36];
-        g[39] = rc[5] * g[37];
-        g[4 ] = rc[0] * rc[0] + b[0];
-        g[5 ] = rc[1] * rc[1] + b[1];
-        g[22] = rc[2] * rc[2] + b[0];
-        g[23] = rc[3] * rc[3] + b[1];
-        g[40] =(rc[4] * rc[4] + b[0])* g[36];
-        g[41] =(rc[5] * rc[5] + b[1])* g[37];
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b01 = bc->b01;
+        double xkxl = envs->rkrl[0];
+        double ykyl = envs->rkrl[1];
+        double zkzl = envs->rkrl[2];
+        //g[0] = 1;
+        //g[1] = 1;
+        g[4] = cpx[0];
+        g[5] = cpx[1];
+        g[6] = cpx[0] * (xkxl + cpx[0]) + b01[0];
+        g[7] = cpx[1] * (xkxl + cpx[1]) + b01[1];
+        g[2] = xkxl + cpx[0];
+        g[3] = xkxl + cpx[1];
+        //g[12] = 1;
+        //g[13] = 1;
+        g[16] = cpy[0];
+        g[17] = cpy[1];
+        g[18] = cpy[0] * (ykyl + cpy[0]) + b01[0];
+        g[19] = cpy[1] * (ykyl + cpy[1]) + b01[1];
+        g[14] = ykyl + cpy[0];
+        g[15] = ykyl + cpy[1];
+        //g[24] = w[0];
+        //g[25] = w[1];
+        g[28] = cpz[0] * g[24];
+        g[29] = cpz[1] * g[25];
+        g[30] = g[28] * (zkzl + cpz[0]) + b01[0] * g[24];
+        g[31] = g[29] * (zkzl + cpz[1]) + b01[1] * g[25];
+        g[26] = g[24] * (zkzl + cpz[0]);
+        g[27] = g[25] * (zkzl + cpz[1]);
 }
-static inline void _g0_lj_4d_0003(double *g, double *cx, double *cy, double *cz,
-                                  double *b, double *r)
+
+static inline void _g0_2d4d_0012(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        g[2 ] = cx[0];
-        g[3 ] = cx[1];
-        g[10] = cy[0];
-        g[11] = cy[1];
-        g[18] = cz[0] * g[16];
-        g[19] = cz[1] * g[17];
-        g[4 ] = cx[0] * cx[0] + b[0];
-        g[5 ] = cx[1] * cx[1] + b[1];
-        g[12] = cy[0] * cy[0] + b[0];
-        g[13] = cy[1] * cy[1] + b[1];
-        g[20] =(cz[0] * cz[0] + b[0])* g[16];
-        g[21] =(cz[1] * cz[1] + b[1])* g[17];
-        g[6 ] = cx[0] *(cx[0] * cx[0] + 3 * b[0]);
-        g[7 ] = cx[1] *(cx[1] * cx[1] + 3 * b[1]);
-        g[14] = cy[0] *(cy[0] * cy[0] + 3 * b[0]);
-        g[15] = cy[1] *(cy[1] * cy[1] + 3 * b[1]);
-        g[22] =(cz[0] * cz[0] + 3 *b[0])* g[18];
-        g[23] =(cz[1] * cz[1] + 3 *b[1])* g[19];
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b01 = bc->b01;
+        double xkxl = envs->rkrl[0];
+        double ykyl = envs->rkrl[1];
+        double zkzl = envs->rkrl[2];
+        //g[0] = 1;
+        //g[1] = 1;
+        g[4] = cpx[0];
+        g[5] = cpx[1];
+        g[8] = cpx[0] * cpx[0] + b01[0];
+        g[9] = cpx[1] * cpx[1] + b01[1];
+        g[10] = g[8] * (xkxl + cpx[0]) + cpx[0] * 2 * b01[0];
+        g[11] = g[9] * (xkxl + cpx[1]) + cpx[1] * 2 * b01[1];
+        g[6] = cpx[0] * (xkxl + cpx[0]) + b01[0];
+        g[7] = cpx[1] * (xkxl + cpx[1]) + b01[1];
+        g[2] = xkxl + cpx[0];
+        g[3] = xkxl + cpx[1];
+        //g[16] = 1;
+        //g[17] = 1;
+        g[20] = cpy[0];
+        g[21] = cpy[1];
+        g[24] = cpy[0] * cpy[0] + b01[0];
+        g[25] = cpy[1] * cpy[1] + b01[1];
+        g[26] = g[24] * (ykyl + cpy[0]) + cpy[0] * 2 * b01[0];
+        g[27] = g[25] * (ykyl + cpy[1]) + cpy[1] * 2 * b01[1];
+        g[22] = cpy[0] * (ykyl + cpy[0]) + b01[0];
+        g[23] = cpy[1] * (ykyl + cpy[1]) + b01[1];
+        g[18] = ykyl + cpy[0];
+        g[19] = ykyl + cpy[1];
+        //g[32] = w[0];
+        //g[33] = w[1];
+        g[36] = cpz[0] * g[32];
+        g[37] = cpz[1] * g[33];
+        g[40] = cpz[0] * g[36] + b01[0] * g[32];
+        g[41] = cpz[1] * g[37] + b01[1] * g[33];
+        g[42] = g[40] * (zkzl + cpz[0]) + 2 * b01[0] * g[36];
+        g[43] = g[41] * (zkzl + cpz[1]) + 2 * b01[1] * g[37];
+        g[38] = g[36] * (zkzl + cpz[0]) + b01[0] * g[32];
+        g[39] = g[37] * (zkzl + cpz[1]) + b01[1] * g[33];
+        g[34] = g[32] * (zkzl + cpz[0]);
+        g[35] = g[33] * (zkzl + cpz[1]);
 }
-static inline void _g0_lj_4d_1002(double *g, double *cx, double *cy, double *cz,
-                                  double *b, double *r)
+
+static inline void _g0_2d4d_0020(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        double rc[6];
-        _make_rc(rc, cx, cy, cz, r);
-        g[2 ] = rc[0];
-        g[3 ] = rc[1];
-        g[4 ] = cx[0];
-        g[5 ] = cx[1];
-        g[18] = rc[2];
-        g[19] = rc[3];
-        g[20] = cy[0];
-        g[21] = cy[1];
-        g[34] = rc[4] * g[32];
-        g[35] = rc[5] * g[33];
-        g[36] = cz[0] * g[32];
-        g[37] = cz[1] * g[33];
-        g[6 ] = rc[0] * cx[0] + b[0];
-        g[7 ] = rc[1] * cx[1] + b[1];
-        g[8 ] = cx[0] * cx[0] + b[0];
-        g[9 ] = cx[1] * cx[1] + b[1];
-        g[22] = rc[2] * cy[0] + b[0];
-        g[23] = rc[3] * cy[1] + b[1];
-        g[24] = cy[0] * cy[0] + b[0];
-        g[25] = cy[1] * cy[1] + b[1];
-        g[38] =(rc[4] * cz[0] + b[0])* g[32];
-        g[39] =(rc[5] * cz[1] + b[1])* g[33];
-        g[40] =(cz[0] * cz[0] + b[0])* g[32];
-        g[41] =(cz[1] * cz[1] + b[1])* g[33];
-        g[10] = rc[0] * g[8 ] + 2* b[0] * cx[0];
-        g[11] = rc[1] * g[9 ] + 2* b[1] * cx[1];
-        g[26] = rc[2] * g[24] + 2* b[0] * cy[0];
-        g[27] = rc[3] * g[25] + 2* b[1] * cy[1];
-        g[42] = rc[4] * g[40] + 2* b[0] * g[36];
-        g[43] = rc[5] * g[41] + 2* b[1] * g[37];
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b01 = bc->b01;
+        //g[0] = 1;
+        //g[1] = 1;
+        g[2] = cpx[0];
+        g[3] = cpx[1];
+        g[4] = cpx[0] * cpx[0] + b01[0];
+        g[5] = cpx[1] * cpx[1] + b01[1];
+        //g[6] = 1;
+        //g[7] = 1;
+        g[8] = cpy[0];
+        g[9] = cpy[1];
+        g[10] = cpy[0] * cpy[0] + b01[0];
+        g[11] = cpy[1] * cpy[1] + b01[1];
+        //g[12] = w[0];
+        //g[13] = w[1];
+        g[14] = cpz[0] * g[12];
+        g[15] = cpz[1] * g[13];
+        g[16] = cpz[0] * g[14] + b01[0] * g[12];
+        g[17] = cpz[1] * g[15] + b01[1] * g[13];
 }
-static inline void _g0_lj_4d_2001(double *g, double *cx, double *cy, double *cz,
-                                  double *b, double *r)
+
+static inline void _g0_2d4d_0021(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        double rc[6];
-        _make_rc(rc, cx, cy, cz, r);
-        g[2 ] = rc[0];
-        g[3 ] = rc[1];
-        g[6 ] = cx[0];
-        g[7 ] = cx[1];
-        g[26] = rc[2];
-        g[27] = rc[3];
-        g[30] = cy[0];
-        g[31] = cy[1];
-        g[50] = rc[4] * g[48];
-        g[51] = rc[5] * g[49];
-        g[54] = cz[0] * g[48];
-        g[55] = cz[1] * g[49];
-        g[4 ] = rc[0] * rc[0] + b[0];
-        g[5 ] = rc[1] * rc[1] + b[1];
-        g[8 ] = cx[0] * rc[0] + b[0];
-        g[9 ] = cx[1] * rc[1] + b[1];
-        g[28] = rc[2] * rc[2] + b[0];
-        g[29] = rc[3] * rc[3] + b[1];
-        g[32] = cy[0] * rc[2] + b[0];
-        g[33] = cy[1] * rc[3] + b[1];
-        g[52] =(rc[4] * rc[4] + b[0])* g[48];
-        g[53] =(rc[5] * rc[5] + b[1])* g[49];
-        g[56] =(cz[0] * rc[4] + b[0])* g[48];
-        g[57] =(cz[1] * rc[5] + b[1])* g[49];
-        g[10] = cx[0] * g[4 ] + 2 *b[0] * rc[0];
-        g[11] = cx[1] * g[5 ] + 2 *b[1] * rc[1];
-        g[34] = cy[0] * g[28] + 2 *b[0] * rc[2];
-        g[35] = cy[1] * g[29] + 2 *b[1] * rc[3];
-        g[58] = cz[0] * g[52] + 2 *b[0] * g[50];
-        g[59] = cz[1] * g[53] + 2 *b[1] * g[51];
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b01 = bc->b01;
+        double xkxl = envs->rkrl[0];
+        double ykyl = envs->rkrl[1];
+        double zkzl = envs->rkrl[2];
+        //g[0] = 1;
+        //g[1] = 1;
+        g[2] = cpx[0];
+        g[3] = cpx[1];
+        g[4] = cpx[0] * cpx[0] + b01[0];
+        g[5] = cpx[1] * cpx[1] + b01[1];
+        g[8] = xkxl + cpx[0];
+        g[9] = xkxl + cpx[1];
+        g[10] = cpx[0] * (xkxl + cpx[0]) + b01[0];
+        g[11] = cpx[1] * (xkxl + cpx[1]) + b01[1];
+        g[12] = g[4] * (xkxl + cpx[0]) + cpx[0] * 2 * b01[0];
+        g[13] = g[5] * (xkxl + cpx[1]) + cpx[1] * 2 * b01[1];
+        //g[16] = 1;
+        //g[17] = 1;
+        g[18] = cpy[0];
+        g[19] = cpy[1];
+        g[20] = cpy[0] * cpy[0] + b01[0];
+        g[21] = cpy[1] * cpy[1] + b01[1];
+        g[24] = ykyl + cpy[0];
+        g[25] = ykyl + cpy[1];
+        g[26] = cpy[0] * (ykyl + cpy[0]) + b01[0];
+        g[27] = cpy[1] * (ykyl + cpy[1]) + b01[1];
+        g[28] = g[20] * (ykyl + cpy[0]) + cpy[0] * 2 * b01[0];
+        g[29] = g[21] * (ykyl + cpy[1]) + cpy[1] * 2 * b01[1];
+        //g[32] = w[0];
+        //g[33] = w[1];
+        g[34] = cpz[0] * g[32];
+        g[35] = cpz[1] * g[33];
+        g[36] = cpz[0] * g[34] + b01[0] * g[32];
+        g[37] = cpz[1] * g[35] + b01[1] * g[33];
+        g[40] = g[32] * (zkzl + cpz[0]);
+        g[41] = g[33] * (zkzl + cpz[1]);
+        g[42] = g[34] * (zkzl + cpz[0]) + b01[0] * g[32];
+        g[43] = g[35] * (zkzl + cpz[1]) + b01[1] * g[33];
+        g[44] = g[36] * (zkzl + cpz[0]) + 2 * b01[0] * g[34];
+        g[45] = g[37] * (zkzl + cpz[1]) + 2 * b01[1] * g[35];
 }
-static inline void _g0_lj_4d_3000(double *g, double *cx, double *cy, double *cz,
-                                  double *b, double *r)
+
+static inline void _g0_2d4d_0030(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        double rc[6];
-        _make_rc(rc, cx, cy, cz, r);
-        g[2 ] = rc[0];
-        g[3 ] = rc[1];
-        g[34] = rc[2];
-        g[35] = rc[3];
-        g[66] = rc[4] * g[64];
-        g[67] = rc[5] * g[65];
-        g[4 ] = rc[0] * rc[0] + b[0];
-        g[5 ] = rc[1] * rc[1] + b[1];
-        g[36] = rc[2] * rc[2] + b[0];
-        g[37] = rc[3] * rc[3] + b[1];
-        g[68] =(rc[4] * rc[4] + b[0])* g[64];
-        g[69] =(rc[5] * rc[5] + b[1])* g[65];
-        g[6 ] = rc[0] *(rc[0] * rc[0] + 3 * b[0]);
-        g[7 ] = rc[1] *(rc[1] * rc[1] + 3 * b[1]);
-        g[38] = rc[2] *(rc[2] * rc[2] + 3 * b[0]);
-        g[39] = rc[3] *(rc[3] * rc[3] + 3 * b[1]);
-        g[70] =(rc[4] * rc[4] + 3 *b[0]) * g[66];
-        g[71] =(rc[5] * rc[5] + 3 *b[1]) * g[67];
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b01 = bc->b01;
+        //g[0] = 1;
+        //g[1] = 1;
+        g[2] = cpx[0];
+        g[3] = cpx[1];
+        g[4] = cpx[0] * cpx[0] + b01[0];
+        g[5] = cpx[1] * cpx[1] + b01[1];
+        g[6] = cpx[0] * (g[4] + 2 * b01[0]);
+        g[7] = cpx[1] * (g[5] + 2 * b01[1]);
+        //g[8] = 1;
+        //g[9] = 1;
+        g[10] = cpy[0];
+        g[11] = cpy[1];
+        g[12] = cpy[0] * cpy[0] + b01[0];
+        g[13] = cpy[1] * cpy[1] + b01[1];
+        g[14] = cpy[0] * (g[12] + 2 * b01[0]);
+        g[15] = cpy[1] * (g[13] + 2 * b01[1]);
+        //g[16] = w[0];
+        //g[17] = w[1];
+        g[18] = cpz[0] * g[16];
+        g[19] = cpz[1] * g[17];
+        g[20] = cpz[0] * g[18] + b01[0] * g[16];
+        g[21] = cpz[1] * g[19] + b01[1] * g[17];
+        g[22] = cpz[0] * g[20] + 2 * b01[0] * g[18];
+        g[23] = cpz[1] * g[21] + 2 * b01[1] * g[19];
 }
-static inline void _g0_lj_4d_0011(double *g, double *c0x, double *c0y, double *c0z,
-                                  double *cpx, double *cpy, double *cpz, double *b,
-                                  double *r0, double *rp)
+
+static inline void _g0_2d4d_0100(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        g[2 ] = cpx[0];
-        g[3 ] = cpx[1];
-        g[4 ] = c0x[0];
-        g[5 ] = c0x[1];
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        //g[0] = 1;
+        g[1] = c0x[0];
+        //g[2] = 1;
+        g[3] = c0y[0];
+        //g[4] = w[0];
+        g[5] = c0z[0] * g[4];
+}
+
+static inline void _g0_2d4d_0101(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b00 = bc->b00;
+        //g[0] = 1;
+        //g[1] = 1;
+        g[2] = cpx[0];
+        g[3] = cpx[1];
+        g[4] = c0x[0];
+        g[5] = c0x[1];
+        g[6] = cpx[0] * c0x[0] + b00[0];
+        g[7] = cpx[1] * c0x[1] + b00[1];
+        //g[8] = 1;
+        //g[9] = 1;
         g[10] = cpy[0];
         g[11] = cpy[1];
         g[12] = c0y[0];
         g[13] = c0y[1];
+        g[14] = cpy[0] * c0y[0] + b00[0];
+        g[15] = cpy[1] * c0y[1] + b00[1];
+        //g[16] = w[0];
+        //g[17] = w[1];
         g[18] = cpz[0] * g[16];
         g[19] = cpz[1] * g[17];
         g[20] = c0z[0] * g[16];
         g[21] = c0z[1] * g[17];
-        g[6 ] = cpx[0] * c0x[0] + b[0];
-        g[7 ] = cpx[1] * c0x[1] + b[1];
-        g[14] = cpy[0] * c0y[0] + b[0];
-        g[15] = cpy[1] * c0y[1] + b[1];
-        g[22] =(cpz[0] * c0z[0] + b[0]) * g[16];
-        g[23] =(cpz[1] * c0z[1] + b[1]) * g[17];
+        g[22] = cpz[0] * g[20] + b00[0] * g[16];
+        g[23] = cpz[1] * g[21] + b00[1] * g[17];
 }
-static inline void _g0_lj_4d_1010(double *g, double *c0x, double *c0y, double *c0z,
-                                  double *cpx, double *cpy, double *cpz, double *b,
-                                  double *r0, double *rp)
+
+static inline void _g0_2d4d_0102(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        double rc[6];
-        _make_rc(rc, c0x, c0y, c0z, r0);
-        g[4 ] = cpx[0];
-        g[5 ] = cpx[1];
-        g[20] = cpy[0];
-        g[21] = cpy[1];
-        g[36] = cpz[0] * g[32];
-        g[37] = cpz[1] * g[33];
-        g[2 ] = rc[0];
-        g[3 ] = rc[1];
-        g[18] = rc[2];
-        g[19] = rc[3];
-        g[34] = rc[4] * g[32];
-        g[35] = rc[5] * g[33];
-        g[6 ] = rc[0] * cpx[0] + b[0];
-        g[7 ] = rc[1] * cpx[1] + b[1];
-        g[22] = rc[2] * cpy[0] + b[0];
-        g[23] = rc[3] * cpy[1] + b[1];
-        g[38] =(rc[4] * cpz[0] + b[0]) * g[32];
-        g[39] =(rc[5] * cpz[1] + b[1]) * g[33];
-}
-static inline void _g0_lj_4d_0101(double *g, double *c0x, double *c0y, double *c0z,
-                                  double *cpx, double *cpy, double *cpz, double *b,
-                                  double *r0, double *rp)
-{
-        double rc[6];
-        _make_rc(rc, cpx, cpy, cpz, rp);
-        g[2 ] = rc[0];
-        g[3 ] = rc[1];
-        g[18] = rc[2];
-        g[19] = rc[3];
-        g[34] = rc[4] * g[32];
-        g[35] = rc[5] * g[33];
-        g[8 ] = c0x[0];
-        g[9 ] = c0x[1];
-        g[24] = c0y[0];
-        g[25] = c0y[1];
-        g[40] = c0z[0] * g[32];
-        g[41] = c0z[1] * g[33];
-        g[10] = rc[0] * c0x[0] + b[0];
-        g[11] = rc[1] * c0x[1] + b[1];
-        g[26] = rc[2] * c0y[0] + b[0];
-        g[27] = rc[3] * c0y[1] + b[1];
-        g[42] =(rc[4] * c0z[0] + b[0]) * g[32];
-        g[43] =(rc[5] * c0z[1] + b[1]) * g[33];
-}
-static inline void _g0_lj_4d_1100(double *g, double *c0x, double *c0y, double *c0z,
-                                  double *cpx, double *cpy, double *cpz, double *b,
-                                  double *r0, double *rp)
-{
-        double rc0[6];
-        double rcp[6];
-        _make_rc(rc0, c0x, c0y, c0z, r0);
-        _make_rc(rcp, cpx, cpy, cpz, rp);
-        g[2 ] = rc0[0];
-        g[3 ] = rc0[1];
-        g[4 ] = rcp[0];
-        g[5 ] = rcp[1];
-        g[34] = rc0[2];
-        g[35] = rc0[3];
-        g[36] = rcp[2];
-        g[37] = rcp[3];
-        g[66] = rc0[4] * g[64];
-        g[67] = rc0[5] * g[65];
-        g[68] = rcp[4] * g[64];
-        g[69] = rcp[5] * g[65];
-        g[6 ] = rc0[0] * rcp[0] + b[0];
-        g[7 ] = rc0[1] * rcp[1] + b[1];
-        g[38] = rc0[2] * rcp[2] + b[0];
-        g[39] = rc0[3] * rcp[3] + b[1];
-        g[70] =(rc0[4] * rcp[4] + b[0]) * g[64];
-        g[71] =(rc0[5] * rcp[5] + b[1]) * g[65];
-}
-static inline void _g0_lj_4d_0021(double *g, double *c0x, double *c0y, double *c0z,
-                                  double *cpx, double *cpy, double *cpz, 
-                                  double *b0, double *b1)
-{
-        g[2 ] = cpx[0];
-        g[3 ] = cpx[1];
-        g[6 ] = c0x[0];
-        g[7 ] = c0x[1];
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b00 = bc->b00;
+        double *b01 = bc->b01;
+        //g[0] = 1;
+        //g[1] = 1;
+        g[2] = cpx[0];
+        g[3] = cpx[1];
+        g[6] = c0x[0];
+        g[7] = c0x[1];
+        g[4] = cpx[0] * cpx[0] + b01[0];
+        g[5] = cpx[1] * cpx[1] + b01[1];
+        g[8] = cpx[0] * c0x[0] + b00[0];
+        g[9] = cpx[1] * c0x[1] + b00[1];
+        g[10] = cpx[0] * (g[8] + b00[0]) + b01[0] * c0x[0];
+        g[11] = cpx[1] * (g[9] + b00[1]) + b01[1] * c0x[1];
+        //g[12] = 1;
+        //g[13] = 1;
         g[14] = cpy[0];
         g[15] = cpy[1];
         g[18] = c0y[0];
         g[19] = c0y[1];
+        g[16] = cpy[0] * cpy[0] + b01[0];
+        g[17] = cpy[1] * cpy[1] + b01[1];
+        g[20] = cpy[0] * c0y[0] + b00[0];
+        g[21] = cpy[1] * c0y[1] + b00[1];
+        g[22] = cpy[0] * (g[20] + b00[0]) + b01[0] * c0y[0];
+        g[23] = cpy[1] * (g[21] + b00[1]) + b01[1] * c0y[1];
+        //g[24] = w[0];
+        //g[25] = w[1];
         g[26] = cpz[0] * g[24];
         g[27] = cpz[1] * g[25];
         g[30] = c0z[0] * g[24];
         g[31] = c0z[1] * g[25];
-        g[4 ] = cpx[0] * cpx[0] + b1[0];
-        g[5 ] = cpx[1] * cpx[1] + b1[1];
-        g[8 ] = cpx[0] * c0x[0] + b0[0];
-        g[9 ] = cpx[1] * c0x[1] + b0[1];
-        g[16] = cpy[0] * cpy[0] + b1[0];
-        g[17] = cpy[1] * cpy[1] + b1[1];
-        g[20] = cpy[0] * c0y[0] + b0[0];
-        g[21] = cpy[1] * c0y[1] + b0[1];
-        g[28] =(cpz[0] * cpz[0] + b1[0]) * g[24];
-        g[29] =(cpz[1] * cpz[1] + b1[1]) * g[25];
-        g[32] =(cpz[0] * c0z[0] + b0[0]) * g[24];
-        g[33] =(cpz[1] * c0z[1] + b0[1]) * g[25];
-        g[10] = c0x[0] * g[4 ] + 2 * b0[0] * cpx[0];
-        g[11] = c0x[1] * g[5 ] + 2 * b0[1] * cpx[1];
-        g[22] = c0y[0] * g[16] + 2 * b0[0] * cpy[0];
-        g[23] = c0y[1] * g[17] + 2 * b0[1] * cpy[1];
-        g[34] = c0z[0] * g[28] + 2 * b0[0] * g[26];
-        g[35] = c0z[1] * g[29] + 2 * b0[1] * g[27];
+        g[28] = cpz[0] * g[26] + b01[0] * g[24];
+        g[29] = cpz[1] * g[27] + b01[1] * g[25];
+        g[32] = cpz[0] * g[30] + b00[0] * g[24];
+        g[33] = cpz[1] * g[31] + b00[1] * g[25];
+        g[34] = cpz[0] * g[32] + b01[0] * g[30] + b00[0] * g[26];
+        g[35] = cpz[1] * g[33] + b01[1] * g[31] + b00[1] * g[27];
 }
-static inline void _g0_lj_4d_1020(double *g, double *c0x, double *c0y, double *c0z,
-                                  double *cpx, double *cpy, double *cpz,
-                                  double *b0, double *b1, double *r0, double *rp)
+
+static inline void _g0_2d4d_0110(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        double rc0[6];
-        _make_rc(rc0, c0x, c0y, c0z, r0);
-        g[2 ] = rc0[0];
-        g[3 ] = rc0[1];
-        g[4 ] = cpx[0];
-        g[5 ] = cpx[1];
-        g[26] = rc0[2];
-        g[27] = rc0[3];
-        g[28] = cpy[0];
-        g[29] = cpy[1];
-        g[50] = rc0[4] * g[48];
-        g[51] = rc0[5] * g[49];
-        g[52] = cpz[0] * g[48];
-        g[53] = cpz[1] * g[49];
-        g[6 ] = cpx[0] * rc0[0] + b0[0];
-        g[7 ] = cpx[1] * rc0[1] + b0[1];
-        g[8 ] = cpx[0] * cpx[0] + b1[0];
-        g[9 ] = cpx[1] * cpx[1] + b1[1];
-        g[30] = cpy[0] * rc0[2] + b0[0];
-        g[31] = cpy[1] * rc0[3] + b0[1];
-        g[32] = cpy[0] * cpy[0] + b1[0];
-        g[33] = cpy[1] * cpy[1] + b1[1];
-        g[54] =(cpz[0] * rc0[4] + b0[0]) * g[48];
-        g[55] =(cpz[1] * rc0[5] + b0[1]) * g[49];
-        g[56] =(cpz[0] * cpz[0] + b1[0]) * g[48];
-        g[57] =(cpz[1] * cpz[1] + b1[1]) * g[49];
-        g[10] = rc0[0] * g[8 ] + 2 * b0[0] * cpx[0];
-        g[11] = rc0[1] * g[9 ] + 2 * b0[1] * cpx[1];
-        g[34] = rc0[2] * g[32] + 2 * b0[0] * cpy[0];
-        g[35] = rc0[3] * g[33] + 2 * b0[1] * cpy[1];
-        g[58] = rc0[4] * g[56] + 2 * b0[0] * g[52];
-        g[59] = rc0[5] * g[57] + 2 * b0[1] * g[53];
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b00 = bc->b00;
+        //g[0] = 1;
+        //g[1] = 1;
+        g[2] = cpx[0];
+        g[3] = cpx[1];
+        g[4] = c0x[0];
+        g[5] = c0x[1];
+        g[6] = cpx[0] * c0x[0] + b00[0];
+        g[7] = cpx[1] * c0x[1] + b00[1];
+        //g[8] = 1;
+        //g[9] = 1;
+        g[10] = cpy[0];
+        g[11] = cpy[1];
+        g[12] = c0y[0];
+        g[13] = c0y[1];
+        g[14] = cpy[0] * c0y[0] + b00[0];
+        g[15] = cpy[1] * c0y[1] + b00[1];
+        //g[16] = w[0];
+        //g[17] = w[1];
+        g[18] = cpz[0] * g[16];
+        g[19] = cpz[1] * g[17];
+        g[20] = c0z[0] * g[16];
+        g[21] = c0z[1] * g[17];
+        g[22] = cpz[0] * g[20] + b00[0] * g[16];
+        g[23] = cpz[1] * g[21] + b00[1] * g[17];
 }
-static inline void _g0_lj_4d_0111(double *g, double *c0x, double *c0y, double *c0z,
-                                  double *cpx, double *cpy, double *cpz,
-                                  double *b0, double *b1, double *r0, double *rp)
+
+static inline void _g0_2d4d_0111(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        double rcp[6];
-        _make_rc(rcp, cpx, cpy, cpz, rp);
-        g[2 ] = rcp[0];
-        g[3 ] = rcp[1];
-        g[4 ] = cpx[0];
-        g[5 ] = cpx[1];
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b00 = bc->b00;
+        double *b01 = bc->b01;
+        double xkxl = envs->rkrl[0];
+        double ykyl = envs->rkrl[1];
+        double zkzl = envs->rkrl[2];
+        //g[0] = 1;
+        //g[1] = 1;
         g[12] = c0x[0];
         g[13] = c0x[1];
-        g[26] = rcp[2];
-        g[27] = rcp[3];
-        g[28] = cpy[0];
-        g[29] = cpy[1];
+        g[4] = cpx[0];
+        g[5] = cpx[1];
+        g[16] = cpx[0] * c0x[0] + b00[0];
+        g[17] = cpx[1] * c0x[1] + b00[1];
+        g[6] = cpx[0] * (xkxl + cpx[0]) + b01[0];
+        g[7] = cpx[1] * (xkxl + cpx[1]) + b01[1];
+        g[18] = g[16] * (xkxl + cpx[0]) + cpx[0] * b00[0] + b01[0] * c0x[0];
+        g[19] = g[17] * (xkxl + cpx[1]) + cpx[1] * b00[1] + b01[1] * c0x[1];
+        g[2] = xkxl + cpx[0];
+        g[3] = xkxl + cpx[1];
+        g[14] = c0x[0] * (xkxl + cpx[0]) + b00[0];
+        g[15] = c0x[1] * (xkxl + cpx[1]) + b00[1];
+        //g[24] = 1;
+        //g[25] = 1;
         g[36] = c0y[0];
         g[37] = c0y[1];
-        g[50] = rcp[4] * g[48];
-        g[51] = rcp[5] * g[49];
-        g[52] = cpz[0] * g[48];
-        g[53] = cpz[1] * g[49];
+        g[28] = cpy[0];
+        g[29] = cpy[1];
+        g[40] = cpy[0] * c0y[0] + b00[0];
+        g[41] = cpy[1] * c0y[1] + b00[1];
+        g[30] = cpy[0] * (ykyl + cpy[0]) + b01[0];
+        g[31] = cpy[1] * (ykyl + cpy[1]) + b01[1];
+        g[42] = g[40] * (ykyl + cpy[0]) + cpy[0] * b00[0] + b01[0] * c0y[0];
+        g[43] = g[41] * (ykyl + cpy[1]) + cpy[1] * b00[1] + b01[1] * c0y[1];
+        g[26] = ykyl + cpy[0];
+        g[27] = ykyl + cpy[1];
+        g[38] = c0y[0] * (ykyl + cpy[0]) + b00[0];
+        g[39] = c0y[1] * (ykyl + cpy[1]) + b00[1];
+        //g[48] = w[0];
+        //g[49] = w[1];
         g[60] = c0z[0] * g[48];
         g[61] = c0z[1] * g[49];
-        g[14] = c0x[0] * rcp[0] + b0[0];
-        g[15] = c0x[1] * rcp[1] + b0[1];
-        g[16] = c0x[0] * cpx[0] + b0[0];
-        g[17] = c0x[1] * cpx[1] + b0[1];
-        g[6 ] = cpx[0] * rcp[0] + b1[0];
-        g[7 ] = cpx[1] * rcp[1] + b1[1];
-        g[30] = cpy[0] * rcp[2] + b1[0];
-        g[31] = cpy[1] * rcp[3] + b1[1];
-        g[38] = c0y[0] * rcp[2] + b0[0];
-        g[39] = c0y[1] * rcp[3] + b0[1];
-        g[40] = c0y[0] * cpy[0] + b0[0];
-        g[41] = c0y[1] * cpy[1] + b0[1];
-        g[54] =(cpz[0] * rcp[4] + b1[0]) * g[48];
-        g[55] =(cpz[1] * rcp[5] + b1[1]) * g[49];
-        g[62] =(c0z[0] * rcp[4] + b0[0]) * g[48];
-        g[63] =(c0z[1] * rcp[5] + b0[1]) * g[49];
-        g[64] =(c0z[0] * cpz[0] + b0[0]) * g[48];
-        g[65] =(c0z[1] * cpz[1] + b0[1]) * g[49];
-        g[18] = c0x[0] * g[6 ] + b0[0] * (rcp[0] + cpx[0]);
-        g[19] = c0x[1] * g[7 ] + b0[1] * (rcp[1] + cpx[1]);
-        g[42] = c0y[0] * g[30] + b0[0] * (rcp[2] + cpy[0]);
-        g[43] = c0y[1] * g[31] + b0[1] * (rcp[3] + cpy[1]);
-        g[66] = c0z[0] * g[54] + b0[0] * (g[50] + g[52]);
-        g[67] = c0z[1] * g[55] + b0[1] * (g[51] + g[53]);
+        g[52] = cpz[0] * g[48];
+        g[53] = cpz[1] * g[49];
+        g[64] = cpz[0] * g[60] + b00[0] * g[48];
+        g[65] = cpz[1] * g[61] + b00[1] * g[49];
+        g[54] = g[52] * (zkzl + cpz[0]) + b01[0] * g[48];
+        g[55] = g[53] * (zkzl + cpz[1]) + b01[1] * g[49];
+        g[66] = g[64] * (zkzl + cpz[0]) + b01[0] * g[60] + b00[0] * g[52];
+        g[67] = g[65] * (zkzl + cpz[1]) + b01[1] * g[61] + b00[1] * g[53];
+        g[50] = g[48] * (zkzl + cpz[0]);
+        g[51] = g[49] * (zkzl + cpz[1]);
+        g[62] = g[60] * (zkzl + cpz[0]) + b00[0] * g[48];
+        g[63] = g[61] * (zkzl + cpz[1]) + b00[1] * g[49];
 }
-static inline void _g0_lj_4d_1110(double *g, double *c0x, double *c0y, double *c0z,
-                                  double *cpx, double *cpy, double *cpz,
-                                  double *b0, double *b1, double *r0, double *rp)
+
+static inline void _g0_2d4d_0120(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        double rc0[6];
-        double rcp[6];
-        _make_rc(rc0, c0x, c0y, c0z, r0);
-        _make_rc(rcp, cpx, cpy, cpz, rp);
-        g[2 ] = rc0[0];
-        g[3 ] = rc0[1];
-        g[4 ] = rcp[0];
-        g[5 ] = rcp[1];
-        g[8 ] = cpx[0];
-        g[9 ] = cpx[1];
-        g[50] = rc0[2];
-        g[51] = rc0[3];
-        g[52] = rcp[2];
-        g[53] = rcp[3];
-        g[56] = cpy[0];
-        g[57] = cpy[1];
-        g[98 ] = rc0[4] * g[96 ];
-        g[99 ] = rc0[5] * g[97 ];
-        g[100] = rcp[4] * g[96 ];
-        g[101] = rcp[5] * g[97 ];
-        g[104] = cpz[0] * g[96 ];
-        g[105] = cpz[1] * g[97 ];
-        g[6 ] = rcp[0] * rc0[0] + b0[0];
-        g[7 ] = rcp[1] * rc0[1] + b0[1];
-        g[10] = cpx[0] * rc0[0] + b0[0];
-        g[11] = cpx[1] * rc0[1] + b0[1];
-        g[12] = cpx[0] * rcp[0] + b1[0];
-        g[13] = cpx[1] * rcp[1] + b1[1];
-        g[54] = rcp[2] * rc0[2] + b0[0];
-        g[55] = rcp[3] * rc0[3] + b0[1];
-        g[58] = cpy[0] * rc0[2] + b0[0];
-        g[59] = cpy[1] * rc0[3] + b0[1];
-        g[60] = cpy[0] * rcp[2] + b1[0];
-        g[61] = cpy[1] * rcp[3] + b1[1];
-        g[102] =(rcp[4] *rc0[4] + b0[0])* g[96 ];
-        g[103] =(rcp[5] *rc0[5] + b0[1])* g[97 ];
-        g[106] =(cpz[0] *rc0[4] + b0[0])* g[96 ];
-        g[107] =(cpz[1] *rc0[5] + b0[1])* g[97 ];
-        g[108] =(cpz[0] *rcp[4] + b1[0])* g[96 ];
-        g[109] =(cpz[1] *rcp[5] + b1[1])* g[97 ];
-        g[14] = rc0[0] * g[12 ] + b0[0] *(rcp[0] + cpx[0]);
-        g[15] = rc0[1] * g[13 ] + b0[1] *(rcp[1] + cpx[1]);
-        g[62] = rc0[2] * g[60 ] + b0[0] *(rcp[2] + cpy[0]);
-        g[63] = rc0[3] * g[61 ] + b0[1] *(rcp[3] + cpy[1]);
-        g[110] = rc0[4] *g[108] + b0[0] *(g[100] + g[104]);
-        g[111] = rc0[5] *g[109] + b0[1] *(g[101] + g[105]);
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b00 = bc->b00;
+        double *b01 = bc->b01;
+        //g[0] = 1;
+        //g[1] = 1;
+        g[2] = cpx[0];
+        g[3] = cpx[1];
+        g[6] = c0x[0];
+        g[7] = c0x[1];
+        g[4] = cpx[0] * cpx[0] + b01[0];
+        g[5] = cpx[1] * cpx[1] + b01[1];
+        g[8] = cpx[0] * c0x[0] + b00[0];
+        g[9] = cpx[1] * c0x[1] + b00[1];
+        g[10] = cpx[0] * (g[8] + b00[0]) + b01[0] * c0x[0];
+        g[11] = cpx[1] * (g[9] + b00[1]) + b01[1] * c0x[1];
+        //g[12] = 1;
+        //g[13] = 1;
+        g[14] = cpy[0];
+        g[15] = cpy[1];
+        g[18] = c0y[0];
+        g[19] = c0y[1];
+        g[16] = cpy[0] * cpy[0] + b01[0];
+        g[17] = cpy[1] * cpy[1] + b01[1];
+        g[20] = cpy[0] * c0y[0] + b00[0];
+        g[21] = cpy[1] * c0y[1] + b00[1];
+        g[22] = cpy[0] * (g[20] + b00[0]) + b01[0] * c0y[0];
+        g[23] = cpy[1] * (g[21] + b00[1]) + b01[1] * c0y[1];
+        //g[24] = w[0];
+        //g[25] = w[1];
+        g[26] = cpz[0] * g[24];
+        g[27] = cpz[1] * g[25];
+        g[30] = c0z[0] * g[24];
+        g[31] = c0z[1] * g[25];
+        g[28] = cpz[0] * g[26] + b01[0] * g[24];
+        g[29] = cpz[1] * g[27] + b01[1] * g[25];
+        g[32] = cpz[0] * g[30] + b00[0] * g[24];
+        g[33] = cpz[1] * g[31] + b00[1] * g[25];
+        g[34] = cpz[0] * g[32] + b01[0] * g[30] + b00[0] * g[26];
+        g[35] = cpz[1] * g[33] + b01[1] * g[31] + b00[1] * g[27];
 }
-static inline void _g0_lj_4d_0201(double *g, double *c0x, double *c0y, double *c0z,
-                                  double *cpx, double *cpy, double *cpz,
-                                  double *b0, double *b1, double *r0, double *rp)
+
+static inline void _g0_2d4d_0200(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        double rcp[6];
-        _make_rc(rcp, cpx, cpy, cpz, rp);
-        g[2 ] = rcp[0];
-        g[3 ] = rcp[1];
-        g[18] = c0x[0];
-        g[19] = c0x[1];
-        g[38] = rcp[2];
-        g[39] = rcp[3];
-        g[54] = c0y[0];
-        g[55] = c0y[1];
-        g[74] = rcp[4] * g[72];
-        g[75] = rcp[5] * g[73];
-        g[90] = c0z[0] * g[72];
-        g[91] = c0z[1] * g[73];
-        g[4 ] = rcp[0] * rcp[0] + b1[0];
-        g[5 ] = rcp[1] * rcp[1] + b1[1];
-        g[20] = rcp[0] * c0x[0] + b0[0];
-        g[21] = rcp[1] * c0x[1] + b0[1];
-        g[40] = rcp[2] * rcp[2] + b1[0];
-        g[41] = rcp[3] * rcp[3] + b1[1];
-        g[56] = rcp[2] * c0y[0] + b0[0];
-        g[57] = rcp[3] * c0y[1] + b0[1];
-        g[76] =(rcp[4] * rcp[4] + b1[0])* g[72];
-        g[77] =(rcp[5] * rcp[5] + b1[1])* g[73];
-        g[92] =(rcp[4] * c0z[0] + b0[0])* g[72];
-        g[93] =(rcp[5] * c0z[1] + b0[1])* g[73];
-        g[22] = c0x[0] * g[4 ] + 2 * b0[0] * rcp[0];
-        g[23] = c0x[1] * g[5 ] + 2 * b0[1] * rcp[1];
-        g[58] = c0y[0] * g[40] + 2 * b0[0] * rcp[2];
-        g[59] = c0y[1] * g[41] + 2 * b0[1] * rcp[3];
-        g[94] = c0z[0] * g[76] + 2 * b0[0] * g[74];
-        g[95] = c0z[1] * g[77] + 2 * b0[1] * g[75];
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *b10 = bc->b10;
+        //g[0] = 1;
+        //g[1] = 1;
+        g[2] = c0x[0];
+        g[3] = c0x[1];
+        g[4] = c0x[0] * c0x[0] + b10[0];
+        g[5] = c0x[1] * c0x[1] + b10[1];
+        //g[6] = 1;
+        //g[7] = 1;
+        g[8] = c0y[0];
+        g[9] = c0y[1];
+        g[10] = c0y[0] * c0y[0] + b10[0];
+        g[11] = c0y[1] * c0y[1] + b10[1];
+        //g[12] = w[0];
+        //g[13] = w[1];
+        g[14] = c0z[0] * g[12];
+        g[15] = c0z[1] * g[13];
+        g[16] = c0z[0] * g[14] + b10[0] * g[12];
+        g[17] = c0z[1] * g[15] + b10[1] * g[13];
 }
-static inline void _g0_lj_4d_1200(double *g, double *c0x, double *c0y, double *c0z,
-                                  double *cpx, double *cpy, double *cpz,
-                                  double *b0, double *b1, double *r0, double *rp)
+
+static inline void _g0_2d4d_0201(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        double rc0[6];
-        double rcp[6];
-        _make_rc(rc0, c0x, c0y, c0z, r0);
-        _make_rc(rcp, cpx, cpy, cpz, rp);
-        g[2 ] = rc0[0];
-        g[3 ] = rc0[1];
-        g[4 ] = rcp[0];
-        g[5 ] = rcp[1];
-        g[6 ] = rcp[0] * rc0[0] + b0[0];
-        g[7 ] = rcp[1] * rc0[1] + b0[1];
-        g[8 ] = rcp[0] * rcp[0] + b1[0];
-        g[9 ] = rcp[1] * rcp[1] + b1[1];
-        g[10] = rc0[0] * g[8] + 2 * b0[0] * rcp[0];
-        g[11] = rc0[1] * g[9] + 2 * b0[1] * rcp[1];
-        g[74] = rc0[2];
-        g[75] = rc0[3];
-        g[76] = rcp[2];
-        g[77] = rcp[3];
-        g[78] = rcp[2] * rc0[2] + b0[0];
-        g[79] = rcp[3] * rc0[3] + b0[1];
-        g[80] = rcp[2] * rcp[2] + b1[0];
-        g[81] = rcp[3] * rcp[3] + b1[1];
-        g[82] = rc0[2] * g[80] + 2 * b0[0] * rcp[2];
-        g[83] = rc0[3] * g[81] + 2 * b0[1] * rcp[3];
-        g[146] = rc0[4] * g[144];
-        g[147] = rc0[5] * g[145];
-        g[148] = rcp[4] * g[144];
-        g[149] = rcp[5] * g[145];
-        g[150] =(rcp[4] * rc0[4] +b0[0])* g[144];
-        g[151] =(rcp[5] * rc0[5] +b0[1])* g[145];
-        g[152] =(rcp[4] * rcp[4] +b1[0])* g[144];
-        g[153] =(rcp[5] * rcp[5] +b1[1])* g[145];
-        g[154] = rc0[4] * g[152] + 2 * b0[0] * g[148];
-        g[155] = rc0[5] * g[153] + 2 * b0[1] * g[149];
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b00 = bc->b00;
+        double *b10 = bc->b10;
+        //g[0] = 1;
+        //g[1] = 1;
+        g[4] = c0x[0];
+        g[5] = c0x[1];
+        g[8] = c0x[0] * c0x[0] + b10[0];
+        g[9] = c0x[1] * c0x[1] + b10[1];
+        g[2] = cpx[0];
+        g[3] = cpx[1];
+        g[6] = cpx[0] * c0x[0] + b00[0];
+        g[7] = cpx[1] * c0x[1] + b00[1];
+        g[10] = c0x[0] * (g[6] + b00[0]) + b10[0] * cpx[0];
+        g[11] = c0x[1] * (g[7] + b00[1]) + b10[1] * cpx[1];
+        //g[12] = 1;
+        //g[13] = 1;
+        g[16] = c0y[0];
+        g[17] = c0y[1];
+        g[20] = c0y[0] * c0y[0] + b10[0];
+        g[21] = c0y[1] * c0y[1] + b10[1];
+        g[14] = cpy[0];
+        g[15] = cpy[1];
+        g[18] = cpy[0] * c0y[0] + b00[0];
+        g[19] = cpy[1] * c0y[1] + b00[1];
+        g[22] = c0y[0] * (g[18] + b00[0]) + b10[0] * cpy[0];
+        g[23] = c0y[1] * (g[19] + b00[1]) + b10[1] * cpy[1];
+        //g[24] = w[0];
+        //g[25] = w[1];
+        g[28] = c0z[0] * g[24];
+        g[29] = c0z[1] * g[25];
+        g[32] = c0z[0] * g[28] + b10[0] * g[24];
+        g[33] = c0z[1] * g[29] + b10[1] * g[25];
+        g[26] = cpz[0] * g[24];
+        g[27] = cpz[1] * g[25];
+        g[30] = cpz[0] * g[28] + b00[0] * g[24];
+        g[31] = cpz[1] * g[29] + b00[1] * g[25];
+        g[34] = c0z[0] * g[30] + b10[0] * g[26] + b00[0] * g[28];
+        g[35] = c0z[1] * g[31] + b10[1] * g[27] + b00[1] * g[29];
 }
-static inline void _g0_lj_4d_0012(double *g, double *c0x, double *c0y, double *c0z,
-                                  double *cpx, double *cpy, double *cpz,
-                                  double *b0, double *b1)
+
+static inline void _g0_2d4d_0210(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        g[2 ] = cpx[0];
-        g[3 ] = cpx[1];
-        g[4 ] = c0x[0];
-        g[5 ] = c0x[1];
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b00 = bc->b00;
+        double *b10 = bc->b10;
+        //g[0] = 1;
+        //g[1] = 1;
+        g[2] = cpx[0];
+        g[3] = cpx[1];
+        g[4] = c0x[0];
+        g[5] = c0x[1];
+        g[6] = cpx[0] * c0x[0] + b00[0];
+        g[7] = cpx[1] * c0x[1] + b00[1];
+        g[8] = c0x[0] * c0x[0] + b10[0];
+        g[9] = c0x[1] * c0x[1] + b10[1];
+        g[10] = c0x[0] * (g[6] + b00[0]) + b10[0] * cpx[0];
+        g[11] = c0x[1] * (g[7] + b00[1]) + b10[1] * cpx[1];
+        //g[12] = 1;
+        //g[13] = 1;
         g[14] = cpy[0];
         g[15] = cpy[1];
         g[16] = c0y[0];
         g[17] = c0y[1];
+        g[18] = cpy[0] * c0y[0] + b00[0];
+        g[19] = cpy[1] * c0y[1] + b00[1];
+        g[20] = c0y[0] * c0y[0] + b10[0];
+        g[21] = c0y[1] * c0y[1] + b10[1];
+        g[22] = c0y[0] * (g[18] + b00[0]) + b10[0] * cpy[0];
+        g[23] = c0y[1] * (g[19] + b00[1]) + b10[1] * cpy[1];
+        //g[24] = w[0];
+        //g[25] = w[1];
         g[26] = cpz[0] * g[24];
         g[27] = cpz[1] * g[25];
         g[28] = c0z[0] * g[24];
         g[29] = c0z[1] * g[25];
-        g[6 ] = cpx[0] * c0x[0] + b0[0];
-        g[7 ] = cpx[1] * c0x[1] + b0[1];
-        g[8 ] = c0x[0] * c0x[0] + b1[0];
-        g[9 ] = c0x[1] * c0x[1] + b1[1];
-        g[18] = cpy[0] * c0y[0] + b0[0];
-        g[19] = cpy[1] * c0y[1] + b0[1];
-        g[20] = c0y[0] * c0y[0] + b1[0];
-        g[21] = c0y[1] * c0y[1] + b1[1];
-        g[30] =(cpz[0] * c0z[0] + b0[0]) * g[24];
-        g[31] =(cpz[1] * c0z[1] + b0[1]) * g[25];
-        g[32] =(c0z[0] * c0z[0] + b1[0]) * g[24];
-        g[33] =(c0z[1] * c0z[1] + b1[1]) * g[25];
-        g[10] = cpx[0] * g[8 ] + 2 * b0[0] * c0x[0];
-        g[11] = cpx[1] * g[9 ] + 2 * b0[1] * c0x[1];
-        g[22] = cpy[0] * g[20] + 2 * b0[0] * c0y[0];
-        g[23] = cpy[1] * g[21] + 2 * b0[1] * c0y[1];
-        g[34] = cpz[0] * g[32] + 2 * b0[0] * g[28];
-        g[35] = cpz[1] * g[33] + 2 * b0[1] * g[29];
+        g[30] = cpz[0] * g[28] + b00[0] * g[24];
+        g[31] = cpz[1] * g[29] + b00[1] * g[25];
+        g[32] = c0z[0] * g[28] + b10[0] * g[24];
+        g[33] = c0z[1] * g[29] + b10[1] * g[25];
+        g[34] = c0z[0] * g[30] + b10[0] * g[26] + b00[0] * g[28];
+        g[35] = c0z[1] * g[31] + b10[1] * g[27] + b00[1] * g[29];
 }
-static inline void _g0_lj_4d_1011(double *g, double *c0x, double *c0y, double *c0z,
-                                  double *cpx, double *cpy, double *cpz,
-                                  double *b0, double *b1, double *r0, double *rp)
+
+static inline void _g0_2d4d_0300(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        double rc0[6];
-        _make_rc(rc0, c0x, c0y, c0z, r0);
-        g[2 ] = rc0[0];
-        g[3 ] = rc0[1];
-        g[4 ] = cpx[0];
-        g[5 ] = cpx[1];
-        g[8 ] = c0x[0];
-        g[9 ] = c0x[1];
-        g[26] = rc0[2];
-        g[27] = rc0[3];
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b10 = bc->b10;
+        //g[0] = 1;
+        //g[1] = 1;
+        g[2] = c0x[0];
+        g[3] = c0x[1];
+        g[4] = c0x[0] * c0x[0] + b10[0];
+        g[5] = c0x[1] * c0x[1] + b10[1];
+        g[6] = c0x[0] * (g[4] + 2 * b10[0]);
+        g[7] = c0x[1] * (g[5] + 2 * b10[1]);
+        //g[8] = 1;
+        //g[9] = 1;
+        g[10] = c0y[0];
+        g[11] = c0y[1];
+        g[12] = c0y[0] * c0y[0] + b10[0];
+        g[13] = c0y[1] * c0y[1] + b10[1];
+        g[14] = c0y[0] * (g[12] + 2 * b10[0]);
+        g[15] = c0y[1] * (g[13] + 2 * b10[1]);
+        //g[16] = w[0];
+        //g[17] = w[1];
+        g[18] = c0z[0] * g[16];
+        g[19] = c0z[1] * g[17];
+        g[20] = c0z[0] * g[18] + b10[0] * g[16];
+        g[21] = c0z[1] * g[19] + b10[1] * g[17];
+        g[22] = c0z[0] * g[20] + 2 * b10[0] * g[18];
+        g[23] = c0z[1] * g[21] + 2 * b10[1] * g[19];
+}
+
+static inline void _g0_2d4d_1000(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        //g[0] = 1;
+        g[1] = c0x[0];
+        //g[2] = 1;
+        g[3] = c0y[0];
+        //g[4] = w[0];
+        g[5] = c0z[0] * g[4];
+}
+
+static inline void _g0_2d4d_1001(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b00 = bc->b00;
+        //g[0] = 1;
+        //g[1] = 1;
+        g[2] = c0x[0];
+        g[3] = c0x[1];
+        g[4] = cpx[0];
+        g[5] = cpx[1];
+        g[6] = cpx[0] * c0x[0] + b00[0];
+        g[7] = cpx[1] * c0x[1] + b00[1];
+        //g[8] = 1;
+        //g[9] = 1;
+        g[10] = c0y[0];
+        g[11] = c0y[1];
+        g[12] = cpy[0];
+        g[13] = cpy[1];
+        g[14] = cpy[0] * c0y[0] + b00[0];
+        g[15] = cpy[1] * c0y[1] + b00[1];
+        //g[16] = w[0];
+        //g[17] = w[1];
+        g[18] = c0z[0] * g[16];
+        g[19] = c0z[1] * g[17];
+        g[20] = cpz[0] * g[16];
+        g[21] = cpz[1] * g[17];
+        g[22] = cpz[0] * g[18] + b00[0] * g[16];
+        g[23] = cpz[1] * g[19] + b00[1] * g[17];
+}
+
+static inline void _g0_2d4d_1002(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b00 = bc->b00;
+        double *b01 = bc->b01;
+        //g[0] = 1;
+        //g[1] = 1;
+        g[2] = c0x[0];
+        g[3] = c0x[1];
+        g[4] = cpx[0];
+        g[5] = cpx[1];
+        g[6] = cpx[0] * c0x[0] + b00[0];
+        g[7] = cpx[1] * c0x[1] + b00[1];
+        g[8] = cpx[0] * cpx[0] + b01[0];
+        g[9] = cpx[1] * cpx[1] + b01[1];
+        g[10] = cpx[0] * (g[6] + b00[0]) + b01[0] * c0x[0];
+        g[11] = cpx[1] * (g[7] + b00[1]) + b01[1] * c0x[1];
+        //g[12] = 1;
+        //g[13] = 1;
+        g[14] = c0y[0];
+        g[15] = c0y[1];
+        g[16] = cpy[0];
+        g[17] = cpy[1];
+        g[18] = cpy[0] * c0y[0] + b00[0];
+        g[19] = cpy[1] * c0y[1] + b00[1];
+        g[20] = cpy[0] * cpy[0] + b01[0];
+        g[21] = cpy[1] * cpy[1] + b01[1];
+        g[22] = cpy[0] * (g[18] + b00[0]) + b01[0] * c0y[0];
+        g[23] = cpy[1] * (g[19] + b00[1]) + b01[1] * c0y[1];
+        //g[24] = w[0];
+        //g[25] = w[1];
+        g[26] = c0z[0] * g[24];
+        g[27] = c0z[1] * g[25];
+        g[28] = cpz[0] * g[24];
+        g[29] = cpz[1] * g[25];
+        g[30] = cpz[0] * g[26] + b00[0] * g[24];
+        g[31] = cpz[1] * g[27] + b00[1] * g[25];
+        g[32] = cpz[0] * g[28] + b01[0] * g[24];
+        g[33] = cpz[1] * g[29] + b01[1] * g[25];
+        g[34] = cpz[0] * g[30] + b01[0] * g[26] + b00[0] * g[28];
+        g[35] = cpz[1] * g[31] + b01[1] * g[27] + b00[1] * g[29];
+}
+
+static inline void _g0_2d4d_1010(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b00 = bc->b00;
+        //g[0] = 1;
+        //g[1] = 1;
+        g[2] = c0x[0];
+        g[3] = c0x[1];
+        g[4] = cpx[0];
+        g[5] = cpx[1];
+        g[6] = cpx[0] * c0x[0] + b00[0];
+        g[7] = cpx[1] * c0x[1] + b00[1];
+        //g[8] = 1;
+        //g[9] = 1;
+        g[10] = c0y[0];
+        g[11] = c0y[1];
+        g[12] = cpy[0];
+        g[13] = cpy[1];
+        g[14] = cpy[0] * c0y[0] + b00[0];
+        g[15] = cpy[1] * c0y[1] + b00[1];
+        //g[16] = w[0];
+        //g[17] = w[1];
+        g[18] = c0z[0] * g[16];
+        g[19] = c0z[1] * g[17];
+        g[20] = cpz[0] * g[16];
+        g[21] = cpz[1] * g[17];
+        g[22] = cpz[0] * g[18] + b00[0] * g[16];
+        g[23] = cpz[1] * g[19] + b00[1] * g[17];
+}
+
+static inline void _g0_2d4d_1011(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b00 = bc->b00;
+        double *b01 = bc->b01;
+        double xkxl = envs->rkrl[0];
+        double ykyl = envs->rkrl[1];
+        double zkzl = envs->rkrl[2];
+        //g[0] = 1;
+        //g[1] = 1;
+        g[2] = c0x[0];
+        g[3] = c0x[1];
+        g[8] = cpx[0];
+        g[9] = cpx[1];
+        g[10] = cpx[0] * c0x[0] + b00[0];
+        g[11] = cpx[1] * c0x[1] + b00[1];
+        g[12] = cpx[0] * (xkxl + cpx[0]) + b01[0];
+        g[13] = cpx[1] * (xkxl + cpx[1]) + b01[1];
+        g[14] = g[10] * (xkxl + cpx[0]) + cpx[0] * b00[0] + b01[0] * c0x[0];
+        g[15] = g[11] * (xkxl + cpx[1]) + cpx[1] * b00[1] + b01[1] * c0x[1];
+        g[4] = xkxl + cpx[0];
+        g[5] = xkxl + cpx[1];
+        g[6] = c0x[0] * (xkxl + cpx[0]) + b00[0];
+        g[7] = c0x[1] * (xkxl + cpx[1]) + b00[1];
+        //g[24] = 1;
+        //g[25] = 1;
+        g[26] = c0y[0];
+        g[27] = c0y[1];
+        g[32] = cpy[0];
+        g[33] = cpy[1];
+        g[34] = cpy[0] * c0y[0] + b00[0];
+        g[35] = cpy[1] * c0y[1] + b00[1];
+        g[36] = cpy[0] * (ykyl + cpy[0]) + b01[0];
+        g[37] = cpy[1] * (ykyl + cpy[1]) + b01[1];
+        g[38] = g[34] * (ykyl + cpy[0]) + cpy[0] * b00[0] + b01[0] * c0y[0];
+        g[39] = g[35] * (ykyl + cpy[1]) + cpy[1] * b00[1] + b01[1] * c0y[1];
+        g[28] = ykyl + cpy[0];
+        g[29] = ykyl + cpy[1];
+        g[30] = c0y[0] * (ykyl + cpy[0]) + b00[0];
+        g[31] = c0y[1] * (ykyl + cpy[1]) + b00[1];
+        //g[48] = w[0];
+        //g[49] = w[1];
+        g[50] = c0z[0] * g[48];
+        g[51] = c0z[1] * g[49];
+        g[56] = cpz[0] * g[48];
+        g[57] = cpz[1] * g[49];
+        g[58] = cpz[0] * g[50] + b00[0] * g[48];
+        g[59] = cpz[1] * g[51] + b00[1] * g[49];
+        g[60] = g[56] * (zkzl + cpz[0]) + b01[0] * g[48];
+        g[61] = g[57] * (zkzl + cpz[1]) + b01[1] * g[49];
+        g[62] = g[58] * (zkzl + cpz[0]) + b01[0] * g[50] + b00[0] * g[56];
+        g[63] = g[59] * (zkzl + cpz[1]) + b01[1] * g[51] + b00[1] * g[57];
+        g[52] = g[48] * (zkzl + cpz[0]);
+        g[53] = g[49] * (zkzl + cpz[1]);
+        g[54] = g[50] * (zkzl + cpz[0]) + b00[0] * g[48];
+        g[55] = g[51] * (zkzl + cpz[1]) + b00[1] * g[49];
+}
+
+static inline void _g0_2d4d_1020(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b00 = bc->b00;
+        double *b01 = bc->b01;
+        //g[0] = 1;
+        //g[1] = 1;
+        g[2] = c0x[0];
+        g[3] = c0x[1];
+        g[4] = cpx[0];
+        g[5] = cpx[1];
+        g[6] = cpx[0] * c0x[0] + b00[0];
+        g[7] = cpx[1] * c0x[1] + b00[1];
+        g[8] = cpx[0] * cpx[0] + b01[0];
+        g[9] = cpx[1] * cpx[1] + b01[1];
+        g[10] = cpx[0] * (g[6] + b00[0]) + b01[0] * c0x[0];
+        g[11] = cpx[1] * (g[7] + b00[1]) + b01[1] * c0x[1];
+        //g[12] = 1;
+        //g[13] = 1;
+        g[14] = c0y[0];
+        g[15] = c0y[1];
+        g[16] = cpy[0];
+        g[17] = cpy[1];
+        g[18] = cpy[0] * c0y[0] + b00[0];
+        g[19] = cpy[1] * c0y[1] + b00[1];
+        g[20] = cpy[0] * cpy[0] + b01[0];
+        g[21] = cpy[1] * cpy[1] + b01[1];
+        g[22] = cpy[0] * (g[18] + b00[0]) + b01[0] * c0y[0];
+        g[23] = cpy[1] * (g[19] + b00[1]) + b01[1] * c0y[1];
+        //g[24] = w[0];
+        //g[25] = w[1];
+        g[26] = c0z[0] * g[24];
+        g[27] = c0z[1] * g[25];
+        g[28] = cpz[0] * g[24];
+        g[29] = cpz[1] * g[25];
+        g[30] = cpz[0] * g[26] + b00[0] * g[24];
+        g[31] = cpz[1] * g[27] + b00[1] * g[25];
+        g[32] = cpz[0] * g[28] + b01[0] * g[24];
+        g[33] = cpz[1] * g[29] + b01[1] * g[25];
+        g[34] = cpz[0] * g[30] + b01[0] * g[26] + b00[0] * g[28];
+        g[35] = cpz[1] * g[31] + b01[1] * g[27] + b00[1] * g[29];
+}
+
+static inline void _g0_2d4d_1100(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *b10 = bc->b10;
+        double xixj = envs->rirj[0];
+        double yiyj = envs->rirj[1];
+        double zizj = envs->rirj[2];
+        //g[0] = 1;
+        //g[1] = 1;
+        g[4] = c0x[0];
+        g[5] = c0x[1];
+        g[6] = c0x[0] * (xixj + c0x[0]) + b10[0];
+        g[7] = c0x[1] * (xixj + c0x[1]) + b10[1];
+        g[2] = xixj + c0x[0];
+        g[3] = xixj + c0x[1];
+        //g[12] = 1;
+        //g[13] = 1;
+        g[16] = c0y[0];
+        g[17] = c0y[1];
+        g[18] = c0y[0] * (yiyj + c0y[0]) + b10[0];
+        g[19] = c0y[1] * (yiyj + c0y[1]) + b10[1];
+        g[14] = yiyj + c0y[0];
+        g[15] = yiyj + c0y[1];
+        //g[24] = w[0];
+        //g[25] = w[1];
+        g[28] = c0z[0] * g[24];
+        g[29] = c0z[1] * g[25];
+        g[30] = g[28] * (zizj + c0z[0]) + b10[0] * g[24];
+        g[31] = g[29] * (zizj + c0z[1]) + b10[1] * g[25];
+        g[26] = g[24] * (zizj + c0z[0]);
+        g[27] = g[25] * (zizj + c0z[1]);
+}
+
+static inline void _g0_2d4d_1101(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b00 = bc->b00;
+        double *b10 = bc->b10;
+        double xixj = envs->rirj[0];
+        double yiyj = envs->rirj[1];
+        double zizj = envs->rirj[2];
+        //g[0] = 1;
+        //g[1] = 1;
+        g[8] = c0x[0];
+        g[9] = c0x[1];
+        g[4] = cpx[0];
+        g[5] = cpx[1];
+        g[12] = cpx[0] * c0x[0] + b00[0];
+        g[13] = cpx[1] * c0x[1] + b00[1];
+        g[10] = c0x[0] * (xixj + c0x[0]) + b10[0];
+        g[11] = c0x[1] * (xixj + c0x[1]) + b10[1];
+        g[2] = xixj + c0x[0];
+        g[3] = xixj + c0x[1];
+        g[14] = g[12] * (xixj + c0x[0]) + c0x[0] * b00[0] + b10[0] * cpx[0];
+        g[15] = g[13] * (xixj + c0x[1]) + c0x[1] * b00[1] + b10[1] * cpx[1];
+        g[6] = cpx[0] * (xixj + c0x[0]) + b00[0];
+        g[7] = cpx[1] * (xixj + c0x[1]) + b00[1];
+        //g[24] = 1;
+        //g[25] = 1;
+        g[32] = c0y[0];
+        g[33] = c0y[1];
         g[28] = cpy[0];
         g[29] = cpy[1];
-        g[32] = c0y[0];
-        g[33] = c0y[1];
-        g[50] = rc0[4] * g[48];
-        g[51] = rc0[5] * g[49];
+        g[36] = cpy[0] * c0y[0] + b00[0];
+        g[37] = cpy[1] * c0y[1] + b00[1];
+        g[34] = c0y[0] * (yiyj + c0y[0]) + b10[0];
+        g[35] = c0y[1] * (yiyj + c0y[1]) + b10[1];
+        g[26] = yiyj + c0y[0];
+        g[27] = yiyj + c0y[1];
+        g[38] = g[36] * (yiyj + c0y[0]) + c0y[0] * b00[0] + b10[0] * cpy[0];
+        g[39] = g[37] * (yiyj + c0y[1]) + c0y[1] * b00[1] + b10[1] * cpy[1];
+        g[30] = cpy[0] * (yiyj + c0y[0]) + b00[0];
+        g[31] = cpy[1] * (yiyj + c0y[1]) + b00[1];
+        //g[48] = w[0];
+        //g[49] = w[1];
+        g[56] = c0z[0] * g[48];
+        g[57] = c0z[1] * g[49];
         g[52] = cpz[0] * g[48];
         g[53] = cpz[1] * g[49];
-        g[56] = c0z[0] * g[48];
-        g[57] = c0z[1] * g[49];
-        g[6 ] = cpx[0] * rc0[0] + b0[0];
-        g[7 ] = cpx[1] * rc0[1] + b0[1];
-        g[10] = c0x[0] * rc0[0] + b1[0];
-        g[11] = c0x[1] * rc0[1] + b1[1];
-        g[12] = c0x[0] * cpx[0] + b0[0];
-        g[13] = c0x[1] * cpx[1] + b0[1];
-        g[30] = cpy[0] * rc0[2] + b0[0];
-        g[31] = cpy[1] * rc0[3] + b0[1];
-        g[34] = c0y[0] * rc0[2] + b1[0];
-        g[35] = c0y[1] * rc0[3] + b1[1];
-        g[36] = c0y[0] * cpy[0] + b0[0];
-        g[37] = c0y[1] * cpy[1] + b0[1];
-        g[54] =(cpz[0] * rc0[4] + b0[0])* g[48];
-        g[55] =(cpz[1] * rc0[5] + b0[1])* g[49];
-        g[58] =(c0z[0] * rc0[4] + b1[0])* g[48];
-        g[59] =(c0z[1] * rc0[5] + b1[1])* g[49];
-        g[60] =(c0z[0] * cpz[0] + b0[0])* g[48];
-        g[61] =(c0z[1] * cpz[1] + b0[1])* g[49];
-        g[14] = cpx[0] * g[10] + b0[0] *(rc0[0] + c0x[0]);
-        g[15] = cpx[1] * g[11] + b0[1] *(rc0[1] + c0x[1]);
-        g[38] = cpy[0] * g[34] + b0[0] *(rc0[2] + c0y[0]);
-        g[39] = cpy[1] * g[35] + b0[1] *(rc0[3] + c0y[1]);
-        g[62] = cpz[0] * g[58] + b0[0] *(g[50] + g[56]);
-        g[63] = cpz[1] * g[59] + b0[1] *(g[51] + g[57]);
+        g[60] = cpz[0] * g[56] + b00[0] * g[48];
+        g[61] = cpz[1] * g[57] + b00[1] * g[49];
+        g[58] = g[56] * (zizj + c0z[0]) + b10[0] * g[48];
+        g[59] = g[57] * (zizj + c0z[1]) + b10[1] * g[49];
+        g[50] = g[48] * (zizj + c0z[0]);
+        g[51] = g[49] * (zizj + c0z[1]);
+        g[62] = g[60] * (zizj + c0z[0]) + b10[0] * g[52] + b00[0] * g[56];
+        g[63] = g[61] * (zizj + c0z[1]) + b10[1] * g[53] + b00[1] * g[57];
+        g[54] = zizj * g[52] + cpz[0] * g[56] + b00[0] * g[48];
+        g[55] = zizj * g[53] + cpz[1] * g[57] + b00[1] * g[49];
 }
-static inline void _g0_lj_4d_2010(double *g, double *c0x, double *c0y, double *c0z,
-                                  double *cpx, double *cpy, double *cpz,
-                                  double *b0, double *b1, double *r0, double *rp)
+
+static inline void _g0_2d4d_1110(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        double rc0[6];
-        _make_rc(rc0, c0x, c0y, c0z, r0);
-        g[2 ] = rc0[0];
-        g[3 ] = rc0[1];
-        g[6 ] = cpx[0];
-        g[7 ] = cpx[1];
-        g[38] = rc0[2];
-        g[39] = rc0[3];
-        g[42] = cpy[0];
-        g[43] = cpy[1];
-        g[74] = rc0[4] * g[72];
-        g[75] = rc0[5] * g[73];
-        g[78] = cpz[0] * g[72];
-        g[79] = cpz[1] * g[73];
-        g[4 ] = rc0[0] * rc0[0] + b1[0];
-        g[5 ] = rc0[1] * rc0[1] + b1[1];
-        g[8 ] = cpx[0] * rc0[0] + b0[0];
-        g[9 ] = cpx[1] * rc0[1] + b0[1];
-        g[40] = rc0[2] * rc0[2] + b1[0];
-        g[41] = rc0[3] * rc0[3] + b1[1];
-        g[44] = cpy[0] * rc0[2] + b0[0];
-        g[45] = cpy[1] * rc0[3] + b0[1];
-        g[76] =(rc0[4] * rc0[4] + b1[0]) * g[72];
-        g[77] =(rc0[5] * rc0[5] + b1[1]) * g[73];
-        g[80] =(cpz[0] * rc0[4] + b0[0]) * g[72];
-        g[81] =(cpz[1] * rc0[5] + b0[1]) * g[73];
-        g[10] = cpx[0] * g[4 ] + 2 * b0[0] * rc0[0];
-        g[11] = cpx[1] * g[5 ] + 2 * b0[1] * rc0[1];
-        g[46] = cpy[0] * g[40] + 2 * b0[0] * rc0[2];
-        g[47] = cpy[1] * g[41] + 2 * b0[1] * rc0[3];
-        g[82] = cpz[0] * g[76] + 2 * b0[0] * g[74];
-        g[83] = cpz[1] * g[77] + 2 * b0[1] * g[75];
-}
-static inline void _g0_lj_4d_0102(double *g, double *c0x, double *c0y, double *c0z,
-                                  double *cpx, double *cpy, double *cpz,
-                                  double *b0, double *b1, double *r0, double *rp)
-{
-        double rcp[6];
-        _make_rc(rcp, cpx, cpy, cpz, rp);
-        g[2 ] = rcp[0];
-        g[3 ] = rcp[1];
-        g[8 ] = c0x[0];
-        g[9 ] = c0x[1];
-        g[26] = rcp[2];
-        g[27] = rcp[3];
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b00 = bc->b00;
+        double *b10 = bc->b10;
+        double xixj = envs->rirj[0];
+        double yiyj = envs->rirj[1];
+        double zizj = envs->rirj[2];
+        //g[0] = 1;
+        //g[1] = 1;
+        g[8] = c0x[0];
+        g[9] = c0x[1];
+        g[4] = cpx[0];
+        g[5] = cpx[1];
+        g[12] = cpx[0] * c0x[0] + b00[0];
+        g[13] = cpx[1] * c0x[1] + b00[1];
+        g[10] = c0x[0] * (xixj + c0x[0]) + b10[0];
+        g[11] = c0x[1] * (xixj + c0x[1]) + b10[1];
+        g[2] = xixj + c0x[0];
+        g[3] = xixj + c0x[1];
+        g[14] = g[12] * (xixj + c0x[0]) + c0x[0] * b00[0] + b10[0] * cpx[0];
+        g[15] = g[13] * (xixj + c0x[1]) + c0x[1] * b00[1] + b10[1] * cpx[1];
+        g[6] = cpx[0] * (xixj + c0x[0]) + b00[0];
+        g[7] = cpx[1] * (xixj + c0x[1]) + b00[1];
+        //g[24] = 1;
+        //g[25] = 1;
         g[32] = c0y[0];
         g[33] = c0y[1];
-        g[50] = rcp[4] * g[48];
-        g[51] = rcp[5] * g[49];
+        g[28] = cpy[0];
+        g[29] = cpy[1];
+        g[36] = cpy[0] * c0y[0] + b00[0];
+        g[37] = cpy[1] * c0y[1] + b00[1];
+        g[34] = c0y[0] * (yiyj + c0y[0]) + b10[0];
+        g[35] = c0y[1] * (yiyj + c0y[1]) + b10[1];
+        g[26] = yiyj + c0y[0];
+        g[27] = yiyj + c0y[1];
+        g[38] = g[36] * (yiyj + c0y[0]) + c0y[0] * b00[0] + b10[0] * cpy[0];
+        g[39] = g[37] * (yiyj + c0y[1]) + c0y[1] * b00[1] + b10[1] * cpy[1];
+        g[30] = cpy[0] * (yiyj + c0y[0]) + b00[0];
+        g[31] = cpy[1] * (yiyj + c0y[1]) + b00[1];
+        //g[48] = w[0];
+        //g[49] = w[1];
         g[56] = c0z[0] * g[48];
         g[57] = c0z[1] * g[49];
-        g[10] = rcp[0] * c0x[0] + b0[0];
-        g[11] = rcp[1] * c0x[1] + b0[1];
-        g[16] = c0x[0] * c0x[0] + b1[0];
-        g[17] = c0x[1] * c0x[1] + b1[1];
-        g[34] = rcp[2] * c0y[0] + b0[0];
-        g[35] = rcp[3] * c0y[1] + b0[1];
-        g[40] = c0y[0] * c0y[0] + b1[0];
-        g[41] = c0y[1] * c0y[1] + b1[1];
-        g[58] =(rcp[4] * c0z[0] + b0[0]) * g[48];
-        g[59] =(rcp[5] * c0z[1] + b0[1]) * g[49];
-        g[64] =(c0z[0] * c0z[0] + b1[0]) * g[48];
-        g[65] =(c0z[1] * c0z[1] + b1[1]) * g[49];
-        g[18] = rcp[0] * g[16] + 2 * b0[0] * c0x[0];
-        g[19] = rcp[1] * g[17] + 2 * b0[1] * c0x[1];
-        g[42] = rcp[2] * g[40] + 2 * b0[0] * c0y[0];
-        g[43] = rcp[3] * g[41] + 2 * b0[1] * c0y[1];
-        g[66] = rcp[4] * g[64] + 2 * b0[0] * g[56];
-        g[67] = rcp[5] * g[65] + 2 * b0[1] * g[57];
+        g[52] = cpz[0] * g[48];
+        g[53] = cpz[1] * g[49];
+        g[60] = cpz[0] * g[56] + b00[0] * g[48];
+        g[61] = cpz[1] * g[57] + b00[1] * g[49];
+        g[58] = g[56] * (zizj + c0z[0]) + b10[0] * g[48];
+        g[59] = g[57] * (zizj + c0z[1]) + b10[1] * g[49];
+        g[50] = g[48] * (zizj + c0z[0]);
+        g[51] = g[49] * (zizj + c0z[1]);
+        g[62] = g[60] * (zizj + c0z[0]) + b10[0] * g[52] + b00[0] * g[56];
+        g[63] = g[61] * (zizj + c0z[1]) + b10[1] * g[53] + b00[1] * g[57];
+        g[54] = zizj * g[52] + cpz[0] * g[56] + b00[0] * g[48];
+        g[55] = zizj * g[53] + cpz[1] * g[57] + b00[1] * g[49];
 }
-static inline void _g0_lj_4d_1101(double *g, double *c0x, double *c0y, double *c0z,
-                                  double *cpx, double *cpy, double *cpz,
-                                  double *b0, double *b1, double *r0, double *rp)
-{
-        double rc0[6];
-        double rcp[6];
-        _make_rc(rc0, c0x, c0y, c0z, r0);
-        _make_rc(rcp, cpx, cpy, cpz, rp);
-        g[2 ] = rc0[0];
-        g[3 ] = rc0[1];
-        g[4 ] = rcp[0];
-        g[5 ] = rcp[1];
-        g[16] = c0x[0];
-        g[17] = c0x[1];
-        g[50] = rc0[2];
-        g[51] = rc0[3];
-        g[52] = rcp[2];
-        g[53] = rcp[3];
-        g[64] = c0y[0];
-        g[65] = c0y[1];
-        g[98 ] = rc0[4] * g[96];
-        g[99 ] = rc0[5] * g[97];
-        g[100] = rcp[4] * g[96];
-        g[101] = rcp[5] * g[97];
-        g[112] = c0z[0] * g[96];
-        g[113] = c0z[1] * g[97];
-        g[6 ] = rcp[0] * rc0[0] + b0[0];
-        g[7 ] = rcp[1] * rc0[1] + b0[1];
-        g[18] = c0x[0] * rc0[0] + b1[0];
-        g[19] = c0x[1] * rc0[1] + b1[1];
-        g[20] = c0x[0] * rcp[0] + b0[0];
-        g[21] = c0x[1] * rcp[1] + b0[1];
-        g[54] = rcp[2] * rc0[2] + b0[0];
-        g[55] = rcp[3] * rc0[3] + b0[1];
-        g[66] = c0y[0] * rc0[2] + b1[0];
-        g[67] = c0y[1] * rc0[3] + b1[1];
-        g[68] = c0y[0] * rcp[2] + b0[0];
-        g[69] = c0y[1] * rcp[3] + b0[1];
-        g[102] = (rcp[4] * rc0[4] + b0[0])* g[96];
-        g[103] = (rcp[5] * rc0[5] + b0[1])* g[97];
-        g[114] = (c0z[0] * rc0[4] + b1[0])* g[96];
-        g[115] = (c0z[1] * rc0[5] + b1[1])* g[97];
-        g[116] = (c0z[0] * rcp[4] + b0[0])* g[96];
-        g[117] = (c0z[1] * rcp[5] + b0[1])* g[97];
-        g[22] = rcp[0] * g[18] + b0[0] *(rc0[0] + c0x[0]);
-        g[23] = rcp[1] * g[19] + b0[1] *(rc0[1] + c0x[1]);
-        g[70] = rcp[2] * g[66] + b0[0] *(rc0[2] + c0y[0]);
-        g[71] = rcp[3] * g[67] + b0[1] *(rc0[3] + c0y[1]);
-        g[118] = rcp[4] *g[114] + b0[0] *(g[98] + g[112]);
-        g[119] = rcp[5] *g[115] + b0[1] *(g[99] + g[113]);
-}
-static inline void _g0_lj_4d_2100(double *g, double *c0x, double *c0y, double *c0z,
-                                  double *cpx, double *cpy, double *cpz,
-                                  double *b0, double *b1, double *r0, double *rp)
-{
-        double rc0[6];
-        double rcp[6];
-        _make_rc(rc0, c0x, c0y, c0z, r0);
-        _make_rc(rcp, cpx, cpy, cpz, rp);
-        g[2 ] = rc0[0];
-        g[3 ] = rc0[1];
-        g[6 ] = rcp[0];
-        g[7 ] = rcp[1];
-        g[74] = rc0[2];
-        g[75] = rc0[3];
-        g[78] = rcp[2];
-        g[79] = rcp[3];
-        g[146] = rc0[4] * g[144];
-        g[147] = rc0[5] * g[145];
-        g[150] = rcp[4] * g[144];
-        g[151] = rcp[5] * g[145];
-        g[4 ] = rc0[0] * rc0[0] + b1[0];
-        g[5 ] = rc0[1] * rc0[1] + b1[1];
-        g[8 ] = rcp[0] * rc0[0] + b0[0];
-        g[9 ] = rcp[1] * rc0[1] + b0[1];
-        g[76] = rc0[2] * rc0[2] + b1[0];
-        g[77] = rc0[3] * rc0[3] + b1[1];
-        g[80] = rcp[2] * rc0[2] + b0[0];
-        g[81] = rcp[3] * rc0[3] + b0[1];
-        g[148] = (rc0[4] * rc0[4] + b1[0])* g[144];
-        g[149] = (rc0[5] * rc0[5] + b1[1])* g[145];
-        g[152] = (rcp[4] * rc0[4] + b0[0])* g[144];
-        g[153] = (rcp[5] * rc0[5] + b0[1])* g[145];
-        g[10 ] = rcp[0] * g[4  ] + 2 * b0[0] * rc0[0];
-        g[11 ] = rcp[1] * g[5  ] + 2 * b0[1] * rc0[1];
-        g[82 ] = rcp[2] * g[76 ] + 2 * b0[0] * rc0[2];
-        g[83 ] = rcp[3] * g[77 ] + 2 * b0[1] * rc0[3];
-        g[154] = rcp[4] * g[148] + 2 * b0[0] * g[146];
-        g[155] = rcp[5] * g[149] + 2 * b0[1] * g[147];
-}
-/************** end special g0_4d results *************/
 
+static inline void _g0_2d4d_1200(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *b10 = bc->b10;
+        double xixj = envs->rirj[0];
+        double yiyj = envs->rirj[1];
+        double zizj = envs->rirj[2];
+        //g[0] = 1;
+        //g[1] = 1;
+        g[4] = c0x[0];
+        g[5] = c0x[1];
+        g[8] = c0x[0] * c0x[0] + b10[0];
+        g[9] = c0x[1] * c0x[1] + b10[1];
+        g[10] = g[8] * (xixj + c0x[0]) + c0x[0] * 2 * b10[0];
+        g[11] = g[9] * (xixj + c0x[1]) + c0x[1] * 2 * b10[1];
+        g[6] = c0x[0] * (xixj + c0x[0]) + b10[0];
+        g[7] = c0x[1] * (xixj + c0x[1]) + b10[1];
+        g[2] = xixj + c0x[0];
+        g[3] = xixj + c0x[1];
+        //g[16] = 1;
+        //g[17] = 1;
+        g[20] = c0y[0];
+        g[21] = c0y[1];
+        g[24] = c0y[0] * c0y[0] + b10[0];
+        g[25] = c0y[1] * c0y[1] + b10[1];
+        g[26] = g[24] * (yiyj + c0y[0]) + c0y[0] * 2 * b10[0];
+        g[27] = g[25] * (yiyj + c0y[1]) + c0y[1] * 2 * b10[1];
+        g[22] = c0y[0] * (yiyj + c0y[0]) + b10[0];
+        g[23] = c0y[1] * (yiyj + c0y[1]) + b10[1];
+        g[18] = yiyj + c0y[0];
+        g[19] = yiyj + c0y[1];
+        //g[32] = w[0];
+        //g[33] = w[1];
+        g[36] = c0z[0] * g[32];
+        g[37] = c0z[1] * g[33];
+        g[40] = c0z[0] * g[36] + b10[0] * g[32];
+        g[41] = c0z[1] * g[37] + b10[1] * g[33];
+        g[42] = g[40] * (zizj + c0z[0]) + 2 * b10[0] * g[36];
+        g[43] = g[41] * (zizj + c0z[1]) + 2 * b10[1] * g[37];
+        g[38] = g[36] * (zizj + c0z[0]) + b10[0] * g[32];
+        g[39] = g[37] * (zizj + c0z[1]) + b10[1] * g[33];
+        g[34] = g[32] * (zizj + c0z[0]);
+        g[35] = g[33] * (zizj + c0z[1]);
+}
 
+static inline void _g0_2d4d_2000(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *b10 = bc->b10;
+        //g[0] = 1;
+        //g[1] = 1;
+        g[2] = c0x[0];
+        g[3] = c0x[1];
+        g[4] = c0x[0] * c0x[0] + b10[0];
+        g[5] = c0x[1] * c0x[1] + b10[1];
+        //g[6] = 1;
+        //g[7] = 1;
+        g[8] = c0y[0];
+        g[9] = c0y[1];
+        g[10] = c0y[0] * c0y[0] + b10[0];
+        g[11] = c0y[1] * c0y[1] + b10[1];
+        //g[12] = w[0];
+        //g[13] = w[1];
+        g[14] = c0z[0] * g[12];
+        g[15] = c0z[1] * g[13];
+        g[16] = c0z[0] * g[14] + b10[0] * g[12];
+        g[17] = c0z[1] * g[15] + b10[1] * g[13];
+}
+
+static inline void _g0_2d4d_2001(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b00 = bc->b00;
+        double *b10 = bc->b10;
+        //g[0] = 1;
+        //g[1] = 1;
+        g[2] = c0x[0];
+        g[3] = c0x[1];
+        g[4] = c0x[0] * c0x[0] + b10[0];
+        g[5] = c0x[1] * c0x[1] + b10[1];
+        g[6] = cpx[0];
+        g[7] = cpx[1];
+        g[8] = cpx[0] * c0x[0] + b00[0];
+        g[9] = cpx[1] * c0x[1] + b00[1];
+        g[10] = c0x[0] * (g[8] + b00[0]) + b10[0] * cpx[0];
+        g[11] = c0x[1] * (g[9] + b00[1]) + b10[1] * cpx[1];
+        //g[12] = 1;
+        //g[13] = 1;
+        g[14] = c0y[0];
+        g[15] = c0y[1];
+        g[16] = c0y[0] * c0y[0] + b10[0];
+        g[17] = c0y[1] * c0y[1] + b10[1];
+        g[18] = cpy[0];
+        g[19] = cpy[1];
+        g[20] = cpy[0] * c0y[0] + b00[0];
+        g[21] = cpy[1] * c0y[1] + b00[1];
+        g[22] = c0y[0] * (g[20] + b00[0]) + b10[0] * cpy[0];
+        g[23] = c0y[1] * (g[21] + b00[1]) + b10[1] * cpy[1];
+        //g[24] = w[0];
+        //g[25] = w[1];
+        g[26] = c0z[0] * g[24];
+        g[27] = c0z[1] * g[25];
+        g[28] = c0z[0] * g[26] + b10[0] * g[24];
+        g[29] = c0z[1] * g[27] + b10[1] * g[25];
+        g[30] = cpz[0] * g[24];
+        g[31] = cpz[1] * g[25];
+        g[32] = cpz[0] * g[26] + b00[0] * g[24];
+        g[33] = cpz[1] * g[27] + b00[1] * g[25];
+        g[34] = c0z[0] * g[32] + b10[0] * g[30] + b00[0] * g[26];
+        g[35] = c0z[1] * g[33] + b10[1] * g[31] + b00[1] * g[27];
+}
+
+static inline void _g0_2d4d_2010(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b00 = bc->b00;
+        double *b10 = bc->b10;
+        //g[0] = 1;
+        //g[1] = 1;
+        g[2] = c0x[0];
+        g[3] = c0x[1];
+        g[4] = c0x[0] * c0x[0] + b10[0];
+        g[5] = c0x[1] * c0x[1] + b10[1];
+        g[6] = cpx[0];
+        g[7] = cpx[1];
+        g[8] = cpx[0] * c0x[0] + b00[0];
+        g[9] = cpx[1] * c0x[1] + b00[1];
+        g[10] = c0x[0] * (g[8] + b00[0]) + b10[0] * cpx[0];
+        g[11] = c0x[1] * (g[9] + b00[1]) + b10[1] * cpx[1];
+        //g[12] = 1;
+        //g[13] = 1;
+        g[14] = c0y[0];
+        g[15] = c0y[1];
+        g[16] = c0y[0] * c0y[0] + b10[0];
+        g[17] = c0y[1] * c0y[1] + b10[1];
+        g[18] = cpy[0];
+        g[19] = cpy[1];
+        g[20] = cpy[0] * c0y[0] + b00[0];
+        g[21] = cpy[1] * c0y[1] + b00[1];
+        g[22] = c0y[0] * (g[20] + b00[0]) + b10[0] * cpy[0];
+        g[23] = c0y[1] * (g[21] + b00[1]) + b10[1] * cpy[1];
+        //g[24] = w[0];
+        //g[25] = w[1];
+        g[26] = c0z[0] * g[24];
+        g[27] = c0z[1] * g[25];
+        g[28] = c0z[0] * g[26] + b10[0] * g[24];
+        g[29] = c0z[1] * g[27] + b10[1] * g[25];
+        g[30] = cpz[0] * g[24];
+        g[31] = cpz[1] * g[25];
+        g[32] = cpz[0] * g[26] + b00[0] * g[24];
+        g[33] = cpz[1] * g[27] + b00[1] * g[25];
+        g[34] = c0z[0] * g[32] + b10[0] * g[30] + b00[0] * g[26];
+        g[35] = c0z[1] * g[33] + b10[1] * g[31] + b00[1] * g[27];
+}
+
+static inline void _g0_2d4d_2100(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *b10 = bc->b10;
+        double xixj = envs->rirj[0];
+        double yiyj = envs->rirj[1];
+        double zizj = envs->rirj[2];
+        //g[0] = 1;
+        //g[1] = 1;
+        g[2] = c0x[0];
+        g[3] = c0x[1];
+        g[4] = c0x[0] * c0x[0] + b10[0];
+        g[5] = c0x[1] * c0x[1] + b10[1];
+        g[12] = g[4] * (xixj + c0x[0]) + c0x[0] * 2 * b10[0];
+        g[13] = g[5] * (xixj + c0x[1]) + c0x[1] * 2 * b10[1];
+        g[10] = c0x[0] * (xixj + c0x[0]) + b10[0];
+        g[11] = c0x[1] * (xixj + c0x[1]) + b10[1];
+        g[8] = xixj + c0x[0];
+        g[9] = xixj + c0x[1];
+        //g[16] = 1;
+        //g[17] = 1;
+        g[18] = c0y[0];
+        g[19] = c0y[1];
+        g[20] = c0y[0] * c0y[0] + b10[0];
+        g[21] = c0y[1] * c0y[1] + b10[1];
+        g[28] = g[20] * (yiyj + c0y[0]) + c0y[0] * 2 * b10[0];
+        g[29] = g[21] * (yiyj + c0y[1]) + c0y[1] * 2 * b10[1];
+        g[26] = c0y[0] * (yiyj + c0y[0]) + b10[0];
+        g[27] = c0y[1] * (yiyj + c0y[1]) + b10[1];
+        g[24] = yiyj + c0y[0];
+        g[25] = yiyj + c0y[1];
+        //g[32] = w[0];
+        //g[33] = w[1];
+        g[34] = c0z[0] * g[32];
+        g[35] = c0z[1] * g[33];
+        g[36] = c0z[0] * g[34] + b10[0] * g[32];
+        g[37] = c0z[1] * g[35] + b10[1] * g[33];
+        g[44] = g[36] * (zizj + c0z[0]) + 2 * b10[0] * g[34];
+        g[45] = g[37] * (zizj + c0z[1]) + 2 * b10[1] * g[35];
+        g[42] = g[34] * (zizj + c0z[0]) + b10[0] * g[32];
+        g[43] = g[35] * (zizj + c0z[1]) + b10[1] * g[33];
+        g[40] = g[32] * (zizj + c0z[0]);
+        g[41] = g[33] * (zizj + c0z[1]);
+}
+
+static inline void _g0_2d4d_3000(double *restrict g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *b10 = bc->b10;
+        //g[0] = 1;
+        //g[1] = 1;
+        g[2] = c0x[0];
+        g[3] = c0x[1];
+        g[4] = c0x[0] * c0x[0] + b10[0];
+        g[5] = c0x[1] * c0x[1] + b10[1];
+        g[6] = c0x[0] * (g[4] + 2 * b10[0]);
+        g[7] = c0x[1] * (g[5] + 2 * b10[1]);
+        //g[8] = 1;
+        //g[9] = 1;
+        g[10] = c0y[0];
+        g[11] = c0y[1];
+        g[12] = c0y[0] * c0y[0] + b10[0];
+        g[13] = c0y[1] * c0y[1] + b10[1];
+        g[14] = c0y[0] * (g[12] + 2 * b10[0]);
+        g[15] = c0y[1] * (g[13] + 2 * b10[1]);
+        //g[16] = w[0];
+        //g[17] = w[1];
+        g[18] = c0z[0] * g[16];
+        g[19] = c0z[1] * g[17];
+        g[20] = c0z[0] * g[18] + b10[0] * g[16];
+        g[21] = c0z[1] * g[19] + b10[1] * g[17];
+        g[22] = c0z[0] * g[20] + 2 * b10[0] * g[18];
+        g[23] = c0z[1] * g[21] + 2 * b10[1] * g[19];
+}
+
+void CINTg0_2e_2d4d_unrolled_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        int type_ijkl = ((envs->li_ceil << 6) | (envs->lj_ceil << 4) |
+                         (envs->lk_ceil << 2) | (envs->ll_ceil));
+        switch (type_ijkl) {
+                case 0b00000000: _g0_2d4d_0000(g, bc, envs); return;
+                case 0b00000001: _g0_2d4d_0001(g, bc, envs); return;
+                case 0b00000010: _g0_2d4d_0002(g, bc, envs); return;
+                case 0b00000011: _g0_2d4d_0003(g, bc, envs); return;
+                case 0b00000100: _g0_2d4d_0010(g, bc, envs); return;
+                case 0b00000101: _g0_2d4d_0011(g, bc, envs); return;
+                case 0b00000110: _g0_2d4d_0012(g, bc, envs); return;
+                case 0b00001000: _g0_2d4d_0020(g, bc, envs); return;
+                case 0b00001001: _g0_2d4d_0021(g, bc, envs); return;
+                case 0b00001100: _g0_2d4d_0030(g, bc, envs); return;
+                case 0b00010000: _g0_2d4d_0100(g, bc, envs); return;
+                case 0b00010001: _g0_2d4d_0101(g, bc, envs); return;
+                case 0b00010010: _g0_2d4d_0102(g, bc, envs); return;
+                case 0b00010100: _g0_2d4d_0110(g, bc, envs); return;
+                case 0b00010101: _g0_2d4d_0111(g, bc, envs); return;
+                case 0b00011000: _g0_2d4d_0120(g, bc, envs); return;
+                case 0b00100000: _g0_2d4d_0200(g, bc, envs); return;
+                case 0b00100001: _g0_2d4d_0201(g, bc, envs); return;
+                case 0b00100100: _g0_2d4d_0210(g, bc, envs); return;
+                case 0b00110000: _g0_2d4d_0300(g, bc, envs); return;
+                case 0b01000000: _g0_2d4d_1000(g, bc, envs); return;
+                case 0b01000001: _g0_2d4d_1001(g, bc, envs); return;
+                case 0b01000010: _g0_2d4d_1002(g, bc, envs); return;
+                case 0b01000100: _g0_2d4d_1010(g, bc, envs); return;
+                case 0b01000101: _g0_2d4d_1011(g, bc, envs); return;
+                case 0b01001000: _g0_2d4d_1020(g, bc, envs); return;
+                case 0b01010000: _g0_2d4d_1100(g, bc, envs); return;
+                case 0b01010001: _g0_2d4d_1101(g, bc, envs); return;
+                case 0b01010100: _g0_2d4d_1110(g, bc, envs); return;
+                case 0b01100000: _g0_2d4d_1200(g, bc, envs); return;
+                case 0b10000000: _g0_2d4d_2000(g, bc, envs); return;
+                case 0b10000001: _g0_2d4d_2001(g, bc, envs); return;
+                case 0b10000100: _g0_2d4d_2010(g, bc, envs); return;
+                case 0b10010000: _g0_2d4d_2100(g, bc, envs); return;
+                case 0b11000000: _g0_2d4d_3000(g, bc, envs); return;
+        }
+        fprintf(stderr, "Dimension error for CINTg0_2e_2d4d: iklj = %d %d %d %d",
+               (int)envs->li_ceil, (int)envs->lk_ceil,
+               (int)envs->ll_ceil, (int)envs->lj_ceil);
+}
 
 void CINTg0_2e_lj2d4d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        int nmax = envs->li_ceil + envs->lj_ceil;
-        int mmax = envs->lk_ceil + envs->ll_ceil;
-        switch (nmax) {
-        case 0: switch(mmax) {
-                case 0: goto _g0_4d_default; // ssss
-                case 1: switch (envs->lk_ceil) {
-                        case 0: _g0_lj_4d_0001(g, bc->c0px, bc->c0py, bc->c0pz, envs->rkrl); return;
-                        case 1: _g0_lj_4d_1000(g, bc->c0px, bc->c0py, bc->c0pz, envs->rkrl); return;
-                        default: goto error; }
-                case 2: switch (envs->lk_ceil) {
-                        case 0: _g0_lj_4d_0002(g, bc->c0px, bc->c0py, bc->c0pz, bc->b01, envs->rkrl); return;
-                        case 1: _g0_lj_4d_1001(g, bc->c0px, bc->c0py, bc->c0pz, bc->b01, envs->rkrl); return;
-                        case 2: _g0_lj_4d_2000(g, bc->c0px, bc->c0py, bc->c0pz, bc->b01, envs->rkrl); return;
-                        default: goto error; }
-                case 3: switch (envs->lk_ceil) {
-                        case 0: _g0_lj_4d_0003(g, bc->c0px, bc->c0py, bc->c0pz, bc->b01, envs->rkrl); return;
-                        case 1: _g0_lj_4d_1002(g, bc->c0px, bc->c0py, bc->c0pz, bc->b01, envs->rkrl); return;
-                        case 2: _g0_lj_4d_2001(g, bc->c0px, bc->c0py, bc->c0pz, bc->b01, envs->rkrl); return;
-                        case 3: _g0_lj_4d_3000(g, bc->c0px, bc->c0py, bc->c0pz, bc->b01, envs->rkrl); return;
-                        default: goto error; }
-                default: goto _g0_4d_default; }
-        case 1: switch(mmax) {
-                case 0: switch (envs->li_ceil) {
-                        case 0: _g0_lj_4d_0001(g, bc->c00x, bc->c00y, bc->c00z, envs->rirj); return;
-                        case 1: _g0_lj_4d_1000(g, bc->c00x, bc->c00y, bc->c00z, envs->rirj); return;
-                        default: goto error; }
-                case 1: switch (envs->lk_ceil) {
-                        case 0: switch (envs->li_ceil) {
-                                case 0: _g0_lj_4d_0011(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, envs->rirj, envs->rkrl); return;
-                                case 1: _g0_lj_4d_1010(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, envs->rirj, envs->rkrl); return;
-                                default: goto error; }
-                        case 1: switch (envs->li_ceil) {
-                                case 0: _g0_lj_4d_0101(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, envs->rirj, envs->rkrl); return;
-                                case 1: _g0_lj_4d_1100(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, envs->rirj, envs->rkrl); return;
-                                default: goto error; }
-                        default: goto error; }
-                case 2: switch (envs->lk_ceil) {
-                        case 0: switch (envs->li_ceil) {
-                                case 0: _g0_lj_4d_0021(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b01); return;
-                                case 1: _g0_lj_4d_1020(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b01, envs->rirj, envs->rkrl); return;
-                                default: goto error; }
-                        case 1: switch (envs->li_ceil) {
-                                case 0: _g0_lj_4d_0111(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b01, envs->rirj, envs->rkrl); return;
-                                case 1: _g0_lj_4d_1110(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b01, envs->rirj, envs->rkrl); return;
-                                default: goto error; }
-                        case 2: switch (envs->li_ceil) {
-                                case 0: _g0_lj_4d_0201(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b01, envs->rirj, envs->rkrl); return;
-                                case 1: _g0_lj_4d_1200(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b01, envs->rirj, envs->rkrl); return;
-                                default: goto error; }
-                        default: goto error; }
-                default: goto _g0_4d_default; }
-        case 2: switch(mmax) {
-                case 0: switch (envs->li_ceil) {
-                        case 0: _g0_lj_4d_0002(g, bc->c00x, bc->c00y, bc->c00z, bc->b10, envs->rirj); return;
-                        case 1: _g0_lj_4d_1001(g, bc->c00x, bc->c00y, bc->c00z, bc->b10, envs->rirj); return;
-                        case 2: _g0_lj_4d_2000(g, bc->c00x, bc->c00y, bc->c00z, bc->b10, envs->rirj); return;
-                        default: goto error; }
-                case 1: switch (envs->lk_ceil) {
-                        case 0: switch (envs->li_ceil) {
-                                case 0: _g0_lj_4d_0012(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b10); return;
-                                case 1: _g0_lj_4d_1011(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b10, envs->rirj, envs->rkrl); return;
-                                case 2: _g0_lj_4d_2010(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b10, envs->rirj, envs->rkrl); return;
-                                default: goto error; }
-                        case 1: switch (envs->li_ceil) {
-                                case 0: _g0_lj_4d_0102(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b10, envs->rirj, envs->rkrl); return;
-                                case 1: _g0_lj_4d_1101(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b10, envs->rirj, envs->rkrl); return;
-                                case 2: _g0_lj_4d_2100(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b10, envs->rirj, envs->rkrl); return;
-                                default: goto error; }
-                        default: goto error; }
-                default: goto _g0_4d_default; }
-        case 3: switch(mmax) {
-                case 0: switch (envs->li_ceil) {
-                        case 0: _g0_lj_4d_0003(g, bc->c00x, bc->c00y, bc->c00z, bc->b10, envs->rirj); return;
-                        case 1: _g0_lj_4d_1002(g, bc->c00x, bc->c00y, bc->c00z, bc->b10, envs->rirj); return;
-                        case 2: _g0_lj_4d_2001(g, bc->c00x, bc->c00y, bc->c00z, bc->b10, envs->rirj); return;
-                        case 3: _g0_lj_4d_3000(g, bc->c00x, bc->c00y, bc->c00z, bc->b10, envs->rirj); return;
-                        default: goto error; }
-                default: goto _g0_4d_default; }
-        default:
-_g0_4d_default:
-                        CINTg0_2e_2d_simd1(g, bc, envs);
-                        CINTg0_lj_4d_simd1(g, envs);
-                        return;
-        }
-error:
-        fprintf(stderr, "Dimension error for CINTg0_2e_lj2d4d_simd1: iklj = %d %d %d %d\n",
-                envs->li_ceil, envs->lk_ceil, envs->ll_ceil, envs->lj_ceil);
-        exit(1);
+        CINTg0_2e_2d_simd1(g, bc, envs);
+        CINTg0_lj_4d_simd1(g, envs);
 }
 
 void CINTg0_2e_kj2d4d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs)

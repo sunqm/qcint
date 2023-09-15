@@ -93,11 +93,10 @@ void CINTinit_int2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
         int dli, dlj, dlk, dll;
         int ibase = envs->li_ceil > envs->lj_ceil;
         int kbase = envs->lk_ceil > envs->ll_ceil;
-        if (nroots <= 2) { // use the fully optimized lj_4d algorithm
-                ibase = 0;
-                kbase = 0;
-        }
-        if (kbase) {
+        if (nroots <= 2) {
+                envs->f_g0_2d4d = &CINTg0_2e_2d4d_unrolled;
+                envs->f_g0_2d4d_simd1 = &CINTg0_2e_2d4d_unrolled_simd1;
+        } else if (kbase) {
                 if (ibase) {
                         envs->f_g0_2d4d = &CINTg0_2e_ik2d4d;
                         envs->f_g0_2d4d_simd1 = &CINTg0_2e_ik2d4d_simd1;
@@ -778,26 +777,30 @@ static inline void _make_rc(double *rc, double *cx, double *cy, double *cz, doub
         MM_STORE(rc+4*SIMDD, MM_ADD(r2, MM_LOAD(cz+0*SIMDD)));
         MM_STORE(rc+5*SIMDD, MM_ADD(r2, MM_LOAD(cz+1*SIMDD)));
 }
-static inline void _g0_lj_4d_0001(double *g, double *cx, double *cy, double *cz,
-                                  double *r)
+
+static inline void _g0_2d4d_0000(double *g, Rys2eT *bc, CINTEnvVars *envs)
 {
+        //MM_STORE(g+0*SIMDD, MM_SET1(1.));
+        //MM_STORE(g+1*SIMDD, MM_SET1(1.));
+        //g[2] = w[0];
+}
+
+static inline void _g0_2d4d_0001(double *g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *cx = bc->c0px;
+        double *cy = bc->c0py;
+        double *cz = bc->c0pz;
         MM_STORE(g+1*SIMDD, MM_LOAD(cx+0*SIMDD));
         MM_STORE(g+3*SIMDD, MM_LOAD(cy+0*SIMDD));
         MM_STORE(g+5*SIMDD, MM_MUL(MM_LOAD(cz+0*SIMDD), MM_LOAD(g+4*SIMDD)));
 }
-static inline void _g0_lj_4d_1000(double *g, double *cx, double *cy, double *cz,
-                                  double *r)
+
+static inline void _g0_2d4d_0002(double *g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        __MD r0 = MM_SET1(r[0]);
-        __MD r1 = MM_SET1(r[1]);
-        __MD r2 = MM_SET1(r[2]);
-        MM_STORE(g+1*SIMDD, MM_ADD(r0, MM_LOAD(cx+0*SIMDD)));
-        MM_STORE(g+5*SIMDD, MM_ADD(r1, MM_LOAD(cy+0*SIMDD)));
-        MM_STORE(g+9*SIMDD, MM_MUL(MM_ADD(r2, MM_LOAD(cz+0*SIMDD)), MM_LOAD(g+8*SIMDD)));
-}
-static inline void _g0_lj_4d_0002(double *g, double *cx, double *cy, double *cz,
-                                  double *b, double *r)
-{
+        double *cx = bc->c0px;
+        double *cy = bc->c0py;
+        double *cz = bc->c0pz;
+        double *b =  bc->b01;
         __MD cx0 = MM_LOAD(cx+0*SIMDD);
         __MD cx1 = MM_LOAD(cx+1*SIMDD);
         __MD cy0 = MM_LOAD(cy+0*SIMDD);
@@ -821,9 +824,55 @@ static inline void _g0_lj_4d_0002(double *g, double *cx, double *cy, double *cz,
         MM_STORE(g+16*SIMDD, MM_MUL(MM_FMA(cz0, cz0, b0), g12));
         MM_STORE(g+17*SIMDD, MM_MUL(MM_FMA(cz1, cz1, b1), g13));
 }
-static inline void _g0_lj_4d_1001(double *g, double *cx, double *cy, double *cz,
-                                  double *b, double *r)
+
+static inline void _g0_2d4d_0003(double *g, Rys2eT *bc, CINTEnvVars *envs)
 {
+        double *cx = bc->c0px;
+        double *cy = bc->c0py;
+        double *cz = bc->c0pz;
+        double *b =  bc->b01;
+        __MD b0 = MM_LOAD(b+0*SIMDD);
+        __MD b1 = MM_LOAD(b+1*SIMDD);
+        __MD g16 = MM_LOAD(g+16*SIMDD);
+        __MD g17 = MM_LOAD(g+17*SIMDD);
+        __MD i3 = MM_SET1(3.);
+        MM_STORE(g+2 *SIMDD, MM_LOAD(cx+0*SIMDD));
+        MM_STORE(g+3 *SIMDD, MM_LOAD(cx+1*SIMDD));
+        MM_STORE(g+10*SIMDD, MM_LOAD(cy+0*SIMDD));
+        MM_STORE(g+11*SIMDD, MM_LOAD(cy+1*SIMDD));
+        MM_STORE(g+18*SIMDD, MM_LOAD(cz+0*SIMDD) * g16);
+        MM_STORE(g+19*SIMDD, MM_LOAD(cz+1*SIMDD) * g17);
+        MM_STORE(g+4 *SIMDD, MM_LOAD(cx+0*SIMDD) * MM_LOAD(cx+0*SIMDD) + b0);
+        MM_STORE(g+5 *SIMDD, MM_LOAD(cx+1*SIMDD) * MM_LOAD(cx+1*SIMDD) + b1);
+        MM_STORE(g+12*SIMDD, MM_LOAD(cy+0*SIMDD) * MM_LOAD(cy+0*SIMDD) + b0);
+        MM_STORE(g+13*SIMDD, MM_LOAD(cy+1*SIMDD) * MM_LOAD(cy+1*SIMDD) + b1);
+        MM_STORE(g+20*SIMDD,(MM_LOAD(cz+0*SIMDD) * MM_LOAD(cz+0*SIMDD) + b0)* g16);
+        MM_STORE(g+21*SIMDD,(MM_LOAD(cz+1*SIMDD) * MM_LOAD(cz+1*SIMDD) + b1)* g17);
+        MM_STORE(g+6 *SIMDD, MM_LOAD(cx+0*SIMDD) *(MM_LOAD(cx+0*SIMDD) * MM_LOAD(cx+0*SIMDD) + i3 * b0));
+        MM_STORE(g+7 *SIMDD, MM_LOAD(cx+1*SIMDD) *(MM_LOAD(cx+1*SIMDD) * MM_LOAD(cx+1*SIMDD) + i3 * b1));
+        MM_STORE(g+14*SIMDD, MM_LOAD(cy+0*SIMDD) *(MM_LOAD(cy+0*SIMDD) * MM_LOAD(cy+0*SIMDD) + i3 * b0));
+        MM_STORE(g+15*SIMDD, MM_LOAD(cy+1*SIMDD) *(MM_LOAD(cy+1*SIMDD) * MM_LOAD(cy+1*SIMDD) + i3 * b1));
+        MM_STORE(g+22*SIMDD,(MM_LOAD(cz+0*SIMDD) * MM_LOAD(cz+0*SIMDD) + i3 * b0)* MM_LOAD(g+18*SIMDD));
+        MM_STORE(g+23*SIMDD,(MM_LOAD(cz+1*SIMDD) * MM_LOAD(cz+1*SIMDD) + i3 * b1)* MM_LOAD(g+19*SIMDD));
+}
+
+static inline void _g0_2d4d_0010(double *g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *cx = bc->c0px;
+        double *cy = bc->c0py;
+        double *cz = bc->c0pz;
+        MM_STORE(g+1*SIMDD, MM_LOAD(cx+0*SIMDD));
+        MM_STORE(g+3*SIMDD, MM_LOAD(cy+0*SIMDD));
+        MM_STORE(g+5*SIMDD, MM_MUL(MM_LOAD(cz+0*SIMDD), MM_LOAD(g+4*SIMDD)));
+}
+
+static inline void _g0_2d4d_0011(double *g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *cx = bc->c0px;
+        double *cy = bc->c0py;
+        double *cz = bc->c0pz;
+        double *b  = bc->b01;
+        double *r  = envs->rkrl;
         ALIGNMM double rc[6*SIMDD];
         _make_rc(rc, cx, cy, cz, r);
         __MD r0 = MM_LOAD(rc+0*SIMDD);
@@ -861,64 +910,14 @@ static inline void _g0_lj_4d_1001(double *g, double *cx, double *cy, double *cz,
         MM_STORE(g+30*SIMDD, MM_MUL(MM_FMA(r4, cz0, b0), g24));
         MM_STORE(g+31*SIMDD, MM_MUL(MM_FMA(r5, cz1, b1), g25));
 }
-static inline void _g0_lj_4d_2000(double *g, double *cx, double *cy, double *cz,
-                                  double *b, double *r)
+
+static inline void _g0_2d4d_0012(double *g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        ALIGNMM double rc[6*SIMDD];
-        _make_rc(rc, cx, cy, cz, r);
-        __MD r0 = MM_LOAD(rc+0*SIMDD);
-        __MD r1 = MM_LOAD(rc+1*SIMDD);
-        __MD r2 = MM_LOAD(rc+2*SIMDD);
-        __MD r3 = MM_LOAD(rc+3*SIMDD);
-        __MD r4 = MM_LOAD(rc+4*SIMDD);
-        __MD r5 = MM_LOAD(rc+5*SIMDD);
-        __MD b0 = MM_LOAD(b+0*SIMDD);
-        __MD b1 = MM_LOAD(b+1*SIMDD);
-        __MD g36 = MM_LOAD(g+36*SIMDD);
-        __MD g37 = MM_LOAD(g+37*SIMDD);
-        MM_STORE(g+2 *SIMDD, r0);
-        MM_STORE(g+3 *SIMDD, r1);
-        MM_STORE(g+20*SIMDD, r2);
-        MM_STORE(g+21*SIMDD, r3);
-        MM_STORE(g+38*SIMDD, MM_MUL(r4, g36));
-        MM_STORE(g+39*SIMDD, MM_MUL(r5, g37));
-        MM_STORE(g+4 *SIMDD, MM_FMA(r0, r0, b0));
-        MM_STORE(g+5 *SIMDD, MM_FMA(r1, r1, b1));
-        MM_STORE(g+22*SIMDD, MM_FMA(r2, r2, b0));
-        MM_STORE(g+23*SIMDD, MM_FMA(r3, r3, b1));
-        MM_STORE(g+40*SIMDD, MM_MUL(MM_FMA(r4, r4, b0), g36));
-        MM_STORE(g+41*SIMDD, MM_MUL(MM_FMA(r5, r5, b1), g37));
-}
-static inline void _g0_lj_4d_0003(double *g, double *cx, double *cy, double *cz,
-                                  double *b, double *r)
-{
-        __MD b0 = MM_LOAD(b+0*SIMDD);
-        __MD b1 = MM_LOAD(b+1*SIMDD);
-        __MD g16 = MM_LOAD(g+16*SIMDD);
-        __MD g17 = MM_LOAD(g+17*SIMDD);
-        __MD i3 = MM_SET1(3.);
-        MM_STORE(g+2 *SIMDD, MM_LOAD(cx+0*SIMDD));
-        MM_STORE(g+3 *SIMDD, MM_LOAD(cx+1*SIMDD));
-        MM_STORE(g+10*SIMDD, MM_LOAD(cy+0*SIMDD));
-        MM_STORE(g+11*SIMDD, MM_LOAD(cy+1*SIMDD));
-        MM_STORE(g+18*SIMDD, MM_LOAD(cz+0*SIMDD) * g16);
-        MM_STORE(g+19*SIMDD, MM_LOAD(cz+1*SIMDD) * g17);
-        MM_STORE(g+4 *SIMDD, MM_LOAD(cx+0*SIMDD) * MM_LOAD(cx+0*SIMDD) + b0);
-        MM_STORE(g+5 *SIMDD, MM_LOAD(cx+1*SIMDD) * MM_LOAD(cx+1*SIMDD) + b1);
-        MM_STORE(g+12*SIMDD, MM_LOAD(cy+0*SIMDD) * MM_LOAD(cy+0*SIMDD) + b0);
-        MM_STORE(g+13*SIMDD, MM_LOAD(cy+1*SIMDD) * MM_LOAD(cy+1*SIMDD) + b1);
-        MM_STORE(g+20*SIMDD,(MM_LOAD(cz+0*SIMDD) * MM_LOAD(cz+0*SIMDD) + b0)* g16);
-        MM_STORE(g+21*SIMDD,(MM_LOAD(cz+1*SIMDD) * MM_LOAD(cz+1*SIMDD) + b1)* g17);
-        MM_STORE(g+6 *SIMDD, MM_LOAD(cx+0*SIMDD) *(MM_LOAD(cx+0*SIMDD) * MM_LOAD(cx+0*SIMDD) + i3 * b0));
-        MM_STORE(g+7 *SIMDD, MM_LOAD(cx+1*SIMDD) *(MM_LOAD(cx+1*SIMDD) * MM_LOAD(cx+1*SIMDD) + i3 * b1));
-        MM_STORE(g+14*SIMDD, MM_LOAD(cy+0*SIMDD) *(MM_LOAD(cy+0*SIMDD) * MM_LOAD(cy+0*SIMDD) + i3 * b0));
-        MM_STORE(g+15*SIMDD, MM_LOAD(cy+1*SIMDD) *(MM_LOAD(cy+1*SIMDD) * MM_LOAD(cy+1*SIMDD) + i3 * b1));
-        MM_STORE(g+22*SIMDD,(MM_LOAD(cz+0*SIMDD) * MM_LOAD(cz+0*SIMDD) + i3 * b0)* MM_LOAD(g+18*SIMDD));
-        MM_STORE(g+23*SIMDD,(MM_LOAD(cz+1*SIMDD) * MM_LOAD(cz+1*SIMDD) + i3 * b1)* MM_LOAD(g+19*SIMDD));
-}
-static inline void _g0_lj_4d_1002(double *g, double *cx, double *cy, double *cz,
-                                  double *b, double *r)
-{
+        double *cx = bc->c0px;
+        double *cy = bc->c0py;
+        double *cz = bc->c0pz;
+        double *b =  bc->b01;
+        double *r  = envs->rkrl;
         ALIGNMM double rc[6*SIMDD];
         _make_rc(rc, cx, cy, cz, r);
         __MD r0 = MM_LOAD(rc+0*SIMDD);
@@ -969,90 +968,151 @@ static inline void _g0_lj_4d_1002(double *g, double *cx, double *cy, double *cz,
         MM_STORE(g+42*SIMDD, r4 * MM_LOAD(g+40*SIMDD) + i2 * b0 * MM_LOAD(g+36*SIMDD));
         MM_STORE(g+43*SIMDD, r5 * MM_LOAD(g+41*SIMDD) + i2 * b1 * MM_LOAD(g+37*SIMDD));
 }
-static inline void _g0_lj_4d_2001(double *g, double *cx, double *cy, double *cz,
-                                  double *b, double *r)
+
+static inline void _g0_2d4d_0020(double *g, Rys2eT *bc, CINTEnvVars *envs)
 {
+        double *cx = bc->c0px;
+        double *cy = bc->c0py;
+        double *cz = bc->c0pz;
+        double *b  = bc->b01;
+        __MD r0 = MM_LOAD(cx+0*SIMDD);
+        __MD r1 = MM_LOAD(cx+1*SIMDD);
+        __MD r2 = MM_LOAD(cy+0*SIMDD);
+        __MD r3 = MM_LOAD(cy+1*SIMDD);
+        __MD r4 = MM_LOAD(cz+0*SIMDD);
+        __MD r5 = MM_LOAD(cz+1*SIMDD);
+        __MD b0 = MM_LOAD(b+0*SIMDD);
+        __MD b1 = MM_LOAD(b+1*SIMDD);
+        __MD g12 = MM_LOAD(g+12*SIMDD);
+        __MD g13 = MM_LOAD(g+13*SIMDD);
+        MM_STORE(g+2 *SIMDD, r0);
+        MM_STORE(g+3 *SIMDD, r1);
+        MM_STORE(g+8 *SIMDD, r2);
+        MM_STORE(g+9 *SIMDD, r3);
+        MM_STORE(g+14*SIMDD, MM_MUL(r4, g12));
+        MM_STORE(g+15*SIMDD, MM_MUL(r5, g13));
+        MM_STORE(g+4 *SIMDD, MM_FMA(r0, r0, b0));
+        MM_STORE(g+5 *SIMDD, MM_FMA(r1, r1, b1));
+        MM_STORE(g+10*SIMDD, MM_FMA(r2, r2, b0));
+        MM_STORE(g+11*SIMDD, MM_FMA(r3, r3, b1));
+        MM_STORE(g+16*SIMDD, MM_MUL(MM_FMA(r4, r4, b0), g12));
+        MM_STORE(g+17*SIMDD, MM_MUL(MM_FMA(r5, r5, b1), g13));
+}
+
+static inline void _g0_2d4d_0021(double *g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *cx = bc->c0px;
+        double *cy = bc->c0py;
+        double *cz = bc->c0pz;
+        double *b1 = bc->b01;
+        double *rkl = envs->rkrl;
         ALIGNMM double rc[6*SIMDD];
-        _make_rc(rc, cx, cy, cz, r);
+        _make_rc(rc, cx, cy, cz, rkl);
+        __MD b10 = MM_LOAD(b1+0*SIMDD);
+        __MD b11 = MM_LOAD(b1+1*SIMDD);
+        __MD g32 = MM_LOAD(g+32*SIMDD);
+        __MD g33 = MM_LOAD(g+33*SIMDD);
+        __MD i2 = MM_SET1(2.);
         __MD r0 = MM_LOAD(rc+0*SIMDD);
         __MD r1 = MM_LOAD(rc+1*SIMDD);
         __MD r2 = MM_LOAD(rc+2*SIMDD);
         __MD r3 = MM_LOAD(rc+3*SIMDD);
         __MD r4 = MM_LOAD(rc+4*SIMDD);
         __MD r5 = MM_LOAD(rc+5*SIMDD);
-        __MD cx0 = MM_LOAD(cx+0*SIMDD);
-        __MD cx1 = MM_LOAD(cx+1*SIMDD);
-        __MD cy0 = MM_LOAD(cy+0*SIMDD);
-        __MD cy1 = MM_LOAD(cy+1*SIMDD);
-        __MD cz0 = MM_LOAD(cz+0*SIMDD);
-        __MD cz1 = MM_LOAD(cz+1*SIMDD);
-        __MD b0 = MM_LOAD(b+0*SIMDD);
-        __MD b1 = MM_LOAD(b+1*SIMDD);
-        __MD i2 = MM_SET1(2.);
-        __MD g48 = MM_LOAD(g+48*SIMDD);
-        __MD g49 = MM_LOAD(g+49*SIMDD);
-        MM_STORE(g+2 *SIMDD, r0 );
-        MM_STORE(g+3 *SIMDD, r1 );
-        MM_STORE(g+6 *SIMDD, cx0);
-        MM_STORE(g+7 *SIMDD, cx1);
-        MM_STORE(g+26*SIMDD, r2 );
-        MM_STORE(g+27*SIMDD, r3 );
-        MM_STORE(g+30*SIMDD, cy0);
-        MM_STORE(g+31*SIMDD, cy1);
-        MM_STORE(g+50*SIMDD, MM_MUL(r4,  g48));
-        MM_STORE(g+51*SIMDD, MM_MUL(r5,  g49));
-        MM_STORE(g+54*SIMDD, MM_MUL(cz0, g48));
-        MM_STORE(g+55*SIMDD, MM_MUL(cz1, g49));
-        MM_STORE(g+4 *SIMDD, MM_FMA(r0 , r0, b0));
-        MM_STORE(g+5 *SIMDD, MM_FMA(r1 , r1, b1));
-        MM_STORE(g+8 *SIMDD, MM_FMA(cx0, r0, b0));
-        MM_STORE(g+9 *SIMDD, MM_FMA(cx1, r1, b1));
-        MM_STORE(g+28*SIMDD, MM_FMA(r2 , r2, b0));
-        MM_STORE(g+29*SIMDD, MM_FMA(r3 , r3, b1));
-        MM_STORE(g+32*SIMDD, MM_FMA(cy0, r2, b0));
-        MM_STORE(g+33*SIMDD, MM_FMA(cy1, r3, b1));
-        MM_STORE(g+52*SIMDD, MM_MUL(MM_FMA(r4 , r4, b0), g48));
-        MM_STORE(g+53*SIMDD, MM_MUL(MM_FMA(r5 , r5, b1), g49));
-        MM_STORE(g+56*SIMDD, MM_MUL(MM_FMA(cz0, r4, b0), g48));
-        MM_STORE(g+57*SIMDD, MM_MUL(MM_FMA(cz1, r5, b1), g49));
-        MM_STORE(g+10*SIMDD, cx0 * MM_LOAD(g+4 *SIMDD) + i2 * b0 * r0                 );
-        MM_STORE(g+11*SIMDD, cx1 * MM_LOAD(g+5 *SIMDD) + i2 * b1 * r1                 );
-        MM_STORE(g+34*SIMDD, cy0 * MM_LOAD(g+28*SIMDD) + i2 * b0 * r2                 );
-        MM_STORE(g+35*SIMDD, cy1 * MM_LOAD(g+29*SIMDD) + i2 * b1 * r3                 );
-        MM_STORE(g+58*SIMDD, cz0 * MM_LOAD(g+52*SIMDD) + i2 * b0 * MM_LOAD(g+50*SIMDD));
-        MM_STORE(g+59*SIMDD, cz1 * MM_LOAD(g+53*SIMDD) + i2 * b1 * MM_LOAD(g+51*SIMDD));
+        __MD s0 = MM_LOAD(cx+0*SIMDD);
+        __MD s1 = MM_LOAD(cx+1*SIMDD);
+        __MD s2 = MM_LOAD(cy+0*SIMDD);
+        __MD s3 = MM_LOAD(cy+1*SIMDD);
+        __MD s4 = MM_LOAD(cz+0*SIMDD);
+        __MD s5 = MM_LOAD(cz+1*SIMDD);
+        MM_STORE(g+2 *SIMDD, s0);
+        MM_STORE(g+3 *SIMDD, s1);
+        MM_STORE(g+8 *SIMDD, r0);
+        MM_STORE(g+9 *SIMDD, r1);
+        MM_STORE(g+18*SIMDD, s2);
+        MM_STORE(g+19*SIMDD, s3);
+        MM_STORE(g+24*SIMDD, r2);
+        MM_STORE(g+25*SIMDD, r3);
+        MM_STORE(g+34*SIMDD, s4 * g32);
+        MM_STORE(g+35*SIMDD, s5 * g33);
+        MM_STORE(g+40*SIMDD, r4 * g32);
+        MM_STORE(g+41*SIMDD, r5 * g33);
+        MM_STORE(g+4 *SIMDD, s0 * s0 + b10);
+        MM_STORE(g+5 *SIMDD, s1 * s1 + b11);
+        MM_STORE(g+10*SIMDD, s0 * r0 + b10);
+        MM_STORE(g+11*SIMDD, s1 * r1 + b11);
+        MM_STORE(g+20*SIMDD, s2 * s2 + b10);
+        MM_STORE(g+21*SIMDD, s3 * s3 + b11);
+        MM_STORE(g+26*SIMDD, s2 * r2 + b10);
+        MM_STORE(g+27*SIMDD, s3 * r3 + b11);
+        MM_STORE(g+36*SIMDD,(s4 * s4 + b10) * g32);
+        MM_STORE(g+37*SIMDD,(s5 * s5 + b11) * g33);
+        MM_STORE(g+42*SIMDD,(s4 * r4 + b10) * g32);
+        MM_STORE(g+43*SIMDD,(s5 * r5 + b11) * g33);
+        MM_STORE(g+12*SIMDD, r0 * MM_LOAD(g+4 *SIMDD ) + i2 * b10 * s0);
+        MM_STORE(g+13*SIMDD, r1 * MM_LOAD(g+5 *SIMDD ) + i2 * b11 * s1);
+        MM_STORE(g+28*SIMDD, r2 * MM_LOAD(g+20*SIMDD ) + i2 * b10 * s2);
+        MM_STORE(g+29*SIMDD, r3 * MM_LOAD(g+21*SIMDD ) + i2 * b11 * s3);
+        MM_STORE(g+44*SIMDD, r4 * MM_LOAD(g+36*SIMDD ) + i2 * b10 * MM_LOAD(g+34*SIMDD ));
+        MM_STORE(g+45*SIMDD, r5 * MM_LOAD(g+37*SIMDD ) + i2 * b11 * MM_LOAD(g+35*SIMDD ));
 }
-static inline void _g0_lj_4d_3000(double *g, double *cx, double *cy, double *cz,
-                                  double *b, double *r)
+
+static inline void _g0_2d4d_0030(double *g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        ALIGNMM double rc[6*SIMDD];
-        _make_rc(rc, cx, cy, cz, r);
+        double *cx = bc->c0px;
+        double *cy = bc->c0py;
+        double *cz = bc->c0pz;
+        double *b  = bc->b01;
         __MD b0 = MM_LOAD(b+0*SIMDD);
         __MD b1 = MM_LOAD(b+1*SIMDD);
         __MD i3 = MM_SET1(3.);
-        MM_STORE(g+2 *SIMDD, MM_LOAD(rc+0*SIMDD));
-        MM_STORE(g+3 *SIMDD, MM_LOAD(rc+1*SIMDD));
-        MM_STORE(g+34*SIMDD, MM_LOAD(rc+2*SIMDD));
-        MM_STORE(g+35*SIMDD, MM_LOAD(rc+3*SIMDD));
-        MM_STORE(g+66*SIMDD, MM_LOAD(rc+4*SIMDD) * MM_LOAD(g+64*SIMDD));
-        MM_STORE(g+67*SIMDD, MM_LOAD(rc+5*SIMDD) * MM_LOAD(g+65*SIMDD));
-        MM_STORE(g+4 *SIMDD, MM_LOAD(rc+0*SIMDD) * MM_LOAD(rc+0*SIMDD) + b0);
-        MM_STORE(g+5 *SIMDD, MM_LOAD(rc+1*SIMDD) * MM_LOAD(rc+1*SIMDD) + b1);
-        MM_STORE(g+36*SIMDD, MM_LOAD(rc+2*SIMDD) * MM_LOAD(rc+2*SIMDD) + b0);
-        MM_STORE(g+37*SIMDD, MM_LOAD(rc+3*SIMDD) * MM_LOAD(rc+3*SIMDD) + b1);
-        MM_STORE(g+68*SIMDD,(MM_LOAD(rc+4*SIMDD) * MM_LOAD(rc+4*SIMDD) + b0)* MM_LOAD(g+64*SIMDD));
-        MM_STORE(g+69*SIMDD,(MM_LOAD(rc+5*SIMDD) * MM_LOAD(rc+5*SIMDD) + b1)* MM_LOAD(g+65*SIMDD));
-        MM_STORE(g+6 *SIMDD, MM_LOAD(rc+0*SIMDD) *(MM_LOAD(rc+0*SIMDD) * MM_LOAD(rc+0*SIMDD) + i3 * b0));
-        MM_STORE(g+7 *SIMDD, MM_LOAD(rc+1*SIMDD) *(MM_LOAD(rc+1*SIMDD) * MM_LOAD(rc+1*SIMDD) + i3 * b1));
-        MM_STORE(g+38*SIMDD, MM_LOAD(rc+2*SIMDD) *(MM_LOAD(rc+2*SIMDD) * MM_LOAD(rc+2*SIMDD) + i3 * b0));
-        MM_STORE(g+39*SIMDD, MM_LOAD(rc+3*SIMDD) *(MM_LOAD(rc+3*SIMDD) * MM_LOAD(rc+3*SIMDD) + i3 * b1));
-        MM_STORE(g+70*SIMDD,(MM_LOAD(rc+4*SIMDD) * MM_LOAD(rc+4*SIMDD) + i3 * b0) * MM_LOAD(g+66*SIMDD));
-        MM_STORE(g+71*SIMDD,(MM_LOAD(rc+5*SIMDD) * MM_LOAD(rc+5*SIMDD) + i3 * b1) * MM_LOAD(g+67*SIMDD));
+        __MD r0 = MM_LOAD(cx+0*SIMDD);
+        __MD r1 = MM_LOAD(cx+1*SIMDD);
+        __MD r2 = MM_LOAD(cy+0*SIMDD);
+        __MD r3 = MM_LOAD(cy+1*SIMDD);
+        __MD r4 = MM_LOAD(cz+0*SIMDD);
+        __MD r5 = MM_LOAD(cz+1*SIMDD);
+        __MD g16 = MM_LOAD(g+16*SIMDD);
+        __MD g17 = MM_LOAD(g+17*SIMDD);
+        MM_STORE(g+2 *SIMDD, r0);
+        MM_STORE(g+3 *SIMDD, r1);
+        MM_STORE(g+10*SIMDD, r2);
+        MM_STORE(g+11*SIMDD, r3);
+        MM_STORE(g+18*SIMDD, r4 * g16);
+        MM_STORE(g+19*SIMDD, r5 * g17);
+        MM_STORE(g+4 *SIMDD, r0 * r0 + b0);
+        MM_STORE(g+5 *SIMDD, r1 * r1 + b1);
+        MM_STORE(g+12*SIMDD, r2 * r2 + b0);
+        MM_STORE(g+13*SIMDD, r3 * r3 + b1);
+        MM_STORE(g+20*SIMDD,(r4 * r4 + b0)* g16);
+        MM_STORE(g+21*SIMDD,(r5 * r5 + b1)* g17);
+        MM_STORE(g+6 *SIMDD, r0 *(r0 * r0 + i3 * b0));
+        MM_STORE(g+7 *SIMDD, r1 *(r1 * r1 + i3 * b1));
+        MM_STORE(g+14*SIMDD, r2 *(r2 * r2 + i3 * b0));
+        MM_STORE(g+15*SIMDD, r3 *(r3 * r3 + i3 * b1));
+        MM_STORE(g+22*SIMDD,(r4 * r4 + i3 * b0) * MM_LOAD(g+18*SIMDD));
+        MM_STORE(g+23*SIMDD,(r5 * r5 + i3 * b1) * MM_LOAD(g+19*SIMDD));
 }
-static inline void _g0_lj_4d_0011(double *g, double *c0x, double *c0y, double *c0z,
-                                  double *cpx, double *cpy, double *cpz, double *b,
-                                  double *r0, double *rp)
+
+static inline void _g0_2d4d_0100(double *g, Rys2eT *bc, CINTEnvVars *envs)
 {
+        double *cx = bc->c00x;
+        double *cy = bc->c00y;
+        double *cz = bc->c00z;
+        MM_STORE(g+1*SIMDD, MM_LOAD(cx+0*SIMDD));
+        MM_STORE(g+3*SIMDD, MM_LOAD(cy+0*SIMDD));
+        MM_STORE(g+5*SIMDD, MM_MUL(MM_LOAD(cz+0*SIMDD), MM_LOAD(g+4*SIMDD)));
+}
+
+static inline void _g0_2d4d_0101(double *g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b   = bc->b00;
         __MD cx0 = MM_LOAD(c0x+0*SIMDD);
         __MD cx1 = MM_LOAD(c0x+1*SIMDD);
         __MD cy0 = MM_LOAD(c0y+0*SIMDD);
@@ -1088,187 +1148,125 @@ static inline void _g0_lj_4d_0011(double *g, double *c0x, double *c0y, double *c
         MM_STORE(g+22*SIMDD, MM_MUL(MM_FMA(pz0, cz0, b0), g16));
         MM_STORE(g+23*SIMDD, MM_MUL(MM_FMA(pz1, cz1, b1), g17));
 }
-static inline void _g0_lj_4d_1010(double *g, double *c0x, double *c0y, double *c0z,
-                                  double *cpx, double *cpy, double *cpz, double *b,
-                                  double *r0, double *rp)
+
+static inline void _g0_2d4d_0102(double *g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        ALIGNMM double rc[6*SIMDD];
-        _make_rc(rc, c0x, c0y, c0z, r0);
-        __MD b0  = MM_LOAD(b+0*SIMDD);
-        __MD b1  = MM_LOAD(b+1*SIMDD);
-        __MD g32 = MM_LOAD(g+32*SIMDD);
-        __MD g33 = MM_LOAD(g+33*SIMDD);
-        MM_STORE(g+4 *SIMDD, MM_LOAD(cpx+0*SIMDD));
-        MM_STORE(g+5 *SIMDD, MM_LOAD(cpx+1*SIMDD));
-        MM_STORE(g+20*SIMDD, MM_LOAD(cpy+0*SIMDD));
-        MM_STORE(g+21*SIMDD, MM_LOAD(cpy+1*SIMDD));
-        MM_STORE(g+36*SIMDD, MM_LOAD(cpz+0*SIMDD) * g32);
-        MM_STORE(g+37*SIMDD, MM_LOAD(cpz+1*SIMDD) * g33);
-        MM_STORE(g+2 *SIMDD, MM_LOAD(rc+0*SIMDD));
-        MM_STORE(g+3 *SIMDD, MM_LOAD(rc+1*SIMDD));
-        MM_STORE(g+18*SIMDD, MM_LOAD(rc+2*SIMDD));
-        MM_STORE(g+19*SIMDD, MM_LOAD(rc+3*SIMDD));
-        MM_STORE(g+34*SIMDD, MM_LOAD(rc+4*SIMDD) * g32);
-        MM_STORE(g+35*SIMDD, MM_LOAD(rc+5*SIMDD) * g33);
-        MM_STORE(g+6 *SIMDD, MM_LOAD(rc+0*SIMDD) * MM_LOAD(cpx+0*SIMDD) + b0);
-        MM_STORE(g+7 *SIMDD, MM_LOAD(rc+1*SIMDD) * MM_LOAD(cpx+1*SIMDD) + b1);
-        MM_STORE(g+22*SIMDD, MM_LOAD(rc+2*SIMDD) * MM_LOAD(cpy+0*SIMDD) + b0);
-        MM_STORE(g+23*SIMDD, MM_LOAD(rc+3*SIMDD) * MM_LOAD(cpy+1*SIMDD) + b1);
-        MM_STORE(g+38*SIMDD,(MM_LOAD(rc+4*SIMDD) * MM_LOAD(cpz+0*SIMDD) + b0) * g32);
-        MM_STORE(g+39*SIMDD,(MM_LOAD(rc+5*SIMDD) * MM_LOAD(cpz+1*SIMDD) + b1) * g33);
-}
-static inline void _g0_lj_4d_0101(double *g, double *c0x, double *c0y, double *c0z,
-                                  double *cpx, double *cpy, double *cpz, double *b,
-                                  double *r0, double *rp)
-{
-        ALIGNMM double rc[6*SIMDD];
-        _make_rc(rc, cpx, cpy, cpz, rp);
-        __MD b0  = MM_LOAD(b+0*SIMDD);
-        __MD b1  = MM_LOAD(b+1*SIMDD);
-        __MD g32 = MM_LOAD(g+32*SIMDD);
-        __MD g33 = MM_LOAD(g+33*SIMDD);
-        MM_STORE(g+2 *SIMDD, MM_LOAD(rc+0*SIMDD));
-        MM_STORE(g+3 *SIMDD, MM_LOAD(rc+1*SIMDD));
-        MM_STORE(g+18*SIMDD, MM_LOAD(rc+2*SIMDD));
-        MM_STORE(g+19*SIMDD, MM_LOAD(rc+3*SIMDD));
-        MM_STORE(g+34*SIMDD, MM_LOAD(rc+4*SIMDD) * g32);
-        MM_STORE(g+35*SIMDD, MM_LOAD(rc+5*SIMDD) * g33);
-        MM_STORE(g+8 *SIMDD, MM_LOAD(c0x+0*SIMDD));
-        MM_STORE(g+9 *SIMDD, MM_LOAD(c0x+1*SIMDD));
-        MM_STORE(g+24*SIMDD, MM_LOAD(c0y+0*SIMDD));
-        MM_STORE(g+25*SIMDD, MM_LOAD(c0y+1*SIMDD));
-        MM_STORE(g+40*SIMDD, MM_LOAD(c0z+0*SIMDD) * g32);
-        MM_STORE(g+41*SIMDD, MM_LOAD(c0z+1*SIMDD) * g33);
-        MM_STORE(g+10*SIMDD, MM_LOAD(rc+0*SIMDD) * MM_LOAD(c0x+0*SIMDD) + b0);
-        MM_STORE(g+11*SIMDD, MM_LOAD(rc+1*SIMDD) * MM_LOAD(c0x+1*SIMDD) + b1);
-        MM_STORE(g+26*SIMDD, MM_LOAD(rc+2*SIMDD) * MM_LOAD(c0y+0*SIMDD) + b0);
-        MM_STORE(g+27*SIMDD, MM_LOAD(rc+3*SIMDD) * MM_LOAD(c0y+1*SIMDD) + b1);
-        MM_STORE(g+42*SIMDD,(MM_LOAD(rc+4*SIMDD) * MM_LOAD(c0z+0*SIMDD) + b0) * g32);
-        MM_STORE(g+43*SIMDD,(MM_LOAD(rc+5*SIMDD) * MM_LOAD(c0z+1*SIMDD) + b1) * g33);
-}
-static inline void _g0_lj_4d_1100(double *g, double *c0x, double *c0y, double *c0z,
-                                  double *cpx, double *cpy, double *cpz, double *b,
-                                  double *r0, double *rp)
-{
-        ALIGNMM double rc0[6*SIMDD];
-        ALIGNMM double rcp[6*SIMDD];
-        _make_rc(rc0, c0x, c0y, c0z, r0);
-        _make_rc(rcp, cpx, cpy, cpz, rp);
-        __MD b0  = MM_LOAD(b+0*SIMDD);
-        __MD b1  = MM_LOAD(b+1*SIMDD);
-        __MD g64 = MM_LOAD(g+64*SIMDD);
-        __MD g65 = MM_LOAD(g+65*SIMDD);
-        MM_STORE(g+2 *SIMDD, MM_LOAD(rc0+0*SIMDD));
-        MM_STORE(g+3 *SIMDD, MM_LOAD(rc0+1*SIMDD));
-        MM_STORE(g+4 *SIMDD, MM_LOAD(rcp+0*SIMDD));
-        MM_STORE(g+5 *SIMDD, MM_LOAD(rcp+1*SIMDD));
-        MM_STORE(g+34*SIMDD, MM_LOAD(rc0+2*SIMDD));
-        MM_STORE(g+35*SIMDD, MM_LOAD(rc0+3*SIMDD));
-        MM_STORE(g+36*SIMDD, MM_LOAD(rcp+2*SIMDD));
-        MM_STORE(g+37*SIMDD, MM_LOAD(rcp+3*SIMDD));
-        MM_STORE(g+66*SIMDD, MM_LOAD(rc0+4*SIMDD) * g64);
-        MM_STORE(g+67*SIMDD, MM_LOAD(rc0+5*SIMDD) * g65);
-        MM_STORE(g+68*SIMDD, MM_LOAD(rcp+4*SIMDD) * g64);
-        MM_STORE(g+69*SIMDD, MM_LOAD(rcp+5*SIMDD) * g65);
-        MM_STORE(g+6 *SIMDD, MM_LOAD(rc0+0*SIMDD) * MM_LOAD(rcp+0*SIMDD) + b0);
-        MM_STORE(g+7 *SIMDD, MM_LOAD(rc0+1*SIMDD) * MM_LOAD(rcp+1*SIMDD) + b1);
-        MM_STORE(g+38*SIMDD, MM_LOAD(rc0+2*SIMDD) * MM_LOAD(rcp+2*SIMDD) + b0);
-        MM_STORE(g+39*SIMDD, MM_LOAD(rc0+3*SIMDD) * MM_LOAD(rcp+3*SIMDD) + b1);
-        MM_STORE(g+70*SIMDD,(MM_LOAD(rc0+4*SIMDD) * MM_LOAD(rcp+4*SIMDD) + b0) * g64);
-        MM_STORE(g+71*SIMDD,(MM_LOAD(rc0+5*SIMDD) * MM_LOAD(rcp+5*SIMDD) + b1) * g65);
-}
-static inline void _g0_lj_4d_0021(double *g, double *c0x, double *c0y, double *c0z,
-                                  double *cpx, double *cpy, double *cpz,
-                                  double *b0, double *b1)
-{
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b0 = bc->b00;
+        double *b1 = bc->b01;
+        __MD r0 = MM_LOAD(c0x+0*SIMDD);
+        __MD r1 = MM_LOAD(c0x+1*SIMDD);
+        __MD r2 = MM_LOAD(c0y+0*SIMDD);
+        __MD r3 = MM_LOAD(c0y+1*SIMDD);
+        __MD r4 = MM_LOAD(c0z+0*SIMDD);
+        __MD r5 = MM_LOAD(c0z+1*SIMDD);
+        __MD s0 = MM_LOAD(cpx+0*SIMDD);
+        __MD s1 = MM_LOAD(cpx+1*SIMDD);
+        __MD s2 = MM_LOAD(cpy+0*SIMDD);
+        __MD s3 = MM_LOAD(cpy+1*SIMDD);
+        __MD s4 = MM_LOAD(cpz+0*SIMDD);
+        __MD s5 = MM_LOAD(cpz+1*SIMDD);
         __MD b00 = MM_LOAD(b0+0*SIMDD);
         __MD b01 = MM_LOAD(b0+1*SIMDD);
         __MD b10 = MM_LOAD(b1+0*SIMDD);
         __MD b11 = MM_LOAD(b1+1*SIMDD);
         __MD g24 = MM_LOAD(g+24*SIMDD);
         __MD g25 = MM_LOAD(g+25*SIMDD);
-        __MD i2 = MM_SET1(2.);
-        MM_STORE(g+2 *SIMDD, MM_LOAD(cpx+0*SIMDD));
-        MM_STORE(g+3 *SIMDD, MM_LOAD(cpx+1*SIMDD));
-        MM_STORE(g+6 *SIMDD, MM_LOAD(c0x+0*SIMDD));
-        MM_STORE(g+7 *SIMDD, MM_LOAD(c0x+1*SIMDD));
-        MM_STORE(g+14*SIMDD, MM_LOAD(cpy+0*SIMDD));
-        MM_STORE(g+15*SIMDD, MM_LOAD(cpy+1*SIMDD));
-        MM_STORE(g+18*SIMDD, MM_LOAD(c0y+0*SIMDD));
-        MM_STORE(g+19*SIMDD, MM_LOAD(c0y+1*SIMDD));
-        MM_STORE(g+26*SIMDD, MM_LOAD(cpz+0*SIMDD) * g24);
-        MM_STORE(g+27*SIMDD, MM_LOAD(cpz+1*SIMDD) * g25);
-        MM_STORE(g+30*SIMDD, MM_LOAD(c0z+0*SIMDD) * g24);
-        MM_STORE(g+31*SIMDD, MM_LOAD(c0z+1*SIMDD) * g25);
-        MM_STORE(g+4 *SIMDD, MM_LOAD(cpx+0*SIMDD) * MM_LOAD(cpx+0*SIMDD) + b10);
-        MM_STORE(g+5 *SIMDD, MM_LOAD(cpx+1*SIMDD) * MM_LOAD(cpx+1*SIMDD) + b11);
-        MM_STORE(g+8 *SIMDD, MM_LOAD(cpx+0*SIMDD) * MM_LOAD(c0x+0*SIMDD) + b00);
-        MM_STORE(g+9 *SIMDD, MM_LOAD(cpx+1*SIMDD) * MM_LOAD(c0x+1*SIMDD) + b01);
-        MM_STORE(g+16*SIMDD, MM_LOAD(cpy+0*SIMDD) * MM_LOAD(cpy+0*SIMDD) + b10);
-        MM_STORE(g+17*SIMDD, MM_LOAD(cpy+1*SIMDD) * MM_LOAD(cpy+1*SIMDD) + b11);
-        MM_STORE(g+20*SIMDD, MM_LOAD(cpy+0*SIMDD) * MM_LOAD(c0y+0*SIMDD) + b00);
-        MM_STORE(g+21*SIMDD, MM_LOAD(cpy+1*SIMDD) * MM_LOAD(c0y+1*SIMDD) + b01);
-        MM_STORE(g+28*SIMDD,(MM_LOAD(cpz+0*SIMDD) * MM_LOAD(cpz+0*SIMDD) + b10) * g24);
-        MM_STORE(g+29*SIMDD,(MM_LOAD(cpz+1*SIMDD) * MM_LOAD(cpz+1*SIMDD) + b11) * g25);
-        MM_STORE(g+32*SIMDD,(MM_LOAD(cpz+0*SIMDD) * MM_LOAD(c0z+0*SIMDD) + b00) * g24);
-        MM_STORE(g+33*SIMDD,(MM_LOAD(cpz+1*SIMDD) * MM_LOAD(c0z+1*SIMDD) + b01) * g25);
-        MM_STORE(g+10*SIMDD, MM_LOAD(c0x+0*SIMDD) * MM_LOAD(g+4 *SIMDD ) + i2 * b00 * MM_LOAD(cpx+0*SIMDD));
-        MM_STORE(g+11*SIMDD, MM_LOAD(c0x+1*SIMDD) * MM_LOAD(g+5 *SIMDD ) + i2 * b01 * MM_LOAD(cpx+1*SIMDD));
-        MM_STORE(g+22*SIMDD, MM_LOAD(c0y+0*SIMDD) * MM_LOAD(g+16*SIMDD ) + i2 * b00 * MM_LOAD(cpy+0*SIMDD));
-        MM_STORE(g+23*SIMDD, MM_LOAD(c0y+1*SIMDD) * MM_LOAD(g+17*SIMDD ) + i2 * b01 * MM_LOAD(cpy+1*SIMDD));
-        MM_STORE(g+34*SIMDD, MM_LOAD(c0z+0*SIMDD) * MM_LOAD(g+28*SIMDD ) + i2 * b00 * MM_LOAD(g+26*SIMDD ));
-        MM_STORE(g+35*SIMDD, MM_LOAD(c0z+1*SIMDD) * MM_LOAD(g+29*SIMDD ) + i2 * b01 * MM_LOAD(g+27*SIMDD ));
+        MM_STORE(g+2 *SIMDD, s0);
+        MM_STORE(g+3 *SIMDD, s1);
+        MM_STORE(g+6 *SIMDD, r0);
+        MM_STORE(g+7 *SIMDD, r1);
+        MM_STORE(g+14*SIMDD, s2);
+        MM_STORE(g+15*SIMDD, s3);
+        MM_STORE(g+18*SIMDD, r2);
+        MM_STORE(g+19*SIMDD, r3);
+        MM_STORE(g+26*SIMDD, MM_MUL(s4, g24));
+        MM_STORE(g+27*SIMDD, MM_MUL(s5, g25));
+        MM_STORE(g+30*SIMDD, MM_MUL(r4, g24));
+        MM_STORE(g+31*SIMDD, MM_MUL(r5, g25));
+        MM_STORE(g+4 *SIMDD, MM_FMA(s0, s0, b10));
+        MM_STORE(g+5 *SIMDD, MM_FMA(s1, s1, b11));
+        MM_STORE(g+8 *SIMDD, MM_FMA(r0, s0, b00));
+        MM_STORE(g+9 *SIMDD, MM_FMA(r1, s1, b01));
+        MM_STORE(g+16*SIMDD, MM_FMA(s2, s2, b10));
+        MM_STORE(g+17*SIMDD, MM_FMA(s3, s3, b11));
+        MM_STORE(g+20*SIMDD, MM_FMA(r2, s2, b00));
+        MM_STORE(g+21*SIMDD, MM_FMA(r3, s3, b01));
+        MM_STORE(g+28*SIMDD, MM_MUL(MM_FMA(s4, s4, b10), g24));
+        MM_STORE(g+29*SIMDD, MM_MUL(MM_FMA(s5, s5, b11), g25));
+        MM_STORE(g+32*SIMDD, MM_MUL(MM_FMA(r4, s4, b00), g24));
+        MM_STORE(g+33*SIMDD, MM_MUL(MM_FMA(r5, s5, b01), g25));
+        MM_STORE(g+10*SIMDD, s0 * (MM_LOAD(g+8 *SIMDD) + b00) + b10 * r0);
+        MM_STORE(g+11*SIMDD, s1 * (MM_LOAD(g+9 *SIMDD) + b01) + b11 * r1);
+        MM_STORE(g+22*SIMDD, s2 * (MM_LOAD(g+20*SIMDD) + b00) + b10 * r2);
+        MM_STORE(g+23*SIMDD, s3 * (MM_LOAD(g+21*SIMDD) + b01) + b11 * r3);
+        MM_STORE(g+34*SIMDD, s4 * MM_LOAD(g+32*SIMDD) + b00 * MM_LOAD(g+26*SIMDD) + b10 * MM_LOAD(g+30*SIMDD));
+        MM_STORE(g+35*SIMDD, s5 * MM_LOAD(g+33*SIMDD) + b01 * MM_LOAD(g+27*SIMDD) + b11 * MM_LOAD(g+31*SIMDD));
 }
-static inline void _g0_lj_4d_1020(double *g, double *c0x, double *c0y, double *c0z,
-                                  double *cpx, double *cpy, double *cpz,
-                                  double *b0, double *b1, double *r0, double *rp)
+
+static inline void _g0_2d4d_0110(double *g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        ALIGNMM double rc0[6*SIMDD];
-        _make_rc(rc0, c0x, c0y, c0z, r0);
-        __MD b00 = MM_LOAD(b0+0*SIMDD);
-        __MD b01 = MM_LOAD(b0+1*SIMDD);
-        __MD b10 = MM_LOAD(b1+0*SIMDD);
-        __MD b11 = MM_LOAD(b1+1*SIMDD);
-        __MD g48 = MM_LOAD(g+48*SIMDD);
-        __MD g49 = MM_LOAD(g+49*SIMDD);
-        __MD i2 = MM_SET1(2.);
-        MM_STORE(g+2 *SIMDD, MM_LOAD(rc0+0*SIMDD));
-        MM_STORE(g+3 *SIMDD, MM_LOAD(rc0+1*SIMDD));
-        MM_STORE(g+4 *SIMDD, MM_LOAD(cpx+0*SIMDD));
-        MM_STORE(g+5 *SIMDD, MM_LOAD(cpx+1*SIMDD));
-        MM_STORE(g+26*SIMDD, MM_LOAD(rc0+2*SIMDD));
-        MM_STORE(g+27*SIMDD, MM_LOAD(rc0+3*SIMDD));
-        MM_STORE(g+28*SIMDD, MM_LOAD(cpy+0*SIMDD));
-        MM_STORE(g+29*SIMDD, MM_LOAD(cpy+1*SIMDD));
-        MM_STORE(g+50*SIMDD, MM_LOAD(rc0+4*SIMDD) * g48);
-        MM_STORE(g+51*SIMDD, MM_LOAD(rc0+5*SIMDD) * g49);
-        MM_STORE(g+52*SIMDD, MM_LOAD(cpz+0*SIMDD) * g48);
-        MM_STORE(g+53*SIMDD, MM_LOAD(cpz+1*SIMDD) * g49);
-        MM_STORE(g+6 *SIMDD, MM_LOAD(cpx+0*SIMDD) * MM_LOAD(rc0+0*SIMDD) + b00);
-        MM_STORE(g+7 *SIMDD, MM_LOAD(cpx+1*SIMDD) * MM_LOAD(rc0+1*SIMDD) + b01);
-        MM_STORE(g+8 *SIMDD, MM_LOAD(cpx+0*SIMDD) * MM_LOAD(cpx+0*SIMDD) + b10);
-        MM_STORE(g+9 *SIMDD, MM_LOAD(cpx+1*SIMDD) * MM_LOAD(cpx+1*SIMDD) + b11);
-        MM_STORE(g+30*SIMDD, MM_LOAD(cpy+0*SIMDD) * MM_LOAD(rc0+2*SIMDD) + b00);
-        MM_STORE(g+31*SIMDD, MM_LOAD(cpy+1*SIMDD) * MM_LOAD(rc0+3*SIMDD) + b01);
-        MM_STORE(g+32*SIMDD, MM_LOAD(cpy+0*SIMDD) * MM_LOAD(cpy+0*SIMDD) + b10);
-        MM_STORE(g+33*SIMDD, MM_LOAD(cpy+1*SIMDD) * MM_LOAD(cpy+1*SIMDD) + b11);
-        MM_STORE(g+54*SIMDD,(MM_LOAD(cpz+0*SIMDD) * MM_LOAD(rc0+4*SIMDD) + b00) * g48);
-        MM_STORE(g+55*SIMDD,(MM_LOAD(cpz+1*SIMDD) * MM_LOAD(rc0+5*SIMDD) + b01) * g49);
-        MM_STORE(g+56*SIMDD,(MM_LOAD(cpz+0*SIMDD) * MM_LOAD(cpz+0*SIMDD) + b10) * g48);
-        MM_STORE(g+57*SIMDD,(MM_LOAD(cpz+1*SIMDD) * MM_LOAD(cpz+1*SIMDD) + b11) * g49);
-        MM_STORE(g+10*SIMDD, MM_LOAD(rc0+0*SIMDD) * MM_LOAD(g+8 *SIMDD) + i2 * b00 * MM_LOAD(cpx+0*SIMDD));
-        MM_STORE(g+11*SIMDD, MM_LOAD(rc0+1*SIMDD) * MM_LOAD(g+9 *SIMDD) + i2 * b01 * MM_LOAD(cpx+1*SIMDD));
-        MM_STORE(g+34*SIMDD, MM_LOAD(rc0+2*SIMDD) * MM_LOAD(g+32*SIMDD) + i2 * b00 * MM_LOAD(cpy+0*SIMDD));
-        MM_STORE(g+35*SIMDD, MM_LOAD(rc0+3*SIMDD) * MM_LOAD(g+33*SIMDD) + i2 * b01 * MM_LOAD(cpy+1*SIMDD));
-        MM_STORE(g+58*SIMDD, MM_LOAD(rc0+4*SIMDD) * MM_LOAD(g+56*SIMDD) + i2 * b00 * MM_LOAD(g+52*SIMDD));
-        MM_STORE(g+59*SIMDD, MM_LOAD(rc0+5*SIMDD) * MM_LOAD(g+57*SIMDD) + i2 * b01 * MM_LOAD(g+53*SIMDD));
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b   = bc->b00;
+        __MD b0  = MM_LOAD(b+0*SIMDD);
+        __MD b1  = MM_LOAD(b+1*SIMDD);
+        __MD r0 = MM_LOAD(c0x+0*SIMDD);
+        __MD r1 = MM_LOAD(c0x+1*SIMDD);
+        __MD r2 = MM_LOAD(c0y+0*SIMDD);
+        __MD r3 = MM_LOAD(c0y+1*SIMDD);
+        __MD r4 = MM_LOAD(c0z+0*SIMDD);
+        __MD r5 = MM_LOAD(c0z+1*SIMDD);
+        __MD s0 = MM_LOAD(cpx+0*SIMDD);
+        __MD s1 = MM_LOAD(cpx+1*SIMDD);
+        __MD s2 = MM_LOAD(cpy+0*SIMDD);
+        __MD s3 = MM_LOAD(cpy+1*SIMDD);
+        __MD s4 = MM_LOAD(cpz+0*SIMDD);
+        __MD s5 = MM_LOAD(cpz+1*SIMDD);
+        __MD g16 = MM_LOAD(g+16*SIMDD);
+        __MD g17 = MM_LOAD(g+17*SIMDD);
+        MM_STORE(g+2 *SIMDD, s0);
+        MM_STORE(g+3 *SIMDD, s1);
+        MM_STORE(g+10*SIMDD, s2);
+        MM_STORE(g+11*SIMDD, s3);
+        MM_STORE(g+18*SIMDD, s4 * g16);
+        MM_STORE(g+19*SIMDD, s5 * g17);
+        MM_STORE(g+4 *SIMDD, r0);
+        MM_STORE(g+5 *SIMDD, r1);
+        MM_STORE(g+12*SIMDD, r2);
+        MM_STORE(g+13*SIMDD, r3);
+        MM_STORE(g+20*SIMDD, r4 * g16);
+        MM_STORE(g+21*SIMDD, r5 * g17);
+        MM_STORE(g+6 *SIMDD, s0 * r0 + b0);
+        MM_STORE(g+7 *SIMDD, s1 * r1 + b1);
+        MM_STORE(g+14*SIMDD, s2 * r2 + b0);
+        MM_STORE(g+15*SIMDD, s3 * r3 + b1);
+        MM_STORE(g+22*SIMDD,(s4 * r4 + b0) * g16);
+        MM_STORE(g+23*SIMDD,(s5 * r5 + b1) * g17);
 }
-static inline void _g0_lj_4d_0111(double *g, double *c0x, double *c0y, double *c0z,
-                                  double *cpx, double *cpy, double *cpz,
-                                  double *b0, double *b1, double *r0, double *rp)
+
+static inline void _g0_2d4d_0111(double *g, Rys2eT *bc, CINTEnvVars *envs)
 {
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b0  = bc->b00;
+        double *b1  = bc->b01;
+        double *rkl = envs->rkrl;
         ALIGNMM double rcp[6*SIMDD];
-        _make_rc(rcp, cpx, cpy, cpz, rp);
+        _make_rc(rcp, cpx, cpy, cpz, rkl);
         __MD b00 = MM_LOAD(b0+0*SIMDD);
         __MD b01 = MM_LOAD(b0+1*SIMDD);
         __MD b10 = MM_LOAD(b1+0*SIMDD);
@@ -1318,157 +1316,107 @@ static inline void _g0_lj_4d_0111(double *g, double *c0x, double *c0y, double *c
         MM_STORE(g+66*SIMDD, MM_LOAD(c0z+0*SIMDD) * MM_LOAD(g+54*SIMDD) + b00 * (MM_LOAD(g+50*SIMDD) + MM_LOAD(g+52*SIMDD)));
         MM_STORE(g+67*SIMDD, MM_LOAD(c0z+1*SIMDD) * MM_LOAD(g+55*SIMDD) + b01 * (MM_LOAD(g+51*SIMDD) + MM_LOAD(g+53*SIMDD)));
 }
-static inline void _g0_lj_4d_1110(double *g, double *c0x, double *c0y, double *c0z,
-                                  double *cpx, double *cpy, double *cpz,
-                                  double *b0, double *b1, double *r0, double *rp)
+
+static inline void _g0_2d4d_0120(double *g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        ALIGNMM double rc0[6*SIMDD];
-        ALIGNMM double rcp[6*SIMDD];
-        _make_rc(rc0, c0x, c0y, c0z, r0);
-        _make_rc(rcp, cpx, cpy, cpz, rp);
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b0 = bc->b00;
+        double *b1 = bc->b01;
+        __MD r0 = MM_LOAD(c0x+0*SIMDD);
+        __MD r1 = MM_LOAD(c0x+1*SIMDD);
+        __MD r2 = MM_LOAD(c0y+0*SIMDD);
+        __MD r3 = MM_LOAD(c0y+1*SIMDD);
+        __MD r4 = MM_LOAD(c0z+0*SIMDD);
+        __MD r5 = MM_LOAD(c0z+1*SIMDD);
+        __MD s0 = MM_LOAD(cpx+0*SIMDD);
+        __MD s1 = MM_LOAD(cpx+1*SIMDD);
+        __MD s2 = MM_LOAD(cpy+0*SIMDD);
+        __MD s3 = MM_LOAD(cpy+1*SIMDD);
+        __MD s4 = MM_LOAD(cpz+0*SIMDD);
+        __MD s5 = MM_LOAD(cpz+1*SIMDD);
         __MD b00 = MM_LOAD(b0+0*SIMDD);
         __MD b01 = MM_LOAD(b0+1*SIMDD);
         __MD b10 = MM_LOAD(b1+0*SIMDD);
         __MD b11 = MM_LOAD(b1+1*SIMDD);
-        __MD g96 = MM_LOAD(g+96*SIMDD);
-        __MD g97 = MM_LOAD(g+97*SIMDD);
-        MM_STORE(g+2 *SIMDD, MM_LOAD(rc0+0*SIMDD));
-        MM_STORE(g+3 *SIMDD, MM_LOAD(rc0+1*SIMDD));
-        MM_STORE(g+4 *SIMDD, MM_LOAD(rcp+0*SIMDD));
-        MM_STORE(g+5 *SIMDD, MM_LOAD(rcp+1*SIMDD));
-        MM_STORE(g+8 *SIMDD, MM_LOAD(cpx+0*SIMDD));
-        MM_STORE(g+9 *SIMDD, MM_LOAD(cpx+1*SIMDD));
-        MM_STORE(g+50*SIMDD, MM_LOAD(rc0+2*SIMDD));
-        MM_STORE(g+51*SIMDD, MM_LOAD(rc0+3*SIMDD));
-        MM_STORE(g+52*SIMDD, MM_LOAD(rcp+2*SIMDD));
-        MM_STORE(g+53*SIMDD, MM_LOAD(rcp+3*SIMDD));
-        MM_STORE(g+56*SIMDD, MM_LOAD(cpy+0*SIMDD));
-        MM_STORE(g+57*SIMDD, MM_LOAD(cpy+1*SIMDD));
-        MM_STORE(g+98 *SIMDD, MM_LOAD(rc0+4*SIMDD) * g96);
-        MM_STORE(g+99 *SIMDD, MM_LOAD(rc0+5*SIMDD) * g97);
-        MM_STORE(g+100*SIMDD, MM_LOAD(rcp+4*SIMDD) * g96);
-        MM_STORE(g+101*SIMDD, MM_LOAD(rcp+5*SIMDD) * g97);
-        MM_STORE(g+104*SIMDD, MM_LOAD(cpz+0*SIMDD) * g96);
-        MM_STORE(g+105*SIMDD, MM_LOAD(cpz+1*SIMDD) * g97);
-        MM_STORE(g+6 *SIMDD , MM_LOAD(rcp+0*SIMDD) * MM_LOAD(rc0+0*SIMDD) + b00);
-        MM_STORE(g+7 *SIMDD , MM_LOAD(rcp+1*SIMDD) * MM_LOAD(rc0+1*SIMDD) + b01);
-        MM_STORE(g+10*SIMDD , MM_LOAD(cpx+0*SIMDD) * MM_LOAD(rc0+0*SIMDD) + b00);
-        MM_STORE(g+11*SIMDD , MM_LOAD(cpx+1*SIMDD) * MM_LOAD(rc0+1*SIMDD) + b01);
-        MM_STORE(g+12*SIMDD , MM_LOAD(cpx+0*SIMDD) * MM_LOAD(rcp+0*SIMDD) + b10);
-        MM_STORE(g+13*SIMDD , MM_LOAD(cpx+1*SIMDD) * MM_LOAD(rcp+1*SIMDD) + b11);
-        MM_STORE(g+54*SIMDD , MM_LOAD(rcp+2*SIMDD) * MM_LOAD(rc0+2*SIMDD) + b00);
-        MM_STORE(g+55*SIMDD , MM_LOAD(rcp+3*SIMDD) * MM_LOAD(rc0+3*SIMDD) + b01);
-        MM_STORE(g+58*SIMDD , MM_LOAD(cpy+0*SIMDD) * MM_LOAD(rc0+2*SIMDD) + b00);
-        MM_STORE(g+59*SIMDD , MM_LOAD(cpy+1*SIMDD) * MM_LOAD(rc0+3*SIMDD) + b01);
-        MM_STORE(g+60*SIMDD , MM_LOAD(cpy+0*SIMDD) * MM_LOAD(rcp+2*SIMDD) + b10);
-        MM_STORE(g+61*SIMDD , MM_LOAD(cpy+1*SIMDD) * MM_LOAD(rcp+3*SIMDD) + b11);
-        MM_STORE(g+102*SIMDD,(MM_LOAD(rcp+4*SIMDD) * MM_LOAD(rc0+4*SIMDD) + b00)* g96);
-        MM_STORE(g+103*SIMDD,(MM_LOAD(rcp+5*SIMDD) * MM_LOAD(rc0+5*SIMDD) + b01)* g97);
-        MM_STORE(g+106*SIMDD,(MM_LOAD(cpz+0*SIMDD) * MM_LOAD(rc0+4*SIMDD) + b00)* g96);
-        MM_STORE(g+107*SIMDD,(MM_LOAD(cpz+1*SIMDD) * MM_LOAD(rc0+5*SIMDD) + b01)* g97);
-        MM_STORE(g+108*SIMDD,(MM_LOAD(cpz+0*SIMDD) * MM_LOAD(rcp+4*SIMDD) + b10)* g96);
-        MM_STORE(g+109*SIMDD,(MM_LOAD(cpz+1*SIMDD) * MM_LOAD(rcp+5*SIMDD) + b11)* g97);
-        MM_STORE(g+14*SIMDD,  MM_LOAD(rc0+0*SIMDD) * MM_LOAD(g+12 *SIMDD) + b00 *(MM_LOAD(rcp+0*SIMDD) + MM_LOAD(cpx+0*SIMDD)));
-        MM_STORE(g+15*SIMDD,  MM_LOAD(rc0+1*SIMDD) * MM_LOAD(g+13 *SIMDD) + b01 *(MM_LOAD(rcp+1*SIMDD) + MM_LOAD(cpx+1*SIMDD)));
-        MM_STORE(g+62*SIMDD,  MM_LOAD(rc0+2*SIMDD) * MM_LOAD(g+60 *SIMDD) + b00 *(MM_LOAD(rcp+2*SIMDD) + MM_LOAD(cpy+0*SIMDD)));
-        MM_STORE(g+63*SIMDD,  MM_LOAD(rc0+3*SIMDD) * MM_LOAD(g+61 *SIMDD) + b01 *(MM_LOAD(rcp+3*SIMDD) + MM_LOAD(cpy+1*SIMDD)));
-        MM_STORE(g+110*SIMDD, MM_LOAD(rc0+4*SIMDD) * MM_LOAD(g+108*SIMDD) + b00 *(MM_LOAD(g+100*SIMDD) + MM_LOAD(g+104*SIMDD)));
-        MM_STORE(g+111*SIMDD, MM_LOAD(rc0+5*SIMDD) * MM_LOAD(g+109*SIMDD) + b01 *(MM_LOAD(g+101*SIMDD) + MM_LOAD(g+105*SIMDD)));
+        __MD g24 = MM_LOAD(g+24*SIMDD);
+        __MD g25 = MM_LOAD(g+25*SIMDD);
+        MM_STORE(g+2 *SIMDD, s0);
+        MM_STORE(g+3 *SIMDD, s1);
+        MM_STORE(g+6 *SIMDD, r0);
+        MM_STORE(g+7 *SIMDD, r1);
+        MM_STORE(g+14*SIMDD, s2);
+        MM_STORE(g+15*SIMDD, s3);
+        MM_STORE(g+18*SIMDD, r2);
+        MM_STORE(g+19*SIMDD, r3);
+        MM_STORE(g+26*SIMDD, MM_MUL(s4, g24));
+        MM_STORE(g+27*SIMDD, MM_MUL(s5, g25));
+        MM_STORE(g+30*SIMDD, MM_MUL(r4, g24));
+        MM_STORE(g+31*SIMDD, MM_MUL(r5, g25));
+        MM_STORE(g+4 *SIMDD, MM_FMA(s0, s0, b10));
+        MM_STORE(g+5 *SIMDD, MM_FMA(s1, s1, b11));
+        MM_STORE(g+8 *SIMDD, MM_FMA(r0, s0, b00));
+        MM_STORE(g+9 *SIMDD, MM_FMA(r1, s1, b01));
+        MM_STORE(g+16*SIMDD, MM_FMA(s2, s2, b10));
+        MM_STORE(g+17*SIMDD, MM_FMA(s3, s3, b11));
+        MM_STORE(g+20*SIMDD, MM_FMA(r2, s2, b00));
+        MM_STORE(g+21*SIMDD, MM_FMA(r3, s3, b01));
+        MM_STORE(g+28*SIMDD, MM_MUL(MM_FMA(s4, s4, b10), g24));
+        MM_STORE(g+29*SIMDD, MM_MUL(MM_FMA(s5, s5, b11), g25));
+        MM_STORE(g+32*SIMDD, MM_MUL(MM_FMA(r4, s4, b00), g24));
+        MM_STORE(g+33*SIMDD, MM_MUL(MM_FMA(r5, s5, b01), g25));
+        MM_STORE(g+10*SIMDD, s0 * (MM_LOAD(g+8 *SIMDD) + b00) + b10 * r0);
+        MM_STORE(g+11*SIMDD, s1 * (MM_LOAD(g+9 *SIMDD) + b01) + b11 * r1);
+        MM_STORE(g+22*SIMDD, s2 * (MM_LOAD(g+20*SIMDD) + b00) + b10 * r2);
+        MM_STORE(g+23*SIMDD, s3 * (MM_LOAD(g+21*SIMDD) + b01) + b11 * r3);
+        MM_STORE(g+34*SIMDD, s4 * MM_LOAD(g+32*SIMDD) + b00 * MM_LOAD(g+26*SIMDD) + b10 * MM_LOAD(g+30*SIMDD));
+        MM_STORE(g+35*SIMDD, s5 * MM_LOAD(g+33*SIMDD) + b01 * MM_LOAD(g+27*SIMDD) + b11 * MM_LOAD(g+31*SIMDD));
 }
-static inline void _g0_lj_4d_0201(double *g, double *c0x, double *c0y, double *c0z,
-                                  double *cpx, double *cpy, double *cpz,
-                                  double *b0, double *b1, double *r0, double *rp)
+
+static inline void _g0_2d4d_0200(double *g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        ALIGNMM double rcp[6*SIMDD];
-        _make_rc(rcp, cpx, cpy, cpz, rp);
-        __MD b00 = MM_LOAD(b0+0*SIMDD);
-        __MD b01 = MM_LOAD(b0+1*SIMDD);
-        __MD b10 = MM_LOAD(b1+0*SIMDD);
-        __MD b11 = MM_LOAD(b1+1*SIMDD);
-        __MD g72 = MM_LOAD(g+72*SIMDD);
-        __MD g73 = MM_LOAD(g+73*SIMDD);
-        __MD i2 = MM_SET1(2.);
-        MM_STORE(g+2 *SIMDD, MM_LOAD(rcp+0*SIMDD));
-        MM_STORE(g+3 *SIMDD, MM_LOAD(rcp+1*SIMDD));
-        MM_STORE(g+18*SIMDD, MM_LOAD(c0x+0*SIMDD));
-        MM_STORE(g+19*SIMDD, MM_LOAD(c0x+1*SIMDD));
-        MM_STORE(g+38*SIMDD, MM_LOAD(rcp+2*SIMDD));
-        MM_STORE(g+39*SIMDD, MM_LOAD(rcp+3*SIMDD));
-        MM_STORE(g+54*SIMDD, MM_LOAD(c0y+0*SIMDD));
-        MM_STORE(g+55*SIMDD, MM_LOAD(c0y+1*SIMDD));
-        MM_STORE(g+74*SIMDD, MM_LOAD(rcp+4*SIMDD) * g72);
-        MM_STORE(g+75*SIMDD, MM_LOAD(rcp+5*SIMDD) * g73);
-        MM_STORE(g+90*SIMDD, MM_LOAD(c0z+0*SIMDD) * g72);
-        MM_STORE(g+91*SIMDD, MM_LOAD(c0z+1*SIMDD) * g73);
-        MM_STORE(g+4 *SIMDD, MM_LOAD(rcp+0*SIMDD) * MM_LOAD(rcp+0*SIMDD) + b10);
-        MM_STORE(g+5 *SIMDD, MM_LOAD(rcp+1*SIMDD) * MM_LOAD(rcp+1*SIMDD) + b11);
-        MM_STORE(g+20*SIMDD, MM_LOAD(rcp+0*SIMDD) * MM_LOAD(c0x+0*SIMDD) + b00);
-        MM_STORE(g+21*SIMDD, MM_LOAD(rcp+1*SIMDD) * MM_LOAD(c0x+1*SIMDD) + b01);
-        MM_STORE(g+40*SIMDD, MM_LOAD(rcp+2*SIMDD) * MM_LOAD(rcp+2*SIMDD) + b10);
-        MM_STORE(g+41*SIMDD, MM_LOAD(rcp+3*SIMDD) * MM_LOAD(rcp+3*SIMDD) + b11);
-        MM_STORE(g+56*SIMDD, MM_LOAD(rcp+2*SIMDD) * MM_LOAD(c0y+0*SIMDD) + b00);
-        MM_STORE(g+57*SIMDD, MM_LOAD(rcp+3*SIMDD) * MM_LOAD(c0y+1*SIMDD) + b01);
-        MM_STORE(g+76*SIMDD,(MM_LOAD(rcp+4*SIMDD) * MM_LOAD(rcp+4*SIMDD) + b10)* g72);
-        MM_STORE(g+77*SIMDD,(MM_LOAD(rcp+5*SIMDD) * MM_LOAD(rcp+5*SIMDD) + b11)* g73);
-        MM_STORE(g+92*SIMDD,(MM_LOAD(rcp+4*SIMDD) * MM_LOAD(c0z+0*SIMDD) + b00)* g72);
-        MM_STORE(g+93*SIMDD,(MM_LOAD(rcp+5*SIMDD) * MM_LOAD(c0z+1*SIMDD) + b01)* g73);
-        MM_STORE(g+22*SIMDD, MM_LOAD(c0x+0*SIMDD) * MM_LOAD(g+4 *SIMDD ) + i2 * b00 * MM_LOAD(rcp+0*SIMDD));
-        MM_STORE(g+23*SIMDD, MM_LOAD(c0x+1*SIMDD) * MM_LOAD(g+5 *SIMDD ) + i2 * b01 * MM_LOAD(rcp+1*SIMDD));
-        MM_STORE(g+58*SIMDD, MM_LOAD(c0y+0*SIMDD) * MM_LOAD(g+40*SIMDD ) + i2 * b00 * MM_LOAD(rcp+2*SIMDD));
-        MM_STORE(g+59*SIMDD, MM_LOAD(c0y+1*SIMDD) * MM_LOAD(g+41*SIMDD ) + i2 * b01 * MM_LOAD(rcp+3*SIMDD));
-        MM_STORE(g+94*SIMDD, MM_LOAD(c0z+0*SIMDD) * MM_LOAD(g+76*SIMDD ) + i2 * b00 * MM_LOAD(g+74*SIMDD));
-        MM_STORE(g+95*SIMDD, MM_LOAD(c0z+1*SIMDD) * MM_LOAD(g+77*SIMDD ) + i2 * b01 * MM_LOAD(g+75*SIMDD));
+        double *cx = bc->c00x;
+        double *cy = bc->c00y;
+        double *cz = bc->c00z;
+        double *b =  bc->b10;
+        __MD cx0 = MM_LOAD(cx+0*SIMDD);
+        __MD cx1 = MM_LOAD(cx+1*SIMDD);
+        __MD cy0 = MM_LOAD(cy+0*SIMDD);
+        __MD cy1 = MM_LOAD(cy+1*SIMDD);
+        __MD cz0 = MM_LOAD(cz+0*SIMDD);
+        __MD cz1 = MM_LOAD(cz+1*SIMDD);
+        __MD b0 = MM_LOAD(b+0*SIMDD);
+        __MD b1 = MM_LOAD(b+1*SIMDD);
+        __MD g12 = MM_LOAD(g+12*SIMDD);
+        __MD g13 = MM_LOAD(g+13*SIMDD);
+        MM_STORE(g+2 *SIMDD, cx0);
+        MM_STORE(g+3 *SIMDD, cx1);
+        MM_STORE(g+8 *SIMDD, cy0);
+        MM_STORE(g+9 *SIMDD, cy1);
+        MM_STORE(g+14*SIMDD, MM_MUL(cz0, g12));
+        MM_STORE(g+15*SIMDD, MM_MUL(cz1, g13));
+        MM_STORE(g+4 *SIMDD, MM_FMA(cx0, cx0, b0));
+        MM_STORE(g+5 *SIMDD, MM_FMA(cx1, cx1, b1));
+        MM_STORE(g+10*SIMDD, MM_FMA(cy0, cy0, b0));
+        MM_STORE(g+11*SIMDD, MM_FMA(cy1, cy1, b1));
+        MM_STORE(g+16*SIMDD, MM_MUL(MM_FMA(cz0, cz0, b0), g12));
+        MM_STORE(g+17*SIMDD, MM_MUL(MM_FMA(cz1, cz1, b1), g13));
 }
-static inline void _g0_lj_4d_1200(double *g, double *c0x, double *c0y, double *c0z,
-                                  double *cpx, double *cpy, double *cpz,
-                                  double *b0, double *b1, double *r0, double *rp)
+
+static inline void _g0_2d4d_0201(double *g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        ALIGNMM double rc0[6*SIMDD];
-        ALIGNMM double rcp[6*SIMDD];
-        _make_rc(rc0, c0x, c0y, c0z, r0);
-        _make_rc(rcp, cpx, cpy, cpz, rp);
-        __MD b00 = MM_LOAD(b0+0*SIMDD);
-        __MD b01 = MM_LOAD(b0+1*SIMDD);
-        __MD b10 = MM_LOAD(b1+0*SIMDD);
-        __MD b11 = MM_LOAD(b1+1*SIMDD);
-        __MD g144 = MM_LOAD(g+144*SIMDD);
-        __MD g145 = MM_LOAD(g+145*SIMDD);
-        __MD i2 = MM_SET1(2.);
-        MM_STORE(g+2 *SIMDD , MM_LOAD(rc0+0*SIMDD));
-        MM_STORE(g+3 *SIMDD , MM_LOAD(rc0+1*SIMDD));
-        MM_STORE(g+4 *SIMDD , MM_LOAD(rcp+0*SIMDD));
-        MM_STORE(g+5 *SIMDD , MM_LOAD(rcp+1*SIMDD));
-        MM_STORE(g+74*SIMDD , MM_LOAD(rc0+2*SIMDD));
-        MM_STORE(g+75*SIMDD , MM_LOAD(rc0+3*SIMDD));
-        MM_STORE(g+76*SIMDD , MM_LOAD(rcp+2*SIMDD));
-        MM_STORE(g+77*SIMDD , MM_LOAD(rcp+3*SIMDD));
-        MM_STORE(g+146*SIMDD, MM_LOAD(rc0+4*SIMDD) * g144);
-        MM_STORE(g+147*SIMDD, MM_LOAD(rc0+5*SIMDD) * g145);
-        MM_STORE(g+148*SIMDD, MM_LOAD(rcp+4*SIMDD) * g144);
-        MM_STORE(g+149*SIMDD, MM_LOAD(rcp+5*SIMDD) * g145);
-        MM_STORE(g+6 *SIMDD , MM_LOAD(rcp+0*SIMDD) * MM_LOAD(rc0+0*SIMDD) + b00);
-        MM_STORE(g+7 *SIMDD , MM_LOAD(rcp+1*SIMDD) * MM_LOAD(rc0+1*SIMDD) + b01);
-        MM_STORE(g+8 *SIMDD , MM_LOAD(rcp+0*SIMDD) * MM_LOAD(rcp+0*SIMDD) + b10);
-        MM_STORE(g+9 *SIMDD , MM_LOAD(rcp+1*SIMDD) * MM_LOAD(rcp+1*SIMDD) + b11);
-        MM_STORE(g+78*SIMDD , MM_LOAD(rcp+2*SIMDD) * MM_LOAD(rc0+2*SIMDD) + b00);
-        MM_STORE(g+79*SIMDD , MM_LOAD(rcp+3*SIMDD) * MM_LOAD(rc0+3*SIMDD) + b01);
-        MM_STORE(g+80*SIMDD , MM_LOAD(rcp+2*SIMDD) * MM_LOAD(rcp+2*SIMDD) + b10);
-        MM_STORE(g+81*SIMDD , MM_LOAD(rcp+3*SIMDD) * MM_LOAD(rcp+3*SIMDD) + b11);
-        MM_STORE(g+150*SIMDD,(MM_LOAD(rcp+4*SIMDD) * MM_LOAD(rc0+4*SIMDD) + b00)* g144);
-        MM_STORE(g+151*SIMDD,(MM_LOAD(rcp+5*SIMDD) * MM_LOAD(rc0+5*SIMDD) + b01)* g145);
-        MM_STORE(g+152*SIMDD,(MM_LOAD(rcp+4*SIMDD) * MM_LOAD(rcp+4*SIMDD) + b10)* g144);
-        MM_STORE(g+153*SIMDD,(MM_LOAD(rcp+5*SIMDD) * MM_LOAD(rcp+5*SIMDD) + b11)* g145);
-        MM_STORE(g+10*SIMDD , MM_LOAD(rc0+0*SIMDD) * MM_LOAD(g+8*SIMDD  ) + i2 * b00 * MM_LOAD(rcp+0*SIMDD));
-        MM_STORE(g+11*SIMDD , MM_LOAD(rc0+1*SIMDD) * MM_LOAD(g+9*SIMDD  ) + i2 * b01 * MM_LOAD(rcp+1*SIMDD));
-        MM_STORE(g+82*SIMDD , MM_LOAD(rc0+2*SIMDD) * MM_LOAD(g+80*SIMDD ) + i2 * b00 * MM_LOAD(rcp+2*SIMDD));
-        MM_STORE(g+83*SIMDD , MM_LOAD(rc0+3*SIMDD) * MM_LOAD(g+81*SIMDD ) + i2 * b01 * MM_LOAD(rcp+3*SIMDD));
-        MM_STORE(g+154*SIMDD, MM_LOAD(rc0+4*SIMDD) * MM_LOAD(g+152*SIMDD) + i2 * b00 * MM_LOAD(g+148*SIMDD));
-        MM_STORE(g+155*SIMDD, MM_LOAD(rc0+5*SIMDD) * MM_LOAD(g+153*SIMDD) + i2 * b01 * MM_LOAD(g+149*SIMDD));
-}
-static inline void _g0_lj_4d_0012(double *g, double *c0x, double *c0y, double *c0z,
-                                  double *cpx, double *cpy, double *cpz,
-                                  double *b0, double *b1)
-{
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b0  = bc->b00;
+        double *b1  = bc->b10;
         __MD b00 = MM_LOAD(b0+0*SIMDD);
         __MD b01 = MM_LOAD(b0+1*SIMDD);
         __MD b10 = MM_LOAD(b1+0*SIMDD);
@@ -1507,10 +1455,500 @@ static inline void _g0_lj_4d_0012(double *g, double *c0x, double *c0y, double *c
         MM_STORE(g+34*SIMDD, MM_LOAD(cpz+0*SIMDD) * MM_LOAD(g+32*SIMDD ) + i2 * b00 * MM_LOAD(g+28*SIMDD));
         MM_STORE(g+35*SIMDD, MM_LOAD(cpz+1*SIMDD) * MM_LOAD(g+33*SIMDD ) + i2 * b01 * MM_LOAD(g+29*SIMDD));
 }
-static inline void _g0_lj_4d_1011(double *g, double *c0x, double *c0y, double *c0z,
-                                  double *cpx, double *cpy, double *cpz,
-                                  double *b0, double *b1, double *r0, double *rp)
+
+static inline void _g0_2d4d_0210(double *g, Rys2eT *bc, CINTEnvVars *envs)
 {
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b0 = bc->b00;
+        double *b1 = bc->b01;
+        __MD r0 = MM_LOAD(c0x+0*SIMDD);
+        __MD r1 = MM_LOAD(c0x+1*SIMDD);
+        __MD r2 = MM_LOAD(c0y+0*SIMDD);
+        __MD r3 = MM_LOAD(c0y+1*SIMDD);
+        __MD r4 = MM_LOAD(c0z+0*SIMDD);
+        __MD r5 = MM_LOAD(c0z+1*SIMDD);
+        __MD s0 = MM_LOAD(cpx+0*SIMDD);
+        __MD s1 = MM_LOAD(cpx+1*SIMDD);
+        __MD s2 = MM_LOAD(cpy+0*SIMDD);
+        __MD s3 = MM_LOAD(cpy+1*SIMDD);
+        __MD s4 = MM_LOAD(cpz+0*SIMDD);
+        __MD s5 = MM_LOAD(cpz+1*SIMDD);
+        __MD b00 = MM_LOAD(b0+0*SIMDD);
+        __MD b01 = MM_LOAD(b0+1*SIMDD);
+        __MD b10 = MM_LOAD(b1+0*SIMDD);
+        __MD b11 = MM_LOAD(b1+1*SIMDD);
+        __MD g24 = MM_LOAD(g+24*SIMDD);
+        __MD g25 = MM_LOAD(g+25*SIMDD);
+        MM_STORE(g+2 *SIMDD, s0);
+        MM_STORE(g+3 *SIMDD, s1);
+        MM_STORE(g+4 *SIMDD, r0);
+        MM_STORE(g+5 *SIMDD, r1);
+        MM_STORE(g+14*SIMDD, s2);
+        MM_STORE(g+15*SIMDD, s3);
+        MM_STORE(g+16*SIMDD, r2);
+        MM_STORE(g+17*SIMDD, r3);
+        MM_STORE(g+26*SIMDD, MM_MUL(s4, g24));
+        MM_STORE(g+27*SIMDD, MM_MUL(s5, g25));
+        MM_STORE(g+28*SIMDD, MM_MUL(r4, g24));
+        MM_STORE(g+29*SIMDD, MM_MUL(r5, g25));
+        MM_STORE(g+6 *SIMDD, MM_FMA(s0, r0, b00));
+        MM_STORE(g+7 *SIMDD, MM_FMA(s1, r1, b01));
+        MM_STORE(g+8 *SIMDD, MM_FMA(r0, r0, b10));
+        MM_STORE(g+9 *SIMDD, MM_FMA(r1, r1, b11));
+        MM_STORE(g+18*SIMDD, MM_FMA(s2, r2, b00));
+        MM_STORE(g+19*SIMDD, MM_FMA(s3, r3, b01));
+        MM_STORE(g+20*SIMDD, MM_FMA(r2, r2, b10));
+        MM_STORE(g+21*SIMDD, MM_FMA(r3, r3, b11));
+        MM_STORE(g+30*SIMDD, MM_MUL(MM_FMA(s4, r4, b00), g24));
+        MM_STORE(g+31*SIMDD, MM_MUL(MM_FMA(s5, r5, b01), g25));
+        MM_STORE(g+32*SIMDD, MM_MUL(MM_FMA(r4, r4, b10), g24));
+        MM_STORE(g+33*SIMDD, MM_MUL(MM_FMA(r5, r5, b11), g25));
+        MM_STORE(g+10*SIMDD, r0 * (MM_LOAD(g+6 *SIMDD) + b00) + b10 * s0                 );
+        MM_STORE(g+11*SIMDD, r1 * (MM_LOAD(g+7 *SIMDD) + b01) + b11 * s1                 );
+        MM_STORE(g+22*SIMDD, r2 * (MM_LOAD(g+18*SIMDD) + b00) + b10 * s2                 );
+        MM_STORE(g+23*SIMDD, r3 * (MM_LOAD(g+19*SIMDD) + b01) + b11 * s3                 );
+        MM_STORE(g+34*SIMDD, r4 * MM_LOAD(g+30*SIMDD) + b10 * MM_LOAD(g+26*SIMDD) + b00 * MM_LOAD(g+28*SIMDD));
+        MM_STORE(g+35*SIMDD, r5 * MM_LOAD(g+31*SIMDD) + b11 * MM_LOAD(g+27*SIMDD) + b01 * MM_LOAD(g+29*SIMDD));
+}
+
+static inline void _g0_2d4d_0300(double *g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *cx = bc->c00x;
+        double *cy = bc->c00y;
+        double *cz = bc->c00z;
+        double *b =  bc->b10;
+        __MD b0 = MM_LOAD(b+0*SIMDD);
+        __MD b1 = MM_LOAD(b+1*SIMDD);
+        __MD g16 = MM_LOAD(g+16*SIMDD);
+        __MD g17 = MM_LOAD(g+17*SIMDD);
+        __MD i3 = MM_SET1(3.);
+        MM_STORE(g+2 *SIMDD, MM_LOAD(cx+0*SIMDD));
+        MM_STORE(g+3 *SIMDD, MM_LOAD(cx+1*SIMDD));
+        MM_STORE(g+10*SIMDD, MM_LOAD(cy+0*SIMDD));
+        MM_STORE(g+11*SIMDD, MM_LOAD(cy+1*SIMDD));
+        MM_STORE(g+18*SIMDD, MM_LOAD(cz+0*SIMDD) * g16);
+        MM_STORE(g+19*SIMDD, MM_LOAD(cz+1*SIMDD) * g17);
+        MM_STORE(g+4 *SIMDD, MM_LOAD(cx+0*SIMDD) * MM_LOAD(cx+0*SIMDD) + b0);
+        MM_STORE(g+5 *SIMDD, MM_LOAD(cx+1*SIMDD) * MM_LOAD(cx+1*SIMDD) + b1);
+        MM_STORE(g+12*SIMDD, MM_LOAD(cy+0*SIMDD) * MM_LOAD(cy+0*SIMDD) + b0);
+        MM_STORE(g+13*SIMDD, MM_LOAD(cy+1*SIMDD) * MM_LOAD(cy+1*SIMDD) + b1);
+        MM_STORE(g+20*SIMDD,(MM_LOAD(cz+0*SIMDD) * MM_LOAD(cz+0*SIMDD) + b0)* g16);
+        MM_STORE(g+21*SIMDD,(MM_LOAD(cz+1*SIMDD) * MM_LOAD(cz+1*SIMDD) + b1)* g17);
+        MM_STORE(g+6 *SIMDD, MM_LOAD(cx+0*SIMDD) *(MM_LOAD(cx+0*SIMDD) * MM_LOAD(cx+0*SIMDD) + i3 * b0));
+        MM_STORE(g+7 *SIMDD, MM_LOAD(cx+1*SIMDD) *(MM_LOAD(cx+1*SIMDD) * MM_LOAD(cx+1*SIMDD) + i3 * b1));
+        MM_STORE(g+14*SIMDD, MM_LOAD(cy+0*SIMDD) *(MM_LOAD(cy+0*SIMDD) * MM_LOAD(cy+0*SIMDD) + i3 * b0));
+        MM_STORE(g+15*SIMDD, MM_LOAD(cy+1*SIMDD) *(MM_LOAD(cy+1*SIMDD) * MM_LOAD(cy+1*SIMDD) + i3 * b1));
+        MM_STORE(g+22*SIMDD,(MM_LOAD(cz+0*SIMDD) * MM_LOAD(cz+0*SIMDD) + i3 * b0)* MM_LOAD(g+18*SIMDD));
+        MM_STORE(g+23*SIMDD,(MM_LOAD(cz+1*SIMDD) * MM_LOAD(cz+1*SIMDD) + i3 * b1)* MM_LOAD(g+19*SIMDD));
+}
+
+static inline void _g0_2d4d_1000(double *g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *cx = bc->c00x;
+        double *cy = bc->c00y;
+        double *cz = bc->c00z;
+        MM_STORE(g+1*SIMDD, MM_LOAD(cx+0*SIMDD));
+        MM_STORE(g+3*SIMDD, MM_LOAD(cy+0*SIMDD));
+        MM_STORE(g+5*SIMDD, MM_MUL(MM_LOAD(cz+0*SIMDD), MM_LOAD(g+4*SIMDD)));
+}
+
+static inline void _g0_2d4d_1001(double *g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b   = bc->b00;
+        __MD cx0 = MM_LOAD(c0x+0*SIMDD);
+        __MD cx1 = MM_LOAD(c0x+1*SIMDD);
+        __MD cy0 = MM_LOAD(c0y+0*SIMDD);
+        __MD cy1 = MM_LOAD(c0y+1*SIMDD);
+        __MD cz0 = MM_LOAD(c0z+0*SIMDD);
+        __MD cz1 = MM_LOAD(c0z+1*SIMDD);
+        __MD px0 = MM_LOAD(cpx+0*SIMDD);
+        __MD px1 = MM_LOAD(cpx+1*SIMDD);
+        __MD py0 = MM_LOAD(cpy+0*SIMDD);
+        __MD py1 = MM_LOAD(cpy+1*SIMDD);
+        __MD pz0 = MM_LOAD(cpz+0*SIMDD);
+        __MD pz1 = MM_LOAD(cpz+1*SIMDD);
+        __MD b0 = MM_LOAD(b+0*SIMDD);
+        __MD b1 = MM_LOAD(b+1*SIMDD);
+        __MD g16 = MM_LOAD(g+16*SIMDD);
+        __MD g17 = MM_LOAD(g+17*SIMDD);
+        MM_STORE(g+2 *SIMDD, px0);
+        MM_STORE(g+3 *SIMDD, px1);
+        MM_STORE(g+4 *SIMDD, cx0);
+        MM_STORE(g+5 *SIMDD, cx1);
+        MM_STORE(g+10*SIMDD, py0);
+        MM_STORE(g+11*SIMDD, py1);
+        MM_STORE(g+12*SIMDD, cy0);
+        MM_STORE(g+13*SIMDD, cy1);
+        MM_STORE(g+18*SIMDD, MM_MUL(pz0, g16));
+        MM_STORE(g+19*SIMDD, MM_MUL(pz1, g17));
+        MM_STORE(g+20*SIMDD, MM_MUL(cz0, g16));
+        MM_STORE(g+21*SIMDD, MM_MUL(cz1, g17));
+        MM_STORE(g+6 *SIMDD, MM_FMA(px0, cx0, b0));
+        MM_STORE(g+7 *SIMDD, MM_FMA(px1, cx1, b1));
+        MM_STORE(g+14*SIMDD, MM_FMA(py0, cy0, b0));
+        MM_STORE(g+15*SIMDD, MM_FMA(py1, cy1, b1));
+        MM_STORE(g+22*SIMDD, MM_MUL(MM_FMA(pz0, cz0, b0), g16));
+        MM_STORE(g+23*SIMDD, MM_MUL(MM_FMA(pz1, cz1, b1), g17));
+}
+
+static inline void _g0_2d4d_1002(double *g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b0 = bc->b00;
+        double *b1 = bc->b01;
+        __MD r0 = MM_LOAD(c0x+0*SIMDD);
+        __MD r1 = MM_LOAD(c0x+1*SIMDD);
+        __MD r2 = MM_LOAD(c0y+0*SIMDD);
+        __MD r3 = MM_LOAD(c0y+1*SIMDD);
+        __MD r4 = MM_LOAD(c0z+0*SIMDD);
+        __MD r5 = MM_LOAD(c0z+1*SIMDD);
+        __MD s0 = MM_LOAD(cpx+0*SIMDD);
+        __MD s1 = MM_LOAD(cpx+1*SIMDD);
+        __MD s2 = MM_LOAD(cpy+0*SIMDD);
+        __MD s3 = MM_LOAD(cpy+1*SIMDD);
+        __MD s4 = MM_LOAD(cpz+0*SIMDD);
+        __MD s5 = MM_LOAD(cpz+1*SIMDD);
+        __MD b00 = MM_LOAD(b0+0*SIMDD);
+        __MD b01 = MM_LOAD(b0+1*SIMDD);
+        __MD b10 = MM_LOAD(b1+0*SIMDD);
+        __MD b11 = MM_LOAD(b1+1*SIMDD);
+        __MD g24 = MM_LOAD(g+24*SIMDD);
+        __MD g25 = MM_LOAD(g+25*SIMDD);
+        MM_STORE(g+2 *SIMDD, r0);
+        MM_STORE(g+3 *SIMDD, r1);
+        MM_STORE(g+4 *SIMDD, s0);
+        MM_STORE(g+5 *SIMDD, s1);
+        MM_STORE(g+14*SIMDD, r2);
+        MM_STORE(g+15*SIMDD, r3);
+        MM_STORE(g+16*SIMDD, s2);
+        MM_STORE(g+17*SIMDD, s3);
+        MM_STORE(g+26*SIMDD, MM_MUL(r4, g24));
+        MM_STORE(g+27*SIMDD, MM_MUL(r5, g25));
+        MM_STORE(g+28*SIMDD, MM_MUL(s4, g24));
+        MM_STORE(g+29*SIMDD, MM_MUL(s5, g25));
+        MM_STORE(g+6 *SIMDD, MM_FMA(r0, s0, b00));
+        MM_STORE(g+7 *SIMDD, MM_FMA(r1, s1, b01));
+        MM_STORE(g+8 *SIMDD, MM_FMA(s0, s0, b10));
+        MM_STORE(g+9 *SIMDD, MM_FMA(s1, s1, b11));
+        MM_STORE(g+18*SIMDD, MM_FMA(r2, s2, b00));
+        MM_STORE(g+19*SIMDD, MM_FMA(r3, s3, b01));
+        MM_STORE(g+20*SIMDD, MM_FMA(s2, s2, b10));
+        MM_STORE(g+21*SIMDD, MM_FMA(s3, s3, b11));
+        MM_STORE(g+30*SIMDD, MM_MUL(MM_FMA(r4, s4, b00), g24));
+        MM_STORE(g+31*SIMDD, MM_MUL(MM_FMA(r5, s5, b01), g25));
+        MM_STORE(g+32*SIMDD, MM_MUL(MM_FMA(s4, s4, b10), g24));
+        MM_STORE(g+33*SIMDD, MM_MUL(MM_FMA(s5, s5, b11), g25));
+        MM_STORE(g+10*SIMDD, s0 * (MM_LOAD(g+6 *SIMDD) + b00) + b10 * r0);
+        MM_STORE(g+11*SIMDD, s1 * (MM_LOAD(g+7 *SIMDD) + b01) + b11 * r1);
+        MM_STORE(g+22*SIMDD, s2 * (MM_LOAD(g+18*SIMDD) + b00) + b10 * r2);
+        MM_STORE(g+23*SIMDD, s3 * (MM_LOAD(g+19*SIMDD) + b01) + b11 * r3);
+        MM_STORE(g+34*SIMDD, s4 * MM_LOAD(g+30*SIMDD) + b10 * MM_LOAD(g+26*SIMDD) + b00 * MM_LOAD(g+28*SIMDD));
+        MM_STORE(g+35*SIMDD, s5 * MM_LOAD(g+31*SIMDD) + b11 * MM_LOAD(g+27*SIMDD) + b01 * MM_LOAD(g+29*SIMDD));
+}
+
+static inline void _g0_2d4d_1010(double *g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b   = bc->b00;
+        __MD cx0 = MM_LOAD(c0x+0*SIMDD);
+        __MD cx1 = MM_LOAD(c0x+1*SIMDD);
+        __MD cy0 = MM_LOAD(c0y+0*SIMDD);
+        __MD cy1 = MM_LOAD(c0y+1*SIMDD);
+        __MD cz0 = MM_LOAD(c0z+0*SIMDD);
+        __MD cz1 = MM_LOAD(c0z+1*SIMDD);
+        __MD px0 = MM_LOAD(cpx+0*SIMDD);
+        __MD px1 = MM_LOAD(cpx+1*SIMDD);
+        __MD py0 = MM_LOAD(cpy+0*SIMDD);
+        __MD py1 = MM_LOAD(cpy+1*SIMDD);
+        __MD pz0 = MM_LOAD(cpz+0*SIMDD);
+        __MD pz1 = MM_LOAD(cpz+1*SIMDD);
+        __MD b0 = MM_LOAD(b+0*SIMDD);
+        __MD b1 = MM_LOAD(b+1*SIMDD);
+        __MD g16 = MM_LOAD(g+16*SIMDD);
+        __MD g17 = MM_LOAD(g+17*SIMDD);
+        MM_STORE(g+2 *SIMDD, px0);
+        MM_STORE(g+3 *SIMDD, px1);
+        MM_STORE(g+4 *SIMDD, cx0);
+        MM_STORE(g+5 *SIMDD, cx1);
+        MM_STORE(g+10*SIMDD, py0);
+        MM_STORE(g+11*SIMDD, py1);
+        MM_STORE(g+12*SIMDD, cy0);
+        MM_STORE(g+13*SIMDD, cy1);
+        MM_STORE(g+18*SIMDD, MM_MUL(pz0, g16));
+        MM_STORE(g+19*SIMDD, MM_MUL(pz1, g17));
+        MM_STORE(g+20*SIMDD, MM_MUL(cz0, g16));
+        MM_STORE(g+21*SIMDD, MM_MUL(cz1, g17));
+        MM_STORE(g+6 *SIMDD, MM_FMA(px0, cx0, b0));
+        MM_STORE(g+7 *SIMDD, MM_FMA(px1, cx1, b1));
+        MM_STORE(g+14*SIMDD, MM_FMA(py0, cy0, b0));
+        MM_STORE(g+15*SIMDD, MM_FMA(py1, cy1, b1));
+        MM_STORE(g+22*SIMDD, MM_MUL(MM_FMA(pz0, cz0, b0), g16));
+        MM_STORE(g+23*SIMDD, MM_MUL(MM_FMA(pz1, cz1, b1), g17));
+}
+
+static inline void _g0_2d4d_1011(double *g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b0  = bc->b00;
+        double *b1  = bc->b01;
+        double *rkl = envs->rkrl;
+        ALIGNMM double rcp[6*SIMDD];
+        _make_rc(rcp, cpx, cpy, cpz, rkl);
+        __MD b00 = MM_LOAD(b0+0*SIMDD);
+        __MD b01 = MM_LOAD(b0+1*SIMDD);
+        __MD b10 = MM_LOAD(b1+0*SIMDD);
+        __MD b11 = MM_LOAD(b1+1*SIMDD);
+        __MD g48 = MM_LOAD(g+48*SIMDD);
+        __MD g49 = MM_LOAD(g+49*SIMDD);
+        MM_STORE(g+2 *SIMDD, MM_LOAD(c0x+0*SIMDD));
+        MM_STORE(g+3 *SIMDD, MM_LOAD(c0x+1*SIMDD));
+        MM_STORE(g+4 *SIMDD, MM_LOAD(rcp+0*SIMDD));
+        MM_STORE(g+5 *SIMDD, MM_LOAD(rcp+1*SIMDD));
+        MM_STORE(g+8 *SIMDD, MM_LOAD(cpx+0*SIMDD));
+        MM_STORE(g+9 *SIMDD, MM_LOAD(cpx+1*SIMDD));
+        MM_STORE(g+26*SIMDD, MM_LOAD(c0y+0*SIMDD));
+        MM_STORE(g+27*SIMDD, MM_LOAD(c0y+1*SIMDD));
+        MM_STORE(g+28*SIMDD, MM_LOAD(rcp+2*SIMDD));
+        MM_STORE(g+29*SIMDD, MM_LOAD(rcp+3*SIMDD));
+        MM_STORE(g+32*SIMDD, MM_LOAD(cpy+0*SIMDD));
+        MM_STORE(g+33*SIMDD, MM_LOAD(cpy+1*SIMDD));
+        MM_STORE(g+50*SIMDD, MM_LOAD(c0z+0*SIMDD) * g48);
+        MM_STORE(g+51*SIMDD, MM_LOAD(c0z+1*SIMDD) * g49);
+        MM_STORE(g+52*SIMDD, MM_LOAD(rcp+4*SIMDD) * g48);
+        MM_STORE(g+53*SIMDD, MM_LOAD(rcp+5*SIMDD) * g49);
+        MM_STORE(g+56*SIMDD, MM_LOAD(cpz+0*SIMDD) * g48);
+        MM_STORE(g+57*SIMDD, MM_LOAD(cpz+1*SIMDD) * g49);
+        MM_STORE(g+6 *SIMDD , MM_LOAD(rcp+0*SIMDD) * MM_LOAD(c0x+0*SIMDD) + b00);
+        MM_STORE(g+7 *SIMDD , MM_LOAD(rcp+1*SIMDD) * MM_LOAD(c0x+1*SIMDD) + b01);
+        MM_STORE(g+10*SIMDD , MM_LOAD(cpx+0*SIMDD) * MM_LOAD(c0x+0*SIMDD) + b00);
+        MM_STORE(g+11*SIMDD , MM_LOAD(cpx+1*SIMDD) * MM_LOAD(c0x+1*SIMDD) + b01);
+        MM_STORE(g+12*SIMDD , MM_LOAD(cpx+0*SIMDD) * MM_LOAD(rcp+0*SIMDD) + b10);
+        MM_STORE(g+13*SIMDD , MM_LOAD(cpx+1*SIMDD) * MM_LOAD(rcp+1*SIMDD) + b11);
+        MM_STORE(g+30*SIMDD , MM_LOAD(rcp+2*SIMDD) * MM_LOAD(c0y+0*SIMDD) + b00);
+        MM_STORE(g+31*SIMDD , MM_LOAD(rcp+3*SIMDD) * MM_LOAD(c0y+1*SIMDD) + b01);
+        MM_STORE(g+34*SIMDD , MM_LOAD(cpy+0*SIMDD) * MM_LOAD(c0y+0*SIMDD) + b00);
+        MM_STORE(g+35*SIMDD , MM_LOAD(cpy+1*SIMDD) * MM_LOAD(c0y+1*SIMDD) + b01);
+        MM_STORE(g+36*SIMDD , MM_LOAD(cpy+0*SIMDD) * MM_LOAD(rcp+2*SIMDD) + b10);
+        MM_STORE(g+37*SIMDD , MM_LOAD(cpy+1*SIMDD) * MM_LOAD(rcp+3*SIMDD) + b11);
+        MM_STORE(g+54*SIMDD,(MM_LOAD(rcp+4*SIMDD) * MM_LOAD(c0z+0*SIMDD) + b00)* g48);
+        MM_STORE(g+55*SIMDD,(MM_LOAD(rcp+5*SIMDD) * MM_LOAD(c0z+1*SIMDD) + b01)* g49);
+        MM_STORE(g+58*SIMDD,(MM_LOAD(cpz+0*SIMDD) * MM_LOAD(c0z+0*SIMDD) + b00)* g48);
+        MM_STORE(g+59*SIMDD,(MM_LOAD(cpz+1*SIMDD) * MM_LOAD(c0z+1*SIMDD) + b01)* g49);
+        MM_STORE(g+60*SIMDD,(MM_LOAD(cpz+0*SIMDD) * MM_LOAD(rcp+4*SIMDD) + b10)* g48);
+        MM_STORE(g+61*SIMDD,(MM_LOAD(cpz+1*SIMDD) * MM_LOAD(rcp+5*SIMDD) + b11)* g49);
+        MM_STORE(g+14*SIMDD, MM_LOAD(rcp+0*SIMDD) * MM_LOAD(g+10*SIMDD) + b00 * MM_LOAD(cpx+0*SIMDD) + b10 * MM_LOAD(c0x+0*SIMDD));
+        MM_STORE(g+15*SIMDD, MM_LOAD(rcp+1*SIMDD) * MM_LOAD(g+11*SIMDD) + b01 * MM_LOAD(cpx+1*SIMDD) + b11 * MM_LOAD(c0x+1*SIMDD));
+        MM_STORE(g+38*SIMDD, MM_LOAD(rcp+2*SIMDD) * MM_LOAD(g+34*SIMDD) + b00 * MM_LOAD(cpy+0*SIMDD) + b10 * MM_LOAD(c0y+0*SIMDD));
+        MM_STORE(g+39*SIMDD, MM_LOAD(rcp+3*SIMDD) * MM_LOAD(g+35*SIMDD) + b01 * MM_LOAD(cpy+1*SIMDD) + b11 * MM_LOAD(c0y+1*SIMDD));
+        MM_STORE(g+62*SIMDD, MM_LOAD(rcp+4*SIMDD) * MM_LOAD(g+58*SIMDD) + b00 * MM_LOAD(g+56*SIMDD) + b10 * MM_LOAD(g+50*SIMDD));
+        MM_STORE(g+63*SIMDD, MM_LOAD(rcp+5*SIMDD) * MM_LOAD(g+59*SIMDD) + b01 * MM_LOAD(g+57*SIMDD) + b11 * MM_LOAD(g+51*SIMDD));
+}
+
+static inline void _g0_2d4d_1020(double *g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b0 = bc->b00;
+        double *b1 = bc->b01;
+        __MD r0 = MM_LOAD(c0x+0*SIMDD);
+        __MD r1 = MM_LOAD(c0x+1*SIMDD);
+        __MD r2 = MM_LOAD(c0y+0*SIMDD);
+        __MD r3 = MM_LOAD(c0y+1*SIMDD);
+        __MD r4 = MM_LOAD(c0z+0*SIMDD);
+        __MD r5 = MM_LOAD(c0z+1*SIMDD);
+        __MD s0 = MM_LOAD(cpx+0*SIMDD);
+        __MD s1 = MM_LOAD(cpx+1*SIMDD);
+        __MD s2 = MM_LOAD(cpy+0*SIMDD);
+        __MD s3 = MM_LOAD(cpy+1*SIMDD);
+        __MD s4 = MM_LOAD(cpz+0*SIMDD);
+        __MD s5 = MM_LOAD(cpz+1*SIMDD);
+        __MD b00 = MM_LOAD(b0+0*SIMDD);
+        __MD b01 = MM_LOAD(b0+1*SIMDD);
+        __MD b10 = MM_LOAD(b1+0*SIMDD);
+        __MD b11 = MM_LOAD(b1+1*SIMDD);
+        __MD g24 = MM_LOAD(g+24*SIMDD);
+        __MD g25 = MM_LOAD(g+25*SIMDD);
+        MM_STORE(g+2 *SIMDD, r0);
+        MM_STORE(g+3 *SIMDD, r1);
+        MM_STORE(g+4 *SIMDD, s0);
+        MM_STORE(g+5 *SIMDD, s1);
+        MM_STORE(g+14*SIMDD, r2);
+        MM_STORE(g+15*SIMDD, r3);
+        MM_STORE(g+16*SIMDD, s2);
+        MM_STORE(g+17*SIMDD, s3);
+        MM_STORE(g+26*SIMDD, MM_MUL(r4, g24));
+        MM_STORE(g+27*SIMDD, MM_MUL(r5, g25));
+        MM_STORE(g+28*SIMDD, MM_MUL(s4, g24));
+        MM_STORE(g+29*SIMDD, MM_MUL(s5, g25));
+        MM_STORE(g+6 *SIMDD, MM_FMA(r0, s0, b00));
+        MM_STORE(g+7 *SIMDD, MM_FMA(r1, s1, b01));
+        MM_STORE(g+8 *SIMDD, MM_FMA(s0, s0, b10));
+        MM_STORE(g+9 *SIMDD, MM_FMA(s1, s1, b11));
+        MM_STORE(g+18*SIMDD, MM_FMA(r2, s2, b00));
+        MM_STORE(g+19*SIMDD, MM_FMA(r3, s3, b01));
+        MM_STORE(g+20*SIMDD, MM_FMA(s2, s2, b10));
+        MM_STORE(g+21*SIMDD, MM_FMA(s3, s3, b11));
+        MM_STORE(g+30*SIMDD, MM_MUL(MM_FMA(r4, s4, b00), g24));
+        MM_STORE(g+31*SIMDD, MM_MUL(MM_FMA(r5, s5, b01), g25));
+        MM_STORE(g+32*SIMDD, MM_MUL(MM_FMA(s4, s4, b10), g24));
+        MM_STORE(g+33*SIMDD, MM_MUL(MM_FMA(s5, s5, b11), g25));
+        MM_STORE(g+10*SIMDD, s0 * (MM_LOAD(g+6 *SIMDD) + b00) + b10 * r0);
+        MM_STORE(g+11*SIMDD, s1 * (MM_LOAD(g+7 *SIMDD) + b01) + b11 * r1);
+        MM_STORE(g+22*SIMDD, s2 * (MM_LOAD(g+18*SIMDD) + b00) + b10 * r2);
+        MM_STORE(g+23*SIMDD, s3 * (MM_LOAD(g+19*SIMDD) + b01) + b11 * r3);
+        MM_STORE(g+34*SIMDD, s4 * MM_LOAD(g+30*SIMDD) + b10 * MM_LOAD(g+26*SIMDD) + b00 * MM_LOAD(g+28*SIMDD));
+        MM_STORE(g+35*SIMDD, s5 * MM_LOAD(g+31*SIMDD) + b11 * MM_LOAD(g+27*SIMDD) + b01 * MM_LOAD(g+29*SIMDD));
+}
+
+static inline void _g0_2d4d_1100(double *g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *cx = bc->c00x;
+        double *cy = bc->c00y;
+        double *cz = bc->c00z;
+        double *b  = bc->b10;
+        double *r  = envs->rirj;
+        ALIGNMM double rc[6*SIMDD];
+        _make_rc(rc, cx, cy, cz, r);
+        __MD r0 = MM_LOAD(rc+0*SIMDD);
+        __MD r1 = MM_LOAD(rc+1*SIMDD);
+        __MD r2 = MM_LOAD(rc+2*SIMDD);
+        __MD r3 = MM_LOAD(rc+3*SIMDD);
+        __MD r4 = MM_LOAD(rc+4*SIMDD);
+        __MD r5 = MM_LOAD(rc+5*SIMDD);
+        __MD cx0 = MM_LOAD(cx+0*SIMDD);
+        __MD cx1 = MM_LOAD(cx+1*SIMDD);
+        __MD cy0 = MM_LOAD(cy+0*SIMDD);
+        __MD cy1 = MM_LOAD(cy+1*SIMDD);
+        __MD cz0 = MM_LOAD(cz+0*SIMDD);
+        __MD cz1 = MM_LOAD(cz+1*SIMDD);
+        __MD b0 = MM_LOAD(b+0*SIMDD);
+        __MD b1 = MM_LOAD(b+1*SIMDD);
+        __MD g24 = MM_LOAD(g+24*SIMDD);
+        __MD g25 = MM_LOAD(g+25*SIMDD);
+        MM_STORE(g+2 *SIMDD, r0);
+        MM_STORE(g+3 *SIMDD, r1);
+        MM_STORE(g+4 *SIMDD, cx0);
+        MM_STORE(g+5 *SIMDD, cx1);
+        MM_STORE(g+14*SIMDD, r2);
+        MM_STORE(g+15*SIMDD, r3);
+        MM_STORE(g+16*SIMDD, cy0);
+        MM_STORE(g+17*SIMDD, cy1);
+        MM_STORE(g+26*SIMDD, MM_MUL(r4, g24));
+        MM_STORE(g+27*SIMDD, MM_MUL(r5, g25));
+        MM_STORE(g+28*SIMDD, MM_MUL(cz0,g24));
+        MM_STORE(g+29*SIMDD, MM_MUL(cz1,g25));
+        MM_STORE(g+6 *SIMDD, MM_FMA(r0, cx0, b0));
+        MM_STORE(g+7 *SIMDD, MM_FMA(r1, cx1, b1));
+        MM_STORE(g+18*SIMDD, MM_FMA(r2, cy0, b0));
+        MM_STORE(g+19*SIMDD, MM_FMA(r3, cy1, b1));
+        MM_STORE(g+30*SIMDD, MM_MUL(MM_FMA(r4, cz0, b0), g24));
+        MM_STORE(g+31*SIMDD, MM_MUL(MM_FMA(r5, cz1, b1), g25));
+}
+
+static inline void _g0_2d4d_1101(double *g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b0  = bc->b00;
+        double *b1  = bc->b10;
+        double *rij = envs->rirj;
+        ALIGNMM double rc0[6*SIMDD];
+        _make_rc(rc0, c0x, c0y, c0z, rij);
+        __MD b00 = MM_LOAD(b0+0*SIMDD);
+        __MD b01 = MM_LOAD(b0+1*SIMDD);
+        __MD b10 = MM_LOAD(b1+0*SIMDD);
+        __MD b11 = MM_LOAD(b1+1*SIMDD);
+        __MD g48 = MM_LOAD(g+48*SIMDD);
+        __MD g49 = MM_LOAD(g+49*SIMDD);
+        MM_STORE(g+2 *SIMDD, MM_LOAD(rc0+0*SIMDD));
+        MM_STORE(g+3 *SIMDD, MM_LOAD(rc0+1*SIMDD));
+        MM_STORE(g+4 *SIMDD, MM_LOAD(cpx+0*SIMDD));
+        MM_STORE(g+5 *SIMDD, MM_LOAD(cpx+1*SIMDD));
+        MM_STORE(g+8 *SIMDD, MM_LOAD(c0x+0*SIMDD));
+        MM_STORE(g+9 *SIMDD, MM_LOAD(c0x+1*SIMDD));
+        MM_STORE(g+26*SIMDD, MM_LOAD(rc0+2*SIMDD));
+        MM_STORE(g+27*SIMDD, MM_LOAD(rc0+3*SIMDD));
+        MM_STORE(g+28*SIMDD, MM_LOAD(cpy+0*SIMDD));
+        MM_STORE(g+29*SIMDD, MM_LOAD(cpy+1*SIMDD));
+        MM_STORE(g+32*SIMDD, MM_LOAD(c0y+0*SIMDD));
+        MM_STORE(g+33*SIMDD, MM_LOAD(c0y+1*SIMDD));
+        MM_STORE(g+50*SIMDD, MM_LOAD(rc0+4*SIMDD) * g48);
+        MM_STORE(g+51*SIMDD, MM_LOAD(rc0+5*SIMDD) * g49);
+        MM_STORE(g+52*SIMDD, MM_LOAD(cpz+0*SIMDD) * g48);
+        MM_STORE(g+53*SIMDD, MM_LOAD(cpz+1*SIMDD) * g49);
+        MM_STORE(g+56*SIMDD, MM_LOAD(c0z+0*SIMDD) * g48);
+        MM_STORE(g+57*SIMDD, MM_LOAD(c0z+1*SIMDD) * g49);
+        MM_STORE(g+6 *SIMDD, MM_LOAD(cpx+0*SIMDD) * MM_LOAD(rc0+0*SIMDD) + b00);
+        MM_STORE(g+7 *SIMDD, MM_LOAD(cpx+1*SIMDD) * MM_LOAD(rc0+1*SIMDD) + b01);
+        MM_STORE(g+10*SIMDD, MM_LOAD(c0x+0*SIMDD) * MM_LOAD(rc0+0*SIMDD) + b10);
+        MM_STORE(g+11*SIMDD, MM_LOAD(c0x+1*SIMDD) * MM_LOAD(rc0+1*SIMDD) + b11);
+        MM_STORE(g+12*SIMDD, MM_LOAD(c0x+0*SIMDD) * MM_LOAD(cpx+0*SIMDD) + b00);
+        MM_STORE(g+13*SIMDD, MM_LOAD(c0x+1*SIMDD) * MM_LOAD(cpx+1*SIMDD) + b01);
+        MM_STORE(g+30*SIMDD, MM_LOAD(cpy+0*SIMDD) * MM_LOAD(rc0+2*SIMDD) + b00);
+        MM_STORE(g+31*SIMDD, MM_LOAD(cpy+1*SIMDD) * MM_LOAD(rc0+3*SIMDD) + b01);
+        MM_STORE(g+34*SIMDD, MM_LOAD(c0y+0*SIMDD) * MM_LOAD(rc0+2*SIMDD) + b10);
+        MM_STORE(g+35*SIMDD, MM_LOAD(c0y+1*SIMDD) * MM_LOAD(rc0+3*SIMDD) + b11);
+        MM_STORE(g+36*SIMDD, MM_LOAD(c0y+0*SIMDD) * MM_LOAD(cpy+0*SIMDD) + b00);
+        MM_STORE(g+37*SIMDD, MM_LOAD(c0y+1*SIMDD) * MM_LOAD(cpy+1*SIMDD) + b01);
+        MM_STORE(g+54*SIMDD,(MM_LOAD(cpz+0*SIMDD) * MM_LOAD(rc0+4*SIMDD) + b00)* g48);
+        MM_STORE(g+55*SIMDD,(MM_LOAD(cpz+1*SIMDD) * MM_LOAD(rc0+5*SIMDD) + b01)* g49);
+        MM_STORE(g+58*SIMDD,(MM_LOAD(c0z+0*SIMDD) * MM_LOAD(rc0+4*SIMDD) + b10)* g48);
+        MM_STORE(g+59*SIMDD,(MM_LOAD(c0z+1*SIMDD) * MM_LOAD(rc0+5*SIMDD) + b11)* g49);
+        MM_STORE(g+60*SIMDD,(MM_LOAD(c0z+0*SIMDD) * MM_LOAD(cpz+0*SIMDD) + b00)* g48);
+        MM_STORE(g+61*SIMDD,(MM_LOAD(c0z+1*SIMDD) * MM_LOAD(cpz+1*SIMDD) + b01)* g49);
+        MM_STORE(g+14*SIMDD, MM_LOAD(cpx+0*SIMDD) * MM_LOAD(g+10*SIMDD ) + b00 *(MM_LOAD(rc0+0*SIMDD) + MM_LOAD(c0x+0*SIMDD)));
+        MM_STORE(g+15*SIMDD, MM_LOAD(cpx+1*SIMDD) * MM_LOAD(g+11*SIMDD ) + b01 *(MM_LOAD(rc0+1*SIMDD) + MM_LOAD(c0x+1*SIMDD)));
+        MM_STORE(g+38*SIMDD, MM_LOAD(cpy+0*SIMDD) * MM_LOAD(g+34*SIMDD ) + b00 *(MM_LOAD(rc0+2*SIMDD) + MM_LOAD(c0y+0*SIMDD)));
+        MM_STORE(g+39*SIMDD, MM_LOAD(cpy+1*SIMDD) * MM_LOAD(g+35*SIMDD ) + b01 *(MM_LOAD(rc0+3*SIMDD) + MM_LOAD(c0y+1*SIMDD)));
+        MM_STORE(g+62*SIMDD, MM_LOAD(cpz+0*SIMDD) * MM_LOAD(g+58*SIMDD ) + b00 *(MM_LOAD(g+50*SIMDD ) + MM_LOAD(g+56*SIMDD )));
+        MM_STORE(g+63*SIMDD, MM_LOAD(cpz+1*SIMDD) * MM_LOAD(g+59*SIMDD ) + b01 *(MM_LOAD(g+51*SIMDD ) + MM_LOAD(g+57*SIMDD )));
+}
+
+static inline void _g0_2d4d_1110(double *g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b0  = bc->b00;
+        double *b1  = bc->b10;
+        double *r0  = envs->rirj;
         ALIGNMM double rc0[6*SIMDD];
         _make_rc(rc0, c0x, c0y, c0z, r0);
         __MD b00 = MM_LOAD(b0+0*SIMDD);
@@ -1562,293 +2000,364 @@ static inline void _g0_lj_4d_1011(double *g, double *c0x, double *c0y, double *c
         MM_STORE(g+62*SIMDD, MM_LOAD(cpz+0*SIMDD) * MM_LOAD(g+58*SIMDD ) + b00 *(MM_LOAD(g+50*SIMDD ) + MM_LOAD(g+56*SIMDD )));
         MM_STORE(g+63*SIMDD, MM_LOAD(cpz+1*SIMDD) * MM_LOAD(g+59*SIMDD ) + b01 *(MM_LOAD(g+51*SIMDD ) + MM_LOAD(g+57*SIMDD )));
 }
-static inline void _g0_lj_4d_2010(double *g, double *c0x, double *c0y, double *c0z,
-                                  double *cpx, double *cpy, double *cpz,
-                                  double *b0, double *b1, double *r0, double *rp)
+
+static inline void _g0_2d4d_1200(double *g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        ALIGNMM double rc0[6*SIMDD];
-        _make_rc(rc0, c0x, c0y, c0z, r0);
-        __MD b00 = MM_LOAD(b0+0*SIMDD);
-        __MD b01 = MM_LOAD(b0+1*SIMDD);
-        __MD b10 = MM_LOAD(b1+0*SIMDD);
-        __MD b11 = MM_LOAD(b1+1*SIMDD);
-        __MD g72 = MM_LOAD(g+72*SIMDD);
-        __MD g73 = MM_LOAD(g+73*SIMDD);
+        double *cx = bc->c00x;
+        double *cy = bc->c00y;
+        double *cz = bc->c00z;
+        double *b  = bc->b10;
+        double *r  = envs->rirj;
+        ALIGNMM double rc[6*SIMDD];
+        _make_rc(rc, cx, cy, cz, r);
+        __MD r0 = MM_LOAD(rc+0*SIMDD);
+        __MD r1 = MM_LOAD(rc+1*SIMDD);
+        __MD r2 = MM_LOAD(rc+2*SIMDD);
+        __MD r3 = MM_LOAD(rc+3*SIMDD);
+        __MD r4 = MM_LOAD(rc+4*SIMDD);
+        __MD r5 = MM_LOAD(rc+5*SIMDD);
+        __MD cx0 = MM_LOAD(cx+0*SIMDD);
+        __MD cx1 = MM_LOAD(cx+1*SIMDD);
+        __MD cy0 = MM_LOAD(cy+0*SIMDD);
+        __MD cy1 = MM_LOAD(cy+1*SIMDD);
+        __MD cz0 = MM_LOAD(cz+0*SIMDD);
+        __MD cz1 = MM_LOAD(cz+1*SIMDD);
+        __MD b0 = MM_LOAD(b+0*SIMDD);
+        __MD b1 = MM_LOAD(b+1*SIMDD);
         __MD i2 = MM_SET1(2.);
-        MM_STORE(g+2 *SIMDD, MM_LOAD(rc0+0*SIMDD));
-        MM_STORE(g+3 *SIMDD, MM_LOAD(rc0+1*SIMDD));
-        MM_STORE(g+6 *SIMDD, MM_LOAD(cpx+0*SIMDD));
-        MM_STORE(g+7 *SIMDD, MM_LOAD(cpx+1*SIMDD));
-        MM_STORE(g+38*SIMDD, MM_LOAD(rc0+2*SIMDD));
-        MM_STORE(g+39*SIMDD, MM_LOAD(rc0+3*SIMDD));
-        MM_STORE(g+42*SIMDD, MM_LOAD(cpy+0*SIMDD));
-        MM_STORE(g+43*SIMDD, MM_LOAD(cpy+1*SIMDD));
-        MM_STORE(g+74*SIMDD, MM_LOAD(rc0+4*SIMDD) * g72);
-        MM_STORE(g+75*SIMDD, MM_LOAD(rc0+5*SIMDD) * g73);
-        MM_STORE(g+78*SIMDD, MM_LOAD(cpz+0*SIMDD) * g72);
-        MM_STORE(g+79*SIMDD, MM_LOAD(cpz+1*SIMDD) * g73);
-        MM_STORE(g+4 *SIMDD, MM_LOAD(rc0+0*SIMDD) * MM_LOAD(rc0+0*SIMDD) + b10);
-        MM_STORE(g+5 *SIMDD, MM_LOAD(rc0+1*SIMDD) * MM_LOAD(rc0+1*SIMDD) + b11);
-        MM_STORE(g+8 *SIMDD, MM_LOAD(cpx+0*SIMDD) * MM_LOAD(rc0+0*SIMDD) + b00);
-        MM_STORE(g+9 *SIMDD, MM_LOAD(cpx+1*SIMDD) * MM_LOAD(rc0+1*SIMDD) + b01);
-        MM_STORE(g+40*SIMDD, MM_LOAD(rc0+2*SIMDD) * MM_LOAD(rc0+2*SIMDD) + b10);
-        MM_STORE(g+41*SIMDD, MM_LOAD(rc0+3*SIMDD) * MM_LOAD(rc0+3*SIMDD) + b11);
-        MM_STORE(g+44*SIMDD, MM_LOAD(cpy+0*SIMDD) * MM_LOAD(rc0+2*SIMDD) + b00);
-        MM_STORE(g+45*SIMDD, MM_LOAD(cpy+1*SIMDD) * MM_LOAD(rc0+3*SIMDD) + b01);
-        MM_STORE(g+76*SIMDD,(MM_LOAD(rc0+4*SIMDD) * MM_LOAD(rc0+4*SIMDD) + b10) * g72);
-        MM_STORE(g+77*SIMDD,(MM_LOAD(rc0+5*SIMDD) * MM_LOAD(rc0+5*SIMDD) + b11) * g73);
-        MM_STORE(g+80*SIMDD,(MM_LOAD(cpz+0*SIMDD) * MM_LOAD(rc0+4*SIMDD) + b00) * g72);
-        MM_STORE(g+81*SIMDD,(MM_LOAD(cpz+1*SIMDD) * MM_LOAD(rc0+5*SIMDD) + b01) * g73);
-        MM_STORE(g+10*SIMDD, MM_LOAD(cpx+0*SIMDD) * MM_LOAD(g+4 *SIMDD ) + i2 * b00 * MM_LOAD(rc0+0*SIMDD));
-        MM_STORE(g+11*SIMDD, MM_LOAD(cpx+1*SIMDD) * MM_LOAD(g+5 *SIMDD ) + i2 * b01 * MM_LOAD(rc0+1*SIMDD));
-        MM_STORE(g+46*SIMDD, MM_LOAD(cpy+0*SIMDD) * MM_LOAD(g+40*SIMDD ) + i2 * b00 * MM_LOAD(rc0+2*SIMDD));
-        MM_STORE(g+47*SIMDD, MM_LOAD(cpy+1*SIMDD) * MM_LOAD(g+41*SIMDD ) + i2 * b01 * MM_LOAD(rc0+3*SIMDD));
-        MM_STORE(g+82*SIMDD, MM_LOAD(cpz+0*SIMDD) * MM_LOAD(g+76*SIMDD ) + i2 * b00 * MM_LOAD(g+74*SIMDD));
-        MM_STORE(g+83*SIMDD, MM_LOAD(cpz+1*SIMDD) * MM_LOAD(g+77*SIMDD ) + i2 * b01 * MM_LOAD(g+75*SIMDD));
+        __MD g32 = MM_LOAD(g+32*SIMDD);
+        __MD g33 = MM_LOAD(g+33*SIMDD);
+        MM_STORE(g+2 *SIMDD, r0 );
+        MM_STORE(g+3 *SIMDD, r1 );
+        MM_STORE(g+4 *SIMDD, cx0);
+        MM_STORE(g+5 *SIMDD, cx1);
+        MM_STORE(g+18*SIMDD, r2 );
+        MM_STORE(g+19*SIMDD, r3 );
+        MM_STORE(g+20*SIMDD, cy0);
+        MM_STORE(g+21*SIMDD, cy1);
+        MM_STORE(g+34*SIMDD, MM_MUL(r4 , g32));
+        MM_STORE(g+35*SIMDD, MM_MUL(r5 , g33));
+        MM_STORE(g+36*SIMDD, MM_MUL(cz0, g32));
+        MM_STORE(g+37*SIMDD, MM_MUL(cz1, g33));
+        MM_STORE(g+6 *SIMDD, MM_FMA(r0 , cx0, b0));
+        MM_STORE(g+7 *SIMDD, MM_FMA(r1 , cx1, b1));
+        MM_STORE(g+8 *SIMDD, MM_FMA(cx0, cx0, b0));
+        MM_STORE(g+9 *SIMDD, MM_FMA(cx1, cx1, b1));
+        MM_STORE(g+22*SIMDD, MM_FMA(r2 , cy0, b0));
+        MM_STORE(g+23*SIMDD, MM_FMA(r3 , cy1, b1));
+        MM_STORE(g+24*SIMDD, MM_FMA(cy0, cy0, b0));
+        MM_STORE(g+25*SIMDD, MM_FMA(cy1, cy1, b1));
+        MM_STORE(g+38*SIMDD, MM_MUL(MM_FMA(r4 , cz0, b0), g32));
+        MM_STORE(g+39*SIMDD, MM_MUL(MM_FMA(r5 , cz1, b1), g33));
+        MM_STORE(g+40*SIMDD, MM_MUL(MM_FMA(cz0, cz0, b0), g32));
+        MM_STORE(g+41*SIMDD, MM_MUL(MM_FMA(cz1, cz1, b1), g33));
+        MM_STORE(g+10*SIMDD, r0 * MM_LOAD(g+8 *SIMDD) + i2 * b0 * cx0                );
+        MM_STORE(g+11*SIMDD, r1 * MM_LOAD(g+9 *SIMDD) + i2 * b1 * cx1                );
+        MM_STORE(g+26*SIMDD, r2 * MM_LOAD(g+24*SIMDD) + i2 * b0 * cy0                );
+        MM_STORE(g+27*SIMDD, r3 * MM_LOAD(g+25*SIMDD) + i2 * b1 * cy1                );
+        MM_STORE(g+42*SIMDD, r4 * MM_LOAD(g+40*SIMDD) + i2 * b0 * MM_LOAD(g+36*SIMDD));
+        MM_STORE(g+43*SIMDD, r5 * MM_LOAD(g+41*SIMDD) + i2 * b1 * MM_LOAD(g+37*SIMDD));
 }
-static inline void _g0_lj_4d_0102(double *g, double *c0x, double *c0y, double *c0z,
-                                  double *cpx, double *cpy, double *cpz,
-                                  double *b0, double *b1, double *r0, double *rp)
+
+static inline void _g0_2d4d_2000(double *g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        ALIGNMM double rcp[6*SIMDD];
-        _make_rc(rcp, cpx, cpy, cpz, rp);
+        double *cx = bc->c00x;
+        double *cy = bc->c00y;
+        double *cz = bc->c00z;
+        double *b  = bc->b10;
+        __MD r0 = MM_LOAD(cx+0*SIMDD);
+        __MD r1 = MM_LOAD(cx+1*SIMDD);
+        __MD r2 = MM_LOAD(cy+0*SIMDD);
+        __MD r3 = MM_LOAD(cy+1*SIMDD);
+        __MD r4 = MM_LOAD(cz+0*SIMDD);
+        __MD r5 = MM_LOAD(cz+1*SIMDD);
+        __MD b0 = MM_LOAD(b+0*SIMDD);
+        __MD b1 = MM_LOAD(b+1*SIMDD);
+        __MD g12 = MM_LOAD(g+12*SIMDD);
+        __MD g13 = MM_LOAD(g+13*SIMDD);
+        MM_STORE(g+2 *SIMDD, r0);
+        MM_STORE(g+3 *SIMDD, r1);
+        MM_STORE(g+8 *SIMDD, r2);
+        MM_STORE(g+9 *SIMDD, r3);
+        MM_STORE(g+14*SIMDD, MM_MUL(r4, g12));
+        MM_STORE(g+15*SIMDD, MM_MUL(r5, g13));
+        MM_STORE(g+4 *SIMDD, MM_FMA(r0, r0, b0));
+        MM_STORE(g+5 *SIMDD, MM_FMA(r1, r1, b1));
+        MM_STORE(g+10*SIMDD, MM_FMA(r2, r2, b0));
+        MM_STORE(g+11*SIMDD, MM_FMA(r3, r3, b1));
+        MM_STORE(g+16*SIMDD, MM_MUL(MM_FMA(r4, r4, b0), g12));
+        MM_STORE(g+17*SIMDD, MM_MUL(MM_FMA(r5, r5, b1), g13));
+}
+
+static inline void _g0_2d4d_2001(double *g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b0 = bc->b00;
+        double *b1 = bc->b01;
+        __MD r0 = MM_LOAD(c0x+0*SIMDD);
+        __MD r1 = MM_LOAD(c0x+1*SIMDD);
+        __MD r2 = MM_LOAD(c0y+0*SIMDD);
+        __MD r3 = MM_LOAD(c0y+1*SIMDD);
+        __MD r4 = MM_LOAD(c0z+0*SIMDD);
+        __MD r5 = MM_LOAD(c0z+1*SIMDD);
+        __MD s0 = MM_LOAD(cpx+0*SIMDD);
+        __MD s1 = MM_LOAD(cpx+1*SIMDD);
+        __MD s2 = MM_LOAD(cpy+0*SIMDD);
+        __MD s3 = MM_LOAD(cpy+1*SIMDD);
+        __MD s4 = MM_LOAD(cpz+0*SIMDD);
+        __MD s5 = MM_LOAD(cpz+1*SIMDD);
         __MD b00 = MM_LOAD(b0+0*SIMDD);
         __MD b01 = MM_LOAD(b0+1*SIMDD);
         __MD b10 = MM_LOAD(b1+0*SIMDD);
         __MD b11 = MM_LOAD(b1+1*SIMDD);
-        __MD g48 = MM_LOAD(g+48*SIMDD);
-        __MD g49 = MM_LOAD(g+49*SIMDD);
+        __MD g24 = MM_LOAD(g+24*SIMDD);
+        __MD g25 = MM_LOAD(g+25*SIMDD);
+        MM_STORE(g+2 *SIMDD, r0);
+        MM_STORE(g+3 *SIMDD, r1);
+        MM_STORE(g+6 *SIMDD, s0);
+        MM_STORE(g+7 *SIMDD, s1);
+        MM_STORE(g+14*SIMDD, r2);
+        MM_STORE(g+15*SIMDD, r3);
+        MM_STORE(g+18*SIMDD, s2);
+        MM_STORE(g+19*SIMDD, s3);
+        MM_STORE(g+26*SIMDD, MM_MUL(r4, g24));
+        MM_STORE(g+27*SIMDD, MM_MUL(r5, g25));
+        MM_STORE(g+30*SIMDD, MM_MUL(s4, g24));
+        MM_STORE(g+31*SIMDD, MM_MUL(s5, g25));
+        MM_STORE(g+4 *SIMDD, MM_FMA(r0, r0, b10));
+        MM_STORE(g+5 *SIMDD, MM_FMA(r1, r1, b11));
+        MM_STORE(g+8 *SIMDD, MM_FMA(s0, r0, b00));
+        MM_STORE(g+9 *SIMDD, MM_FMA(s1, r1, b01));
+        MM_STORE(g+16*SIMDD, MM_FMA(r2, r2, b10));
+        MM_STORE(g+17*SIMDD, MM_FMA(r3, r3, b11));
+        MM_STORE(g+20*SIMDD, MM_FMA(s2, r2, b00));
+        MM_STORE(g+21*SIMDD, MM_FMA(s3, r3, b01));
+        MM_STORE(g+28*SIMDD, MM_MUL(MM_FMA(r4, r4, b10), g24));
+        MM_STORE(g+29*SIMDD, MM_MUL(MM_FMA(r5, r5, b11), g25));
+        MM_STORE(g+32*SIMDD, MM_MUL(MM_FMA(s4, r4, b00), g24));
+        MM_STORE(g+33*SIMDD, MM_MUL(MM_FMA(s5, r5, b01), g25));
+        MM_STORE(g+10*SIMDD, r0 * (MM_LOAD(g+8 *SIMDD) + b00) + b10 * s0);
+        MM_STORE(g+11*SIMDD, r1 * (MM_LOAD(g+9 *SIMDD) + b01) + b11 * s1);
+        MM_STORE(g+22*SIMDD, r2 * (MM_LOAD(g+20*SIMDD) + b00) + b10 * s2);
+        MM_STORE(g+23*SIMDD, r3 * (MM_LOAD(g+21*SIMDD) + b01) + b11 * s3);
+        MM_STORE(g+34*SIMDD, r4 * MM_LOAD(g+32*SIMDD) + b00 * MM_LOAD(g+26*SIMDD) + b10 * MM_LOAD(g+30*SIMDD));
+        MM_STORE(g+35*SIMDD, r5 * MM_LOAD(g+33*SIMDD) + b01 * MM_LOAD(g+27*SIMDD) + b11 * MM_LOAD(g+31*SIMDD));
+}
+
+static inline void _g0_2d4d_2010(double *g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *c0x = bc->c00x;
+        double *c0y = bc->c00y;
+        double *c0z = bc->c00z;
+        double *cpx = bc->c0px;
+        double *cpy = bc->c0py;
+        double *cpz = bc->c0pz;
+        double *b0 = bc->b00;
+        double *b1 = bc->b01;
+        __MD r0 = MM_LOAD(c0x+0*SIMDD);
+        __MD r1 = MM_LOAD(c0x+1*SIMDD);
+        __MD r2 = MM_LOAD(c0y+0*SIMDD);
+        __MD r3 = MM_LOAD(c0y+1*SIMDD);
+        __MD r4 = MM_LOAD(c0z+0*SIMDD);
+        __MD r5 = MM_LOAD(c0z+1*SIMDD);
+        __MD s0 = MM_LOAD(cpx+0*SIMDD);
+        __MD s1 = MM_LOAD(cpx+1*SIMDD);
+        __MD s2 = MM_LOAD(cpy+0*SIMDD);
+        __MD s3 = MM_LOAD(cpy+1*SIMDD);
+        __MD s4 = MM_LOAD(cpz+0*SIMDD);
+        __MD s5 = MM_LOAD(cpz+1*SIMDD);
+        __MD b00 = MM_LOAD(b0+0*SIMDD);
+        __MD b01 = MM_LOAD(b0+1*SIMDD);
+        __MD b10 = MM_LOAD(b1+0*SIMDD);
+        __MD b11 = MM_LOAD(b1+1*SIMDD);
+        __MD g24 = MM_LOAD(g+24*SIMDD);
+        __MD g25 = MM_LOAD(g+25*SIMDD);
+        MM_STORE(g+2 *SIMDD, r0);
+        MM_STORE(g+3 *SIMDD, r1);
+        MM_STORE(g+6 *SIMDD, s0);
+        MM_STORE(g+7 *SIMDD, s1);
+        MM_STORE(g+14*SIMDD, r2);
+        MM_STORE(g+15*SIMDD, r3);
+        MM_STORE(g+18*SIMDD, s2);
+        MM_STORE(g+19*SIMDD, s3);
+        MM_STORE(g+26*SIMDD, MM_MUL(r4, g24));
+        MM_STORE(g+27*SIMDD, MM_MUL(r5, g25));
+        MM_STORE(g+30*SIMDD, MM_MUL(s4, g24));
+        MM_STORE(g+31*SIMDD, MM_MUL(s5, g25));
+        MM_STORE(g+4 *SIMDD, MM_FMA(r0, r0, b10));
+        MM_STORE(g+5 *SIMDD, MM_FMA(r1, r1, b11));
+        MM_STORE(g+8 *SIMDD, MM_FMA(s0, r0, b00));
+        MM_STORE(g+9 *SIMDD, MM_FMA(s1, r1, b01));
+        MM_STORE(g+16*SIMDD, MM_FMA(r2, r2, b10));
+        MM_STORE(g+17*SIMDD, MM_FMA(r3, r3, b11));
+        MM_STORE(g+20*SIMDD, MM_FMA(s2, r2, b00));
+        MM_STORE(g+21*SIMDD, MM_FMA(s3, r3, b01));
+        MM_STORE(g+28*SIMDD, MM_MUL(MM_FMA(r4, r4, b10), g24));
+        MM_STORE(g+29*SIMDD, MM_MUL(MM_FMA(r5, r5, b11), g25));
+        MM_STORE(g+32*SIMDD, MM_MUL(MM_FMA(s4, r4, b00), g24));
+        MM_STORE(g+33*SIMDD, MM_MUL(MM_FMA(s5, r5, b01), g25));
+        MM_STORE(g+10*SIMDD, r0 * (MM_LOAD(g+8 *SIMDD) + b00) + b10 * s0);
+        MM_STORE(g+11*SIMDD, r1 * (MM_LOAD(g+9 *SIMDD) + b01) + b11 * s1);
+        MM_STORE(g+22*SIMDD, r2 * (MM_LOAD(g+20*SIMDD) + b00) + b10 * s2);
+        MM_STORE(g+23*SIMDD, r3 * (MM_LOAD(g+21*SIMDD) + b01) + b11 * s3);
+        MM_STORE(g+34*SIMDD, r4 * MM_LOAD(g+32*SIMDD) + b00 * MM_LOAD(g+26*SIMDD) + b10 * MM_LOAD(g+30*SIMDD));
+        MM_STORE(g+35*SIMDD, r5 * MM_LOAD(g+33*SIMDD) + b01 * MM_LOAD(g+27*SIMDD) + b11 * MM_LOAD(g+31*SIMDD));
+}
+
+static inline void _g0_2d4d_2100(double *g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        double *cx = bc->c00x;
+        double *cy = bc->c00y;
+        double *cz = bc->c00z;
+        double *b1 = bc->b10;
+        double *rij = envs->rirj;
+        ALIGNMM double rc[6*SIMDD];
+        _make_rc(rc, cx, cy, cz, rij);
+        __MD b10 = MM_LOAD(b1+0*SIMDD);
+        __MD b11 = MM_LOAD(b1+1*SIMDD);
+        __MD g32 = MM_LOAD(g+32*SIMDD);
+        __MD g33 = MM_LOAD(g+33*SIMDD);
         __MD i2 = MM_SET1(2.);
-        MM_STORE(g+2 *SIMDD, MM_LOAD(rcp+0*SIMDD));
-        MM_STORE(g+3 *SIMDD, MM_LOAD(rcp+1*SIMDD));
-        MM_STORE(g+8 *SIMDD, MM_LOAD(c0x+0*SIMDD));
-        MM_STORE(g+9 *SIMDD, MM_LOAD(c0x+1*SIMDD));
-        MM_STORE(g+26*SIMDD, MM_LOAD(rcp+2*SIMDD));
-        MM_STORE(g+27*SIMDD, MM_LOAD(rcp+3*SIMDD));
-        MM_STORE(g+32*SIMDD, MM_LOAD(c0y+0*SIMDD));
-        MM_STORE(g+33*SIMDD, MM_LOAD(c0y+1*SIMDD));
-        MM_STORE(g+50*SIMDD, MM_LOAD(rcp+4*SIMDD) * g48);
-        MM_STORE(g+51*SIMDD, MM_LOAD(rcp+5*SIMDD) * g49);
-        MM_STORE(g+56*SIMDD, MM_LOAD(c0z+0*SIMDD) * g48);
-        MM_STORE(g+57*SIMDD, MM_LOAD(c0z+1*SIMDD) * g49);
-        MM_STORE(g+10*SIMDD, MM_LOAD(rcp+0*SIMDD) * MM_LOAD(c0x+0*SIMDD) + b00);
-        MM_STORE(g+11*SIMDD, MM_LOAD(rcp+1*SIMDD) * MM_LOAD(c0x+1*SIMDD) + b01);
-        MM_STORE(g+16*SIMDD, MM_LOAD(c0x+0*SIMDD) * MM_LOAD(c0x+0*SIMDD) + b10);
-        MM_STORE(g+17*SIMDD, MM_LOAD(c0x+1*SIMDD) * MM_LOAD(c0x+1*SIMDD) + b11);
-        MM_STORE(g+34*SIMDD, MM_LOAD(rcp+2*SIMDD) * MM_LOAD(c0y+0*SIMDD) + b00);
-        MM_STORE(g+35*SIMDD, MM_LOAD(rcp+3*SIMDD) * MM_LOAD(c0y+1*SIMDD) + b01);
-        MM_STORE(g+40*SIMDD, MM_LOAD(c0y+0*SIMDD) * MM_LOAD(c0y+0*SIMDD) + b10);
-        MM_STORE(g+41*SIMDD, MM_LOAD(c0y+1*SIMDD) * MM_LOAD(c0y+1*SIMDD) + b11);
-        MM_STORE(g+58*SIMDD,(MM_LOAD(rcp+4*SIMDD) * MM_LOAD(c0z+0*SIMDD) + b00) * g48);
-        MM_STORE(g+59*SIMDD,(MM_LOAD(rcp+5*SIMDD) * MM_LOAD(c0z+1*SIMDD) + b01) * g49);
-        MM_STORE(g+64*SIMDD,(MM_LOAD(c0z+0*SIMDD) * MM_LOAD(c0z+0*SIMDD) + b10) * g48);
-        MM_STORE(g+65*SIMDD,(MM_LOAD(c0z+1*SIMDD) * MM_LOAD(c0z+1*SIMDD) + b11) * g49);
-        MM_STORE(g+18*SIMDD, MM_LOAD(rcp+0*SIMDD) * MM_LOAD(g+16*SIMDD ) + i2 * b00 * MM_LOAD(c0x+0*SIMDD));
-        MM_STORE(g+19*SIMDD, MM_LOAD(rcp+1*SIMDD) * MM_LOAD(g+17*SIMDD ) + i2 * b01 * MM_LOAD(c0x+1*SIMDD));
-        MM_STORE(g+42*SIMDD, MM_LOAD(rcp+2*SIMDD) * MM_LOAD(g+40*SIMDD ) + i2 * b00 * MM_LOAD(c0y+0*SIMDD));
-        MM_STORE(g+43*SIMDD, MM_LOAD(rcp+3*SIMDD) * MM_LOAD(g+41*SIMDD ) + i2 * b01 * MM_LOAD(c0y+1*SIMDD));
-        MM_STORE(g+66*SIMDD, MM_LOAD(rcp+4*SIMDD) * MM_LOAD(g+64*SIMDD ) + i2 * b00 * MM_LOAD(g+56*SIMDD));
-        MM_STORE(g+67*SIMDD, MM_LOAD(rcp+5*SIMDD) * MM_LOAD(g+65*SIMDD ) + i2 * b01 * MM_LOAD(g+57*SIMDD));
+        __MD r0 = MM_LOAD(rc+0*SIMDD);
+        __MD r1 = MM_LOAD(rc+1*SIMDD);
+        __MD r2 = MM_LOAD(rc+2*SIMDD);
+        __MD r3 = MM_LOAD(rc+3*SIMDD);
+        __MD r4 = MM_LOAD(rc+4*SIMDD);
+        __MD r5 = MM_LOAD(rc+5*SIMDD);
+        __MD s0 = MM_LOAD(cx+0*SIMDD);
+        __MD s1 = MM_LOAD(cx+1*SIMDD);
+        __MD s2 = MM_LOAD(cy+0*SIMDD);
+        __MD s3 = MM_LOAD(cy+1*SIMDD);
+        __MD s4 = MM_LOAD(cz+0*SIMDD);
+        __MD s5 = MM_LOAD(cz+1*SIMDD);
+        MM_STORE(g+2 *SIMDD, s0);
+        MM_STORE(g+3 *SIMDD, s1);
+        MM_STORE(g+8 *SIMDD, r0);
+        MM_STORE(g+9 *SIMDD, r1);
+        MM_STORE(g+18*SIMDD, s2);
+        MM_STORE(g+19*SIMDD, s3);
+        MM_STORE(g+24*SIMDD, r2);
+        MM_STORE(g+25*SIMDD, r3);
+        MM_STORE(g+34*SIMDD, s4 * g32);
+        MM_STORE(g+35*SIMDD, s5 * g33);
+        MM_STORE(g+40*SIMDD, r4 * g32);
+        MM_STORE(g+41*SIMDD, r5 * g33);
+        MM_STORE(g+4 *SIMDD, s0 * s0 + b10);
+        MM_STORE(g+5 *SIMDD, s1 * s1 + b11);
+        MM_STORE(g+10*SIMDD, s0 * r0 + b10);
+        MM_STORE(g+11*SIMDD, s1 * r1 + b11);
+        MM_STORE(g+20*SIMDD, s2 * s2 + b10);
+        MM_STORE(g+21*SIMDD, s3 * s3 + b11);
+        MM_STORE(g+26*SIMDD, s2 * r2 + b10);
+        MM_STORE(g+27*SIMDD, s3 * r3 + b11);
+        MM_STORE(g+36*SIMDD,(s4 * s4 + b10) * g32);
+        MM_STORE(g+37*SIMDD,(s5 * s5 + b11) * g33);
+        MM_STORE(g+42*SIMDD,(s4 * r4 + b10) * g32);
+        MM_STORE(g+43*SIMDD,(s5 * r5 + b11) * g33);
+        MM_STORE(g+12*SIMDD, r0 * MM_LOAD(g+4 *SIMDD ) + i2 * b10 * s0);
+        MM_STORE(g+13*SIMDD, r1 * MM_LOAD(g+5 *SIMDD ) + i2 * b11 * s1);
+        MM_STORE(g+28*SIMDD, r2 * MM_LOAD(g+20*SIMDD ) + i2 * b10 * s2);
+        MM_STORE(g+29*SIMDD, r3 * MM_LOAD(g+21*SIMDD ) + i2 * b11 * s3);
+        MM_STORE(g+44*SIMDD, r4 * MM_LOAD(g+36*SIMDD ) + i2 * b10 * MM_LOAD(g+34*SIMDD ));
+        MM_STORE(g+45*SIMDD, r5 * MM_LOAD(g+37*SIMDD ) + i2 * b11 * MM_LOAD(g+35*SIMDD ));
 }
-static inline void _g0_lj_4d_1101(double *g, double *c0x, double *c0y, double *c0z,
-                                  double *cpx, double *cpy, double *cpz,
-                                  double *b0, double *b1, double *r0, double *rp)
+
+static inline void _g0_2d4d_3000(double *g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        ALIGNMM double rc0[6*SIMDD];
-        ALIGNMM double rcp[6*SIMDD];
-        _make_rc(rc0, c0x, c0y, c0z, r0);
-        _make_rc(rcp, cpx, cpy, cpz, rp);
-        __MD b00 = MM_LOAD(b0+0*SIMDD);
-        __MD b01 = MM_LOAD(b0+1*SIMDD);
-        __MD b10 = MM_LOAD(b1+0*SIMDD);
-        __MD b11 = MM_LOAD(b1+1*SIMDD);
-        __MD g96 = MM_LOAD(g+96*SIMDD);
-        __MD g97 = MM_LOAD(g+97*SIMDD);
-        MM_STORE(g+2 *SIMDD , MM_LOAD(rc0+0*SIMDD));
-        MM_STORE(g+3 *SIMDD , MM_LOAD(rc0+1*SIMDD));
-        MM_STORE(g+4 *SIMDD , MM_LOAD(rcp+0*SIMDD));
-        MM_STORE(g+5 *SIMDD , MM_LOAD(rcp+1*SIMDD));
-        MM_STORE(g+16*SIMDD , MM_LOAD(c0x+0*SIMDD));
-        MM_STORE(g+17*SIMDD , MM_LOAD(c0x+1*SIMDD));
-        MM_STORE(g+50*SIMDD , MM_LOAD(rc0+2*SIMDD));
-        MM_STORE(g+51*SIMDD , MM_LOAD(rc0+3*SIMDD));
-        MM_STORE(g+52*SIMDD , MM_LOAD(rcp+2*SIMDD));
-        MM_STORE(g+53*SIMDD , MM_LOAD(rcp+3*SIMDD));
-        MM_STORE(g+64*SIMDD , MM_LOAD(c0y+0*SIMDD));
-        MM_STORE(g+65*SIMDD , MM_LOAD(c0y+1*SIMDD));
-        MM_STORE(g+98 *SIMDD, MM_LOAD(rc0+4*SIMDD) * g96);
-        MM_STORE(g+99 *SIMDD, MM_LOAD(rc0+5*SIMDD) * g97);
-        MM_STORE(g+100*SIMDD, MM_LOAD(rcp+4*SIMDD) * g96);
-        MM_STORE(g+101*SIMDD, MM_LOAD(rcp+5*SIMDD) * g97);
-        MM_STORE(g+112*SIMDD, MM_LOAD(c0z+0*SIMDD) * g96);
-        MM_STORE(g+113*SIMDD, MM_LOAD(c0z+1*SIMDD) * g97);
-        MM_STORE(g+6 *SIMDD , MM_LOAD(rcp+0*SIMDD) * MM_LOAD(rc0+0*SIMDD) + b00);
-        MM_STORE(g+7 *SIMDD , MM_LOAD(rcp+1*SIMDD) * MM_LOAD(rc0+1*SIMDD) + b01);
-        MM_STORE(g+18*SIMDD , MM_LOAD(c0x+0*SIMDD) * MM_LOAD(rc0+0*SIMDD) + b10);
-        MM_STORE(g+19*SIMDD , MM_LOAD(c0x+1*SIMDD) * MM_LOAD(rc0+1*SIMDD) + b11);
-        MM_STORE(g+20*SIMDD , MM_LOAD(c0x+0*SIMDD) * MM_LOAD(rcp+0*SIMDD) + b00);
-        MM_STORE(g+21*SIMDD , MM_LOAD(c0x+1*SIMDD) * MM_LOAD(rcp+1*SIMDD) + b01);
-        MM_STORE(g+54*SIMDD , MM_LOAD(rcp+2*SIMDD) * MM_LOAD(rc0+2*SIMDD) + b00);
-        MM_STORE(g+55*SIMDD , MM_LOAD(rcp+3*SIMDD) * MM_LOAD(rc0+3*SIMDD) + b01);
-        MM_STORE(g+66*SIMDD , MM_LOAD(c0y+0*SIMDD) * MM_LOAD(rc0+2*SIMDD) + b10);
-        MM_STORE(g+67*SIMDD , MM_LOAD(c0y+1*SIMDD) * MM_LOAD(rc0+3*SIMDD) + b11);
-        MM_STORE(g+68*SIMDD , MM_LOAD(c0y+0*SIMDD) * MM_LOAD(rcp+2*SIMDD) + b00);
-        MM_STORE(g+69*SIMDD , MM_LOAD(c0y+1*SIMDD) * MM_LOAD(rcp+3*SIMDD) + b01);
-        MM_STORE(g+102*SIMDD,(MM_LOAD(rcp+4*SIMDD) * MM_LOAD(rc0+4*SIMDD) + b00)* g96);
-        MM_STORE(g+103*SIMDD,(MM_LOAD(rcp+5*SIMDD) * MM_LOAD(rc0+5*SIMDD) + b01)* g97);
-        MM_STORE(g+114*SIMDD,(MM_LOAD(c0z+0*SIMDD) * MM_LOAD(rc0+4*SIMDD) + b10)* g96);
-        MM_STORE(g+115*SIMDD,(MM_LOAD(c0z+1*SIMDD) * MM_LOAD(rc0+5*SIMDD) + b11)* g97);
-        MM_STORE(g+116*SIMDD,(MM_LOAD(c0z+0*SIMDD) * MM_LOAD(rcp+4*SIMDD) + b00)* g96);
-        MM_STORE(g+117*SIMDD,(MM_LOAD(c0z+1*SIMDD) * MM_LOAD(rcp+5*SIMDD) + b01)* g97);
-        MM_STORE(g+22*SIMDD , MM_LOAD(rcp+0*SIMDD) * MM_LOAD(g+18*SIMDD ) + b00 *(MM_LOAD(rc0+0*SIMDD) + MM_LOAD(c0x+0*SIMDD)));
-        MM_STORE(g+23*SIMDD , MM_LOAD(rcp+1*SIMDD) * MM_LOAD(g+19*SIMDD ) + b01 *(MM_LOAD(rc0+1*SIMDD) + MM_LOAD(c0x+1*SIMDD)));
-        MM_STORE(g+70*SIMDD , MM_LOAD(rcp+2*SIMDD) * MM_LOAD(g+66*SIMDD ) + b00 *(MM_LOAD(rc0+2*SIMDD) + MM_LOAD(c0y+0*SIMDD)));
-        MM_STORE(g+71*SIMDD , MM_LOAD(rcp+3*SIMDD) * MM_LOAD(g+67*SIMDD ) + b01 *(MM_LOAD(rc0+3*SIMDD) + MM_LOAD(c0y+1*SIMDD)));
-        MM_STORE(g+118*SIMDD, MM_LOAD(rcp+4*SIMDD) * MM_LOAD(g+114*SIMDD) + b00 *(MM_LOAD(g+98*SIMDD ) + MM_LOAD(g+112*SIMDD)));
-        MM_STORE(g+119*SIMDD, MM_LOAD(rcp+5*SIMDD) * MM_LOAD(g+115*SIMDD) + b01 *(MM_LOAD(g+99*SIMDD ) + MM_LOAD(g+113*SIMDD)));
-}
-static inline void _g0_lj_4d_2100(double *g, double *c0x, double *c0y, double *c0z,
-                                  double *cpx, double *cpy, double *cpz,
-                                  double *b0, double *b1, double *r0, double *rp)
-{
-        ALIGNMM double rc0[6*SIMDD];
-        ALIGNMM double rcp[6*SIMDD];
-        _make_rc(rc0, c0x, c0y, c0z, r0);
-        _make_rc(rcp, cpx, cpy, cpz, rp);
-        __MD b00 = MM_LOAD(b0+0*SIMDD);
-        __MD b01 = MM_LOAD(b0+1*SIMDD);
-        __MD b10 = MM_LOAD(b1+0*SIMDD);
-        __MD b11 = MM_LOAD(b1+1*SIMDD);
-        __MD g144 = MM_LOAD(g+144*SIMDD);
-        __MD g145 = MM_LOAD(g+145*SIMDD);
-        __MD i2 = MM_SET1(2.);
-        MM_STORE(g+2 *SIMDD , MM_LOAD(rc0+0*SIMDD));
-        MM_STORE(g+3 *SIMDD , MM_LOAD(rc0+1*SIMDD));
-        MM_STORE(g+6 *SIMDD , MM_LOAD(rcp+0*SIMDD));
-        MM_STORE(g+7 *SIMDD , MM_LOAD(rcp+1*SIMDD));
-        MM_STORE(g+74*SIMDD , MM_LOAD(rc0+2*SIMDD));
-        MM_STORE(g+75*SIMDD , MM_LOAD(rc0+3*SIMDD));
-        MM_STORE(g+78*SIMDD , MM_LOAD(rcp+2*SIMDD));
-        MM_STORE(g+79*SIMDD , MM_LOAD(rcp+3*SIMDD));
-        MM_STORE(g+146*SIMDD, MM_LOAD(rc0+4*SIMDD) * g144);
-        MM_STORE(g+147*SIMDD, MM_LOAD(rc0+5*SIMDD) * g145);
-        MM_STORE(g+150*SIMDD, MM_LOAD(rcp+4*SIMDD) * g144);
-        MM_STORE(g+151*SIMDD, MM_LOAD(rcp+5*SIMDD) * g145);
-        MM_STORE(g+4 *SIMDD , MM_LOAD(rc0+0*SIMDD) * MM_LOAD(rc0+0*SIMDD) + b10);
-        MM_STORE(g+5 *SIMDD , MM_LOAD(rc0+1*SIMDD) * MM_LOAD(rc0+1*SIMDD) + b11);
-        MM_STORE(g+8 *SIMDD , MM_LOAD(rcp+0*SIMDD) * MM_LOAD(rc0+0*SIMDD) + b00);
-        MM_STORE(g+9 *SIMDD , MM_LOAD(rcp+1*SIMDD) * MM_LOAD(rc0+1*SIMDD) + b01);
-        MM_STORE(g+76*SIMDD , MM_LOAD(rc0+2*SIMDD) * MM_LOAD(rc0+2*SIMDD) + b10);
-        MM_STORE(g+77*SIMDD , MM_LOAD(rc0+3*SIMDD) * MM_LOAD(rc0+3*SIMDD) + b11);
-        MM_STORE(g+80*SIMDD , MM_LOAD(rcp+2*SIMDD) * MM_LOAD(rc0+2*SIMDD) + b00);
-        MM_STORE(g+81*SIMDD , MM_LOAD(rcp+3*SIMDD) * MM_LOAD(rc0+3*SIMDD) + b01);
-        MM_STORE(g+148*SIMDD,(MM_LOAD(rc0+4*SIMDD) * MM_LOAD(rc0+4*SIMDD) + b10)* g144);
-        MM_STORE(g+149*SIMDD,(MM_LOAD(rc0+5*SIMDD) * MM_LOAD(rc0+5*SIMDD) + b11)* g145);
-        MM_STORE(g+152*SIMDD,(MM_LOAD(rcp+4*SIMDD) * MM_LOAD(rc0+4*SIMDD) + b00)* g144);
-        MM_STORE(g+153*SIMDD,(MM_LOAD(rcp+5*SIMDD) * MM_LOAD(rc0+5*SIMDD) + b01)* g145);
-        MM_STORE(g+10 *SIMDD, MM_LOAD(rcp+0*SIMDD) * MM_LOAD(g+4  *SIMDD) + i2 * b00 * MM_LOAD(rc0+0*SIMDD));
-        MM_STORE(g+11 *SIMDD, MM_LOAD(rcp+1*SIMDD) * MM_LOAD(g+5  *SIMDD) + i2 * b01 * MM_LOAD(rc0+1*SIMDD));
-        MM_STORE(g+82 *SIMDD, MM_LOAD(rcp+2*SIMDD) * MM_LOAD(g+76 *SIMDD) + i2 * b00 * MM_LOAD(rc0+2*SIMDD));
-        MM_STORE(g+83 *SIMDD, MM_LOAD(rcp+3*SIMDD) * MM_LOAD(g+77 *SIMDD) + i2 * b01 * MM_LOAD(rc0+3*SIMDD));
-        MM_STORE(g+154*SIMDD, MM_LOAD(rcp+4*SIMDD) * MM_LOAD(g+148*SIMDD) + i2 * b00 * MM_LOAD(g+146*SIMDD));
-        MM_STORE(g+155*SIMDD, MM_LOAD(rcp+5*SIMDD) * MM_LOAD(g+149*SIMDD) + i2 * b01 * MM_LOAD(g+147*SIMDD));
+        double *cx = bc->c00x;
+        double *cy = bc->c00y;
+        double *cz = bc->c00z;
+        double *b  = bc->b10;
+        __MD b0 = MM_LOAD(b+0*SIMDD);
+        __MD b1 = MM_LOAD(b+1*SIMDD);
+        __MD i3 = MM_SET1(3.);
+        __MD r0 = MM_LOAD(cx+0*SIMDD);
+        __MD r1 = MM_LOAD(cx+1*SIMDD);
+        __MD r2 = MM_LOAD(cy+0*SIMDD);
+        __MD r3 = MM_LOAD(cy+1*SIMDD);
+        __MD r4 = MM_LOAD(cz+0*SIMDD);
+        __MD r5 = MM_LOAD(cz+1*SIMDD);
+        __MD g16 = MM_LOAD(g+16*SIMDD);
+        __MD g17 = MM_LOAD(g+17*SIMDD);
+        MM_STORE(g+2 *SIMDD, r0);
+        MM_STORE(g+3 *SIMDD, r1);
+        MM_STORE(g+10*SIMDD, r2);
+        MM_STORE(g+11*SIMDD, r3);
+        MM_STORE(g+18*SIMDD, r4 * g16);
+        MM_STORE(g+19*SIMDD, r5 * g17);
+        MM_STORE(g+4 *SIMDD, r0 * r0 + b0);
+        MM_STORE(g+5 *SIMDD, r1 * r1 + b1);
+        MM_STORE(g+12*SIMDD, r2 * r2 + b0);
+        MM_STORE(g+13*SIMDD, r3 * r3 + b1);
+        MM_STORE(g+20*SIMDD,(r4 * r4 + b0)* g16);
+        MM_STORE(g+21*SIMDD,(r5 * r5 + b1)* g17);
+        MM_STORE(g+6 *SIMDD, r0 *(r0 * r0 + i3 * b0));
+        MM_STORE(g+7 *SIMDD, r1 *(r1 * r1 + i3 * b1));
+        MM_STORE(g+14*SIMDD, r2 *(r2 * r2 + i3 * b0));
+        MM_STORE(g+15*SIMDD, r3 *(r3 * r3 + i3 * b1));
+        MM_STORE(g+22*SIMDD,(r4 * r4 + i3 * b0) * MM_LOAD(g+18*SIMDD));
+        MM_STORE(g+23*SIMDD,(r5 * r5 + i3 * b1) * MM_LOAD(g+19*SIMDD));
 }
 /************** end special g0_4d results *************/
 
 
 
-void CINTg0_2e_lj2d4d(double *g, Rys2eT *bc, CINTEnvVars *envs)
+void CINTg0_2e_2d4d_unrolled(double *g, Rys2eT *bc, CINTEnvVars *envs)
 {
-        int nmax = envs->li_ceil + envs->lj_ceil;
-        int mmax = envs->lk_ceil + envs->ll_ceil;
-        switch (nmax) {
-        case 0: switch(mmax) {
-                case 0: return; // ssss
-                case 1: switch (envs->lk_ceil) {
-                        case 0: _g0_lj_4d_0001(g, bc->c0px, bc->c0py, bc->c0pz, envs->rkrl); return;
-                        case 1: _g0_lj_4d_1000(g, bc->c0px, bc->c0py, bc->c0pz, envs->rkrl); return;
-                        default: goto error; }
-                case 2: switch (envs->lk_ceil) {
-                        case 0: _g0_lj_4d_0002(g, bc->c0px, bc->c0py, bc->c0pz, bc->b01, envs->rkrl); return;
-                        case 1: _g0_lj_4d_1001(g, bc->c0px, bc->c0py, bc->c0pz, bc->b01, envs->rkrl); return;
-                        case 2: _g0_lj_4d_2000(g, bc->c0px, bc->c0py, bc->c0pz, bc->b01, envs->rkrl); return;
-                        default: goto error; }
-                case 3: switch (envs->lk_ceil) {
-                        case 0: _g0_lj_4d_0003(g, bc->c0px, bc->c0py, bc->c0pz, bc->b01, envs->rkrl); return;
-                        case 1: _g0_lj_4d_1002(g, bc->c0px, bc->c0py, bc->c0pz, bc->b01, envs->rkrl); return;
-                        case 2: _g0_lj_4d_2001(g, bc->c0px, bc->c0py, bc->c0pz, bc->b01, envs->rkrl); return;
-                        case 3: _g0_lj_4d_3000(g, bc->c0px, bc->c0py, bc->c0pz, bc->b01, envs->rkrl); return;
-                        default: goto error; }
-                default: goto _g0_4d_default; }
-        case 1: switch(mmax) {
-                case 0: switch (envs->li_ceil) {
-                        case 0: _g0_lj_4d_0001(g, bc->c00x, bc->c00y, bc->c00z, envs->rirj); return;
-                        case 1: _g0_lj_4d_1000(g, bc->c00x, bc->c00y, bc->c00z, envs->rirj); return;
-                        default: goto error; }
-                case 1: switch (envs->lk_ceil) {
-                        case 0: switch (envs->li_ceil) {
-                                case 0: _g0_lj_4d_0011(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, envs->rirj, envs->rkrl); return;
-                                case 1: _g0_lj_4d_1010(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, envs->rirj, envs->rkrl); return;
-                                default: goto error; }
-                        case 1: switch (envs->li_ceil) {
-                                case 0: _g0_lj_4d_0101(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, envs->rirj, envs->rkrl); return;
-                                case 1: _g0_lj_4d_1100(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, envs->rirj, envs->rkrl); return;
-                                default: goto error; }
-                        default: goto error; }
-                case 2: switch (envs->lk_ceil) {
-                        case 0: switch (envs->li_ceil) {
-                                case 0: _g0_lj_4d_0021(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b01); return;
-                                case 1: _g0_lj_4d_1020(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b01, envs->rirj, envs->rkrl); return;
-                                default: goto error; }
-                        case 1: switch (envs->li_ceil) {
-                                case 0: _g0_lj_4d_0111(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b01, envs->rirj, envs->rkrl); return;
-                                case 1: _g0_lj_4d_1110(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b01, envs->rirj, envs->rkrl); return;
-                                default: goto error; }
-                        case 2: switch (envs->li_ceil) {
-                                case 0: _g0_lj_4d_0201(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b01, envs->rirj, envs->rkrl); return;
-                                case 1: _g0_lj_4d_1200(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b01, envs->rirj, envs->rkrl); return;
-                                default: goto error; }
-                        default: goto error; }
-                default: goto _g0_4d_default; }
-        case 2: switch(mmax) {
-                case 0: switch (envs->li_ceil) {
-                        case 0: _g0_lj_4d_0002(g, bc->c00x, bc->c00y, bc->c00z, bc->b10, envs->rirj); return;
-                        case 1: _g0_lj_4d_1001(g, bc->c00x, bc->c00y, bc->c00z, bc->b10, envs->rirj); return;
-                        case 2: _g0_lj_4d_2000(g, bc->c00x, bc->c00y, bc->c00z, bc->b10, envs->rirj); return;
-                        default: goto error; }
-                case 1: switch (envs->lk_ceil) {
-                        case 0: switch (envs->li_ceil) {
-                                case 0: _g0_lj_4d_0012(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b10); return;
-                                case 1: _g0_lj_4d_1011(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b10, envs->rirj, envs->rkrl); return;
-                                case 2: _g0_lj_4d_2010(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b10, envs->rirj, envs->rkrl); return;
-                                default: goto error; }
-                        case 1: switch (envs->li_ceil) {
-                                case 0: _g0_lj_4d_0102(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b10, envs->rirj, envs->rkrl); return;
-                                case 1: _g0_lj_4d_1101(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b10, envs->rirj, envs->rkrl); return;
-                                case 2: _g0_lj_4d_2100(g, bc->c00x, bc->c00y, bc->c00z, bc->c0px, bc->c0py, bc->c0pz, bc->b00, bc->b10, envs->rirj, envs->rkrl); return;
-                                default: goto error; }
-                        default: goto error; }
-                default: goto _g0_4d_default; }
-        case 3: switch(mmax) {
-                case 0: switch (envs->li_ceil) {
-                        case 0: _g0_lj_4d_0003(g, bc->c00x, bc->c00y, bc->c00z, bc->b10, envs->rirj); return;
-                        case 1: _g0_lj_4d_1002(g, bc->c00x, bc->c00y, bc->c00z, bc->b10, envs->rirj); return;
-                        case 2: _g0_lj_4d_2001(g, bc->c00x, bc->c00y, bc->c00z, bc->b10, envs->rirj); return;
-                        case 3: _g0_lj_4d_3000(g, bc->c00x, bc->c00y, bc->c00z, bc->b10, envs->rirj); return;
-                        default: goto error; }
-                default: goto _g0_4d_default; }
-        default:
-_g0_4d_default:
-                        CINTg0_2e_2d(g, bc, envs);
-                        CINTg0_lj_4d(g, envs);
-                        return;
+        int type_ijkl = ((envs->li_ceil << 6) | (envs->lj_ceil << 4) |
+                         (envs->lk_ceil << 2) | (envs->ll_ceil));
+        switch (type_ijkl) {
+                case 0b00000000: _g0_2d4d_0000(g, bc, envs); return;
+                case 0b00000001: _g0_2d4d_0001(g, bc, envs); return;
+                case 0b00000010: _g0_2d4d_0002(g, bc, envs); return;
+                case 0b00000011: _g0_2d4d_0003(g, bc, envs); return;
+                case 0b00000100: _g0_2d4d_0010(g, bc, envs); return;
+                case 0b00000101: _g0_2d4d_0011(g, bc, envs); return;
+                case 0b00000110: _g0_2d4d_0012(g, bc, envs); return;
+                case 0b00001000: _g0_2d4d_0020(g, bc, envs); return;
+                case 0b00001001: _g0_2d4d_0021(g, bc, envs); return;
+                case 0b00001100: _g0_2d4d_0030(g, bc, envs); return;
+                case 0b00010000: _g0_2d4d_0100(g, bc, envs); return;
+                case 0b00010001: _g0_2d4d_0101(g, bc, envs); return;
+                case 0b00010010: _g0_2d4d_0102(g, bc, envs); return;
+                case 0b00010100: _g0_2d4d_0110(g, bc, envs); return;
+                case 0b00010101: _g0_2d4d_0111(g, bc, envs); return;
+                case 0b00011000: _g0_2d4d_0120(g, bc, envs); return;
+                case 0b00100000: _g0_2d4d_0200(g, bc, envs); return;
+                case 0b00100001: _g0_2d4d_0201(g, bc, envs); return;
+                case 0b00100100: _g0_2d4d_0210(g, bc, envs); return;
+                case 0b00110000: _g0_2d4d_0300(g, bc, envs); return;
+                case 0b01000000: _g0_2d4d_1000(g, bc, envs); return;
+                case 0b01000001: _g0_2d4d_1001(g, bc, envs); return;
+                case 0b01000010: _g0_2d4d_1002(g, bc, envs); return;
+                case 0b01000100: _g0_2d4d_1010(g, bc, envs); return;
+                case 0b01000101: _g0_2d4d_1011(g, bc, envs); return;
+                case 0b01001000: _g0_2d4d_1020(g, bc, envs); return;
+                case 0b01010000: _g0_2d4d_1100(g, bc, envs); return;
+                case 0b01010001: _g0_2d4d_1101(g, bc, envs); return;
+                case 0b01010100: _g0_2d4d_1110(g, bc, envs); return;
+                case 0b01100000: _g0_2d4d_1200(g, bc, envs); return;
+                case 0b10000000: _g0_2d4d_2000(g, bc, envs); return;
+                case 0b10000001: _g0_2d4d_2001(g, bc, envs); return;
+                case 0b10000100: _g0_2d4d_2010(g, bc, envs); return;
+                case 0b10010000: _g0_2d4d_2100(g, bc, envs); return;
+                case 0b11000000: _g0_2d4d_3000(g, bc, envs); return;
         }
-error:
-        fprintf(stderr, "Dimension error for CINTg0_2e_lj2d4d: iklj = %d %d %d %d\n",
-                envs->li_ceil, envs->lk_ceil, envs->ll_ceil, envs->lj_ceil);
-        exit(1);
+        fprintf(stderr, "Dimension error for CINTg0_2e_lj2d4d: iklj = %d %d %d %d",
+               (int)envs->li_ceil, (int)envs->lk_ceil,
+               (int)envs->ll_ceil, (int)envs->lj_ceil);
 }
 
+void CINTg0_2e_lj2d4d(double *g, Rys2eT *bc, CINTEnvVars *envs)
+{
+        CINTg0_2e_2d(g, bc, envs);
+        CINTg0_lj_4d(g, envs);
+}
 void CINTg0_2e_kj2d4d(double *g, Rys2eT *bc, CINTEnvVars *envs)
 {
         CINTg0_2e_2d(g, bc, envs);
@@ -2012,7 +2521,7 @@ int CINTg0_2e(double *g, double *cutoff, Rys2eT *bc, CINTEnvVars *envs, int coun
                 //MM_STORE(gy+i*SIMDD, r1);
                 MM_STORE(gz+i*SIMDD, MM_MUL(MM_LOAD(w+i*SIMDD), r0));
         }
-        if (envs->g_size == 1) {
+        if (envs->g_size == 1) { // ssss
                 return 1;
         }
 

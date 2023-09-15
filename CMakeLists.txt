@@ -70,7 +70,8 @@ set(cintSrc
   src/cint2e.c src/cint3c1e.c src/cint3c2e.c src/cint_bas.c src/fblas.c
   src/g1e.c src/g2e.c src/g2e_simd1.c src/g3c1e.c src/g3c2e.c
   src/gout2e.c src/misc.c src/optimizer.c
-  src/fmt.c src/rys_wheeler.c src/eigh.c src/rys_roots.c src/polyfits.c
+  src/fmt.c src/rys_wheeler.c src/eigh.c src/rys_roots.c src/find_roots.c
+  src/polyfits.c src/sr_rys_polyfits.c
   src/cint1e_a.c src/cint3c1e_a.c
   src/cint1e_grids.c src/g1e_grids.c
   src/autocode/breit1.c src/autocode/dkb.c src/autocode/gaunt1.c
@@ -84,6 +85,10 @@ if(WITH_RANGE_COULOMB)
 # defined in config.h
 #  add_definitions(-DWITH_RANGE_COULOMB)
   message("Enabled WITH_RANGE_COULOMB")
+  if(WITH_POLYNOMIAL_FIT)
+    add_definitions(-DWITH_POLYNOMIAL_FIT)
+    message("Enabled WITH_POLYNOMIAL_FIT")
+  endif(WITH_POLYNOMIAL_FIT)
 endif(WITH_RANGE_COULOMB)
 
 if(WITH_COULOMB_ERF)

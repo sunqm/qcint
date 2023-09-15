@@ -381,8 +381,13 @@ void CINTinit_int2c2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
         envs->rx_in_rklrx = envs->rk;
         envs->rx_in_rijrx = envs->ri;
 
-        envs->f_g0_2d4d = &CINTg0_2e_2d;
-        envs->f_g0_2d4d_simd1 = &CINTg0_2e_2d_simd1;
+        if (nroots <= 2) {
+                envs->f_g0_2d4d = &CINTg0_2e_2d4d_unrolled;
+                envs->f_g0_2d4d_simd1 = &CINTg0_2e_2d4d_unrolled_simd1;
+        } else {
+                envs->f_g0_2d4d = &CINTg0_2e_2d;
+                envs->f_g0_2d4d_simd1 = &CINTg0_2e_2d_simd1;
+        }
         envs->f_g0_2e = &CINTg0_2e;
         envs->f_g0_2e_simd1 = &CINTg0_2e_simd1;
 

@@ -1,3 +1,9 @@
+Version 6.0.0 (2023-09-17):
+	* Fix memory leak issue in int4c1e
+	* Add polynomial root finder with eigenvalue algorithm
+	* Fitting Rys roots of SR integrals with Chebyshev polynomials
+	* New integrals related to LRESC
+
 Version 5.5.0 (2023-09-17):
 	* Supports Gaussian charge model for int1e_grids
 

@@ -24,12 +24,12 @@
 void CINTrys_roots(int nroots, double x, double *u, double *w);
 void _CINTrys_roots_batch(int nroots, double *x, double *u, double *w, int count);
 void CINTsr_rys_roots(int nroots, double x, double lower, double *u, double *w);
-void CINTsr_rys_polyfits(int nroots, double x, double lower, double *u, double *w);
 int _CINTsr_rys_roots_batch(CINTEnvVars *envs, double *x, double *theta,
                             double *u, double *w, double *cutoff, int count);
 
 void CINTstg_roots(int nroots, double ta, double ua, double* rr, double* ww);
 void _CINTstg_roots_batch(int nroots, double *ta, double *ua, double* rr, double* ww, int count);
+int CINTsr_rys_polyfits(int nroots, double x, double lower, double *u, double *w);
 
 int CINTrys_schmidt(int nroots, double x, double lower, double *roots, double *weights);
 int CINTlrys_schmidt(int nroots, double x, double lower, double *roots, double *weights);
@@ -69,4 +69,4 @@ void fmt1_qerfc_like(__float128 *f, __float128 t, __float128 lower, int m);
 // short-range Coulomb kernel is numerically very instable when the integrals
 // are close to zero (x*lower**2 > 40). Use this cutoff as a temporary solution
 // to avoid the numerical issue in sr_rys_roots
-#define EXPCUTOFF_SR    45
+#define EXPCUTOFF_SR    40

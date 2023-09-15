@@ -59,6 +59,8 @@ int CINTg0_2e_simd1(double *g, double *cutoff,
                     Rys2eT *bc, CINTEnvVars *envs, int idsimd);
 void CINTg0_2e_2d(double *g, Rys2eT *bc, CINTEnvVars *envs);
 void CINTg0_2e_2d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs);
+void CINTg0_2e_2d4d_unrolled(double *g, Rys2eT *bc, CINTEnvVars *envs);
+void CINTg0_2e_2d4d_unrolled_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs);
 void CINTg0_2e_lj2d4d(double *g, Rys2eT *bc, CINTEnvVars *envs);
 void CINTg0_2e_kj2d4d(double *g, Rys2eT *bc, CINTEnvVars *envs);
 void CINTg0_2e_il2d4d(double *g, Rys2eT *bc, CINTEnvVars *envs);

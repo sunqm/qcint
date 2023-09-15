@@ -81,9 +81,6 @@ void CINTinit_int3c2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
 
         int dli, dlj, dlk;
         int ibase = envs->li_ceil > envs->lj_ceil;
-        if (envs->nrys_roots <= 2) { // use the fully optimized lj_4d algorithm
-                ibase = 0;
-        }
 
         if (ibase) {
                 dli = envs->li_ceil + envs->lj_ceil + 1;
@@ -125,7 +122,10 @@ void CINTinit_int3c2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
                 envs->rirj[2] = envs->rj[2] - envs->ri[2];
         }
 
-        if (ibase) {
+        if (nroots <= 2) {
+                envs->f_g0_2d4d = &CINTg0_2e_2d4d_unrolled;
+                envs->f_g0_2d4d_simd1 = &CINTg0_2e_2d4d_unrolled_simd1;
+        } else if (ibase) {
                 envs->f_g0_2d4d = &CINTg0_2e_il2d4d;
                 envs->f_g0_2d4d_simd1 = &CINTg0_2e_il2d4d_simd1;
         } else {
