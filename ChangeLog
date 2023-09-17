@@ -1,3 +1,6 @@
+Version 5.5.0 (2023-09-17):
+	* Supports Gaussian charge model for int1e_grids
+
 Version 5.4.0 (2023-07-04):
 	* Add constant PTR_FRAC_CHARGE for QM/MM interface in pyscf
 
