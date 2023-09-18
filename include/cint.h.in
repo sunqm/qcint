@@ -23,7 +23,7 @@
  */
 
 #define QCINT_VERSION           @qcint_VERSION@
-#define CINT_SOVERSION          @cint_SOVERSION
+#define CINT_SOVERSION          @cint_SOVERSION@
 
 #cmakedefine CACHE_SIZE_I8
 #ifdef CACHE_SIZE_I8
