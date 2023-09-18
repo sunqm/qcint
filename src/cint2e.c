@@ -22,11 +22,12 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <math.h>
+#include <assert.h>
 #include "cint_bas.h"
-#include "misc.h"
 #include "g2e.h"
 #include "optimizer.h"
 #include "cint2e.h"
+#include "misc.h"
 #include "cart2sph.h"
 #include "c2f.h"
 
@@ -64,14 +65,12 @@
                         fp2c[np2c] = CINTprim_to_ctr_0; \
                         shltyp[np2c] = SHLTYP##csymb; \
                         gprim[np2c] = gctr[SHLTYP##psymb]; \
-                        gp2c [np2c] = gctr[SHLTYP##csymb]; \
                         iprim[np2c] = csymb##p; \
                         np2c++; \
                 } else if (non0ctr##csymb[csymb##p] > 1) { \
                         fp2c[np2c] = CINTprim_to_ctr_1; \
                         shltyp[np2c] = SHLTYP##csymb; \
                         gprim[np2c] = gctr[SHLTYP##psymb]; \
-                        gp2c [np2c] = gctr[SHLTYP##csymb]; \
                         iprim[np2c] = csymb##p; \
                         np2c++; \
                 } \
@@ -82,9 +81,29 @@
         for (i = 0; i < np2c; i++) { \
                 it = shltyp[i]; \
                 im = iprim[i]; \
-                (*(fp2c[i]))(gp2c[i], gprim[i], coeff[it]+im, \
+                (*(fp2c[i]))(gctr[it], gprim[i], coeff[it]+im, \
                              ngp[it], x_prim[it], x_ctr[it], \
                              non0ctr[it][im], non0idx[it]+im*x_ctr[it]); \
+                empty_overall = 0; \
+        } \
+        cum = 0; \
+        np2c = 0;
+
+#define POP_PRIM2CTR_AND_SET0 \
+        for (i = 0; i < np2c; i++) { \
+                it = shltyp[i]; \
+                if (it != SHLTYPi) { \
+                        im = iprim[i]; \
+                        (*(fp2c[i]))(gctr[it], gprim[i], coeff[it]+im, \
+                                     ngp[it], x_prim[it], x_ctr[it], \
+                                     non0ctr[it][im], non0idx[it]+im*x_ctr[it]); \
+                        empty_overall = 0; \
+                } else if (fp2c[i] == CINTiprim_to_ctr_0) { \
+                        double *pout = gctr[it]; \
+                        for (int k = 0; k < ngp[1]; k++) { \
+                                pout[k] = 0.; \
+                        } \
+                } \
         } \
         cum = 0; \
         np2c = 0;
@@ -99,9 +118,12 @@
 
 #define PUSH(RIJ, RKL) \
         if (cum == SIMDD) { \
-                (*envs->f_g0_2e)(g, cutoff, &bc, envs, cum); \
-                (*envs->f_gout)(gout, g, idx, envs); \
-                POP_PRIM2CTR; \
+                if ((*envs->f_g0_2e)(g, cutoff, &bc, envs, cum)) { \
+                        (*envs->f_gout)(gout, g, idx, envs); \
+                        POP_PRIM2CTR; \
+                } else { \
+                        POP_PRIM2CTR_AND_SET0; \
+                } \
         } \
         envs->ai[cum] = ai[ip]; \
         envs->aj[cum] = aj[jp]; \
@@ -123,9 +145,8 @@
                 fp2c[np2c] = CINTiprim_to_ctr_1; \
         } \
         gprim[np2c] = gout + cum * ngp[0]; \
-        gp2c [np2c] = gctr[SHLTYPi]; \
         iprim[np2c] = ip; \
-        shltyp[np2c] = 0; \
+        shltyp[np2c] = SHLTYPi; \
         cum++; \
         np2c++;
 
@@ -139,7 +160,6 @@
         } \
         int cum = 0; \
         int np2c = 0; \
-        double *gp2c [SIMDD*4]; \
         double *gprim[SIMDD*4]; \
         int shltyp[SIMDD*4]; \
         int iprim[SIMDD*4]; \
@@ -152,18 +172,22 @@
 
 #define RUN_REST \
         if (cum == 1) { \
-                (*envs->f_g0_2e_simd1)(g, cutoff, &bc, envs, 0); \
-                (*envs->f_gout_simd1)(gout, g, idx, envs); \
-        } else if (cum > 1) { \
-                r1 = MM_SET1(1.); \
-                for (i = 0; i < envs->nrys_roots; i++) { \
-                        MM_STORE(bc.u+i*SIMDD, r1); \
-                        MM_STORE(bc.w+i*SIMDD, r1); \
+                if ((*envs->f_g0_2e_simd1)(g, cutoff, &bc, envs, 0)) { \
+                        (*envs->f_gout_simd1)(gout, g, idx, envs); \
+                        POP_PRIM2CTR; \
+                } else { \
+                        POP_PRIM2CTR_AND_SET0; \
                 } \
-                (*envs->f_g0_2e)(g, cutoff, &bc, envs, cum); \
-                (*envs->f_gout)(gout, g, idx, envs); \
-        } \
-        POP_PRIM2CTR
+        } else if (cum > 1) { \
+                if ((*envs->f_g0_2e)(g, cutoff, &bc, envs, cum)) { \
+                        (*envs->f_gout)(gout, g, idx, envs); \
+                        POP_PRIM2CTR; \
+                } else { \
+                        POP_PRIM2CTR_AND_SET0; \
+                } \
+        } else { \
+                assert(np2c == 0); \
+        }
 
 int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache, int *empty)
 {
@@ -194,9 +218,9 @@ int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache, int *empty)
         double *cj = env + bas(PTR_COEFF, j_sh);
         double *ck = env + bas(PTR_COEFF, k_sh);
         double *cl = env + bas(PTR_COEFF, l_sh);
-        double *coeff[4] = {ci, cj, ck, cl};
         double expcutoff = envs->expcutoff;
         double rr_ij = SQUARE(envs->rirj);
+        double rr_kl = SQUARE(envs->rkrl);
         double *log_maxci, *log_maxcj, *log_maxck, *log_maxcl;
         PairData *pdata_base, *pdata_ij;
         MALLOC_DATA_INSTACK(log_maxci, i_prim+j_prim+k_prim+l_prim);
@@ -223,74 +247,12 @@ int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache, int *empty)
         int *jempty = _empty + 1;
         int *kempty = _empty + 2;
         int *lempty = _empty + 3;
+        int empty_overall = 1;
+        int lkl = envs->lk_ceil + envs->ll_ceil;
+        double akl, ekl, expijkl, ccekl, log_rr_kl, eijcutoff;
 
-        int *idx;
-        MALLOC_DATA_INSTACK(idx, nf * 3);
-        CINTg4c_index_xyz(idx, envs);
-
-        int *non0ctri, *non0ctrj, *non0ctrk, *non0ctrl;
-        int *non0idxi, *non0idxj, *non0idxk, *non0idxl;
-        MALLOC_DATA_INSTACK(non0ctri, i_prim+j_prim+k_prim+l_prim+i_prim*i_ctr+j_prim*j_ctr+k_prim*k_ctr+l_prim*l_ctr);
-        non0ctrj = non0ctri + i_prim;
-        non0ctrk = non0ctrj + j_prim;
-        non0ctrl = non0ctrk + k_prim;
-        non0idxi = non0ctrl + l_prim;
-        non0idxj = non0idxi + i_prim*i_ctr;
-        non0idxk = non0idxj + j_prim*j_ctr;
-        non0idxl = non0idxk + k_prim*k_ctr;
-        CINTOpt_non0coeff_byshell(non0idxi, non0ctri, coeff[0], i_prim, i_ctr);
-        CINTOpt_non0coeff_byshell(non0idxj, non0ctrj, coeff[1], j_prim, j_ctr);
-        CINTOpt_non0coeff_byshell(non0idxk, non0ctrk, coeff[2], k_prim, k_ctr);
-        CINTOpt_non0coeff_byshell(non0idxl, non0ctrl, coeff[3], l_prim, l_ctr);
-        int *non0ctr[4] = {non0ctri, non0ctrj, non0ctrk, non0ctrl};
-        int *non0idx[4] = {non0idxi, non0idxj, non0idxk, non0idxl};
-        double common_factor = envs->common_factor * (M_PI*M_PI*M_PI)*2/SQRTPI
-                * CINTcommon_fac_sp(envs->i_l) * CINTcommon_fac_sp(envs->j_l)
-                * CINTcommon_fac_sp(envs->k_l) * CINTcommon_fac_sp(envs->l_l);
-
-        size_t ngp[4];
-        ngp[0] = nf * n_comp;
-        ngp[1] = ngp[0] * i_ctr;
-        ngp[2] = ngp[1] * j_ctr;
-        ngp[3] = ngp[2] * k_ctr;
-        // (irys,i,j,k,l,coord,0:1); +1 for nabla-r12
-        int leng = envs->g_size * 3 * ((1<<envs->gbits)+1) * SIMDD;
-        size_t len0 = ngp[0] * SIMDD;
-        size_t leni = ALIGN_UP(ngp[1], SIMDD);
-        size_t lenj = ALIGN_UP(ngp[2], SIMDD);
-        size_t lenk = ALIGN_UP(ngp[3], SIMDD);
-        size_t lenl = ALIGN_UP(ngp[3] * l_ctr, SIMDD);
-
-        double *gout, *g, *g1;
-        double *gctr[4];
-        double *bufctr[4];
-        if (n_comp == 1) {
-                // patch SIMDD*2 for leni, lenj, lenk with s functions
-                MALLOC_INSTACK(g1, lenl+SIMDD*2);
-                bufctr[SHLTYPl] = out;
-                lempty = empty;
-        } else {
-                // enlarge sizeo of out by SIMDD*2, for leni, lenj, lenk with s functions
-                cache += SIMDD*2;
-                g1 = out;  // Use out as cache for gctrk, gctrj, gctri
-                MALLOC_INSTACK(bufctr[SHLTYPl], lenl);
-        }
-        gctr[SHLTYPl] = bufctr[SHLTYPl];
-        ALIAS_ADDR_IF_EQUAL(k, l);
-        ALIAS_ADDR_IF_EQUAL(j, k);
-        ALIAS_ADDR_IF_EQUAL(i, j);
-        MALLOC_INSTACK(gout, len0+MAX(len0,leng));
-        g = gout + len0;  // for gx, gy, gz
-
-        ALIGNMM Rys2eT bc;
-        ALIGNMM double cutoff[SIMDD];
-        ALIGNMM double rkl[4];
-        double rr_kl = SQUARE(envs->rkrl);
-        double log_rr_kl, akl, ekl, expijkl, ccekl, eijcutoff;
         akl = ak[k_prim-1] + al[l_prim-1];
         log_rr_kl = 1.7 - 1.5 * approx_log(akl);
-        int lkl = envs->lk_ceil + envs->ll_ceil;
-#ifdef WITH_RANGE_COULOMB
         double omega = env[PTR_RANGE_OMEGA];
         if (omega < 0) {
                 // Normally the factor
@@ -298,7 +260,7 @@ int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache, int *empty)
                 // is a good approximation for polynomial parts in SR-ERIs.
                 //    <~ (aj*d/aij+theta*R)^li * (ai*d/aij+theta*R)^lj * (pi/aij)^1.5
                 //    <~ (d+theta*R)^li * (d+theta*R)^lj * (pi/aij)^1.5
-                if (envs->nrys_roots > 1) {
+                if (envs->rys_order > 1) {
                         double r_guess = 8.;
                         double omega2 = omega * omega;
                         int lij = envs->li_ceil + envs->lj_ceil;
@@ -320,11 +282,67 @@ int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache, int *empty)
                         log_rr_kl += lkl * approx_log(sqrt(rr_kl) + 1.);
                 }
         }
-#else
-        if (lkl > 0) {
-                log_rr_kl += lkl * approx_log(sqrt(rr_kl) + 1.);
+
+        int *idx;
+        MALLOC_DATA_INSTACK(idx, nf * 3);
+        CINTg4c_index_xyz(idx, envs);
+
+        double *coeff[4] = {ci, cj, ck, cl};
+        int *non0ctri, *non0ctrj, *non0ctrk, *non0ctrl;
+        int *non0idxi, *non0idxj, *non0idxk, *non0idxl;
+        MALLOC_DATA_INSTACK(non0ctri, i_prim+j_prim+k_prim+l_prim+i_prim*i_ctr+j_prim*j_ctr+k_prim*k_ctr+l_prim*l_ctr);
+        non0ctrj = non0ctri + i_prim;
+        non0ctrk = non0ctrj + j_prim;
+        non0ctrl = non0ctrk + k_prim;
+        non0idxi = non0ctrl + l_prim;
+        non0idxj = non0idxi + i_prim*i_ctr;
+        non0idxk = non0idxj + j_prim*j_ctr;
+        non0idxl = non0idxk + k_prim*k_ctr;
+        CINTOpt_non0coeff_byshell(non0idxi, non0ctri, coeff[0], i_prim, i_ctr);
+        CINTOpt_non0coeff_byshell(non0idxj, non0ctrj, coeff[1], j_prim, j_ctr);
+        CINTOpt_non0coeff_byshell(non0idxk, non0ctrk, coeff[2], k_prim, k_ctr);
+        CINTOpt_non0coeff_byshell(non0idxl, non0ctrl, coeff[3], l_prim, l_ctr);
+        int *non0ctr[4] = {non0ctri, non0ctrj, non0ctrk, non0ctrl};
+        int *non0idx[4] = {non0idxi, non0idxj, non0idxk, non0idxl};
+        double common_factor = envs->common_factor;
+
+        size_t ngp[4];
+        ngp[0] = nf * n_comp;
+        ngp[1] = ngp[0] * i_ctr;
+        ngp[2] = ngp[1] * j_ctr;
+        ngp[3] = ngp[2] * k_ctr;
+        // (irys,i,j,k,l,coord,0:1); +1 for nabla-r12
+        int leng = envs->g_size * 3 * ((1<<envs->gbits)+1) * SIMDD;
+        size_t len0 = ngp[0] * SIMDD;
+        size_t leni = ALIGN_UP(ngp[1], SIMDD);
+        size_t lenj = ALIGN_UP(ngp[2], SIMDD);
+        size_t lenk = ALIGN_UP(ngp[3], SIMDD);
+        size_t lenl = ALIGN_UP(ngp[3] * l_ctr, SIMDD);
+
+        double *gout, *g, *g1;
+        double *gctr[4];
+        double *bufctr[4];
+        if (n_comp == 1) {
+                // patch SIMDD*2 for leni, lenj, lenk with s functions
+                MALLOC_INSTACK(g1, lenl+SIMDD*2);
+                bufctr[SHLTYPl] = out;
+                *lempty = *empty;
+        } else {
+                // enlarge sizeo of out by SIMDD*2, for leni, lenj, lenk with s functions
+                cache += SIMDD*2;
+                g1 = out;  // Use out as cache for gctrk, gctrj, gctri
+                MALLOC_INSTACK(bufctr[SHLTYPl], lenl);
         }
-#endif
+        gctr[SHLTYPl] = bufctr[SHLTYPl];
+        ALIAS_ADDR_IF_EQUAL(k, l);
+        ALIAS_ADDR_IF_EQUAL(j, k);
+        ALIAS_ADDR_IF_EQUAL(i, j);
+        MALLOC_INSTACK(gout, len0+MAX(len0,leng));
+        g = gout + len0;  // for gx, gy, gz
+
+        ALIGNMM Rys2eT bc;
+        ALIGNMM double cutoff[SIMDD];
+        ALIGNMM double rkl[4];
 
         INITSIMD;
 
@@ -370,11 +388,12 @@ k_contracted: ;
         } // end loop l_prim
         RUN_REST;
 
-        if (n_comp > 1 && !*lempty) {
+        if (n_comp > 1 && !empty_overall) {
                 int nc = i_ctr * j_ctr * k_ctr * l_ctr;
                 TRANSPOSE(gctr[SHLTYPl]);
         }
-        return !*empty;
+        *empty &= empty_overall;
+        return !empty_overall;
 }
 
 
@@ -411,7 +430,6 @@ int CINT2e_loop(double *out, CINTEnvVars *envs, double *cache, int *empty)
         double *cj = env + bas(PTR_COEFF, j_sh);
         double *ck = env + bas(PTR_COEFF, k_sh);
         double *cl = env + bas(PTR_COEFF, l_sh);
-        double *coeff[4] = {ci, cj, ck, cl};
         double expcutoff = envs->expcutoff;
         PairData *_pdata_ij, *_pdata_kl, *pdata_kl, *pdata_ij;
         if (opt->pairdata != NULL) {
@@ -446,6 +464,7 @@ int CINT2e_loop(double *out, CINTEnvVars *envs, double *cache, int *empty)
         int *jempty = _empty + 1;
         int *kempty = _empty + 2;
         int *lempty = _empty + 3;
+        int empty_overall = 1;
 
         int *idx = opt->index_xyz_array[envs->i_l*LMAX1*LMAX1*LMAX1
                                        +envs->j_l*LMAX1*LMAX1
@@ -475,7 +494,7 @@ int CINT2e_loop(double *out, CINTEnvVars *envs, double *cache, int *empty)
                 // patch SIMDD*2 for leni, lenj, lenk with s functions
                 MALLOC_INSTACK(g1, lenl+SIMDD*2);
                 bufctr[SHLTYPl] = out;
-                lempty = empty;
+                *lempty = *empty;
         } else {
                 // enlarge out by SIMDD*2, for leni, lenj, lenk with s functions
                 cache += SIMDD*2;
@@ -489,10 +508,9 @@ int CINT2e_loop(double *out, CINTEnvVars *envs, double *cache, int *empty)
         MALLOC_INSTACK(gout, len0+MAX(len0,leng));
         g = gout + len0;  // for gx, gy, gz
 
+        double *coeff[4] = {ci, cj, ck, cl};
         ALIGNMM Rys2eT bc;
-        double common_factor = envs->common_factor * (M_PI*M_PI*M_PI)*2/SQRTPI
-                * CINTcommon_fac_sp(envs->i_l) * CINTcommon_fac_sp(envs->j_l)
-                * CINTcommon_fac_sp(envs->k_l) * CINTcommon_fac_sp(envs->l_l);
+        double common_factor = envs->common_factor;
         double expijkl, eijcutoff;
 
         int *non0ctri = opt->non0ctr[i_sh];
@@ -545,11 +563,12 @@ k_contracted: ;
         } // end loop l_prim
         RUN_REST;
 
-        if (n_comp > 1 && !*lempty) {
+        if (n_comp > 1 && !empty_overall) {
                 int nc = i_ctr * j_ctr * k_ctr * l_ctr;
                 TRANSPOSE(gctr[SHLTYPl]);
         }
-        return !*empty;
+        *empty &= empty_overall;
+        return !empty_overall;
 }
 
 int (*CINT2e_1111_loop)(double *, CINTEnvVars *, double *, int *) = &CINT2e_loop;

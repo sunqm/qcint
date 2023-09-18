@@ -164,23 +164,6 @@ def test_rys_roots_weights_erfc():
     #assert max_rw_error < 1e-7
     print('test_rys_roots_weights_erfc .. pass')
 
-def test_rys_roots_vs_polyfit():
-    def check(nroots, x, low):
-        r_ref, w_ref = rys_roots.rys_roots_weights(nroots, x, low)
-        r0, w0 = cint_call('CINTrys_schmidt', nroots, x, low)
-        r1, w1 = cint_call('CINTsr_rys_polyfits', nroots, x, low)
-        return np.array([abs(r0 - r_ref).max(),
-                         abs(r1 - r_ref).max(),
-                         abs(w0 - w_ref).max(),
-                         abs(w1 - w_ref).max()]).astype(float)
-
-    es = 2**numpy.arange(-6, 6, .5)
-    for i in range(6, 12):
-        for x in es:
-            for low in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
-                diffs = check(i, x, low)
-                print(i, x, low, diffs)
-
 def test_stg_roots():
     print('test stg roots')
     def stg(nroots, t, u):
@@ -198,7 +181,6 @@ def test_stg_roots():
     print('test_stg_roots .. pass')
 
 if __name__ == '__main__':
-    #test_rys_roots_vs_polyfit()
     test_stg_roots()
     test_rys_roots_weights()
     test_rys_roots_weights_erfc()

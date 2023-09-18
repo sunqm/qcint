@@ -77,6 +77,13 @@ void _CINTrys_roots_batch(int nroots, double *x, double *u, double *w, int count
         double roots[MXRYSROOTS * 2];
         double *weights = roots + nroots;
         int i, k;
+        if (count < SIMDD) {
+                __MD r0 = MM_SET1(0.);
+                for (i = 0; i < nroots; i++) {
+                        MM_STORE(u+i*SIMDD, r0);
+                        MM_STORE(w+i*SIMDD, r0);
+                }
+        }
         for (i = 0; i < count; i++) {
                 CINTrys_roots(nroots, x[i], roots, weights);
                 for (k = 0; k < nroots; k++) {
@@ -96,7 +103,7 @@ void CINTrys_roots(int nroots, double x, double *u, double *w)
                         w[i] = POLY_SMALLX_W0[off+i] + POLY_SMALLX_W1[off+i] * x;
                 }
                 return;
-        } else if (x >= 50.) {
+        } else if (x >= 35+nroots*5) {
                 int off = nroots * (nroots - 1) / 2;
                 int i;
                 double rt;
@@ -141,7 +148,6 @@ void CINTrys_roots(int nroots, double x, double *u, double *w)
         }
 }
 
-#ifdef WITH_RANGE_COULOMB
 /*
  * lower is the lower bound of the sr integral
  */
@@ -295,28 +301,29 @@ int _CINTsr_rys_roots_batch(CINTEnvVars *envs, double *x, double *theta,
         double *weights = roots + nroots;
         int i, k;
         int all_negligible = 1;
-        double xt;
-
+        ALIGNMM double xt[SIMDD];
+        ALIGNMM double sqrt_theta[SIMDD];
+        __MD rtheta = MM_LOAD(theta);
+        __MD r0 = MM_SET1(0.);
+        MM_STORE(sqrt_theta, MM_SQRT(rtheta));
+        MM_STORE(xt, MM_MUL(MM_LOAD(x), rtheta));
+        for (i = 0; i < nroots; i++) {
+                MM_STORE(u+i*SIMDD, r0);
+                MM_STORE(w+i*SIMDD, r0);
+        }
         for (i = 0; i < count; i++) {
                 // very small erfc() leads to ~0 weights
-                xt = x[i] * theta[i]; 
-                if (xt < cutoff[i] && xt < EXPCUTOFF_SR) {
-                        all_negligible = 0;
-                        CINTsr_rys_roots(nroots, x[i], sqrt(theta[i]), roots, weights);
+                if (xt[i] < cutoff[i] && xt[i] < EXPCUTOFF_SR) {
+                        CINTsr_rys_roots(nroots, x[i], sqrt_theta[i], roots, weights);
                         for (k = 0; k < nroots; k++) {
                                 u[k*SIMDD+i] = roots[k];
                                 w[k*SIMDD+i] = weights[k];
                         }
-                } else {
-                        for (k = 0; k < nroots; k++) {
-                                u[k*SIMDD+i] = 0;
-                                w[k*SIMDD+i] = 0;
-                        }
+                        all_negligible = 0;
                 }
         }
         return all_negligible;
 }
-#endif  // WITH_RANGE_COULOMB
 
 static int rys_root1(double X, double *roots, double *weights)
 {
@@ -1806,8 +1813,10 @@ static int polyfit_roots(int nroots, double x, double* rr, double* ww)
                 it = (int)(x * .4);
                 tt = (x - it * 2.5) * 0.8 - 1.;
         } else {
+                x -= 40.;
                 it = (int)(x * .25);
                 tt = (x - it * 4.) * 0.5 - 1.;
+                it += 16;
         }
         int offset = nroots * 14 * it;
         _CINT_clenshaw_d1(rr, datax+offset, tt, nroots);

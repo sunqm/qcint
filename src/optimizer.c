@@ -260,38 +260,6 @@ void CINTall_2e_stg_optimizer(CINTOpt **opt, int *ng,
 }
 #endif
 
-#ifdef WITH_GTG
-void CINTall_2e_gtg_optimizer(CINTOpt **opt, int *ng,
-                              int *atm, int natm, int *bas, int nbas, double *env)
-{
-        CINTinit_2e_optimizer(opt, atm, natm, bas, nbas, env);
-        CINTOpt_setij(*opt, ng, atm, natm, bas, nbas, env);
-        CINTOpt_set_non0coeff(*opt, atm, natm, bas, nbas, env);
-        gen_idx(*opt, &CINTinit_int2e_gtg_EnvVars, &CINTg4c_index_xyz,
-                4, 6, ng, atm, natm, bas, nbas, env);
-}
-
-void CINTall_3c2e_gtg_optimizer(CINTOpt **opt, int *ng,
-                                int *atm, int natm, int *bas, int nbas, double *env)
-{
-        CINTinit_2e_optimizer(opt, atm, natm, bas, nbas, env);
-        CINTOpt_setij(*opt, ng, atm, natm, bas, nbas, env);
-        CINTOpt_set_non0coeff(*opt, atm, natm, bas, nbas, env);
-        gen_idx(*opt, &CINTinit_int3c2e_gtg_EnvVars, &CINTg4c_index_xyz,
-                3, 12, ng, atm, natm, bas, nbas, env);
-}
-
-void CINTall_2c2e_gtg_optimizer(CINTOpt **opt, int *ng,
-                                int *atm, int natm, int *bas, int nbas, double *env)
-{
-        CINTinit_2e_optimizer(opt, atm, natm, bas, nbas, env);
-        CINTOpt_set_log_maxc(*opt, atm, natm, bas, nbas, env);
-        CINTOpt_set_non0coeff(*opt, atm, natm, bas, nbas, env);
-        gen_idx(*opt, &CINTinit_int2c2e_gtg_EnvVars, &CINTg2c_index_xyz,
-                2, ANG_MAX, ng, atm, natm, bas, nbas, env);
-}
-#endif
-
 void CINTOpt_log_max_pgto_coeff(double *log_maxc, double *coeff, int nprim, int nctr)
 {
         int i, ip;
@@ -350,7 +318,6 @@ int CINTset_pairdata(PairData *pairdata, double *ai, double *aj, double *ri, dou
         int lij = li_ceil + lj_ceil;
         if (lij > 0) {
                 double dist_ij = sqrt(rr_ij);
-#ifdef WITH_RANGE_COULOMB
                 double omega = env[PTR_RANGE_OMEGA];
                 if (omega < 0) {
                         double r_guess = 8.;
@@ -360,9 +327,6 @@ int CINTset_pairdata(PairData *pairdata, double *ai, double *aj, double *ri, dou
                 } else {
                         log_rr_ij += lij * approx_log(dist_ij + 1.);
                 }
-#else
-                log_rr_ij += lij * approx_log(dist_ij + 1.);
-#endif
         }
         PairData *pdata;
 

@@ -54,7 +54,14 @@ void CINTinit_int3c2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
         envs->nfk = (envs->k_l+1)*(envs->k_l+2)/2;
         envs->nfl = 1;
         envs->nf = envs->nfi * envs->nfk * envs->nfj;
-        envs->common_factor = 1;
+
+        envs->ri = env + atm(PTR_COORD, bas(ATOM_OF, i_sh));
+        envs->rj = env + atm(PTR_COORD, bas(ATOM_OF, j_sh));
+        envs->rk = env + atm(PTR_COORD, bas(ATOM_OF, k_sh));
+
+        envs->common_factor = (M_PI*M_PI*M_PI)*2/SQRTPI
+                * CINTcommon_fac_sp(envs->i_l) * CINTcommon_fac_sp(envs->j_l)
+                * CINTcommon_fac_sp(envs->k_l);
         if (env[PTR_EXPCUTOFF] == 0) {
                 envs->expcutoff = EXPCUTOFF;
         } else {
@@ -70,14 +77,14 @@ void CINTinit_int3c2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
         envs->lj_ceil = envs->j_l + ng[JINC];
         envs->lk_ceil = 0;
         envs->ll_ceil = envs->k_l + ng[KINC];
-
-        envs->ri = env + atm(PTR_COORD, bas(ATOM_OF, i_sh));
-        envs->rj = env + atm(PTR_COORD, bas(ATOM_OF, j_sh));
-        envs->rk = env + atm(PTR_COORD, bas(ATOM_OF, k_sh));
-
-        int nroots = (envs->li_ceil + envs->lj_ceil + envs->ll_ceil)/2 + 1;
-        envs->nrys_roots = nroots;
-        assert(nroots < MXRYSROOTS);
+        int rys_order =(envs->li_ceil + envs->lj_ceil + envs->ll_ceil)/2 + 1;
+        int nrys_roots = rys_order;
+        double omega = env[PTR_RANGE_OMEGA];
+        if (omega < 0 && rys_order <= 3) {
+                nrys_roots *= 2;
+        }
+        envs->rys_order = rys_order;
+        envs->nrys_roots = nrys_roots;
 
         int dli, dlj, dlk;
         int ibase = envs->li_ceil > envs->lj_ceil;
@@ -91,11 +98,11 @@ void CINTinit_int3c2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
         }
         dlk = envs->ll_ceil + 1;
 
-        envs->g_stride_i = nroots;
-        envs->g_stride_k = nroots * dli;
-        envs->g_stride_l = nroots * dli;
-        envs->g_stride_j = nroots * dli * dlk;
-        envs->g_size     = nroots * dli * dlk * dlj;
+        envs->g_stride_i = nrys_roots;
+        envs->g_stride_k = nrys_roots * dli;
+        envs->g_stride_l = nrys_roots * dli;
+        envs->g_stride_j = nrys_roots * dli * dlk;
+        envs->g_size     = nrys_roots * dli * dlk * dlj;
 
         MM_STORE(envs->al, MM_SET1(0.));
         MM_STORE(envs->rkl+0*SIMDD, MM_SET1(envs->rk[0]));
@@ -122,9 +129,13 @@ void CINTinit_int3c2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
                 envs->rirj[2] = envs->rj[2] - envs->ri[2];
         }
 
-        if (nroots <= 2) {
+        if (rys_order <= 2) {
                 envs->f_g0_2d4d = &CINTg0_2e_2d4d_unrolled;
                 envs->f_g0_2d4d_simd1 = &CINTg0_2e_2d4d_unrolled_simd1;
+                if (rys_order != nrys_roots) {
+                        envs->f_g0_2d4d = &CINTsrg0_2e_2d4d_unrolled;
+                        envs->f_g0_2d4d_simd1 = &CINTsrg0_2e_2d4d_unrolled_simd1;
+                }
         } else if (ibase) {
                 envs->f_g0_2d4d = &CINTg0_2e_il2d4d;
                 envs->f_g0_2d4d_simd1 = &CINTg0_2e_il2d4d_simd1;
@@ -136,113 +147,3 @@ void CINTinit_int3c2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
         envs->f_g0_2e_simd1 = &CINTg0_2e_simd1;
 }
 
-
-#ifdef WITH_GTG
-void CINTg0_2e_lj2d4d_regular(double *g, Rys2eT *bc, CINTEnvVars *envs);
-void CINTg0_2e_lj2d4d_simd1_regular(double *g, Rys2eT *bc, CINTEnvVars *envs);
-int CINTg0_2e_gtg(double *g, Rys2eT *bc, CINTEnvVars *envs, int count);
-int CINTg0_2e_gtg_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs, int idsimd);
-
-void CINTinit_int3c2e_gtg_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
-                                  int *atm, int natm, int *bas, int nbas, double *env)
-{
-        envs->natm = natm;
-        envs->nbas = nbas;
-        envs->atm = atm;
-        envs->bas = bas;
-        envs->env = env;
-        envs->shls = shls;
-
-        int i_sh = shls[0];
-        int j_sh = shls[1];
-        int k_sh = shls[2];
-        envs->i_l = bas(ANG_OF, i_sh);
-        envs->j_l = bas(ANG_OF, j_sh);
-        envs->k_l = bas(ANG_OF, k_sh);
-        envs->l_l = 0;
-        envs->x_ctr[0] = bas(NCTR_OF, i_sh);
-        envs->x_ctr[1] = bas(NCTR_OF, j_sh);
-        envs->x_ctr[2] = bas(NCTR_OF, k_sh);
-        envs->x_ctr[3] = 1;
-        envs->nfi = (envs->i_l+1)*(envs->i_l+2)/2;
-        envs->nfj = (envs->j_l+1)*(envs->j_l+2)/2;
-        envs->nfk = (envs->k_l+1)*(envs->k_l+2)/2;
-        envs->nfl = 1;
-        envs->nf = envs->nfi * envs->nfk * envs->nfj;
-        envs->common_factor = SQRTPI * .5;
-        if (env[PTR_EXPCUTOFF] == 0) {
-                envs->expcutoff = EXPCUTOFF;
-        } else {
-                // +1 to ensure accuracy. See comments in libcint/cint2e.c
-                envs->expcutoff = MAX(MIN_EXPCUTOFF, env[PTR_EXPCUTOFF]);
-        }
-
-        envs->gbits = ng[GSHIFT];
-        envs->ncomp_e1 = ng[POS_E1];
-        envs->ncomp_e2 = ng[POS_E2];
-        envs->ncomp_tensor = ng[TENSOR];
-
-        envs->li_ceil = envs->i_l + ng[IINC];
-        envs->lj_ceil = envs->j_l + ng[JINC];
-        envs->lk_ceil = 0;
-        envs->ll_ceil = envs->k_l + ng[KINC];
-
-        envs->ri = env + atm(PTR_COORD, bas(ATOM_OF, i_sh));
-        envs->rj = env + atm(PTR_COORD, bas(ATOM_OF, j_sh));
-        envs->rk = env + atm(PTR_COORD, bas(ATOM_OF, k_sh));
-        envs->nrys_roots = 1;
-
-        int dli, dlj, dlk;
-        int ibase = envs->li_ceil > envs->lj_ceil;
-
-        if (ibase) {
-                dli = envs->li_ceil + envs->lj_ceil + 1;
-                dlj = envs->lj_ceil + 1;
-        } else {
-                dli = envs->li_ceil + 1;
-                dlj = envs->li_ceil + envs->lj_ceil + 1;
-        }
-        dlk = envs->ll_ceil + 1;
-
-        envs->g_stride_i = 1;
-        envs->g_stride_k = dli;
-        envs->g_stride_l = dli;
-        envs->g_stride_j = dli * dlk;
-        envs->g_size     = dli * dlk * dlj;
-
-        MM_STORE(envs->al, MM_SET1(0.));
-        MM_STORE(envs->rkl+0*SIMDD, MM_SET1(envs->rk[0]));
-        MM_STORE(envs->rkl+1*SIMDD, MM_SET1(envs->rk[1]));
-        MM_STORE(envs->rkl+2*SIMDD, MM_SET1(envs->rk[2]));
-        envs->g2d_klmax = envs->g_stride_k;
-        envs->rkrl[0] = envs->rk[0];
-        envs->rkrl[1] = envs->rk[1];
-        envs->rkrl[2] = envs->rk[2];
-        // in g0_2d rklrx = rkl - rx = 0 => rkl = rx
-        envs->rx_in_rklrx = envs->rk;
-
-        if (ibase) {
-                envs->g2d_ijmax = envs->g_stride_i;
-                envs->rx_in_rijrx = envs->ri;
-                envs->rirj[0] = envs->ri[0] - envs->rj[0];
-                envs->rirj[1] = envs->ri[1] - envs->rj[1];
-                envs->rirj[2] = envs->ri[2] - envs->rj[2];
-        } else {
-                envs->g2d_ijmax = envs->g_stride_j;
-                envs->rx_in_rijrx = envs->rj;
-                envs->rirj[0] = envs->rj[0] - envs->ri[0];
-                envs->rirj[1] = envs->rj[1] - envs->ri[1];
-                envs->rirj[2] = envs->rj[2] - envs->ri[2];
-        }
-
-        if (ibase) {
-                envs->f_g0_2d4d = &CINTg0_2e_il2d4d;
-                envs->f_g0_2d4d_simd1 = &CINTg0_2e_il2d4d_simd1;
-        } else {
-                envs->f_g0_2d4d = &CINTg0_2e_lj2d4d_regular;
-                envs->f_g0_2d4d_simd1 = &CINTg0_2e_lj2d4d_simd1_regular;
-        }
-        envs->f_g0_2e = &CINTg0_2e_gtg;
-        envs->f_g0_2e_simd1 = &CINTg0_2e_gtg_simd1;
-}
-#endif

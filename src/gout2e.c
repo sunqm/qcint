@@ -27,12 +27,12 @@
 #if (SIMDD == 8)
 void CINTgout2e(double *gout, double *g, int *idx, CINTEnvVars *envs)
 {
+        int nrys_roots = envs->nrys_roots;
         int nf = envs->nf;
-        if (nf == 1) {
+        if (nf == 1 && nrys_roots == 1) {
                 double *gz = g + envs->g_size * 2 * SIMDD;
                 MM_STORE(gout, MM_LOAD(gz));
         } else {
-                int nrys_roots = envs->nrys_roots;
                 int i, n;
                 double *gx, *gy, *gz;
                 double *hx, *hy, *hz;
@@ -224,12 +224,12 @@ void CINTgout2e(double *gout, double *g, int *idx, CINTEnvVars *envs)
 
 void CINTgout2e(double *gout, double *g, int *idx, CINTEnvVars *envs)
 {
+        int nrys_roots = envs->nrys_roots;
         int nf = envs->nf;
-        if (nf == 1) {
+        if (nf == 1 && nrys_roots == 1) {
                 double *gz = g + envs->g_size * 2 * SIMDD;
                 MM_STORE(gout, MM_LOAD(gz));
         } else {
-                int nrys_roots = envs->nrys_roots;
                 int i, n;
                 double *gx, *gy, *gz;
                 double *hx, *hy, *hz;
@@ -528,12 +528,12 @@ void CINTgout2e(double *gout, double *g, int *idx, CINTEnvVars *envs)
 
 void CINTgout2e(double *gout, double *g, int *idx, CINTEnvVars *envs)
 {
+        int nrys_roots = envs->nrys_roots;
         int nf = envs->nf;
-        if (nf == 1) {
+        if (nf == 1 && nrys_roots == 1) {
                 double *gz = g + envs->g_size * 2 * SIMDD;
                 MM_STORE(gout, MM_LOAD(gz));
         } else {
-                int nrys_roots = envs->nrys_roots;
                 int i, n;
                 double *gx, *gy, *gz;
                 double *hx, *hy, *hz;

@@ -1,11 +1,11 @@
 cmake_minimum_required (VERSION 3.5)
 project (qcint C)
-set(qcint_VERSION_MAJOR "5")
-set(qcint_VERSION_MINOR "5")
+set(qcint_VERSION_MAJOR "6")
+set(qcint_VERSION_MINOR "0")
 set(qcint_VERSION_PATCH "0")
 set(qcint_VERSION_TWEAK "0")
 set(qcint_VERSION "${qcint_VERSION_MAJOR}.${qcint_VERSION_MINOR}.${qcint_VERSION_PATCH}")
-set(qcint_SOVERSION "${qcint_VERSION_MAJOR}")
+set(cint_SOVERSION "${qcint_VERSION_MAJOR}")
 
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O2 -DNDEBUG")
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "")
@@ -71,7 +71,7 @@ set(cintSrc
   src/g1e.c src/g2e.c src/g2e_simd1.c src/g3c1e.c src/g3c2e.c
   src/gout2e.c src/misc.c src/optimizer.c
   src/fmt.c src/rys_wheeler.c src/eigh.c src/rys_roots.c src/find_roots.c
-  src/polyfits.c src/sr_rys_polyfits.c
+  src/polyfits.c
   src/cint1e_a.c src/cint3c1e_a.c
   src/cint1e_grids.c src/g1e_grids.c
   src/autocode/breit1.c src/autocode/dkb.c src/autocode/gaunt1.c
@@ -84,17 +84,17 @@ set(cintSrc
 if(WITH_RANGE_COULOMB)
 # defined in config.h
 #  add_definitions(-DWITH_RANGE_COULOMB)
-  message("Enabled WITH_RANGE_COULOMB")
-  if(WITH_POLYNOMIAL_FIT)
-    add_definitions(-DWITH_POLYNOMIAL_FIT)
-    message("Enabled WITH_POLYNOMIAL_FIT")
-  endif(WITH_POLYNOMIAL_FIT)
+#  message("Enabled WITH_RANGE_COULOMB")
 endif(WITH_RANGE_COULOMB)
 
+if(WITH_POLYNOMIAL_FIT)
+  set(cintSrc ${cintSrc} src/sr_rys_polyfits.c)
+  add_definitions(-DWITH_POLYNOMIAL_FIT)
+  message("Enabled WITH_POLYNOMIAL_FIT")
+endif(WITH_POLYNOMIAL_FIT)
+
 if(WITH_COULOMB_ERF)
-  set(cintSrc ${cintSrc} src/g2e_coulerf.c src/cint2e_coulerf.c)
-  add_definitions(-DWITH_COULOMB_ERF)
-  message("Enabled WITH_COULOMB_ERF")
+  message("WITH_COULOMB_ERF is deprecated since v6.0")
 endif(WITH_COULOMB_ERF)
 
 if(WITH_F12)
@@ -102,14 +102,6 @@ if(WITH_F12)
   add_definitions(-DWITH_F12)
   message("Enabled WITH_F12")
 endif(WITH_F12)
-
-if(WITH_GTG)
-  set(cintSrc ${cintSrc} src/g2e_gtg.c src/cint2e_gtg.c src/cint3c2e_gtg.c
-    src/cint2c2e_gtg.c)
-  add_definitions(-DWITH_GTG)
-  message("Enabled WITH_GTG")
-  message("Enabled WITH_GTG. Note there are bugs in gtg type integrals")
-endif(WITH_GTG)
 
 if(PYPZPX)
   add_definitions(-DPYPZPX)
@@ -153,7 +145,7 @@ endif()
 add_library(cint ${cintSrc})
 set_target_properties(cint PROPERTIES
   VERSION ${qcint_VERSION}
-  SOVERSION ${qcint_SOVERSION}
+  SOVERSION ${cint_SOVERSION}
   LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 if(QUADMATH_FOUND)
   target_link_libraries(cint quadmath)

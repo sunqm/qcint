@@ -203,10 +203,10 @@ int CINTg0_2e_yp(double *g, double *cutoff,
         ALIGNMM double rijrkl[SIMDD*3];
         ALIGNMM double rijrx[SIMDD*3];
         ALIGNMM double rklrx[SIMDD*3];
+        ALIGNMM double u[MXRYSROOTS*SIMDD];
         double *rij = envs->rij;
         double *rkl = envs->rkl;
-        double *u = bc->u;
-        double *w = bc->w;
+        double *w = g + envs->g_size * 2; // ~ gz
         __MD ra, r0, r1, r2, r3, r4, r5, r6, r7, r8;
         double zeta = envs->env[PTR_F12_ZETA];
         int nroots = envs->nrys_roots;
@@ -345,18 +345,18 @@ int CINTg0_2e_yp(double *g, double *cutoff,
 int CINTg0_2e_yp_simd1(double *g, double *cutoff,
                        Rys2eT *bc, CINTEnvVars *envs, int idsimd)
 {
-        const double aij = envs->ai[idsimd] + envs->aj[idsimd];
-        const double akl = envs->ak[idsimd] + envs->al[idsimd];
-        const double zeta = envs->env[PTR_F12_ZETA];
-        const int nroots = envs->nrys_roots;
+        double aij = envs->ai[idsimd] + envs->aj[idsimd];
+        double akl = envs->ak[idsimd] + envs->al[idsimd];
+        double zeta = envs->env[PTR_F12_ZETA];
+        int nroots = envs->nrys_roots;
         double a0, a1, fac1, x, ua;
         double *rij = envs->rij;
         double *rkl = envs->rkl;
         double rijrkl[3];
         double rijrx[3];
         double rklrx[3];
-        double *u = bc->u;
-        double *w = bc->w;
+        ALIGNMM double u[MXRYSROOTS];
+        double *w = g + envs->g_size * 2; // ~ gz
         int i;
 
         a1 = aij * akl;
@@ -453,10 +453,10 @@ int CINTg0_2e_stg(double *g, double *cutoff,
         ALIGNMM double rijrkl[SIMDD*3];
         ALIGNMM double rijrx[SIMDD*3];
         ALIGNMM double rklrx[SIMDD*3];
+        ALIGNMM double u[MXRYSROOTS*SIMDD];
         double *rij = envs->rij;
         double *rkl = envs->rkl;
-        double *u = bc->u;
-        double *w = bc->w;
+        double *w = g + envs->g_size * 2; // ~ gz
         __MD ra, r0, r1, r2, r3, r4, r5, r6, r7, r8;
         double zeta = envs->env[PTR_F12_ZETA];
         int nroots = envs->nrys_roots;
@@ -594,18 +594,18 @@ int CINTg0_2e_stg(double *g, double *cutoff,
 int CINTg0_2e_stg_simd1(double *g, double *cutoff,
                         Rys2eT *bc, CINTEnvVars *envs, int idsimd)
 {
-        const double aij = envs->ai[idsimd] + envs->aj[idsimd];
-        const double akl = envs->ak[idsimd] + envs->al[idsimd];
-        const double zeta = envs->env[PTR_F12_ZETA];
-        const int nroots = envs->nrys_roots;
+        double aij = envs->ai[idsimd] + envs->aj[idsimd];
+        double akl = envs->ak[idsimd] + envs->al[idsimd];
+        double zeta = envs->env[PTR_F12_ZETA];
+        int nroots = envs->nrys_roots;
         double a0, a1, fac1, x, ua;
         double *rij = envs->rij;
         double *rkl = envs->rkl;
         double rijrkl[3];
         double rijrx[3];
         double rklrx[3];
-        double *u = bc->u;
-        double *w = bc->w;
+        ALIGNMM double u[MXRYSROOTS*SIMDD];
+        double *w = g + envs->g_size * 2; // ~ gz
         int i;
 
         a1 = aij * akl;

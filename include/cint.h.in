@@ -22,7 +22,8 @@
  * Parameters and function prototypes for libcint.
  */
 
-#define QCINT_VERSION    @qcint_VERSION@
+#define QCINT_VERSION           @qcint_VERSION@
+#define CINT_SOVERSION          @cint_SOVERSION
 
 #cmakedefine CACHE_SIZE_I8
 #ifdef CACHE_SIZE_I8
@@ -203,7 +204,7 @@ typedef struct {
         union {int nfk; int grids_offset;};
         union {int nfl; int ngrids;};
         int nf;  // = nfi*nfj*nfk*nfl;
-        int _padding;
+        int rys_order; // = nrys_roots for regular ERIs. can be nrys_roots/2 for SR ERIs
         int x_ctr[4];
 
         int gbits;

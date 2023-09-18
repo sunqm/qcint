@@ -65,15 +65,6 @@ void CINTall_2e_stg_optimizer(CINTOpt **opt, int *ng,
                               int *atm, int natm, int *bas, int nbas, double *env);
 #endif
 
-#ifdef WITH_GTG
-void CINTall_2e_gtg_optimizer(CINTOpt **opt, int *ng,
-                              int *atm, int natm, int *bas, int nbas, double *env);
-void CINTall_3c2e_gtg_optimizer(CINTOpt **opt, int *ng,
-                                int *atm, int natm, int *bas, int nbas, double *env);
-void CINTall_2c2e_gtg_optimizer(CINTOpt **opt, int *ng,
-                                int *atm, int natm, int *bas, int nbas, double *env);
-#endif
-
 #ifndef HAVE_DEFINED_APPROX_LOG
 #define HAVE_DEFINED_APPROX_LOG
 #ifdef __X86__

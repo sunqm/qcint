@@ -21,8 +21,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <math.h>
+#include <assert.h>
 #include "cint_bas.h"
 #include "misc.h"
 #include "g2e.h"
@@ -65,15 +65,38 @@
                 (*(fp2c[i]))(gctr[it], gprim[i], coeff[it]+im, \
                              ngp[it], x_prim[it], x_ctr[it], \
                              non0ctr[it][im], non0idx[it]+im*x_ctr[it]); \
+                empty_overall = 0; \
+        } \
+        cum = 0; \
+        np2c = 0;
+
+#define POP_PRIM2CTR_AND_SET0 \
+        for (i = 0; i < np2c; i++) { \
+                it = shltyp[i]; \
+                if (it != SHLTYPi) { \
+                        im = iprim[i]; \
+                        (*(fp2c[i]))(gctr[i], gprim[i], coeff[it]+im, \
+                                     ngp[it], x_prim[it], x_ctr[it], \
+                                     non0ctr[it][im], non0idx[it]+im*x_ctr[it]); \
+                        empty_overall = 0; \
+                } else if (fp2c[i] == CINTiprim_to_ctr_0) { \
+                        double *pout = gctr[it]; \
+                        for (int k = 0; k < nf; k++) { \
+                                pout[k] = 0.; \
+                        } \
+                } \
         } \
         cum = 0; \
         np2c = 0;
 
 #define PUSH \
         if (cum == SIMDD) { \
-                (*envs->f_g0_2e)(g, cutoff, &bc, envs, cum); \
-                (*envs->f_gout)(gout, g, idx, envs); \
-                POP_PRIM2CTR; \
+                if ((*envs->f_g0_2e)(g, cutoff, &bc, envs, cum)) { \
+                        (*envs->f_gout)(gout, g, idx, envs); \
+                        POP_PRIM2CTR; \
+                } else { \
+                        POP_PRIM2CTR_AND_SET0; \
+                } \
         } \
         envs->ai[cum] = ai[ip]; \
         envs->ak[cum] = ak[kp]; \
@@ -111,26 +134,30 @@
 
 #define RUN_REST \
         if (cum == 1) { \
-                (*envs->f_g0_2e_simd1)(g, cutoff, &bc, envs, 0); \
-                (*envs->f_gout_simd1)(gout, g, idx, envs); \
-        } else if (cum > 1) { \
-                r1 = MM_SET1(1.); \
-                for (i = 0; i < envs->nrys_roots; i++) { \
-                        MM_STORE(bc.u+i*SIMDD, r1); \
-                        MM_STORE(bc.w+i*SIMDD, r1); \
+                if ((*envs->f_g0_2e_simd1)(g, cutoff, &bc, envs, 0)) { \
+                        (*envs->f_gout_simd1)(gout, g, idx, envs); \
+                        POP_PRIM2CTR; \
+                } else { \
+                        POP_PRIM2CTR_AND_SET0; \
                 } \
-                (*envs->f_g0_2e)(g, cutoff, &bc, envs, cum); \
-                (*envs->f_gout)(gout, g, idx, envs); \
-        } \
-        POP_PRIM2CTR;
+        } else if (cum > 1) { \
+                if ((*envs->f_g0_2e)(g, cutoff, &bc, envs, cum)) { \
+                        (*envs->f_gout)(gout, g, idx, envs); \
+                        POP_PRIM2CTR; \
+                } else { \
+                        POP_PRIM2CTR_AND_SET0; \
+                } \
+        } else { \
+                assert(np2c == 0); \
+        }
 
 #define TRANSPOSE(a) \
         if (*empty) { \
                 CINTdmat_transpose(out, a, nf*nc, n_comp); \
+                *empty = 0; \
         } else { \
                 CINTdplus_transpose(out, a, nf*nc, n_comp); \
-        } \
-        *empty = 0;
+        }
 
 int CINT2c2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache, int *empty)
 {
@@ -158,6 +185,7 @@ int CINT2c2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache, int *empty
         int _empty[2] = {1, 1};
         int *iempty = _empty + 0;
         int *kempty = _empty + 1;
+        int empty_overall = 1;
         int ngp[2];
         ngp[0] = nf * n_comp;
         ngp[1] = ngp[0] * i_ctr;
@@ -171,7 +199,7 @@ int CINT2c2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache, int *empty
         if (n_comp == 1) {
                 MALLOC_INSTACK(g1, lenk);
                 gctr[SHLTYPk] = out;
-                kempty = empty;
+                *kempty = *empty;
         } else {
                 MALLOC_INSTACK(gctr[SHLTYPk], lenk);
                 g1 = out;
@@ -195,8 +223,7 @@ int CINT2c2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache, int *empty
         CINTOpt_non0coeff_byshell(non0idxk, non0ctrk, coeff[1], k_prim, k_ctr);
         int *non0ctr[2] = {non0ctri, non0ctrk};
         int *non0idx[2] = {non0idxi, non0idxk};
-        double common_factor = envs->common_factor * (M_PI*M_PI*M_PI)*2/SQRTPI
-                * CINTcommon_fac_sp(envs->i_l) * CINTcommon_fac_sp(envs->k_l);
+        double common_factor = envs->common_factor;
         INITSIMD;
 
         for (kp = 0; kp < k_prim; kp++) {
@@ -215,11 +242,12 @@ int CINT2c2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache, int *empty
         } // end loop k_prim
         RUN_REST;
 
-        if (n_comp > 1 && !*kempty) {
+        if (n_comp > 1 && !empty_overall) {
                 int nc = i_ctr * k_ctr;
                 TRANSPOSE(gctr[SHLTYPk]);
         }
-        return !*empty;
+        *empty &= empty_overall;
+        return !empty_overall;
 }
 
 
@@ -249,6 +277,7 @@ int CINT2c2e_loop(double *out, CINTEnvVars *envs, double *cache, int *empty)
         int _empty[2] = {1, 1};
         int *iempty = _empty + 0;
         int *kempty = _empty + 1;
+        int empty_overall = 1;
         int ngp[2];
         ngp[0] = nf * n_comp;
         ngp[1] = ngp[0] * i_ctr;
@@ -262,7 +291,7 @@ int CINT2c2e_loop(double *out, CINTEnvVars *envs, double *cache, int *empty)
         if (n_comp == 1) {
                 MALLOC_INSTACK(g1, lenk);
                 gctr[SHLTYPk] = out;
-                kempty = empty;
+                *kempty = *empty;
         } else {
                 MALLOC_INSTACK(gctr[SHLTYPk], lenk);
                 g1 = out;
@@ -273,8 +302,7 @@ int CINT2c2e_loop(double *out, CINTEnvVars *envs, double *cache, int *empty)
 
         ALIGNMM Rys2eT bc;
         ALIGNMM double cutoff[SIMDD];
-        double common_factor = envs->common_factor * (M_PI*M_PI*M_PI)*2/SQRTPI
-                * CINTcommon_fac_sp(envs->i_l) * CINTcommon_fac_sp(envs->k_l);
+        double common_factor = envs->common_factor;
 
         CINTOpt *opt = envs->opt;
         int *idx = opt->index_xyz_array[envs->i_l*LMAX1+envs->k_l];
@@ -299,11 +327,12 @@ int CINT2c2e_loop(double *out, CINTEnvVars *envs, double *cache, int *empty)
         } // end loop k_prim
         RUN_REST;
 
-        if (n_comp > 1 && !*kempty) {
+        if (n_comp > 1 && !empty_overall) {
                 int nc = i_ctr * k_ctr;
                 TRANSPOSE(gctr[SHLTYPk]);
         }
-        return !*empty;
+        *empty &= empty_overall;
+        return !empty_overall;
 }
 
 void CINTinit_int2c2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
@@ -331,7 +360,12 @@ void CINTinit_int2c2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
         envs->nfk = (envs->k_l+1)*(envs->k_l+2)/2;
         envs->nfl = 1;
         envs->nf = envs->nfi * envs->nfk;
-        envs->common_factor = 1;
+
+        envs->ri = env + atm(PTR_COORD, bas(ATOM_OF, i_sh));
+        envs->rk = env + atm(PTR_COORD, bas(ATOM_OF, k_sh));
+
+        envs->common_factor = (M_PI*M_PI*M_PI)*2/SQRTPI
+                * CINTcommon_fac_sp(envs->i_l) * CINTcommon_fac_sp(envs->k_l);
         if (env[PTR_EXPCUTOFF] == 0) {
                 envs->expcutoff = EXPCUTOFF;
         } else {
@@ -347,20 +381,21 @@ void CINTinit_int2c2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
         envs->lj_ceil = 0;
         envs->lk_ceil = envs->k_l + ng[KINC];
         envs->ll_ceil = 0;
-
-        envs->ri = env + atm(PTR_COORD, bas(ATOM_OF, i_sh));
-        envs->rk = env + atm(PTR_COORD, bas(ATOM_OF, k_sh));
-
-        int nroots = (envs->li_ceil + envs->lk_ceil)/2 + 1;
-        envs->nrys_roots = nroots;
-        assert(nroots < MXRYSROOTS);
+        int rys_order =(envs->li_ceil + envs->lk_ceil)/2 + 1;
+        int nrys_roots = rys_order;
+        double omega = env[PTR_RANGE_OMEGA];
+        if (omega < 0 && rys_order <= 3) {
+                nrys_roots *= 2;
+        }
+        envs->rys_order = rys_order;
+        envs->nrys_roots = nrys_roots;
 
         int dli = envs->li_ceil + 1;
         int dlk = envs->lk_ceil + 1;
-        envs->g_stride_i = nroots;
-        envs->g_stride_k = nroots * dli;
+        envs->g_stride_i = nrys_roots;
+        envs->g_stride_k = nrys_roots * dli;
         envs->g_stride_l = envs->g_stride_k;
-        envs->g_size     = nroots * dli * dlk;
+        envs->g_size     = nrys_roots * dli * dlk;
 
         MM_STORE(envs->aj, MM_SET1(0.));
         MM_STORE(envs->al, MM_SET1(0.));
@@ -381,9 +416,13 @@ void CINTinit_int2c2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
         envs->rx_in_rklrx = envs->rk;
         envs->rx_in_rijrx = envs->ri;
 
-        if (nroots <= 2) {
+        if (rys_order <= 2) {
                 envs->f_g0_2d4d = &CINTg0_2e_2d4d_unrolled;
                 envs->f_g0_2d4d_simd1 = &CINTg0_2e_2d4d_unrolled_simd1;
+                if (rys_order != nrys_roots) {
+                        envs->f_g0_2d4d = &CINTsrg0_2e_2d4d_unrolled;
+                        envs->f_g0_2d4d_simd1 = &CINTsrg0_2e_2d4d_unrolled_simd1;
+                }
         } else {
                 envs->f_g0_2d4d = &CINTg0_2e_2d;
                 envs->f_g0_2d4d_simd1 = &CINTg0_2e_2d_simd1;

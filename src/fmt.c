@@ -319,7 +319,6 @@ void fmt_erfc_like(double *f, double t, double lower, int m)
 
         int i;
         double lower2 = lower * lower;
-#ifdef WITH_RANGE_COULOMB
         // F[m] < .5*sqrt(pi/t) * erfc(low*tt)
         if (t * lower2 > ERFC_bound) {
                 for (i = 0; i <= m; i++) {
@@ -327,7 +326,6 @@ void fmt_erfc_like(double *f, double t, double lower, int m)
                 }
                 return;
         }
-#endif
 
         if (t < TURNOVER_POINT[m]) {
                 fmt1_erfc_like(f, t, lower, m);
@@ -357,7 +355,6 @@ void fmt_lerfc_like(long double *f, long double t, long double lower, int m)
 
         int i;
         long double lower2 = lower * lower;
-#ifdef WITH_RANGE_COULOMB
         // F[m] < .5*sqrt(pi/t) * erfc(low*tt)
         if (t * lower2 > ERFC_bound) {
                 for (i = 0; i <= m; i++) {
@@ -365,7 +362,6 @@ void fmt_lerfc_like(long double *f, long double t, long double lower, int m)
                 }
                 return;
         }
-#endif
 
         if (t < TURNOVER_POINT[m]) {
                 fmt1_lerfc_like(f, t, lower, m);
@@ -477,7 +473,6 @@ void fmt_qerfc_like(__float128 *f, __float128 t, __float128 lower, int m)
 
         int i;
         __float128 lower2 = lower * lower;
-#ifdef WITH_RANGE_COULOMB
         // F[m] < .5*sqrt(pi/t) * erfc(low*tt)
         if (t * lower2 > ERFC_bound) {
                 for (i = 0; i <= m; i++) {
@@ -485,7 +480,6 @@ void fmt_qerfc_like(__float128 *f, __float128 t, __float128 lower, int m)
                 }
                 return;
         }
-#endif
 
         if (t < TURNOVER_POINT[m]) {
                 fmt1_qerfc_like(f, t, lower, m);

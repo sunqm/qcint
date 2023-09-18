@@ -33,8 +33,6 @@ typedef struct {
         ALIGNMM double b01[SIMDD*MXRYSROOTS];
         ALIGNMM double b00[SIMDD*MXRYSROOTS];
         ALIGNMM double b10[SIMDD*MXRYSROOTS];
-        ALIGNMM double u[MXRYSROOTS*SIMDD];
-        ALIGNMM double w[MXRYSROOTS*SIMDD];
 } Rys2eT;
 #endif
 
@@ -46,8 +44,6 @@ void CINTinit_int3c2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
                               int *atm, int natm, int *bas, int nbas, double *env);
 void CINTinit_int2c2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
                               int *atm, int natm, int *bas, int nbas, double *env);
-void CINTinit_int2e_coulerf_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
-                                    int *atm, int natm, int *bas, int nbas, double *env);
 void CINTinit_int2e_stg_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
                                 int *atm, int natm, int *bas, int nbas, double *env);
 void CINTinit_int2e_yp_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
@@ -61,6 +57,8 @@ void CINTg0_2e_2d(double *g, Rys2eT *bc, CINTEnvVars *envs);
 void CINTg0_2e_2d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs);
 void CINTg0_2e_2d4d_unrolled(double *g, Rys2eT *bc, CINTEnvVars *envs);
 void CINTg0_2e_2d4d_unrolled_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs);
+void CINTsrg0_2e_2d4d_unrolled(double *g, Rys2eT *bc, CINTEnvVars *envs);
+void CINTsrg0_2e_2d4d_unrolled_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs);
 void CINTg0_2e_lj2d4d(double *g, Rys2eT *bc, CINTEnvVars *envs);
 void CINTg0_2e_kj2d4d(double *g, Rys2eT *bc, CINTEnvVars *envs);
 void CINTg0_2e_il2d4d(double *g, Rys2eT *bc, CINTEnvVars *envs);
@@ -74,8 +72,6 @@ void CINTinit_int2e_stg_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
                                 int *atm, int natm, int *bas, int nbas, double *env);
 void CINTinit_int2e_yp_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
                                int *atm, int natm, int *bas, int nbas, double *env);
-void CINTinit_int2e_coulerf_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
-                                    int *atm, int natm, int *bas, int nbas, double *env);
 
 void CINTnabla1i_2e(double *f, double *g,
                     int li, int lj, int lk, int ll, CINTEnvVars *envs);
@@ -120,16 +116,6 @@ void CINTinit_int2e_stg_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
                                 int *atm, int natm, int *bas, int nbas, double *env);
 #endif
  
-#ifdef WITH_GTG
-void CINTinit_int2e_gtg_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
-                                int *atm, int natm, int *bas, int nbas, double *env);
-void CINTinit_int3c2e_gtg_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
-                                  int *atm, int natm, int *bas, int nbas, double *env);
-void CINTinit_int2c2e_gtg_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
-                                  int *atm, int natm, int *bas, int nbas, double *env);
-#endif
-
-
 #define G2E_D_I(f, g, li, lj, lk, ll)   CINTnabla1i_2e(f, g, li, lj, lk, ll, envs)
 #define G2E_D_J(f, g, li, lj, lk, ll)   CINTnabla1j_2e(f, g, li, lj, lk, ll, envs)
 #define G2E_D_K(f, g, li, lj, lk, ll)   CINTnabla1k_2e(f, g, li, lj, lk, ll, envs)
