@@ -22,7 +22,7 @@
  * Parameters and function prototypes for libcint.
  */
 
-#define QCINT_VERSION           @qcint_VERSION@
+#define QCINT_VERSION           "@qcint_VERSION@"
 #define CINT_SOVERSION          @cint_SOVERSION@
 
 #cmakedefine CACHE_SIZE_I8
