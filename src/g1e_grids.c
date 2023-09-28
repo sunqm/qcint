@@ -93,11 +93,7 @@ int CINTg0_1e_grids(double *RESTRICT g, double cutoff, CINTEnvVars *envs,
                 MM_STORE(rijrg+ig+GRID_BLKSIZE*2, MM_LOAD(gridsT+ig+GRID_BLKSIZE*2) - r2);
         }
 
-#ifdef WITH_RANGE_COULOMB
         double omega = envs->env[PTR_RANGE_OMEGA];
-#else
-        double omega = 0.;
-#endif
         double zeta = envs->env[PTR_RINV_ZETA];
         double omega2, theta, sqrt_theta, a0, tau2;
 
@@ -132,6 +128,8 @@ int CINTg0_1e_grids(double *RESTRICT g, double cutoff, CINTEnvVars *envs,
                 // numerical issue in sr_rys_roots. Use this cutoff as a
                 // temporary solution to avoid numerical issues
                 double temp_cutoff = MIN(cutoff, EXPCUTOFF_SR);
+                int rorder = envs->rys_order;
+                double tau_theta, fac_theta;
                 for (ig = 0; ig < bgrids; ig++) {
                         x = a0 * RGSQUARE(rijrg, ig);
                         if (theta * x > temp_cutoff) {
@@ -140,11 +138,22 @@ int CINTg0_1e_grids(double *RESTRICT g, double cutoff, CINTEnvVars *envs,
                                         u[ig+GRID_BLKSIZE*i] = 0;
                                         w[ig+GRID_BLKSIZE*i] = 0;
                                 }
-                        } else {
+                        } else if (rorder == nroots) {
                                 CINTsr_rys_roots(nroots, x, sqrt_theta, ubuf, wbuf);
                                 for (i = 0; i < nroots; i++) {
                                         u[ig+GRID_BLKSIZE*i] = ubuf[i] / (ubuf[i] + 1) * tau2;
                                         w[ig+GRID_BLKSIZE*i] = wbuf[i] * fac1;
+                                }
+                        } else {
+                                tau_theta = tau2 * theta;
+                                fac_theta = fac1 * -sqrt_theta;
+                                CINTrys_roots(rorder, x, ubuf, wbuf);
+                                CINTrys_roots(rorder, theta*x, ubuf+rorder, wbuf+rorder);
+                                for (i = 0; i < rorder; i++) {
+                                        u[ig+GRID_BLKSIZE*i] = ubuf[i] / (ubuf[i] + 1) * tau2;
+                                        w[ig+GRID_BLKSIZE*i] = wbuf[i] * fac1;
+                                        u[ig+GRID_BLKSIZE*(i+rorder)] = ubuf[i+rorder] / (ubuf[i+rorder] + 1) * tau_theta;
+                                        w[ig+GRID_BLKSIZE*(i+rorder)] = wbuf[i+rorder] * fac_theta;
                                 }
                         }
                 }

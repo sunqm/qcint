@@ -35,7 +35,7 @@ jobs:
             curl -O https://raw.githubusercontent.com/sunqm/libcint/master/testsuite/$i
             python $i --quick
           done
-          for i in test_c2s.py test_int1e_grids.py; do
+          for i in test_c2s.py test_int1e_grids.py test_cint4c1e.py test_int1e.py test_int2c2e.py test_int3c1e.py; do
             echo $i
             curl -O https://raw.githubusercontent.com/sunqm/libcint/master/testsuite/$i
             python $i
