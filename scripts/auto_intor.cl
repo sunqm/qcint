@@ -225,15 +225,15 @@
   '("int1e_ipiprinvip"          ( nabla nabla \| rinv \| nabla ))
 )
 
-(gen-cint "deriv3.c"
-  '("int1e_ipipipnuc"           ( nabla nabla nabla \| nuc \| ))
-  '("int1e_ipipiprinv"          ( nabla nabla nabla \| rinv \| ))
-  '("int1e_ipipnucip"           ( nabla nabla \| nuc \| nabla ))
-  '("int1e_ipiprinvip"          ( nabla nabla \| rinv \| nabla ))
+(gen-cint "deriv4.c"
+  '("int1e_ipiprinvipip"        ( nabla nabla \| rinv \| nabla nabla ))
+  '("int1e_ipipiprinvip"        ( nabla nabla nabla \| rinv \| nabla ))
+  '("int1e_ipipipiprinv"        ( nabla nabla nabla nabla \| rinv \| ))
 )
 
 (gen-cint "int1e_grids1.c"
   '("int1e_grids_ip"            ( nabla \| grids \| ))
   '("int1e_grids_ipvip"         ( nabla \| grids \| nabla ))
   '("int1e_grids_spvsp"         ( sigma dot p \| grids \| sigma dot p ))
+  '("int1e_grids_ipip"          ( nabla nabla \| grids \| ))
 )

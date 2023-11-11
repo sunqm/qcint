@@ -302,3 +302,105 @@ return CINT1e_grids_spinor_drv(out, dims, &envs, cache, &c2s_si_1e_grids);
 } // int1e_grids_spvsp_spinor
 ALL_CINT1E(int1e_grids_spvsp)
 ALL_CINT1E_FORTRAN_(int1e_grids_spvsp)
+/* <NABLA NABLA i| 1/r_{grids} |j> */
+void CINTgout1e_int1e_grids_ipip(double *RESTRICT gout, double *RESTRICT g,
+int *idx, CINTEnvVars *envs, int gout_empty) {
+int ngrids = envs->ngrids;
+int bgrids = MIN(ngrids - envs->grids_offset, GRID_BLKSIZE);
+bgrids = ALIGN_UP(bgrids, SIMDD);
+int nf = envs->nf;
+int nrys_roots = envs->nrys_roots;
+int ix, iy, iz, n, i, ig;
+double *RESTRICT g0 = g;
+double *RESTRICT g1 = g0  + envs->g_size * 3;
+double *RESTRICT g2 = g1  + envs->g_size * 3;
+double *RESTRICT g3 = g2  + envs->g_size * 3;
+__MD rs[9];
+G1E_GRIDS_D_I(g1, g0, envs->i_l+1, envs->j_l);
+G1E_GRIDS_D_I(g2, g0, envs->i_l+0, envs->j_l);
+G1E_GRIDS_D_I(g3, g1, envs->i_l+0, envs->j_l);
+if (gout_empty) {
+for (n = 0; n < nf; n++) {
+ix = idx[0+n*3];
+iy = idx[1+n*3];
+iz = idx[2+n*3];
+for (ig = 0; ig < bgrids; ig += SIMDD) {
+for (i = 0; i < 9; i++) { rs[i] = MM_SET1(0.); }
+for (i = 0; i < nrys_roots; i++) {
+rs[0] += MM_LOAD(g3+ix+ig+i*GRID_BLKSIZE) * MM_LOAD(g0+iy+ig+i*GRID_BLKSIZE) * MM_LOAD(g0+iz+ig+i*GRID_BLKSIZE);
+rs[1] += MM_LOAD(g2+ix+ig+i*GRID_BLKSIZE) * MM_LOAD(g1+iy+ig+i*GRID_BLKSIZE) * MM_LOAD(g0+iz+ig+i*GRID_BLKSIZE);
+rs[2] += MM_LOAD(g2+ix+ig+i*GRID_BLKSIZE) * MM_LOAD(g0+iy+ig+i*GRID_BLKSIZE) * MM_LOAD(g1+iz+ig+i*GRID_BLKSIZE);
+rs[3] += MM_LOAD(g1+ix+ig+i*GRID_BLKSIZE) * MM_LOAD(g2+iy+ig+i*GRID_BLKSIZE) * MM_LOAD(g0+iz+ig+i*GRID_BLKSIZE);
+rs[4] += MM_LOAD(g0+ix+ig+i*GRID_BLKSIZE) * MM_LOAD(g3+iy+ig+i*GRID_BLKSIZE) * MM_LOAD(g0+iz+ig+i*GRID_BLKSIZE);
+rs[5] += MM_LOAD(g0+ix+ig+i*GRID_BLKSIZE) * MM_LOAD(g2+iy+ig+i*GRID_BLKSIZE) * MM_LOAD(g1+iz+ig+i*GRID_BLKSIZE);
+rs[6] += MM_LOAD(g1+ix+ig+i*GRID_BLKSIZE) * MM_LOAD(g0+iy+ig+i*GRID_BLKSIZE) * MM_LOAD(g2+iz+ig+i*GRID_BLKSIZE);
+rs[7] += MM_LOAD(g0+ix+ig+i*GRID_BLKSIZE) * MM_LOAD(g1+iy+ig+i*GRID_BLKSIZE) * MM_LOAD(g2+iz+ig+i*GRID_BLKSIZE);
+rs[8] += MM_LOAD(g0+ix+ig+i*GRID_BLKSIZE) * MM_LOAD(g0+iy+ig+i*GRID_BLKSIZE) * MM_LOAD(g3+iz+ig+i*GRID_BLKSIZE);
+}
+MM_STORE(gout+ig+bgrids*(n*9+0),  + rs[0]);
+MM_STORE(gout+ig+bgrids*(n*9+1),  + rs[3]);
+MM_STORE(gout+ig+bgrids*(n*9+2),  + rs[6]);
+MM_STORE(gout+ig+bgrids*(n*9+3),  + rs[1]);
+MM_STORE(gout+ig+bgrids*(n*9+4),  + rs[4]);
+MM_STORE(gout+ig+bgrids*(n*9+5),  + rs[7]);
+MM_STORE(gout+ig+bgrids*(n*9+6),  + rs[2]);
+MM_STORE(gout+ig+bgrids*(n*9+7),  + rs[5]);
+MM_STORE(gout+ig+bgrids*(n*9+8),  + rs[8]);
+}}} else {
+for (n = 0; n < nf; n++) {
+ix = idx[0+n*3];
+iy = idx[1+n*3];
+iz = idx[2+n*3];
+for (ig = 0; ig < bgrids; ig += SIMDD) {
+for (i = 0; i < 9; i++) { rs[i] = MM_SET1(0.); }
+for (i = 0; i < nrys_roots; i++) {
+rs[0] += MM_LOAD(g3+ix+ig+i*GRID_BLKSIZE) * MM_LOAD(g0+iy+ig+i*GRID_BLKSIZE) * MM_LOAD(g0+iz+ig+i*GRID_BLKSIZE);
+rs[1] += MM_LOAD(g2+ix+ig+i*GRID_BLKSIZE) * MM_LOAD(g1+iy+ig+i*GRID_BLKSIZE) * MM_LOAD(g0+iz+ig+i*GRID_BLKSIZE);
+rs[2] += MM_LOAD(g2+ix+ig+i*GRID_BLKSIZE) * MM_LOAD(g0+iy+ig+i*GRID_BLKSIZE) * MM_LOAD(g1+iz+ig+i*GRID_BLKSIZE);
+rs[3] += MM_LOAD(g1+ix+ig+i*GRID_BLKSIZE) * MM_LOAD(g2+iy+ig+i*GRID_BLKSIZE) * MM_LOAD(g0+iz+ig+i*GRID_BLKSIZE);
+rs[4] += MM_LOAD(g0+ix+ig+i*GRID_BLKSIZE) * MM_LOAD(g3+iy+ig+i*GRID_BLKSIZE) * MM_LOAD(g0+iz+ig+i*GRID_BLKSIZE);
+rs[5] += MM_LOAD(g0+ix+ig+i*GRID_BLKSIZE) * MM_LOAD(g2+iy+ig+i*GRID_BLKSIZE) * MM_LOAD(g1+iz+ig+i*GRID_BLKSIZE);
+rs[6] += MM_LOAD(g1+ix+ig+i*GRID_BLKSIZE) * MM_LOAD(g0+iy+ig+i*GRID_BLKSIZE) * MM_LOAD(g2+iz+ig+i*GRID_BLKSIZE);
+rs[7] += MM_LOAD(g0+ix+ig+i*GRID_BLKSIZE) * MM_LOAD(g1+iy+ig+i*GRID_BLKSIZE) * MM_LOAD(g2+iz+ig+i*GRID_BLKSIZE);
+rs[8] += MM_LOAD(g0+ix+ig+i*GRID_BLKSIZE) * MM_LOAD(g0+iy+ig+i*GRID_BLKSIZE) * MM_LOAD(g3+iz+ig+i*GRID_BLKSIZE);
+}
+MM_STORE(gout+ig+bgrids*(n*9+0), MM_LOAD(gout+ig+bgrids*(n*9+0)) +  + rs[0]);
+MM_STORE(gout+ig+bgrids*(n*9+1), MM_LOAD(gout+ig+bgrids*(n*9+1)) +  + rs[3]);
+MM_STORE(gout+ig+bgrids*(n*9+2), MM_LOAD(gout+ig+bgrids*(n*9+2)) +  + rs[6]);
+MM_STORE(gout+ig+bgrids*(n*9+3), MM_LOAD(gout+ig+bgrids*(n*9+3)) +  + rs[1]);
+MM_STORE(gout+ig+bgrids*(n*9+4), MM_LOAD(gout+ig+bgrids*(n*9+4)) +  + rs[4]);
+MM_STORE(gout+ig+bgrids*(n*9+5), MM_LOAD(gout+ig+bgrids*(n*9+5)) +  + rs[7]);
+MM_STORE(gout+ig+bgrids*(n*9+6), MM_LOAD(gout+ig+bgrids*(n*9+6)) +  + rs[2]);
+MM_STORE(gout+ig+bgrids*(n*9+7), MM_LOAD(gout+ig+bgrids*(n*9+7)) +  + rs[5]);
+MM_STORE(gout+ig+bgrids*(n*9+8), MM_LOAD(gout+ig+bgrids*(n*9+8)) +  + rs[8]);
+}}}}
+void int1e_grids_ipip_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
+int ng[] = {2, 0, 0, 0, 2, 1, 0, 9};
+CINTall_1e_grids_optimizer(opt, ng, atm, natm, bas, nbas, env);
+}
+CACHE_SIZE_T int1e_grids_ipip_cart(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {2, 0, 0, 0, 2, 1, 0, 9};
+CINTEnvVars envs;
+CINTinit_int1e_grids_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_grids_ipip;
+return CINT1e_grids_drv(out, dims, &envs, cache, &c2s_cart_1e_grids);
+} // int1e_grids_ipip_cart
+CACHE_SIZE_T int1e_grids_ipip_sph(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {2, 0, 0, 0, 2, 1, 0, 9};
+CINTEnvVars envs;
+CINTinit_int1e_grids_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_grids_ipip;
+return CINT1e_grids_drv(out, dims, &envs, cache, &c2s_sph_1e_grids);
+} // int1e_grids_ipip_sph
+CACHE_SIZE_T int1e_grids_ipip_spinor(double complex *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {2, 0, 0, 0, 2, 1, 0, 9};
+CINTEnvVars envs;
+CINTinit_int1e_grids_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int1e_grids_ipip;
+return CINT1e_grids_spinor_drv(out, dims, &envs, cache, &c2s_sf_1e_grids);
+} // int1e_grids_ipip_spinor
+ALL_CINT1E(int1e_grids_ipip)
+ALL_CINT1E_FORTRAN_(int1e_grids_ipip)
