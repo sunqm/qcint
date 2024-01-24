@@ -81,7 +81,8 @@
                         empty_overall = 0; \
                 } else if (fp2c[i] == CINTiprim_to_ctr_0) { \
                         double *pout = gctr[it]; \
-                        for (int k = 0; k < nf; k++) { \
+                        int k; \
+                        for (k = 0; k < nf; k++) { \
                                 pout[k] = 0.; \
                         } \
                 } \
