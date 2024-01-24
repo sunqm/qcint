@@ -65,12 +65,14 @@
                         fp2c[np2c] = CINTprim_to_ctr_0; \
                         shltyp[np2c] = SHLTYP##csymb; \
                         gprim[np2c] = gctr[SHLTYP##psymb]; \
+                        gp2c [np2c] = gctr[SHLTYP##csymb]; \
                         iprim[np2c] = csymb##p; \
                         np2c++; \
                 } else if (non0ctr##csymb[csymb##p] > 1) { \
                         fp2c[np2c] = CINTprim_to_ctr_1; \
                         shltyp[np2c] = SHLTYP##csymb; \
                         gprim[np2c] = gctr[SHLTYP##psymb]; \
+                        gp2c [np2c] = gctr[SHLTYP##csymb]; \
                         iprim[np2c] = csymb##p; \
                         np2c++; \
                 } \
@@ -81,7 +83,7 @@
         for (i = 0; i < np2c; i++) { \
                 it = shltyp[i]; \
                 im = iprim[i]; \
-                (*(fp2c[i]))(gctr[it], gprim[i], coeff[it]+im, \
+                (*(fp2c[i]))(gp2c[i], gprim[i], coeff[it]+im, \
                              ngp[it], x_prim[it], x_ctr[it], \
                              non0ctr[it][im], non0idx[it]+im*x_ctr[it]); \
                 empty_overall = 0; \
@@ -94,12 +96,12 @@
                 it = shltyp[i]; \
                 if (it != SHLTYPi) { \
                         im = iprim[i]; \
-                        (*(fp2c[i]))(gctr[it], gprim[i], coeff[it]+im, \
+                        (*(fp2c[i]))(gp2c[i], gprim[i], coeff[it]+im, \
                                      ngp[it], x_prim[it], x_ctr[it], \
                                      non0ctr[it][im], non0idx[it]+im*x_ctr[it]); \
                         empty_overall = 0; \
                 } else if (fp2c[i] == CINTiprim_to_ctr_0) { \
-                        double *pout = gctr[it]; \
+                        double *pout = gp2c[i]; \
                         int k; \
                         for (k = 0; k < ngp[1]; k++) { \
                                 pout[k] = 0.; \
@@ -146,6 +148,7 @@
                 fp2c[np2c] = CINTiprim_to_ctr_1; \
         } \
         gprim[np2c] = gout + cum * ngp[0]; \
+        gp2c [np2c] = gctr[SHLTYPi]; \
         iprim[np2c] = ip; \
         shltyp[np2c] = SHLTYPi; \
         cum++; \
@@ -162,6 +165,7 @@
         int cum = 0; \
         int np2c = 0; \
         double *gprim[SIMDD*4]; \
+        double *gp2c [SIMDD*4]; \
         int shltyp[SIMDD*4]; \
         int iprim[SIMDD*4]; \
         void (*fp2c[SIMDD*4])(); \

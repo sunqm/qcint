@@ -44,19 +44,19 @@
                 g1 += len##x; \
         }
 
-#define PRIM2CTR(ctrsymb, gp) \
-        if (ctrsymb##_ctr > 1) {\
-                if (*ctrsymb##empty) { \
+#define PRIM2CTR(psymb, csymb) \
+        if (csymb##_ctr > 1) {\
+                if (*csymb##empty) { \
                         fp2c[np2c] = CINTprim_to_ctr_0; \
                 } else { \
                         fp2c[np2c] = CINTprim_to_ctr_1; \
                 } \
-                shltyp[np2c] = SHLTYP##ctrsymb; \
-                gprim[np2c] = gp; \
-                iprim[np2c] = ctrsymb##p; \
+                shltyp[np2c] = SHLTYP##csymb; \
+                gprim[np2c] = gctr[SHLTYP##psymb]; \
+                iprim[np2c] = csymb##p; \
                 np2c++; \
         } \
-        *ctrsymb##empty = 0; \
+        *csymb##empty = 0; \
 
 #define POP_PRIM2CTR \
         for (i = 0; i < np2c; i++) { \
@@ -75,7 +75,7 @@
                 it = shltyp[i]; \
                 if (it != SHLTYPi) { \
                         im = iprim[i]; \
-                        (*(fp2c[i]))(gctr[i], gprim[i], coeff[it]+im, \
+                        (*(fp2c[i]))(gctr[it], gprim[i], coeff[it]+im, \
                                      ngp[it], x_prim[it], x_ctr[it], \
                                      non0ctr[it][im], non0idx[it]+im*x_ctr[it]); \
                         empty_overall = 0; \
@@ -238,7 +238,7 @@ int CINT2c2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache, int *empty
                         PUSH;
                 } // end loop i_prim
                 if (!*iempty) {
-                        PRIM2CTR(k, gctr[SHLTYPi]);
+                        PRIM2CTR(i, k);
                 }
         } // end loop k_prim
         RUN_REST;
@@ -323,7 +323,7 @@ int CINT2c2e_loop(double *out, CINTEnvVars *envs, double *cache, int *empty)
                         PUSH;
                 } // end loop i_prim
                 if (!*iempty) {
-                        PRIM2CTR(k, gctr[SHLTYPi]);
+                        PRIM2CTR(i, k);
                 }
         } // end loop k_prim
         RUN_REST;
