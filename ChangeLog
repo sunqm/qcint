@@ -1,3 +1,6 @@
+Version 6.1.1 (2024-01-24):
+	* Fix bugs introduced in 6.0.0 when handling general contracted basis in cint2e
+
 Version 6.1.0 (2023-11-10):
 	* New second order derivative integrals int1e_grids_ipip
 
