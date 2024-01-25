@@ -30,7 +30,7 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu')
         run: |
           cd ${{ github.workspace }}/tests
-          for i in test_cint.py test_3c2e.py; do
+          for i in test_cint.py test_3c2e.py test_int2e.py; do
             echo $i
             curl -O https://raw.githubusercontent.com/sunqm/libcint/master/testsuite/$i
             python $i --quick
