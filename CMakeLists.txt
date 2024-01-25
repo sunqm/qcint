@@ -144,6 +144,7 @@ endif()
 
 add_library(cint ${cintSrc})
 set_target_properties(cint PROPERTIES
+  C_STANDARD 99
   VERSION ${qcint_VERSION}
   SOVERSION ${cint_SOVERSION}
   LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
