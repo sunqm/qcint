@@ -548,5 +548,5 @@ CACHE_SIZE_T int3c1e_spinor(double complex *out, int *dims, int *shls, int *atm,
 
 
 ALL_CINT(int3c1e)
-//ALL_CINT_FORTRAN_(cint3c1e)
+ALL_CINT_FORTRAN_(int3c1e)
 

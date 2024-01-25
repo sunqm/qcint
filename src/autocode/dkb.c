@@ -123,7 +123,7 @@ envs.f_gout = &CINTgout1e_int1e_spspsp;
 return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1e);
 } // int1e_spspsp_spinor
 ALL_CINT1E(int1e_spspsp)
-//ALL_CINT1E_FORTRAN_(cint1e_spspsp)
+ALL_CINT1E_FORTRAN_(int1e_spspsp)
 /* <SIGMA DOT P i|NUC |j> */
 void CINTgout1e_int1e_spnuc(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 int nf = envs->nf;
@@ -185,7 +185,7 @@ envs.f_gout = &CINTgout1e_int1e_spnuc;
 return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_1e);
 } // int1e_spnuc_spinor
 ALL_CINT1E(int1e_spnuc)
-//ALL_CINT1E_FORTRAN_(cint1e_spnuc)
+ALL_CINT1E_FORTRAN_(int1e_spnuc)
 /* <k SIGMA DOT P i|R12 |j l> : i,j \in electron 1; k,l \in electron 2
  * = (SIGMA DOT P i j|R12 |k l) */
 void CINTgout2e_int2e_spv1(double *RESTRICT gout,
@@ -333,7 +333,7 @@ envs.f_gout_simd1 = &CINTgout2e_int2e_spv1_simd1;
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1, &c2s_sf_2e2);
 } // int2e_spv1_spinor
 ALL_CINT(int2e_spv1)
-//ALL_CINT_FORTRAN_(cint2e_spv1)
+ALL_CINT_FORTRAN_(int2e_spv1)
 /* <k i|R12 |SIGMA DOT P j l> : i,j \in electron 1; k,l \in electron 2
  * = (i SIGMA DOT P j|R12 |k l) */
 void CINTgout2e_int2e_vsp1(double *RESTRICT gout,
@@ -481,7 +481,7 @@ envs.f_gout_simd1 = &CINTgout2e_int2e_vsp1_simd1;
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1, &c2s_sf_2e2);
 } // int2e_vsp1_spinor
 ALL_CINT(int2e_vsp1)
-//ALL_CINT_FORTRAN_(cint2e_vsp1)
+ALL_CINT_FORTRAN_(int2e_vsp1)
 /* <SIGMA DOT P k i|R12 |j SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
  * = (i j|R12 |SIGMA DOT P k SIGMA DOT P l) */
 void CINTgout2e_int2e_spsp2(double *RESTRICT gout,
@@ -687,7 +687,7 @@ envs.f_gout_simd1 = &CINTgout2e_int2e_spsp2_simd1;
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_2e1, &c2s_si_2e2);
 } // int2e_spsp2_spinor
 ALL_CINT(int2e_spsp2)
-//ALL_CINT_FORTRAN_(cint2e_spsp2)
+ALL_CINT_FORTRAN_(int2e_spsp2)
 /* <SIGMA DOT P k SIGMA DOT P i|R12 |j l> : i,j \in electron 1; k,l \in electron 2
  * = (SIGMA DOT P i j|R12 |SIGMA DOT P k l) */
 void CINTgout2e_int2e_spv1spv2(double *RESTRICT gout,
@@ -917,7 +917,7 @@ envs.f_gout_simd1 = &CINTgout2e_int2e_spv1spv2_simd1;
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1, &c2s_si_2e2);
 } // int2e_spv1spv2_spinor
 ALL_CINT(int2e_spv1spv2)
-//ALL_CINT_FORTRAN_(cint2e_spv1spv2)
+ALL_CINT_FORTRAN_(int2e_spv1spv2)
 /* <SIGMA DOT P k i|R12 |SIGMA DOT P j l> : i,j \in electron 1; k,l \in electron 2
  * = (i SIGMA DOT P j|R12 |SIGMA DOT P k l) */
 void CINTgout2e_int2e_vsp1spv2(double *RESTRICT gout,
@@ -1147,7 +1147,7 @@ envs.f_gout_simd1 = &CINTgout2e_int2e_vsp1spv2_simd1;
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1, &c2s_si_2e2);
 } // int2e_vsp1spv2_spinor
 ALL_CINT(int2e_vsp1spv2)
-//ALL_CINT_FORTRAN_(cint2e_vsp1spv2)
+ALL_CINT_FORTRAN_(int2e_vsp1spv2)
 /* <k SIGMA DOT P i|R12 |j SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
  * = (SIGMA DOT P i j|R12 |k SIGMA DOT P l) */
 void CINTgout2e_int2e_spv1vsp2(double *RESTRICT gout,
@@ -1377,7 +1377,7 @@ envs.f_gout_simd1 = &CINTgout2e_int2e_spv1vsp2_simd1;
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1, &c2s_si_2e2);
 } // int2e_spv1vsp2_spinor
 ALL_CINT(int2e_spv1vsp2)
-//ALL_CINT_FORTRAN_(cint2e_spv1vsp2)
+ALL_CINT_FORTRAN_(int2e_spv1vsp2)
 /* <k i|R12 |SIGMA DOT P j SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
  * = (i SIGMA DOT P j|R12 |k SIGMA DOT P l) */
 void CINTgout2e_int2e_vsp1vsp2(double *RESTRICT gout,
@@ -1607,7 +1607,7 @@ envs.f_gout_simd1 = &CINTgout2e_int2e_vsp1vsp2_simd1;
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1, &c2s_si_2e2);
 } // int2e_vsp1vsp2_spinor
 ALL_CINT(int2e_vsp1vsp2)
-//ALL_CINT_FORTRAN_(cint2e_vsp1vsp2)
+ALL_CINT_FORTRAN_(int2e_vsp1vsp2)
 /* <SIGMA DOT P k SIGMA DOT P i|R12 |j SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
  * = (SIGMA DOT P i j|R12 |SIGMA DOT P k SIGMA DOT P l) */
 void CINTgout2e_int2e_spv1spsp2(double *RESTRICT gout,
@@ -1789,7 +1789,7 @@ envs.f_gout_simd1 = &CINTgout2e_int2e_spv1spsp2_simd1;
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1, &c2s_si_2e2);
 } // int2e_spv1spsp2_spinor
 ALL_CINT(int2e_spv1spsp2)
-//ALL_CINT_FORTRAN_(cint2e_spv1spsp2)
+ALL_CINT_FORTRAN_(int2e_spv1spsp2)
 /* <SIGMA DOT P k i|R12 |SIGMA DOT P j SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
  * = (i SIGMA DOT P j|R12 |SIGMA DOT P k SIGMA DOT P l) */
 void CINTgout2e_int2e_vsp1spsp2(double *RESTRICT gout,
@@ -1971,4 +1971,4 @@ envs.f_gout_simd1 = &CINTgout2e_int2e_vsp1spsp2_simd1;
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1, &c2s_si_2e2);
 } // int2e_vsp1spsp2_spinor
 ALL_CINT(int2e_vsp1spsp2)
-//ALL_CINT_FORTRAN_(cint2e_vsp1spsp2)
+ALL_CINT_FORTRAN_(int2e_vsp1spsp2)

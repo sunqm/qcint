@@ -662,7 +662,7 @@ return 0; }~%")))
 } // ~a_spinor~%" (name-c2sor "1e" 'spinor sf ts) intname)))
 ;;; int1e -> cint1e
   (format fout "ALL_CINT1E(~a)~%" intname)
-  (format fout "//ALL_CINT1E_FORTRAN_(c~a)~%" intname))
+  (format fout "ALL_CINT1E_FORTRAN_(~a)~%" intname))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun dump-declare-giao-ijkl (fout opi opj opk opl)
@@ -1068,7 +1068,7 @@ return 0; }~%")))
 } // ~a_spinor~%" (name-c2sor "2e1" 'spinor sf1 ts1) (name-c2sor "2e2" 'spinor sf2 ts2) intname)))
 ;;; int2e -> cint2e
   (format fout "ALL_CINT(~a)~%" intname)
-  (format fout "//ALL_CINT_FORTRAN_(c~a)~%" intname))
+  (format fout "ALL_CINT_FORTRAN_(~a)~%" intname))
 
 
 (defun gen-code-gout3c2e-avx (fout intname raw-infix flat-script)
@@ -1278,7 +1278,7 @@ return 0; }~%")))
 } // ~a_spinor~%" (name-c2sor "3c2e1" 'spinor sf1 ts1) intname)))
 ;;; int2e -> cint2e
   (format fout "ALL_CINT(~a)~%" intname)
-  (format fout "//ALL_CINT_FORTRAN_(c~a)~%" intname))
+  (format fout "ALL_CINT_FORTRAN_(~a)~%" intname))
 
 
 (defun gen-code-gout2c2e-avx (fout intname raw-infix flat-script)
@@ -1435,7 +1435,7 @@ int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache
 }~%" (name-c2sor "1e" 'spinor sf1 ts1) intname)))
 ;;; int2e -> cint2e
   (format fout "ALL_CINT(~a)~%" intname)
-  (format fout "//ALL_CINT_FORTRAN_(c~a)~%" intname))
+  (format fout "ALL_CINT_FORTRAN_(~a)~%" intname))
 
 
 (defun gen-code-gout3c1e (fout intname raw-infix flat-script)
@@ -1700,7 +1700,7 @@ return 0; }~%")))
       (format fout "return CINT3c1e_spinor_drv(out, dims, &envs, opt, cache, ~a);
 } // ~a_spinor~%" (name-c2sor "3c2e1" 'spinor sf ts) intname)))
   (format fout "ALL_CINT(~a)~%" intname)
-  (format fout "//ALL_CINT_FORTRAN_(c~a)~%" intname))
+  (format fout "ALL_CINT_FORTRAN_(~a)~%" intname))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

@@ -365,7 +365,7 @@ envs.f_gout_simd1 = &CINTgout2e_int2e_gauge_r1_ssp1ssp2_simd1;
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1i, &c2s_si_2e2i);
 } // int2e_gauge_r1_ssp1ssp2_spinor
 ALL_CINT(int2e_gauge_r1_ssp1ssp2)
-//ALL_CINT_FORTRAN_(cint2e_gauge_r1_ssp1ssp2)
+ALL_CINT_FORTRAN_(int2e_gauge_r1_ssp1ssp2)
 /* <SIGMA DOT P k i|BREIT-R1 |R0 SIGMA DOT P j l> : i,j \in electron 1; k,l \in electron 2
  * = (i R0 SIGMA DOT P j|BREIT-R1 |SIGMA DOT P k l) */
 void CINTgout2e_int2e_gauge_r1_ssp1sps2(double *RESTRICT gout,
@@ -697,7 +697,7 @@ envs.f_gout_simd1 = &CINTgout2e_int2e_gauge_r1_ssp1sps2_simd1;
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1i, &c2s_si_2e2i);
 } // int2e_gauge_r1_ssp1sps2_spinor
 ALL_CINT(int2e_gauge_r1_ssp1sps2)
-//ALL_CINT_FORTRAN_(cint2e_gauge_r1_ssp1sps2)
+ALL_CINT_FORTRAN_(int2e_gauge_r1_ssp1sps2)
 /* <k SIGMA DOT P i|BREIT-R1 |R0 j SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
  * = (SIGMA DOT P i R0 j|BREIT-R1 |k SIGMA DOT P l) */
 void CINTgout2e_int2e_gauge_r1_sps1ssp2(double *RESTRICT gout,
@@ -1029,7 +1029,7 @@ envs.f_gout_simd1 = &CINTgout2e_int2e_gauge_r1_sps1ssp2_simd1;
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1i, &c2s_si_2e2i);
 } // int2e_gauge_r1_sps1ssp2_spinor
 ALL_CINT(int2e_gauge_r1_sps1ssp2)
-//ALL_CINT_FORTRAN_(cint2e_gauge_r1_sps1ssp2)
+ALL_CINT_FORTRAN_(int2e_gauge_r1_sps1ssp2)
 /* <SIGMA DOT P k SIGMA DOT P i|BREIT-R1 |R0 j l> : i,j \in electron 1; k,l \in electron 2
  * = (SIGMA DOT P i R0 j|BREIT-R1 |SIGMA DOT P k l) */
 void CINTgout2e_int2e_gauge_r1_sps1sps2(double *RESTRICT gout,
@@ -1361,7 +1361,7 @@ envs.f_gout_simd1 = &CINTgout2e_int2e_gauge_r1_sps1sps2_simd1;
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1i, &c2s_si_2e2i);
 } // int2e_gauge_r1_sps1sps2_spinor
 ALL_CINT(int2e_gauge_r1_sps1sps2)
-//ALL_CINT_FORTRAN_(cint2e_gauge_r1_sps1sps2)
+ALL_CINT_FORTRAN_(int2e_gauge_r1_sps1sps2)
 /* <k i|BREIT-R2 |SIGMA DOT P j R0 SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
  * = (i SIGMA DOT P j|BREIT-R2 |k R0 SIGMA DOT P l) */
 void CINTgout2e_int2e_gauge_r2_ssp1ssp2(double *RESTRICT gout,
@@ -1701,7 +1701,7 @@ envs.f_gout_simd1 = &CINTgout2e_int2e_gauge_r2_ssp1ssp2_simd1;
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1i, &c2s_si_2e2i);
 } // int2e_gauge_r2_ssp1ssp2_spinor
 ALL_CINT(int2e_gauge_r2_ssp1ssp2)
-//ALL_CINT_FORTRAN_(cint2e_gauge_r2_ssp1ssp2)
+ALL_CINT_FORTRAN_(int2e_gauge_r2_ssp1ssp2)
 /* <SIGMA DOT P k i|BREIT-R2 |SIGMA DOT P j R0 l> : i,j \in electron 1; k,l \in electron 2
  * = (i SIGMA DOT P j|BREIT-R2 |SIGMA DOT P k R0 l) */
 void CINTgout2e_int2e_gauge_r2_ssp1sps2(double *RESTRICT gout,
@@ -2041,7 +2041,7 @@ envs.f_gout_simd1 = &CINTgout2e_int2e_gauge_r2_ssp1sps2_simd1;
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1i, &c2s_si_2e2i);
 } // int2e_gauge_r2_ssp1sps2_spinor
 ALL_CINT(int2e_gauge_r2_ssp1sps2)
-//ALL_CINT_FORTRAN_(cint2e_gauge_r2_ssp1sps2)
+ALL_CINT_FORTRAN_(int2e_gauge_r2_ssp1sps2)
 /* <k SIGMA DOT P i|BREIT-R2 |j R0 SIGMA DOT P l> : i,j \in electron 1; k,l \in electron 2
  * = (SIGMA DOT P i j|BREIT-R2 |k R0 SIGMA DOT P l) */
 void CINTgout2e_int2e_gauge_r2_sps1ssp2(double *RESTRICT gout,
@@ -2381,7 +2381,7 @@ envs.f_gout_simd1 = &CINTgout2e_int2e_gauge_r2_sps1ssp2_simd1;
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1i, &c2s_si_2e2i);
 } // int2e_gauge_r2_sps1ssp2_spinor
 ALL_CINT(int2e_gauge_r2_sps1ssp2)
-//ALL_CINT_FORTRAN_(cint2e_gauge_r2_sps1ssp2)
+ALL_CINT_FORTRAN_(int2e_gauge_r2_sps1ssp2)
 /* <SIGMA DOT P k SIGMA DOT P i|BREIT-R2 |j R0 l> : i,j \in electron 1; k,l \in electron 2
  * = (SIGMA DOT P i j|BREIT-R2 |SIGMA DOT P k R0 l) */
 void CINTgout2e_int2e_gauge_r2_sps1sps2(double *RESTRICT gout,
@@ -2721,4 +2721,4 @@ envs.f_gout_simd1 = &CINTgout2e_int2e_gauge_r2_sps1sps2_simd1;
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_si_2e1i, &c2s_si_2e2i);
 } // int2e_gauge_r2_sps1sps2_spinor
 ALL_CINT(int2e_gauge_r2_sps1sps2)
-//ALL_CINT_FORTRAN_(cint2e_gauge_r2_sps1sps2)
+ALL_CINT_FORTRAN_(int2e_gauge_r2_sps1sps2)

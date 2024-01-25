@@ -234,7 +234,7 @@ return 0; }
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_2e1, &c2s_sf_2e2);
 } // int2e_ig1_spinor
 ALL_CINT(int2e_ig1)
-//ALL_CINT_FORTRAN_(cint2e_ig1)
+ALL_CINT_FORTRAN_(int2e_ig1)
 /* <k G G i|R12 |j l> : i,j \in electron 1; k,l \in electron 2
  * = (G G i j|R12 |k l) */
 void CINTgout2e_int2e_gg1(double *RESTRICT gout,
@@ -517,7 +517,7 @@ return 0; }
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_2e1, &c2s_sf_2e2);
 } // int2e_gg1_spinor
 ALL_CINT(int2e_gg1)
-//ALL_CINT_FORTRAN_(cint2e_gg1)
+ALL_CINT_FORTRAN_(int2e_gg1)
 /* <G k G i|R12 |j l> : i,j \in electron 1; k,l \in electron 2
  * = (G i j|R12 |G k l) */
 void CINTgout2e_int2e_g1g2(double *RESTRICT gout,
@@ -838,7 +838,7 @@ return 0; }
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_2e1i, &c2s_sf_2e2i);
 } // int2e_g1g2_spinor
 ALL_CINT(int2e_g1g2)
-//ALL_CINT_FORTRAN_(cint2e_g1g2)
+ALL_CINT_FORTRAN_(int2e_g1g2)
 /* <k P* i|R12 |CROSS P j l> : i,j \in electron 1; k,l \in electron 2
  * = (P* i CROSS P j|R12 |k l) */
 void CINTgout2e_int2e_p1vxp1(double *RESTRICT gout,
@@ -1042,7 +1042,7 @@ envs.f_gout_simd1 = &CINTgout2e_int2e_p1vxp1_simd1;
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_2e1, &c2s_sf_2e2);
 } // int2e_p1vxp1_spinor
 ALL_CINT(int2e_p1vxp1)
-//ALL_CINT_FORTRAN_(cint2e_p1vxp1)
+ALL_CINT_FORTRAN_(int2e_p1vxp1)
 /* <k i|NABLA-R12 |RC j l> : i,j \in electron 1; k,l \in electron 2
  * = (i RC j|NABLA-R12 |k l) */
 void CINTgout2e_int2e_ip1v_rc1(double *RESTRICT gout,
@@ -1270,7 +1270,7 @@ envs.f_gout_simd1 = &CINTgout2e_int2e_ip1v_rc1_simd1;
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_2e1, &c2s_sf_2e2);
 } // int2e_ip1v_rc1_spinor
 ALL_CINT(int2e_ip1v_rc1)
-//ALL_CINT_FORTRAN_(cint2e_ip1v_rc1)
+ALL_CINT_FORTRAN_(int2e_ip1v_rc1)
 /* <k i|NABLA-R12 |R j l> : i,j \in electron 1; k,l \in electron 2
  * = (i R j|NABLA-R12 |k l) */
 void CINTgout2e_int2e_ip1v_r1(double *RESTRICT gout,
@@ -1490,7 +1490,7 @@ envs.f_gout_simd1 = &CINTgout2e_int2e_ip1v_r1_simd1;
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_2e1, &c2s_sf_2e2);
 } // int2e_ip1v_r1_spinor
 ALL_CINT(int2e_ip1v_r1)
-//ALL_CINT_FORTRAN_(cint2e_ip1v_r1)
+ALL_CINT_FORTRAN_(int2e_ip1v_r1)
 /* <k G i|NABLA-R12 CROSS P |j l> : i,j \in electron 1; k,l \in electron 2
  * = (G i j|NABLA-R12 CROSS P |k l) */
 void CINTgout2e_int2e_ipvg1_xp1(double *RESTRICT gout,
@@ -1717,7 +1717,7 @@ return 0; }
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_2e1, &c2s_sf_2e2);
 } // int2e_ipvg1_xp1_spinor
 ALL_CINT(int2e_ipvg1_xp1)
-//ALL_CINT_FORTRAN_(cint2e_ipvg1_xp1)
+ALL_CINT_FORTRAN_(int2e_ipvg1_xp1)
 /* <G k i|NABLA-R12 CROSS P |j l> : i,j \in electron 1; k,l \in electron 2
  * = (i j|NABLA-R12 CROSS P |G k l) */
 void CINTgout2e_int2e_ipvg2_xp1(double *RESTRICT gout,
@@ -1948,7 +1948,7 @@ return 0; }
 return CINT2e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_2e1i, &c2s_sf_2e2i);
 } // int2e_ipvg2_xp1_spinor
 ALL_CINT(int2e_ipvg2_xp1)
-//ALL_CINT_FORTRAN_(cint2e_ipvg2_xp1)
+ALL_CINT_FORTRAN_(int2e_ipvg2_xp1)
 /* <i|NUC |RC CROSS P j> */
 void CINTgout1e_int1e_inuc_rcxp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 int nf = envs->nf;
@@ -2024,7 +2024,7 @@ envs.f_gout = &CINTgout1e_int1e_inuc_rcxp;
 return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_1e);
 } // int1e_inuc_rcxp_spinor
 ALL_CINT1E(int1e_inuc_rcxp)
-//ALL_CINT1E_FORTRAN_(cint1e_inuc_rcxp)
+ALL_CINT1E_FORTRAN_(int1e_inuc_rcxp)
 /* <i|NUC |R CROSS P j> */
 void CINTgout1e_int1e_inuc_rxp(double *gout, double *g, int *idx, CINTEnvVars *envs, int count) {
 int nf = envs->nf;
@@ -2096,4 +2096,4 @@ envs.f_gout = &CINTgout1e_int1e_inuc_rxp;
 return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_1e);
 } // int1e_inuc_rxp_spinor
 ALL_CINT1E(int1e_inuc_rxp)
-//ALL_CINT1E_FORTRAN_(cint1e_inuc_rxp)
+ALL_CINT1E_FORTRAN_(int1e_inuc_rxp)
