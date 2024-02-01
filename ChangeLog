@@ -1,3 +1,6 @@
+Version 6.1.2 (2024-01-31):
+	* Fix bugs in near-zero integrals for general contracted basis
+
 Version 6.1.1 (2024-01-24):
 	* Fix bugs introduced in 6.0.0 when handling general contracted basis in cint2e
 
