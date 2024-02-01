@@ -79,9 +79,9 @@
                                      non0ctr[it][im], non0idx[it]+im*x_ctr[it]); \
                         empty_overall = 0; \
                 } else if (fp2c[i] == CINTiprim_to_ctr_0) { \
-                        double *pout = gctr[it]; \
+                        double *pout = gctr[SHLTYPi]; \
                         int k; \
-                        for (k = 0; k < nf; k++) { \
+                        for (k = 0; k < ngp[SHLTYPj]; k++) { \
                                 pout[k] = 0.; \
                         } \
                 } \
