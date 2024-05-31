@@ -83,7 +83,7 @@ CACHE_SIZE_T int1e_r2_origi_spinor(double complex *out, int *dims, int *shls,
         return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_1e);
 } // int1e_r2_origi_spinor
 ALL_CINT1E(int1e_r2_origi)
-//ALL_CINT1E_FORTRAN_(cint1e_r2_origi)
+ALL_CINT1E_FORTRAN_(int1e_r2_origi)
 
 /* based on
  * '("int1e_r4_origi" (r dot r r dot r \| )) 
@@ -160,4 +160,4 @@ CACHE_SIZE_T int1e_r4_origi_spinor(double complex *out, int *dims, int *shls,
         return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_1e);
 } // int1e_r4_origi_spinor
 ALL_CINT1E(int1e_r4_origi)
-//ALL_CINT1E_FORTRAN_(cint1e_r4_origi)
+ALL_CINT1E_FORTRAN_(int1e_r4_origi)
