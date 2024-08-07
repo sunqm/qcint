@@ -27,7 +27,7 @@
 #include <string.h>
 #include <float.h>
 #include <math.h>
-#include "config.h"
+#include "cint_config.h"
 #include "simd.h"
 #include "misc.h"
 #include "rys_roots.h"

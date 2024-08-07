@@ -18,7 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
+#include "cint_config.h"
 
 int CINTlen_cart(const int l);
 int CINTlen_spinor(const int bas_id, const int *bas);

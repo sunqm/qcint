@@ -52,14 +52,9 @@ check_function_exists(sqrtl HAVE_SQRTL)
 #set(CMAKE_REQUIRED_LIBRARIES quadmath)
 #check_function_exists(fabsq HAVE_QUADMATH_H)
 
-include_directories(
-  ${PROJECT_BINARY_DIR}/include
-  ${PROJECT_SOURCE_DIR}/src
-  ${PROJECT_BINARY_DIR}/src)
-
 configure_file(
-  "${PROJECT_SOURCE_DIR}/src/config.h.in"
-  "${PROJECT_BINARY_DIR}/src/config.h")
+  "${PROJECT_SOURCE_DIR}/src/cint_config.h.in"
+  "${PROJECT_BINARY_DIR}/src/cint_config.h")
 
 configure_file(
   "${PROJECT_SOURCE_DIR}/include/cint.h.in"
@@ -82,7 +77,7 @@ set(cintSrc
 
 #option(WITH_RANGE_COULOMB "Range separated Coulomb" on)
 if(WITH_RANGE_COULOMB)
-# defined in config.h
+# defined in cint_config.h
 #  add_definitions(-DWITH_RANGE_COULOMB)
 #  message("Enabled WITH_RANGE_COULOMB")
 endif(WITH_RANGE_COULOMB)
@@ -141,6 +136,15 @@ option(ENABLE_STATIC "Enforce static library build" 0)
 if(ENABLE_STATIC)
   set(BUILD_SHARED_LIBS 0)
 endif()
+
+target_include_directories(cint
+  PUBLIC
+  $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+  PRIVATE
+  ${PROJECT_BINARY_DIR}/src
+  ${PROJECT_SOURCE_DIR}/src
+)
 
 add_library(cint ${cintSrc})
 set_target_properties(cint PROPERTIES

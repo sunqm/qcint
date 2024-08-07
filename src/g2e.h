@@ -18,7 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
+#include "cint_config.h"
 #include "g1e.h"
 
 #ifndef HAVE_RYS2E
