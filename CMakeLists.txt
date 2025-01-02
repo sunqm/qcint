@@ -137,6 +137,8 @@ if(ENABLE_STATIC)
   set(BUILD_SHARED_LIBS 0)
 endif()
 
+add_library(cint ${cintSrc})
+
 target_include_directories(cint
   PUBLIC
   $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
@@ -146,7 +148,6 @@ target_include_directories(cint
   ${PROJECT_SOURCE_DIR}/src
 )
 
-add_library(cint ${cintSrc})
 set_target_properties(cint PROPERTIES
   C_STANDARD 99
   VERSION ${qcint_VERSION}
