@@ -52,6 +52,26 @@ check_function_exists(sqrtl HAVE_SQRTL)
 #set(CMAKE_REQUIRED_LIBRARIES quadmath)
 #check_function_exists(fabsq HAVE_QUADMATH_H)
 
+include(CheckNativeVectorization)
+check_native_vectorization()
+message("sse3 works: ${SSE3_WORKS}")
+message("avx works: ${AVX_WORKS}")
+message("avx512f works: ${AVX512F_WORKS}")
+if(AVX512F_WORKS)
+  set(QCINT_VECTOR_LEVEL "avx512f")
+  set(QCINT_SIMDD 8)
+elseif(AVX_WORKS)
+  set(QCINT_VECTOR_LEVEL "avx")
+  set(QCINT_SIMDD 4)
+elseif(SSE3_WORKS)
+  set(QCINT_VECTOR_LEVEL "sse3")
+  set(QCINT_SIMDD 2)
+else()
+  message(FATAL_ERROR "SSE3 is the minimum supported instruction set")
+endif()
+
+message("Will compile with vectorization width: ${QCINT_VECTOR_LEVEL}, SIMDD=${QCINT_SIMDD}")
+
 configure_file(
   "${PROJECT_SOURCE_DIR}/src/cint_config.h.in"
   "${PROJECT_BINARY_DIR}/src/cint_config.h")

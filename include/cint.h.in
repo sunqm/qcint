@@ -148,13 +148,9 @@
 #include <immintrin.h>
 #include <mm_malloc.h>
 
-#ifdef __AVX512F__
-#define SIMDD   8
-#elif __AVX__
-#define SIMDD   4
-#elif __SSE3__
-#define SIMDD   2
-#endif
+#cmakedefine QCINT_SIMDD @QCINT_SIMDD@
+#define SIMDD QCINT_SIMDD
+
 
 #if defined(__GNUC__)
 #define ALIGN16 __attribute__((aligned(16)))
