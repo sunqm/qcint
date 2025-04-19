@@ -3665,9 +3665,9 @@ static double *p_ket_cart2spheric(double *gsph, double *gcart,
 #ifdef PYPZPX
         int i;
         for (i = 0; i < nbra; i++) {
-                gsph[0*nbra+i] = gcart[1*nbra+i];  // py
-                gsph[1*nbra+i] = gcart[2*nbra+i];  // pz
-                gsph[2*nbra+i] = gcart[0*nbra+i];  // px
+                gsph[0*lds+i] = gcart[1*nbra+i];  // py
+                gsph[1*lds+i] = gcart[2*nbra+i];  // pz
+                gsph[2*lds+i] = gcart[0*nbra+i];  // px
         }
         return gsph;
 #else
@@ -3680,9 +3680,9 @@ static double *p_ket_cart2spheric_copy(double *gsph, double *gcart,
         int i;
 #ifdef PYPZPX
         for (i = 0; i < nbra; i++) {
-                gsph[0*nbra+i] = gcart[1*nbra+i];  // py
-                gsph[1*nbra+i] = gcart[2*nbra+i];  // pz
-                gsph[2*nbra+i] = gcart[0*nbra+i];  // px
+                gsph[0*lds+i] = gcart[1*nbra+i];  // py
+                gsph[1*lds+i] = gcart[2*nbra+i];  // pz
+                gsph[2*lds+i] = gcart[0*nbra+i];  // px
         }
 #else
         for (i = 0; i < nbra; i++) {
