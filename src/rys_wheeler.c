@@ -3445,24 +3445,24 @@ static int rys_wheeler_partial(int n, double *alpha, double *beta, double *momen
         double *b = a + n;
         double *c0 = b + n;
         double mu0 = moments[0];
-        int first_seen = 1;
-        int i;
+        int i, k;
 
         wheeler_recursion(n, alpha, beta, moments, a, b);
 
         for (i = 1; i < n; i++) {
                 if (b[i] < 1e-14) {
                         // very likely we will get numerical issues
-                        if (!first_seen || b[i] < 0.) {
+                        if (b[i] < 0.) {
                                 fprintf(stderr, "libcint rys_wheeler singular value n=%d i=%d b=%g\n",
                                         n, i, b[i]);
-                                for (i = 0; i < n; i++) {
-                                        roots[i] = 0;
-                                        weights[i] = 0;
+                                // Approximate the quadrature. higher order roots are set to 0
+                                for (k = i; k < n; k++) {
+                                        roots[k] = 0;
+                                        weights[k] = 0;
                                 }
-                                return i;
+                                n = i;
+                                break;
                         }
-                        first_seen = 0;
                 }
                 b[i] = sqrt(b[i]);
         }
@@ -3631,8 +3631,7 @@ static int lrys_wheeler_partial(int n, long double *alpha, long double *beta, lo
         double *db = da + n;
         double *c0 = db + n;
         double mu0 = moments[0];
-        int first_seen = 1;
-        int i;
+        int i, k;
 
         lwheeler_recursion(n, alpha, beta, moments, a, b);
 
@@ -3640,16 +3639,17 @@ static int lrys_wheeler_partial(int n, long double *alpha, long double *beta, lo
         for (i = 1; i < n; i++) {
                 if (b[i] < 1e-19) {
                         // very likely we will get numerical issues
-                        if (!first_seen || b[i] < 0.) {
+                        if (b[i] < 0.) {
                                 fprintf(stderr, "libcint lrys_wheeler singular value n=%d i=%d b=%g\n",
                                         n, i, (double)b[i]);
-                                for (i = 0; i < n; i++) {
-                                        roots[i] = 0;
-                                        weights[i] = 0;
+                                // Approximate the quadrature. higher order roots are set to 0
+                                for (k = i; k < n; k++) {
+                                        roots[k] = 0;
+                                        weights[k] = 0;
                                 }
-                                return i;
+                                n = i;
+                                break;
                         }
-                        first_seen = 0;
                 }
                 da[i] = a[i];
                 db[i] = sqrtl(b[i]);
@@ -6287,8 +6287,7 @@ static int qrys_wheeler_partial(int n, __float128 *alpha, __float128 *beta, __fl
         double *db = da + n;
         double *c0 = db + n;
         double mu0 = moments[0];
-        int first_seen = 1;
-        int i;
+        int i, k;
 
         qwheeler_recursion(n, alpha, beta, moments, a, b);
 
@@ -6296,16 +6295,17 @@ static int qrys_wheeler_partial(int n, __float128 *alpha, __float128 *beta, __fl
         for (i = 1; i < n; i++) {
                 if (b[i] < 1e-32) {
                         // very likely we will get numerical issues
-                        if (!first_seen || b[i] < 0.) {
+                        if (b[i] < 0.) {
                                 fprintf(stderr, "libcint qrys_wheeler singular value n=%d i=%d b=%g\n",
                                         n, i, (double)b[i]);
-                                for (i = 0; i < n; i++) {
-                                        roots[i] = 0;
-                                        weights[i] = 0;
+                                // Approximate the quadrature. higher order roots are set to 0
+                                for (k = i; k < n; k++) {
+                                        roots[k] = 0;
+                                        weights[k] = 0;
                                 }
-                                return i;
+                                n = i;
+                                break;
                         }
-                        first_seen = 0;
                 }
                 da[i] = a[i];
                 db[i] = sqrtq(b[i]);

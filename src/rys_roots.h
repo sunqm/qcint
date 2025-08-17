@@ -21,9 +21,9 @@
 #include "cint_config.h"
 #include "g1e.h"
 
-void CINTrys_roots(int nroots, double x, double *u, double *w);
+int CINTrys_roots(int nroots, double x, double *u, double *w);
 void _CINTrys_roots_batch(int nroots, double *x, double *u, double *w, int count);
-void CINTsr_rys_roots(int nroots, double x, double lower, double *u, double *w);
+int CINTsr_rys_roots(int nroots, double x, double lower, double *u, double *w);
 int _CINTsr_rys_roots_batch(CINTEnvVars *envs, double *x, double *theta,
                             double *u, double *w, double *cutoff, int count);
 

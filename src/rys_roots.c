@@ -93,7 +93,7 @@ void _CINTrys_roots_batch(int nroots, double *x, double *u, double *w, int count
         }
 }
 
-void CINTrys_roots(int nroots, double x, double *u, double *w)
+int CINTrys_roots(int nroots, double x, double *u, double *w)
 {
         if (x <= SMALLX_LIMIT) {
                 int off = nroots * (nroots - 1) / 2;
@@ -102,7 +102,7 @@ void CINTrys_roots(int nroots, double x, double *u, double *w)
                         u[i] = POLY_SMALLX_R0[off+i] + POLY_SMALLX_R1[off+i] * x;
                         w[i] = POLY_SMALLX_W0[off+i] + POLY_SMALLX_W1[off+i] * x;
                 }
-                return;
+                return 0;
         } else if (x >= 35+nroots*5) {
                 int off = nroots * (nroots - 1) / 2;
                 int i;
@@ -113,7 +113,7 @@ void CINTrys_roots(int nroots, double x, double *u, double *w)
                         u[i] = rt / (x - rt);
                         w[i] = POLY_LARGEX_WW[off+i] * t;
                 }
-                return;
+                return 0;
         }
 
         int err;
@@ -146,6 +146,7 @@ void CINTrys_roots(int nroots, double x, double *u, double *w)
                 exit(err);
 #endif
         }
+        return err;
 }
 
 /*
@@ -162,20 +163,15 @@ static int segment_solve1(int n, double x, double lower, double *u, double *w,
                 } else {
                         error = fn2(n, x, lower, u, w);
                 }
-        } else if (lower < lower_bp2) {
-                error = fn3(n, x, lower, u, w);
         } else {
-                return 1;
-        }
-        if (error) {
-                error = CINTqrys_schmidt(n, x, lower, u, w);
+                error = fn3(n, x, lower, u, w);
         }
         return error;
 }
 
-void CINTsr_rys_roots(int nroots, double x, double lower, double *u, double *w)
+int CINTsr_rys_roots(int nroots, double x, double lower, double *u, double *w)
 {
-        int err = 1;
+        int err;
         switch (nroots) {
         case 1:
                 err = CINTrys_schmidt(nroots, x, lower, u, w);
@@ -279,6 +275,7 @@ void CINTsr_rys_roots(int nroots, double x, double lower, double *u, double *w)
                 err = segment_solve1(nroots, x, lower, u, w, 0.25, 0.35, 60, CINTqrys_jacobi, CINTqrys_laguerre, CINTqrys_jacobi);
                 break;
         default:
+                err = 1;
                 fprintf(stderr, "libcint SR-rys_roots does not support nroots=%d\n", nroots);
 #ifndef KEEP_GOING
                 exit(1);
@@ -291,6 +288,7 @@ void CINTsr_rys_roots(int nroots, double x, double lower, double *u, double *w)
                 exit(err);
 #endif
         }
+        return err;
 }
 
 int _CINTsr_rys_roots_batch(CINTEnvVars *envs, double *x, double *theta,
@@ -314,7 +312,14 @@ int _CINTsr_rys_roots_batch(CINTEnvVars *envs, double *x, double *theta,
         for (i = 0; i < count; i++) {
                 // very small erfc() leads to ~0 weights
                 if (xt[i] < cutoff[i] && xt[i] < EXPCUTOFF_SR) {
-                        CINTsr_rys_roots(nroots, x[i], sqrt_theta[i], roots, weights);
+                        int err = CINTsr_rys_roots(nroots, x[i], sqrt_theta[i], roots, weights);
+                        if (err) {
+                                for (k = 0; k < nroots; k++) {
+                                        u[k*SIMDD+i] = 0;
+                                        w[k*SIMDD+i] = 0;
+                                }
+                                continue;
+                        }
                         for (k = 0; k < nroots; k++) {
                                 u[k*SIMDD+i] = roots[k];
                                 w[k*SIMDD+i] = weights[k];
