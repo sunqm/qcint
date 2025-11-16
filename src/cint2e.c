@@ -576,7 +576,10 @@ k_contracted: ;
         return !empty_overall;
 }
 
-int (*CINT2e_1111_loop)(double *, CINTEnvVars *, double *, int *) = &CINT2e_loop;
+int CINT2e_1111_loop(double *out, CINTEnvVars *envs, double *cache, int *empty)
+{
+        return CINT2e_loop(out, envs, cache, empty);
+}
 
 #define PAIRDATA_NON0IDX_SIZE(ps) \
                 int *bas = envs->bas; \
