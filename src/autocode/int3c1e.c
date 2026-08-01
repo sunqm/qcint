@@ -205,3 +205,279 @@ return CINT3c1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_3c2e1);
 } // int3c1e_ip1_spinor
 ALL_CINT(int3c1e_ip1)
 //ALL_CINT_FORTRAN_(cint3c1e_ip1)
+static void CINTgout1e_int3c1e_ipip1(double *RESTRICT gout,
+double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs, int count) {
+CINTg3c1e_ovlp(g, envs, count);
+int nf = envs->nf;
+int nfc = nf * 9;
+int ix, iy, iz, n;
+DECLARE_GOUT;
+double *RESTRICT g0 = g;
+double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g3 = g2 + envs->g_size * 3 * SIMDD;
+__MD r1;
+__MD rs[9];
+G1E_D_I(g1, g0, envs->i_l+1, envs->j_l, envs->k_l);
+G1E_D_I(g2, g0, envs->i_l+0, envs->j_l, envs->k_l);
+G1E_D_I(g3, g1, envs->i_l+0, envs->j_l, envs->k_l);
+for (n = 0; n < nf; n++) {
+ix = idx[0+n*3];
+iy = idx[1+n*3];
+iz = idx[2+n*3];
+rs[0] = MM_LOAD(g3+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[1] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[2] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[3] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[4] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g3+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[5] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[6] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
+rs[7] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
+rs[8] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g3+iz*SIMDD);
+r1 = + rs[0]; GOUT_SCATTER(gout, n*9+0, r1);
+r1 = + rs[3]; GOUT_SCATTER(gout, n*9+1, r1);
+r1 = + rs[6]; GOUT_SCATTER(gout, n*9+2, r1);
+r1 = + rs[1]; GOUT_SCATTER(gout, n*9+3, r1);
+r1 = + rs[4]; GOUT_SCATTER(gout, n*9+4, r1);
+r1 = + rs[7]; GOUT_SCATTER(gout, n*9+5, r1);
+r1 = + rs[2]; GOUT_SCATTER(gout, n*9+6, r1);
+r1 = + rs[5]; GOUT_SCATTER(gout, n*9+7, r1);
+r1 = + rs[8]; GOUT_SCATTER(gout, n*9+8, r1);
+}}
+void int3c1e_ipip1_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
+int ng[] = {2, 0, 0, 0, 2, 1, 1, 9};
+CINTall_3c1e_optimizer(opt, ng, atm, natm, bas, nbas, env);
+}
+CACHE_SIZE_T int3c1e_ipip1_cart(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {2, 0, 0, 0, 2, 1, 1, 9};
+CINTEnvVars envs;
+CINTinit_int3c1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int3c1e_ipip1;
+return CINT3c1e_drv(out, dims, &envs, opt, cache, &c2s_cart_3c1e);
+} // int3c1e_ipip1_cart
+CACHE_SIZE_T int3c1e_ipip1_sph(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {2, 0, 0, 0, 2, 1, 1, 9};
+CINTEnvVars envs;
+CINTinit_int3c1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int3c1e_ipip1;
+return CINT3c1e_drv(out, dims, &envs, opt, cache, &c2s_sph_3c1e);
+} // int3c1e_ipip1_sph
+CACHE_SIZE_T int3c1e_ipip1_spinor(double complex *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {2, 0, 0, 0, 2, 1, 1, 9};
+CINTEnvVars envs;
+CINTinit_int3c1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int3c1e_ipip1;
+return CINT3c1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_3c2e1);
+} // int3c1e_ipip1_spinor
+ALL_CINT(int3c1e_ipip1)
+//ALL_CINT_FORTRAN_(cint3c1e_ipip1)
+static void CINTgout1e_int3c1e_ip1ip2(double *RESTRICT gout,
+double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs, int count) {
+CINTg3c1e_ovlp(g, envs, count);
+int nf = envs->nf;
+int nfc = nf * 9;
+int ix, iy, iz, n;
+DECLARE_GOUT;
+double *RESTRICT g0 = g;
+double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g3 = g2 + envs->g_size * 3 * SIMDD;
+__MD r1;
+__MD rs[9];
+G1E_D_K(g1, g0, envs->i_l+1, envs->j_l+0, envs->k_l+0);
+G1E_D_I(g2, g0, envs->i_l+0, envs->j_l, envs->k_l);
+G1E_D_I(g3, g1, envs->i_l+0, envs->j_l, envs->k_l);
+for (n = 0; n < nf; n++) {
+ix = idx[0+n*3];
+iy = idx[1+n*3];
+iz = idx[2+n*3];
+rs[0] = MM_LOAD(g3+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[1] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[2] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[3] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[4] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g3+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[5] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[6] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
+rs[7] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
+rs[8] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g3+iz*SIMDD);
+r1 = + rs[0]; GOUT_SCATTER(gout, n*9+0, r1);
+r1 = + rs[1]; GOUT_SCATTER(gout, n*9+1, r1);
+r1 = + rs[2]; GOUT_SCATTER(gout, n*9+2, r1);
+r1 = + rs[3]; GOUT_SCATTER(gout, n*9+3, r1);
+r1 = + rs[4]; GOUT_SCATTER(gout, n*9+4, r1);
+r1 = + rs[5]; GOUT_SCATTER(gout, n*9+5, r1);
+r1 = + rs[6]; GOUT_SCATTER(gout, n*9+6, r1);
+r1 = + rs[7]; GOUT_SCATTER(gout, n*9+7, r1);
+r1 = + rs[8]; GOUT_SCATTER(gout, n*9+8, r1);
+}}
+void int3c1e_ip1ip2_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
+int ng[] = {1, 0, 1, 0, 2, 1, 1, 9};
+CINTall_3c1e_optimizer(opt, ng, atm, natm, bas, nbas, env);
+}
+CACHE_SIZE_T int3c1e_ip1ip2_cart(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {1, 0, 1, 0, 2, 1, 1, 9};
+CINTEnvVars envs;
+CINTinit_int3c1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int3c1e_ip1ip2;
+return CINT3c1e_drv(out, dims, &envs, opt, cache, &c2s_cart_3c1e);
+} // int3c1e_ip1ip2_cart
+CACHE_SIZE_T int3c1e_ip1ip2_sph(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {1, 0, 1, 0, 2, 1, 1, 9};
+CINTEnvVars envs;
+CINTinit_int3c1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int3c1e_ip1ip2;
+return CINT3c1e_drv(out, dims, &envs, opt, cache, &c2s_sph_3c1e);
+} // int3c1e_ip1ip2_sph
+CACHE_SIZE_T int3c1e_ip1ip2_spinor(double complex *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {1, 0, 1, 0, 2, 1, 1, 9};
+CINTEnvVars envs;
+CINTinit_int3c1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int3c1e_ip1ip2;
+return CINT3c1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_3c2e1);
+} // int3c1e_ip1ip2_spinor
+ALL_CINT(int3c1e_ip1ip2)
+//ALL_CINT_FORTRAN_(cint3c1e_ip1ip2)
+static void CINTgout1e_int3c1e_ipvip1(double *RESTRICT gout,
+double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs, int count) {
+CINTg3c1e_ovlp(g, envs, count);
+int nf = envs->nf;
+int nfc = nf * 9;
+int ix, iy, iz, n;
+DECLARE_GOUT;
+double *RESTRICT g0 = g;
+double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g3 = g2 + envs->g_size * 3 * SIMDD;
+__MD r1;
+__MD rs[9];
+G1E_D_J(g1, g0, envs->i_l+1, envs->j_l+0, envs->k_l);
+G1E_D_I(g2, g0, envs->i_l+0, envs->j_l, envs->k_l);
+G1E_D_I(g3, g1, envs->i_l+0, envs->j_l, envs->k_l);
+for (n = 0; n < nf; n++) {
+ix = idx[0+n*3];
+iy = idx[1+n*3];
+iz = idx[2+n*3];
+rs[0] = MM_LOAD(g3+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[1] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[2] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[3] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[4] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g3+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[5] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[6] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
+rs[7] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
+rs[8] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g3+iz*SIMDD);
+r1 = + rs[0]; GOUT_SCATTER(gout, n*9+0, r1);
+r1 = + rs[1]; GOUT_SCATTER(gout, n*9+1, r1);
+r1 = + rs[2]; GOUT_SCATTER(gout, n*9+2, r1);
+r1 = + rs[3]; GOUT_SCATTER(gout, n*9+3, r1);
+r1 = + rs[4]; GOUT_SCATTER(gout, n*9+4, r1);
+r1 = + rs[5]; GOUT_SCATTER(gout, n*9+5, r1);
+r1 = + rs[6]; GOUT_SCATTER(gout, n*9+6, r1);
+r1 = + rs[7]; GOUT_SCATTER(gout, n*9+7, r1);
+r1 = + rs[8]; GOUT_SCATTER(gout, n*9+8, r1);
+}}
+void int3c1e_ipvip1_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
+int ng[] = {1, 1, 0, 0, 2, 1, 1, 9};
+CINTall_3c1e_optimizer(opt, ng, atm, natm, bas, nbas, env);
+}
+CACHE_SIZE_T int3c1e_ipvip1_cart(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {1, 1, 0, 0, 2, 1, 1, 9};
+CINTEnvVars envs;
+CINTinit_int3c1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int3c1e_ipvip1;
+return CINT3c1e_drv(out, dims, &envs, opt, cache, &c2s_cart_3c1e);
+} // int3c1e_ipvip1_cart
+CACHE_SIZE_T int3c1e_ipvip1_sph(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {1, 1, 0, 0, 2, 1, 1, 9};
+CINTEnvVars envs;
+CINTinit_int3c1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int3c1e_ipvip1;
+return CINT3c1e_drv(out, dims, &envs, opt, cache, &c2s_sph_3c1e);
+} // int3c1e_ipvip1_sph
+CACHE_SIZE_T int3c1e_ipvip1_spinor(double complex *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {1, 1, 0, 0, 2, 1, 1, 9};
+CINTEnvVars envs;
+CINTinit_int3c1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int3c1e_ipvip1;
+return CINT3c1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_3c2e1);
+} // int3c1e_ipvip1_spinor
+ALL_CINT(int3c1e_ipvip1)
+//ALL_CINT_FORTRAN_(cint3c1e_ipvip1)
+static void CINTgout1e_int3c1e_ipip2(double *RESTRICT gout,
+double *RESTRICT g, int *RESTRICT idx, CINTEnvVars *envs, int count) {
+CINTg3c1e_ovlp(g, envs, count);
+int nf = envs->nf;
+int nfc = nf * 9;
+int ix, iy, iz, n;
+DECLARE_GOUT;
+double *RESTRICT g0 = g;
+double *RESTRICT g1 = g0 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g2 = g1 + envs->g_size * 3 * SIMDD;
+double *RESTRICT g3 = g2 + envs->g_size * 3 * SIMDD;
+__MD r1;
+__MD rs[9];
+G1E_D_K(g1, g0, envs->i_l+0, envs->j_l+0, envs->k_l+1);
+G1E_D_K(g2, g0, envs->i_l+0, envs->j_l+0, envs->k_l+0);
+G1E_D_K(g3, g1, envs->i_l+0, envs->j_l+0, envs->k_l+0);
+for (n = 0; n < nf; n++) {
+ix = idx[0+n*3];
+iy = idx[1+n*3];
+iz = idx[2+n*3];
+rs[0] = MM_LOAD(g3+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[1] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[2] = MM_LOAD(g2+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[3] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[4] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g3+iy*SIMDD) * MM_LOAD(g0+iz*SIMDD);
+rs[5] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g2+iy*SIMDD) * MM_LOAD(g1+iz*SIMDD);
+rs[6] = MM_LOAD(g1+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
+rs[7] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g1+iy*SIMDD) * MM_LOAD(g2+iz*SIMDD);
+rs[8] = MM_LOAD(g0+ix*SIMDD) * MM_LOAD(g0+iy*SIMDD) * MM_LOAD(g3+iz*SIMDD);
+r1 = + rs[0]; GOUT_SCATTER(gout, n*9+0, r1);
+r1 = + rs[3]; GOUT_SCATTER(gout, n*9+1, r1);
+r1 = + rs[6]; GOUT_SCATTER(gout, n*9+2, r1);
+r1 = + rs[1]; GOUT_SCATTER(gout, n*9+3, r1);
+r1 = + rs[4]; GOUT_SCATTER(gout, n*9+4, r1);
+r1 = + rs[7]; GOUT_SCATTER(gout, n*9+5, r1);
+r1 = + rs[2]; GOUT_SCATTER(gout, n*9+6, r1);
+r1 = + rs[5]; GOUT_SCATTER(gout, n*9+7, r1);
+r1 = + rs[8]; GOUT_SCATTER(gout, n*9+8, r1);
+}}
+void int3c1e_ipip2_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
+int ng[] = {0, 0, 2, 0, 2, 1, 1, 9};
+CINTall_3c1e_optimizer(opt, ng, atm, natm, bas, nbas, env);
+}
+CACHE_SIZE_T int3c1e_ipip2_cart(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {0, 0, 2, 0, 2, 1, 1, 9};
+CINTEnvVars envs;
+CINTinit_int3c1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int3c1e_ipip2;
+return CINT3c1e_drv(out, dims, &envs, opt, cache, &c2s_cart_3c1e);
+} // int3c1e_ipip2_cart
+CACHE_SIZE_T int3c1e_ipip2_sph(double *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {0, 0, 2, 0, 2, 1, 1, 9};
+CINTEnvVars envs;
+CINTinit_int3c1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int3c1e_ipip2;
+return CINT3c1e_drv(out, dims, &envs, opt, cache, &c2s_sph_3c1e);
+} // int3c1e_ipip2_sph
+CACHE_SIZE_T int3c1e_ipip2_spinor(double complex *out, int *dims, int *shls,
+int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+int ng[] = {0, 0, 2, 0, 2, 1, 1, 9};
+CINTEnvVars envs;
+CINTinit_int3c1e_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
+envs.f_gout = &CINTgout1e_int3c1e_ipip2;
+return CINT3c1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_3c2e1);
+} // int3c1e_ipip2_spinor
+ALL_CINT(int3c1e_ipip2)
+//ALL_CINT_FORTRAN_(cint3c1e_ipip2)
