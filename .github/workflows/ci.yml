@@ -30,7 +30,7 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu')
         run: |
           cd ${{ github.workspace }}/tests
-          python test_diffuse_screening.py
+          python test_screening_scaling.py
       - name: Unittest
         if: startsWith(matrix.os, 'ubuntu')
         run: |

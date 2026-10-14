@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 '''
-Screening of diffuse primitives of high angular momentum.
+Screening of diffuse primitives of high angular momentum, by exact scaling.
 
 When all exponents of normalized primitive shells on one center are scaled by
 s, an integral scales exactly as s**p, where p follows from the dimensions of
