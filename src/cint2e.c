@@ -256,7 +256,7 @@ int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache, int *empty)
         int lkl = envs->lk_ceil + envs->ll_ceil;
         double akl, ekl, expijkl, ccekl, log_rr_kl, eijcutoff;
 
-        akl = ak[k_prim-1] + al[l_prim-1];
+        akl = CINTmin_exponent(ak, k_prim) + CINTmin_exponent(al, l_prim);
         log_rr_kl = 1.7 - 1.5 * approx_log(akl);
         double omega = env[PTR_RANGE_OMEGA];
         double dist_kl = 0;
@@ -275,7 +275,7 @@ int CINT2e_loop_nopt(double *out, CINTEnvVars *envs, double *cache, int *empty)
                         double omega2 = omega * omega;
                         int lij = envs->li_ceil + envs->lj_ceil;
                         if (lij > 0) {
-                                double aij = ai[i_prim-1] + aj[j_prim-1];
+                                double aij = CINTmin_exponent(ai, i_prim) + CINTmin_exponent(aj, j_prim);
                                 double dist_ij = sqrt(rr_ij);
                                 double theta = omega2 / (omega2 + aij);
                                 expcutoff += lij * approx_log(
