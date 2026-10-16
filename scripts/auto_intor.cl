@@ -216,6 +216,10 @@
   '("int3c1e_p2"                ( \, \, p dot p))
   '("int3c1e_iprinv"            ( p \, \| rinv \| ))
   '("int3c1e_ip1"               ( nabla \, \,))
+  '("int3c1e_ipip1"             ( nabla nabla \, \,))
+  '("int3c1e_ip1ip2"            ( nabla \, \, nabla))
+  '("int3c1e_ipvip1"            ( nabla \, nabla \,))
+  '("int3c1e_ipip2"             ( \, \, nabla nabla))
 )
 
 (gen-cint "deriv3.c"
@@ -236,4 +240,12 @@
   '("int1e_grids_ipvip"         ( nabla \| grids \| nabla ))
   '("int1e_grids_spvsp"         ( sigma dot p \| grids \| sigma dot p ))
   '("int1e_grids_ipip"          ( nabla nabla \| grids \| ))
+)
+
+
+(gen-cint "lresc.c"
+  '("int1e_iprinvr"             ( nabla \| rinv \| r ))
+  '("int1e_iprinviprip"         ( nabla \| rinv \| nabla r nabla ))
+  '("int1e_rinvipiprip"         ( \| rinv \| nabla nabla r nabla ))
+  '("int1e_ipiprinvrip"         ( nabla nabla \| rinv \| r nabla ))
 )

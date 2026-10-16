@@ -1066,6 +1066,30 @@ extern CINTIntegralFunction int3c1e_ip1_cart;
 extern CINTIntegralFunction int3c1e_ip1_sph;
 extern CINTIntegralFunction int3c1e_ip1_spinor;
 
+/* 3-center 1-electron integral <(NABLA NABLA i) (j) (k)> */
+extern CINTOptimizerFunction int3c1e_ipip1_optimizer;
+extern CINTIntegralFunction int3c1e_ipip1_cart;
+extern CINTIntegralFunction int3c1e_ipip1_sph;
+extern CINTIntegralFunction int3c1e_ipip1_spinor;
+
+/* 3-center 1-electron integral <(NABLA i) (j) (NABLA k)> */
+extern CINTOptimizerFunction int3c1e_ip1ip2_optimizer;
+extern CINTIntegralFunction int3c1e_ip1ip2_cart;
+extern CINTIntegralFunction int3c1e_ip1ip2_sph;
+extern CINTIntegralFunction int3c1e_ip1ip2_spinor;
+
+/* 3-center 1-electron integral <(NABLA i) (NABLA j) (k)> */
+extern CINTOptimizerFunction int3c1e_ipvip1_optimizer;
+extern CINTIntegralFunction int3c1e_ipvip1_cart;
+extern CINTIntegralFunction int3c1e_ipvip1_sph;
+extern CINTIntegralFunction int3c1e_ipvip1_spinor;
+
+/* 3-center 1-electron integral <(i) (j) (NABLA NABLA k)> */
+extern CINTOptimizerFunction int3c1e_ipip2_optimizer;
+extern CINTIntegralFunction int3c1e_ipip2_cart;
+extern CINTIntegralFunction int3c1e_ipip2_sph;
+extern CINTIntegralFunction int3c1e_ipip2_spinor;
+
 /* <NABLA NABLA NABLA i|NUC |j> */
 extern CINTOptimizerFunction int1e_ipipipnuc_optimizer;
 extern CINTIntegralFunction int1e_ipipipnuc_cart;
@@ -1090,6 +1114,24 @@ extern CINTIntegralFunction int1e_ipiprinvip_cart;
 extern CINTIntegralFunction int1e_ipiprinvip_sph;
 extern CINTIntegralFunction int1e_ipiprinvip_spinor;
 
+/* <NABLA NABLA i|RINV |NABLA NABLA j> */
+extern CINTOptimizerFunction int1e_ipiprinvipip_optimizer;
+extern CINTIntegralFunction int1e_ipiprinvipip_cart;
+extern CINTIntegralFunction int1e_ipiprinvipip_sph;
+extern CINTIntegralFunction int1e_ipiprinvipip_spinor;
+
+/* <NABLA NABLA NABLA i|RINV |NABLA j> */
+extern CINTOptimizerFunction int1e_ipipiprinvip_optimizer;
+extern CINTIntegralFunction int1e_ipipiprinvip_cart;
+extern CINTIntegralFunction int1e_ipipiprinvip_sph;
+extern CINTIntegralFunction int1e_ipipiprinvip_spinor;
+
+/* <NABLA NABLA NABLA NABLA i|RINV |j> */
+extern CINTOptimizerFunction int1e_ipipipiprinv_optimizer;
+extern CINTIntegralFunction int1e_ipipipiprinv_cart;
+extern CINTIntegralFunction int1e_ipipipiprinv_sph;
+extern CINTIntegralFunction int1e_ipipipiprinv_spinor;
+
 /* <NABLA i| 1/r_{grids} |j> */
 extern CINTOptimizerFunction int1e_grids_ip_optimizer;
 extern CINTIntegralFunction int1e_grids_ip_cart;
@@ -1107,4 +1149,34 @@ extern CINTOptimizerFunction int1e_grids_spvsp_optimizer;
 extern CINTIntegralFunction int1e_grids_spvsp_cart;
 extern CINTIntegralFunction int1e_grids_spvsp_sph;
 extern CINTIntegralFunction int1e_grids_spvsp_spinor;
+
+/* <NABLA NABLA i| 1/r_{grids} |j> */
+extern CINTOptimizerFunction int1e_grids_ipip_optimizer;
+extern CINTIntegralFunction int1e_grids_ipip_cart;
+extern CINTIntegralFunction int1e_grids_ipip_sph;
+extern CINTIntegralFunction int1e_grids_ipip_spinor;
+
+/* <NABLA i|RINV |R j> */
+extern CINTOptimizerFunction int1e_iprinvr_optimizer;
+extern CINTIntegralFunction int1e_iprinvr_cart;
+extern CINTIntegralFunction int1e_iprinvr_sph;
+extern CINTIntegralFunction int1e_iprinvr_spinor;
+
+/* <NABLA i|RINV |NABLA R NABLA j> */
+extern CINTOptimizerFunction int1e_iprinviprip_optimizer;
+extern CINTIntegralFunction int1e_iprinviprip_cart;
+extern CINTIntegralFunction int1e_iprinviprip_sph;
+extern CINTIntegralFunction int1e_iprinviprip_spinor;
+
+/* <i|RINV |NABLA NABLA R NABLA j> */
+extern CINTOptimizerFunction int1e_rinvipiprip_optimizer;
+extern CINTIntegralFunction int1e_rinvipiprip_cart;
+extern CINTIntegralFunction int1e_rinvipiprip_sph;
+extern CINTIntegralFunction int1e_rinvipiprip_spinor;
+
+/* <NABLA NABLA i|RINV |R NABLA j> */
+extern CINTOptimizerFunction int1e_ipiprinvrip_optimizer;
+extern CINTIntegralFunction int1e_ipiprinvrip_cart;
+extern CINTIntegralFunction int1e_ipiprinvrip_sph;
+extern CINTIntegralFunction int1e_ipiprinvrip_spinor;
 

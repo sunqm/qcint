@@ -93,7 +93,8 @@ set(cintSrc
   src/autocode/grad1.c src/autocode/grad2.c src/autocode/hess.c
   src/autocode/int3c1e.c src/autocode/int3c2e.c src/autocode/intor1.c
   src/autocode/intor2.c src/autocode/intor3.c src/autocode/intor4.c
-  src/autocode/int1e_grids1.c)
+  src/autocode/deriv3.c src/autocode/int1e_grids1.c
+  src/autocode/deriv4.c src/autocode/lresc.c)
 
 #option(WITH_RANGE_COULOMB "Range separated Coulomb" on)
 if(WITH_RANGE_COULOMB)
@@ -117,6 +118,11 @@ if(WITH_F12)
   add_definitions(-DWITH_F12)
   message("Enabled WITH_F12")
 endif(WITH_F12)
+
+if(WITH_4C1E)
+  set(cintSrc ${cintSrc} src/cint4c1e.c src/g4c1e.c)
+  message("Enabled WITH_4C1E")
+endif(WITH_4C1E)
 
 if(PYPZPX)
   add_definitions(-DPYPZPX)
