@@ -1,3 +1,10 @@
+Version 6.2.0 (2026-10-16):
+	* Implement missing integrals relative to libcint 6.1.3, including
+	second order derivatives of int3c1e and GTH pseudopotential gradients
+	* Enable missing higher order derivative integrals and optional int4c1e integrals
+	* Fix pair screening for diffuse high angular momentum shells and unsorted exponents
+	* Fix ill-defined CINT2e_1111_loop function
+
 Version 6.1.3 (2025-08-17):
 	* Approximate quadrature roots when the roots-finding solver for
 	short-range two-electron integrals is not converged
