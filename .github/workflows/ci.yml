@@ -8,7 +8,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-13, ubuntu-latest]
+        # qcint requires x86 SIMD instructions, so use an Intel macOS runner.
+        os: [macos-15-intel, ubuntu-latest]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python 3.12
