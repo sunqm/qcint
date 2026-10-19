@@ -1,0 +1,7 @@
+@PACKAGE_INIT@
+
+check_required_components("cint")
+
+include("${CMAKE_CURRENT_LIST_DIR}/cintTargets.cmake")
+
+include(CMakeFindDependencyMacro)

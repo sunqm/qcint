@@ -10,6 +10,9 @@ set(cint_SOVERSION "${qcint_VERSION_MAJOR}")
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O2 -DNDEBUG")
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "")
   set(CMAKE_BUILD_TYPE RELWITHDEBINFO)
+  message("Build type RELWITHDEBINFO")
+else()
+  message("Build type ${CMAKE_BUILD_TYPE}")
 endif()
 set(CMAKE_VERBOSE_MAKEFILE OFF)
 option(BUILD_MARCH_NATIVE "gcc flag -march=native" on)
@@ -29,7 +32,6 @@ else()
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-math-errno")
 endif()
 
-cmake_policy(SET CMP0042 NEW)
 include(GNUInstallDirs)
 #set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -37,10 +39,6 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 find_package(QUADMATH)
 if(QUADMATH_FOUND)
   set(HAVE_QUADMATH_H 1 CACHE INTERNAL "Have QUADMATH")
-endif()
-
-if(${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION} VERSION_GREATER 3.12)
-  cmake_policy(SET CMP0075 NEW)
 endif()
 
 include(CheckFunctionExists)
@@ -169,6 +167,8 @@ target_include_directories(cint
   PUBLIC
   $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+  INTERFACE
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
   PRIVATE
   ${PROJECT_BINARY_DIR}/src
   ${PROJECT_SOURCE_DIR}/src
@@ -179,14 +179,77 @@ set_target_properties(cint PROPERTIES
   VERSION ${qcint_VERSION}
   SOVERSION ${cint_SOVERSION}
   LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
+# PRIVATE: a shared libcint resolves these itself, so consumers of cint::cint
+# shouldn't link them. (A static libcint still passes them on, as LINK_ONLY.)
 if(QUADMATH_FOUND)
-  target_link_libraries(cint quadmath)
+  target_link_libraries(cint PRIVATE quadmath)
 endif()
-target_link_libraries(cint "-lm")
+target_link_libraries(cint PRIVATE m)
+
+# for consistency between FetchContent / add_subdirectory
+# and find_package, so one can always link to cint::cint.
+add_library(cint::cint ALIAS cint)
 
 set(CintHeaders
   ${PROJECT_SOURCE_DIR}/include/cint_funcs.h
   ${PROJECT_BINARY_DIR}/include/cint.h)
 
-install(TARGETS cint COMPONENT "lib")
+# install headers
 install(FILES ${CintHeaders} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} COMPONENT "dev")
+
+# install the library and associate the installed targets
+# with export set "cint-targets"
+install(TARGETS cint
+        EXPORT cint-targets
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+# qcint is a drop-in replacement for libcint, so it is exported under the same
+# package name (cint) and namespace (cint::) for find_package and pkg-config.
+
+# generate cintTargets.cmake and prepend the namespace "cint::"
+# to exported targets.
+export(EXPORT cint-targets
+    FILE ${CMAKE_CURRENT_BINARY_DIR}/cintTargets.cmake
+        NAMESPACE cint::
+)
+
+# install cintTargets.cmake and associate this file with
+# the export set "cint-targets"
+install(EXPORT cint-targets
+        FILE cintTargets.cmake
+        NAMESPACE cint::
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cint
+)
+
+include(CMakePackageConfigHelpers)
+
+# configure cintConfig.cmake
+configure_package_config_file(${PROJECT_SOURCE_DIR}/cmake/cintConfig.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/cintConfig.cmake
+  INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cint)
+
+# generate cintConfigVersion.cmake
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/cintConfigVersion.cmake"
+    VERSION ${qcint_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
+
+# and install both of these two files...
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/cintConfig.cmake"
+              "${CMAKE_CURRENT_BINARY_DIR}/cintConfigVersion.cmake"
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cint
+)
+
+# configure the pkg-config file...
+configure_file(${PROJECT_SOURCE_DIR}/cmake/cint.pc.in
+               ${CMAKE_CURRENT_BINARY_DIR}/cint.pc @ONLY)
+
+# and install it.
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/cint.pc"
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
+)
