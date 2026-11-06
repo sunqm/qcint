@@ -32,6 +32,11 @@ jobs:
         run: |
           cd ${{ github.workspace }}/tests
           python test_screening_scaling.py
+      - name: Test Breit integrals against libcint
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          cd ${{ github.workspace }}/tests
+          MALLOC_PERTURB_=85 python test_breit.py
       - name: Unittest
         if: startsWith(matrix.os, 'ubuntu')
         run: |

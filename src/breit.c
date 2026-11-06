@@ -163,7 +163,7 @@ BREIT0(sps1sps2, 1);
 static void CINTgout2e_int2e_breit_r1p2(double *RESTRICT gout, double *RESTRICT g,
                                         int *RESTRICT idx, CINTEnvVars *envs) {
         int nf = envs->nf;
-        int nfc = nf * 9;
+        int nfc = nf * 1;
         int nrys_roots = envs->nrys_roots;
         int ix, iy, iz, i, n;
         DECLARE_GOUT;
