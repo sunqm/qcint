@@ -25,12 +25,20 @@
 #define QCINT_VERSION           "@qcint_VERSION@"
 #define CINT_SOVERSION          @cint_SOVERSION@
 
+#cmakedefine I8
+#ifdef I8
+#include <stdint.h>
+#define FINT int64_t
+#else
+#define FINT int
+#endif
+
 #cmakedefine CACHE_SIZE_I8
 #ifdef CACHE_SIZE_I8
 #include <stdint.h>
 #define CACHE_SIZE_T int64_t
 #else
-#define CACHE_SIZE_T int
+#define CACHE_SIZE_T FINT
 #endif
 
 // global parameters in env
@@ -184,7 +192,7 @@ typedef struct {
     int **index_xyz_array; // LMAX1**4 pointers to index_xyz
     int **non0ctr;
     int **sortedidx;
-    int nbas;
+    FINT nbas;
     double **log_max_coeff;
     PairData **pairdata;  // NULL indicates not-initialized, NO_VALUE can be skipped
 } CINTOpt;
@@ -192,12 +200,12 @@ typedef struct {
 // Add this macro def to make pyscf compatible with both v4 and v5
 #define HAVE_DEFINED_CINTENVVARS_H
 typedef struct {
-        int *atm;
-        int *bas;
+        FINT *atm;
+        FINT *bas;
         double *env;
-        int *shls;
-        int natm;
-        int nbas;
+        FINT *shls;
+        FINT natm;
+        FINT nbas;
 
         int i_l;
         int j_l;
@@ -265,68 +273,68 @@ typedef struct {
 } CINTEnvVars;
 #endif
 
-int CINTlen_cart(const int l);
-int CINTlen_spinor(const int bas_id, const int *bas);
+FINT CINTlen_cart(const FINT l);
+FINT CINTlen_spinor(const FINT bas_id, const FINT *bas);
 
-int CINTcgtos_cart(const int bas_id, const int *bas);
-int CINTcgtos_spheric(const int bas_id, const int *bas);
-int CINTcgtos_spinor(const int bas_id, const int *bas);
-int CINTcgto_cart(const int bas_id, const int *bas);
-int CINTcgto_spheric(const int bas_id, const int *bas);
-int CINTcgto_spinor(const int bas_id, const int *bas);
+FINT CINTcgtos_cart(const FINT bas_id, const FINT *bas);
+FINT CINTcgtos_spheric(const FINT bas_id, const FINT *bas);
+FINT CINTcgtos_spinor(const FINT bas_id, const FINT *bas);
+FINT CINTcgto_cart(const FINT bas_id, const FINT *bas);
+FINT CINTcgto_spheric(const FINT bas_id, const FINT *bas);
+FINT CINTcgto_spinor(const FINT bas_id, const FINT *bas);
 
-int CINTtot_pgto_spheric(const int *bas, const int nbas);
-int CINTtot_pgto_spinor(const int *bas, const int nbas);
+FINT CINTtot_pgto_spheric(const FINT *bas, const FINT nbas);
+FINT CINTtot_pgto_spinor(const FINT *bas, const FINT nbas);
 
-int CINTtot_cgto_cart(const int *bas, const int nbas);
-int CINTtot_cgto_spheric(const int *bas, const int nbas);
-int CINTtot_cgto_spinor(const int *bas, const int nbas);
+FINT CINTtot_cgto_cart(const FINT *bas, const FINT nbas);
+FINT CINTtot_cgto_spheric(const FINT *bas, const FINT nbas);
+FINT CINTtot_cgto_spinor(const FINT *bas, const FINT nbas);
 
-void CINTshells_cart_offset(int ao_loc[], const int *bas, const int nbas);
-void CINTshells_spheric_offset(int ao_loc[], const int *bas, const int nbas);
-void CINTshells_spinor_offset(int ao_loc[], const int *bas, const int nbas);
+void CINTshells_cart_offset(FINT ao_loc[], const FINT *bas, const FINT nbas);
+void CINTshells_spheric_offset(FINT ao_loc[], const FINT *bas, const FINT nbas);
+void CINTshells_spinor_offset(FINT ao_loc[], const FINT *bas, const FINT nbas);
 
-double *CINTc2s_bra_sph(double *sph, int nket, double *cart, int l);
-double *CINTc2s_ket_sph(double *sph, int nket, double *cart, int l);
-double *CINTc2s_ket_sph1(double *sph, double *cart, int lds, int ldc, int l);
-
-
-double CINTgto_norm(int n, double a);
+double *CINTc2s_bra_sph(double *sph, FINT nket, double *cart, FINT l);
+double *CINTc2s_ket_sph(double *sph, FINT nket, double *cart, FINT l);
+double *CINTc2s_ket_sph1(double *sph, double *cart, FINT lds, FINT ldc, FINT l);
 
 
-void CINTinit_2e_optimizer(CINTOpt **opt, int *atm, int natm,
-                           int *bas, int nbas, double *env);
-void CINTinit_optimizer(CINTOpt **opt, int *atm, int natm,
-                        int *bas, int nbas, double *env);
+double CINTgto_norm(FINT n, double a);
+
+
+void CINTinit_2e_optimizer(CINTOpt **opt, FINT *atm, FINT natm,
+                           FINT *bas, FINT nbas, double *env);
+void CINTinit_optimizer(CINTOpt **opt, FINT *atm, FINT natm,
+                        FINT *bas, FINT nbas, double *env);
 void CINTdel_2e_optimizer(CINTOpt **opt);
 void CINTdel_optimizer(CINTOpt **opt);
 
 
-int cint2e_cart(double *opijkl, int *shls,
-                int *atm, int natm, int *bas, int nbas, double *env,
+FINT cint2e_cart(double *opijkl, FINT *shls,
+                FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env,
                 CINTOpt *opt);
-void cint2e_cart_optimizer(CINTOpt **opt, int *atm, int natm,
-                           int *bas, int nbas, double *env);
-int cint2e_sph(double *opijkl, int *shls,
-               int *atm, int natm, int *bas, int nbas, double *env,
+void cint2e_cart_optimizer(CINTOpt **opt, FINT *atm, FINT natm,
+                           FINT *bas, FINT nbas, double *env);
+FINT cint2e_sph(double *opijkl, FINT *shls,
+               FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env,
                CINTOpt *opt);
-void cint2e_sph_optimizer(CINTOpt **opt, int *atm, int natm,
-                          int *bas, int nbas, double *env);
-int cint2e(double *opijkl, int *shls,
-           int *atm, int natm, int *bas, int nbas, double *env,
+void cint2e_sph_optimizer(CINTOpt **opt, FINT *atm, FINT natm,
+                          FINT *bas, FINT nbas, double *env);
+FINT cint2e(double *opijkl, FINT *shls,
+           FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env,
            CINTOpt *opt);
-void cint2e_optimizer(CINTOpt **opt, int *atm, int natm,
-                      int *bas, int nbas, double *env);
+void cint2e_optimizer(CINTOpt **opt, FINT *atm, FINT natm,
+                      FINT *bas, FINT nbas, double *env);
 
 #ifndef __cplusplus
 #include <complex.h>
 
 void CINTc2s_ket_spinor_sf1(double complex *gspa, double complex *gspb, double *gcart,
-                            int lds, int ldc, int nctr, int l, int kappa);
+                            FINT lds, FINT ldc, FINT nctr, FINT l, FINT kappa);
 void CINTc2s_iket_spinor_sf1(double complex *gspa, double complex *gspb, double *gcart,
-                             int lds, int ldc, int nctr, int l, int kappa);
+                             FINT lds, FINT ldc, FINT nctr, FINT l, FINT kappa);
 void CINTc2s_ket_spinor_si1(double complex *gspa, double complex *gspb, double *gcart,
-                            int lds, int ldc, int nctr, int l, int kappa);
+                            FINT lds, FINT ldc, FINT nctr, FINT l, FINT kappa);
 void CINTc2s_iket_spinor_si1(double complex *gspa, double complex *gspb, double *gcart,
-                             int lds, int ldc, int nctr, int l, int kappa);
+                             FINT lds, FINT ldc, FINT nctr, FINT l, FINT kappa);
 #endif

@@ -36,8 +36,8 @@ static void _transpose_comps(double *gctr, double *gctrj,
 
 int CINT1e_grids_loop(double *gctr, CINTEnvVars *envs, double *cache)
 {
-        int *shls  = envs->shls;
-        int *bas = envs->bas;
+        FINT *shls  = envs->shls;
+        FINT *bas = envs->bas;
         double *env = envs->env;
         int i_sh = shls[0];
         int j_sh = shls[1];
@@ -218,8 +218,8 @@ static void _transpose_comps(double *RESTRICT gctr, double *RESTRICT gctrj,
 
 size_t int1e_grids_cache_size(CINTEnvVars *envs)
 {
-        int *bas = envs->bas;
-        int *shls  = envs->shls;
+        FINT *bas = envs->bas;
+        FINT *shls  = envs->shls;
         int *x_ctr = envs->x_ctr;
         int ngrids = ALIGN_UP(envs->ngrids, SIMDD);
         int nroots = envs->nrys_roots;
@@ -245,7 +245,7 @@ size_t int1e_grids_cache_size(CINTEnvVars *envs)
 /*
  * 1e integrals <i|O|j> without 1/r
  */
-CACHE_SIZE_T CINT1e_grids_drv(double *out, int *dims, CINTEnvVars *envs,
+CACHE_SIZE_T CINT1e_grids_drv(double *out, FINT *dims, CINTEnvVars *envs,
                               double *cache, void (*f_c2s)())
 {
         if (out == NULL) {
@@ -266,7 +266,7 @@ CACHE_SIZE_T CINT1e_grids_drv(double *out, int *dims, CINTEnvVars *envs,
 
         int has_value = CINT1e_grids_loop(gctr, envs, cache);
 
-        int counts[4];
+        FINT counts[4];
         if (dims == NULL) {
                 dims = counts;
         }
@@ -298,7 +298,7 @@ CACHE_SIZE_T CINT1e_grids_drv(double *out, int *dims, CINTEnvVars *envs,
         return has_value;
 }
 
-CACHE_SIZE_T CINT1e_grids_spinor_drv(double complex *out, int *dims, CINTEnvVars *envs,
+CACHE_SIZE_T CINT1e_grids_spinor_drv(double complex *out, FINT *dims, CINTEnvVars *envs,
                                      double *cache, void (*f_c2s)())
 {
         if (out == NULL) {
@@ -318,7 +318,7 @@ CACHE_SIZE_T CINT1e_grids_spinor_drv(double complex *out, int *dims, CINTEnvVars
 
         int has_value = CINT1e_grids_loop(gctr, envs, cache);
 
-        int counts[4];
+        FINT counts[4];
         if (dims == NULL) {
                 dims = counts;
         }
@@ -343,8 +343,8 @@ CACHE_SIZE_T CINT1e_grids_spinor_drv(double complex *out, int *dims, CINTEnvVars
         return has_value;
 }
 
-CACHE_SIZE_T int1e_grids_sph(double *out, int *dims, int *shls, int *atm, int natm,
-                     int *bas, int nbas, double *env, CINTOpt *opt, double *cache)
+CACHE_SIZE_T int1e_grids_sph(double *out, FINT *dims, FINT *shls, FINT *atm, FINT natm,
+                     FINT *bas, FINT nbas, double *env, CINTOpt *opt, double *cache)
 {
         int ng[] = {0, 0, 0, 0, 0, 1, 0, 1};
         CINTEnvVars envs;
@@ -353,15 +353,15 @@ CACHE_SIZE_T int1e_grids_sph(double *out, int *dims, int *shls, int *atm, int na
         return CINT1e_grids_drv(out, dims, &envs, cache, &c2s_sph_1e_grids);
 }
 
-void int1e_grids_optimizer(CINTOpt **opt, int *atm, int natm,
-                           int *bas, int nbas, double *env)
+void int1e_grids_optimizer(CINTOpt **opt, FINT *atm, FINT natm,
+                           FINT *bas, FINT nbas, double *env)
 {
         *opt = NULL;
 }
 
 
-CACHE_SIZE_T int1e_grids_cart(double *out, int *dims, int *shls, int *atm, int natm,
-                              int *bas, int nbas, double *env, CINTOpt *opt, double *cache)
+CACHE_SIZE_T int1e_grids_cart(double *out, FINT *dims, FINT *shls, FINT *atm, FINT natm,
+                              FINT *bas, FINT nbas, double *env, CINTOpt *opt, double *cache)
 {
         int ng[] = {0, 0, 0, 0, 0, 1, 0, 1};
         CINTEnvVars envs;
@@ -370,8 +370,8 @@ CACHE_SIZE_T int1e_grids_cart(double *out, int *dims, int *shls, int *atm, int n
         return CINT1e_grids_drv(out, dims, &envs, cache, &c2s_cart_1e_grids);
 }
 
-CACHE_SIZE_T int1e_grids_spinor(double complex *out, int *dims, int *shls, int *atm, int natm,
-                                int *bas, int nbas, double *env, CINTOpt *opt, double *cache)
+CACHE_SIZE_T int1e_grids_spinor(double complex *out, FINT *dims, FINT *shls, FINT *atm, FINT natm,
+                                FINT *bas, FINT nbas, double *env, CINTOpt *opt, double *cache)
 {
         int ng[] = {0, 0, 0, 0, 0, 1, 0, 1};
         CINTEnvVars envs;

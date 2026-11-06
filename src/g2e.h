@@ -38,16 +38,16 @@ typedef struct {
 
 
 void CINTg4c_index_xyz(int *idx, CINTEnvVars *envs);
-void CINTinit_int2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
-                            int *atm, int natm, int *bas, int nbas, double *env);
-void CINTinit_int3c2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
-                              int *atm, int natm, int *bas, int nbas, double *env);
-void CINTinit_int2c2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
-                              int *atm, int natm, int *bas, int nbas, double *env);
-void CINTinit_int2e_stg_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
-                                int *atm, int natm, int *bas, int nbas, double *env);
-void CINTinit_int2e_yp_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
-                               int *atm, int natm, int *bas, int nbas, double *env);
+void CINTinit_int2e_EnvVars(CINTEnvVars *envs, int *ng, FINT *shls,
+                            FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env);
+void CINTinit_int3c2e_EnvVars(CINTEnvVars *envs, int *ng, FINT *shls,
+                              FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env);
+void CINTinit_int2c2e_EnvVars(CINTEnvVars *envs, int *ng, FINT *shls,
+                              FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env);
+void CINTinit_int2e_stg_EnvVars(CINTEnvVars *envs, int *ng, FINT *shls,
+                                FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env);
+void CINTinit_int2e_yp_EnvVars(CINTEnvVars *envs, int *ng, FINT *shls,
+                               FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env);
 
 int CINTg0_2e(double *g, double *cutoff,
               Rys2eT *bc, CINTEnvVars *envs, int count);
@@ -68,10 +68,10 @@ void CINTg0_2e_kj2d4d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs);
 void CINTg0_2e_il2d4d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs);
 void CINTg0_2e_ik2d4d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs);
 
-void CINTinit_int2e_stg_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
-                                int *atm, int natm, int *bas, int nbas, double *env);
-void CINTinit_int2e_yp_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
-                               int *atm, int natm, int *bas, int nbas, double *env);
+void CINTinit_int2e_stg_EnvVars(CINTEnvVars *envs, int *ng, FINT *shls,
+                                FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env);
+void CINTinit_int2e_yp_EnvVars(CINTEnvVars *envs, int *ng, FINT *shls,
+                               FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env);
 
 void CINTnabla1i_2e(double *f, double *g,
                     int li, int lj, int lk, int ll, CINTEnvVars *envs);
@@ -110,10 +110,10 @@ void CINTx1l_2e_simd1(double *f, double *g, double *rl,
                       int li, int lj, int lk, int ll, CINTEnvVars *envs);
 
 #ifdef WITH_F12
-void CINTinit_int2e_yp_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
-                               int *atm, int natm, int *bas, int nbas, double *env);
-void CINTinit_int2e_stg_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
-                                int *atm, int natm, int *bas, int nbas, double *env);
+void CINTinit_int2e_yp_EnvVars(CINTEnvVars *envs, int *ng, FINT *shls,
+                               FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env);
+void CINTinit_int2e_stg_EnvVars(CINTEnvVars *envs, int *ng, FINT *shls,
+                                FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env);
 #endif
  
 #define G2E_D_I(f, g, li, lj, lk, ll)   CINTnabla1i_2e(f, g, li, lj, lk, ll, envs)

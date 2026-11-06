@@ -31,8 +31,8 @@ void CINTg0_kj_4d(double *g, CINTEnvVars *envs);
 void CINTg0_il_4d(double *g, CINTEnvVars *envs);
 void CINTg0_ik_4d(double *g, CINTEnvVars *envs);
 
-void CINTinit_int4c1e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
-                              int *atm, int natm, int *bas, int nbas, double *env)
+void CINTinit_int4c1e_EnvVars(CINTEnvVars *envs, int *ng, FINT *shls,
+                              FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env)
 {
         envs->natm = natm;
         envs->nbas = nbas;

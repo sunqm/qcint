@@ -1,5 +1,5 @@
-void CINTinit_int1e_grids_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
-                                  int *atm, int natm, int *bas, int nbas, double *env);
+void CINTinit_int1e_grids_EnvVars(CINTEnvVars *envs, int *ng, FINT *shls,
+                                  FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env);
 
 int CINTg0_1e_grids(double *g, double cutoff, CINTEnvVars *envs,
                     double *cache, double *gridsT);

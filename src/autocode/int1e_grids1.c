@@ -78,28 +78,28 @@ MM_STORE(gout+ig+bgrids*(n*3+0), MM_LOAD(gout+ig+bgrids*(n*3+0)) +  + rs[0]);
 MM_STORE(gout+ig+bgrids*(n*3+1), MM_LOAD(gout+ig+bgrids*(n*3+1)) +  + rs[1]);
 MM_STORE(gout+ig+bgrids*(n*3+2), MM_LOAD(gout+ig+bgrids*(n*3+2)) +  + rs[2]);
 }}}}
-void int1e_grids_ip_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
+void int1e_grids_ip_optimizer(CINTOpt **opt, FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env) {
 int ng[] = {1, 0, 0, 0, 1, 1, 0, 3};
 CINTall_1e_grids_optimizer(opt, ng, atm, natm, bas, nbas, env);
 }
-CACHE_SIZE_T int1e_grids_ip_cart(double *out, int *dims, int *shls,
-int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+CACHE_SIZE_T int1e_grids_ip_cart(double *out, FINT *dims, FINT *shls,
+FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 0, 0, 0, 1, 1, 0, 3};
 CINTEnvVars envs;
 CINTinit_int1e_grids_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout1e_int1e_grids_ip;
 return CINT1e_grids_drv(out, dims, &envs, cache, &c2s_cart_1e_grids);
 } // int1e_grids_ip_cart
-CACHE_SIZE_T int1e_grids_ip_sph(double *out, int *dims, int *shls,
-int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+CACHE_SIZE_T int1e_grids_ip_sph(double *out, FINT *dims, FINT *shls,
+FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 0, 0, 0, 1, 1, 0, 3};
 CINTEnvVars envs;
 CINTinit_int1e_grids_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout1e_int1e_grids_ip;
 return CINT1e_grids_drv(out, dims, &envs, cache, &c2s_sph_1e_grids);
 } // int1e_grids_ip_sph
-CACHE_SIZE_T int1e_grids_ip_spinor(double complex *out, int *dims, int *shls,
-int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+CACHE_SIZE_T int1e_grids_ip_spinor(double complex *out, FINT *dims, FINT *shls,
+FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 0, 0, 0, 1, 1, 0, 3};
 CINTEnvVars envs;
 CINTinit_int1e_grids_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
@@ -180,28 +180,28 @@ MM_STORE(gout+ig+bgrids*(n*9+6), MM_LOAD(gout+ig+bgrids*(n*9+6)) +  + rs[6]);
 MM_STORE(gout+ig+bgrids*(n*9+7), MM_LOAD(gout+ig+bgrids*(n*9+7)) +  + rs[7]);
 MM_STORE(gout+ig+bgrids*(n*9+8), MM_LOAD(gout+ig+bgrids*(n*9+8)) +  + rs[8]);
 }}}}
-void int1e_grids_ipvip_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
+void int1e_grids_ipvip_optimizer(CINTOpt **opt, FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env) {
 int ng[] = {1, 1, 0, 0, 2, 1, 0, 9};
 CINTall_1e_grids_optimizer(opt, ng, atm, natm, bas, nbas, env);
 }
-CACHE_SIZE_T int1e_grids_ipvip_cart(double *out, int *dims, int *shls,
-int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+CACHE_SIZE_T int1e_grids_ipvip_cart(double *out, FINT *dims, FINT *shls,
+FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 1, 0, 0, 2, 1, 0, 9};
 CINTEnvVars envs;
 CINTinit_int1e_grids_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout1e_int1e_grids_ipvip;
 return CINT1e_grids_drv(out, dims, &envs, cache, &c2s_cart_1e_grids);
 } // int1e_grids_ipvip_cart
-CACHE_SIZE_T int1e_grids_ipvip_sph(double *out, int *dims, int *shls,
-int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+CACHE_SIZE_T int1e_grids_ipvip_sph(double *out, FINT *dims, FINT *shls,
+FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 1, 0, 0, 2, 1, 0, 9};
 CINTEnvVars envs;
 CINTinit_int1e_grids_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout1e_int1e_grids_ipvip;
 return CINT1e_grids_drv(out, dims, &envs, cache, &c2s_sph_1e_grids);
 } // int1e_grids_ipvip_sph
-CACHE_SIZE_T int1e_grids_ipvip_spinor(double complex *out, int *dims, int *shls,
-int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+CACHE_SIZE_T int1e_grids_ipvip_spinor(double complex *out, FINT *dims, FINT *shls,
+FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 1, 0, 0, 2, 1, 0, 9};
 CINTEnvVars envs;
 CINTinit_int1e_grids_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
@@ -272,28 +272,28 @@ MM_STORE(gout+ig+bgrids*(n*4+1), MM_LOAD(gout+ig+bgrids*(n*4+1)) +  + rs[6] - rs
 MM_STORE(gout+ig+bgrids*(n*4+2), MM_LOAD(gout+ig+bgrids*(n*4+2)) +  + rs[1] - rs[3]);
 MM_STORE(gout+ig+bgrids*(n*4+3), MM_LOAD(gout+ig+bgrids*(n*4+3)) +  + rs[0] + rs[4] + rs[8]);
 }}}}
-void int1e_grids_spvsp_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
+void int1e_grids_spvsp_optimizer(CINTOpt **opt, FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env) {
 int ng[] = {1, 1, 0, 0, 2, 4, 0, 1};
 CINTall_1e_grids_optimizer(opt, ng, atm, natm, bas, nbas, env);
 }
-CACHE_SIZE_T int1e_grids_spvsp_cart(double *out, int *dims, int *shls,
-int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+CACHE_SIZE_T int1e_grids_spvsp_cart(double *out, FINT *dims, FINT *shls,
+FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 1, 0, 0, 2, 4, 0, 1};
 CINTEnvVars envs;
 CINTinit_int1e_grids_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout1e_int1e_grids_spvsp;
 return CINT1e_grids_drv(out, dims, &envs, cache, &c2s_cart_1e_grids);
 } // int1e_grids_spvsp_cart
-CACHE_SIZE_T int1e_grids_spvsp_sph(double *out, int *dims, int *shls,
-int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+CACHE_SIZE_T int1e_grids_spvsp_sph(double *out, FINT *dims, FINT *shls,
+FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 1, 0, 0, 2, 4, 0, 1};
 CINTEnvVars envs;
 CINTinit_int1e_grids_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout1e_int1e_grids_spvsp;
 return CINT1e_grids_drv(out, dims, &envs, cache, &c2s_sph_1e_grids);
 } // int1e_grids_spvsp_sph
-CACHE_SIZE_T int1e_grids_spvsp_spinor(double complex *out, int *dims, int *shls,
-int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+CACHE_SIZE_T int1e_grids_spvsp_spinor(double complex *out, FINT *dims, FINT *shls,
+FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {1, 1, 0, 0, 2, 4, 0, 1};
 CINTEnvVars envs;
 CINTinit_int1e_grids_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
@@ -374,28 +374,28 @@ MM_STORE(gout+ig+bgrids*(n*9+6), MM_LOAD(gout+ig+bgrids*(n*9+6)) +  + rs[2]);
 MM_STORE(gout+ig+bgrids*(n*9+7), MM_LOAD(gout+ig+bgrids*(n*9+7)) +  + rs[5]);
 MM_STORE(gout+ig+bgrids*(n*9+8), MM_LOAD(gout+ig+bgrids*(n*9+8)) +  + rs[8]);
 }}}}
-void int1e_grids_ipip_optimizer(CINTOpt **opt, int *atm, int natm, int *bas, int nbas, double *env) {
+void int1e_grids_ipip_optimizer(CINTOpt **opt, FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env) {
 int ng[] = {2, 0, 0, 0, 2, 1, 0, 9};
 CINTall_1e_grids_optimizer(opt, ng, atm, natm, bas, nbas, env);
 }
-CACHE_SIZE_T int1e_grids_ipip_cart(double *out, int *dims, int *shls,
-int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+CACHE_SIZE_T int1e_grids_ipip_cart(double *out, FINT *dims, FINT *shls,
+FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {2, 0, 0, 0, 2, 1, 0, 9};
 CINTEnvVars envs;
 CINTinit_int1e_grids_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout1e_int1e_grids_ipip;
 return CINT1e_grids_drv(out, dims, &envs, cache, &c2s_cart_1e_grids);
 } // int1e_grids_ipip_cart
-CACHE_SIZE_T int1e_grids_ipip_sph(double *out, int *dims, int *shls,
-int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+CACHE_SIZE_T int1e_grids_ipip_sph(double *out, FINT *dims, FINT *shls,
+FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {2, 0, 0, 0, 2, 1, 0, 9};
 CINTEnvVars envs;
 CINTinit_int1e_grids_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);
 envs.f_gout = &CINTgout1e_int1e_grids_ipip;
 return CINT1e_grids_drv(out, dims, &envs, cache, &c2s_sph_1e_grids);
 } // int1e_grids_ipip_sph
-CACHE_SIZE_T int1e_grids_ipip_spinor(double complex *out, int *dims, int *shls,
-int *atm, int natm, int *bas, int nbas, double *env, CINTOpt *opt, double *cache) {
+CACHE_SIZE_T int1e_grids_ipip_spinor(double complex *out, FINT *dims, FINT *shls,
+FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env, CINTOpt *opt, double *cache) {
 int ng[] = {2, 0, 0, 0, 2, 1, 0, 9};
 CINTEnvVars envs;
 CINTinit_int1e_grids_EnvVars(&envs, ng, shls, atm, natm, bas, nbas, env);

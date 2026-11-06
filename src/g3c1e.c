@@ -28,8 +28,8 @@
 #include "g1e.h"
 #include "rys_roots.h"
 
-void CINTinit_int3c1e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
-                              int *atm, int natm, int *bas, int nbas, double *env)
+void CINTinit_int3c1e_EnvVars(CINTEnvVars *envs, int *ng, FINT *shls,
+                              FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env)
 {
         envs->natm = natm;
         envs->nbas = nbas;
@@ -201,7 +201,7 @@ void CINTg3c1e_nuc(double *g, CINTEnvVars *envs, int count, int nuc_id)
         int nmax = li + lj + lk;
         int mmax = lj + lk;
         int nrys_roots = envs->nrys_roots;
-        int *atm = envs->atm;
+        FINT *atm = envs->atm;
         double *env = envs->env;
         int di = envs->g_stride_i;
         int dj = envs->g_stride_j;

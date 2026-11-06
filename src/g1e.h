@@ -21,10 +21,10 @@
 #include "cint.h"
 #include "simd.h"
 
-void CINTinit_int1e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
-                            int *atm, int natm, int *bas, int nbas, double *env);
-void CINTinit_int3c1e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
-                              int *atm, int natm, int *bas, int nbas, double *env);
+void CINTinit_int1e_EnvVars(CINTEnvVars *envs, int *ng, FINT *shls,
+                            FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env);
+void CINTinit_int3c1e_EnvVars(CINTEnvVars *envs, int *ng, FINT *shls,
+                              FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env);
 
 void CINTg2c_index_xyz(int *idx, CINTEnvVars *envs);
 
@@ -32,7 +32,7 @@ void CINTg1e_ovlp(double *g, CINTEnvVars *envs, int count);
 void CINTg1e_nuc(double *g, CINTEnvVars *envs, int count, int nuc_id);
 void CINTg3c1e_ovlp(double *g, CINTEnvVars *envs, int count);
 void CINTg3c1e_nuc(double *g, CINTEnvVars *envs, int count, int nuc_id);
-double CINTnuc_mod(double aij, int nuc_id, int *atm, double *env);
+double CINTnuc_mod(double aij, int nuc_id, FINT *atm, double *env);
 
 void CINTnabla1i_1e(double *f, double *g,
                     int li, int lj, int lk, CINTEnvVars *envs);

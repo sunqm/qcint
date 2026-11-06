@@ -110,8 +110,8 @@
 
 int CINT1e_loop_nopt(double *out, CINTEnvVars *envs, double *cache)
 {
-        int *shls = envs->shls;
-        int *bas = envs->bas;
+        FINT *shls = envs->shls;
+        FINT *bas = envs->bas;
         double *env = envs->env;
         int i_sh = shls[0];
         int j_sh = shls[1];
@@ -216,10 +216,10 @@ i_contracted: ;
 
 int CINT1e_loop(double *out, CINTEnvVars *envs, CINTOpt *opt, double *cache)
 {
-        int *shls  = envs->shls;
+        FINT *shls  = envs->shls;
         int i_sh = shls[0];
         int j_sh = shls[1];
-        int *bas = envs->bas;
+        FINT *bas = envs->bas;
         double *env = envs->env;
         int i_ctr  = envs->x_ctr[0];
         int j_ctr  = envs->x_ctr[1];
@@ -313,8 +313,8 @@ i_contracted: ;
 
 int int1e_cache_size(CINTEnvVars *envs)
 {
-        int *shls = envs->shls;
-        int *bas = envs->bas;
+        FINT *shls = envs->shls;
+        FINT *bas = envs->bas;
         int i_prim = bas(NPRIM_OF, shls[0]);
         int j_prim = bas(NPRIM_OF, shls[1]);
         int *x_ctr = envs->x_ctr;
@@ -331,7 +331,7 @@ int int1e_cache_size(CINTEnvVars *envs)
         return cache_size;
 }
 
-CACHE_SIZE_T CINT1e_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
+CACHE_SIZE_T CINT1e_drv(double *out, FINT *dims, CINTEnvVars *envs, CINTOpt *opt,
                double *cache, void (*f_c2s)())
 {
         if (out == NULL) {
@@ -356,7 +356,7 @@ CACHE_SIZE_T CINT1e_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
                 has_value = CINT1e_loop_nopt(gctr, envs, cache);
         }
 
-        int counts[4];
+        FINT counts[4];
         if (dims == NULL) {
                 dims = counts;
         }
@@ -385,7 +385,7 @@ CACHE_SIZE_T CINT1e_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
         }
         return has_value;
 }
-CACHE_SIZE_T CINT1e_spinor_drv(double complex *out, int *dims, CINTEnvVars *envs,
+CACHE_SIZE_T CINT1e_spinor_drv(double complex *out, FINT *dims, CINTEnvVars *envs,
                       CINTOpt *opt, double *cache, void (*f_c2s)())
 {
         if (out == NULL) {
@@ -409,7 +409,7 @@ CACHE_SIZE_T CINT1e_spinor_drv(double complex *out, int *dims, CINTEnvVars *envs
                 has_value = CINT1e_loop_nopt(gctr, envs, cache);
         }
 
-        int counts[4];
+        FINT counts[4];
         if (dims == NULL) {
                 dims = counts;
         }
@@ -480,8 +480,8 @@ void CINTgout1e_nuc(double *gout, double *g, int *idx, CINTEnvVars *envs, int co
         CINTsort_gout(gout, gtmp, nfc, SIMDD);
 }
 
-CACHE_SIZE_T int1e_ovlp_sph(double *out, int *dims, int *shls, int *atm, int natm,
-                   int *bas, int nbas, double *env, CINTOpt *opt, double *cache)
+CACHE_SIZE_T int1e_ovlp_sph(double *out, FINT *dims, FINT *shls, FINT *atm, FINT natm,
+                   FINT *bas, FINT nbas, double *env, CINTOpt *opt, double *cache)
 {
         int ng[] = {0, 0, 0, 0, 0, 1, 1, 1};
         CINTEnvVars envs;
@@ -489,15 +489,15 @@ CACHE_SIZE_T int1e_ovlp_sph(double *out, int *dims, int *shls, int *atm, int nat
         envs.f_gout = &CINTgout1e;
         return CINT1e_drv(out, dims, &envs, opt, cache, &c2s_sph_1e);
 }
-void int1e_ovlp_optimizer(CINTOpt **opt, int *atm, int natm,
-                          int *bas, int nbas, double *env)
+void int1e_ovlp_optimizer(CINTOpt **opt, FINT *atm, FINT natm,
+                          FINT *bas, FINT nbas, double *env)
 {
         int ng[] = {0, 0, 0, 0, 0, 1, 1, 1};
         CINTall_1e_optimizer(opt, ng, atm, natm, bas, nbas, env);
 }
 
-CACHE_SIZE_T int1e_ovlp_cart(double *out, int *dims, int *shls, int *atm, int natm,
-                    int *bas, int nbas, double *env, CINTOpt *opt, double *cache)
+CACHE_SIZE_T int1e_ovlp_cart(double *out, FINT *dims, FINT *shls, FINT *atm, FINT natm,
+                    FINT *bas, FINT nbas, double *env, CINTOpt *opt, double *cache)
 {
         int ng[] = {0, 0, 0, 0, 0, 1, 1, 1};
         CINTEnvVars envs;
@@ -506,8 +506,8 @@ CACHE_SIZE_T int1e_ovlp_cart(double *out, int *dims, int *shls, int *atm, int na
         return CINT1e_drv(out, dims, &envs, opt, cache, &c2s_cart_1e);
 }
 
-CACHE_SIZE_T int1e_ovlp_spinor(double complex *out, int *dims, int *shls, int *atm, int natm,
-                      int *bas, int nbas, double *env, CINTOpt *opt, double *cache)
+CACHE_SIZE_T int1e_ovlp_spinor(double complex *out, FINT *dims, FINT *shls, FINT *atm, FINT natm,
+                      FINT *bas, FINT nbas, double *env, CINTOpt *opt, double *cache)
 {
         int ng[] = {0, 0, 0, 0, 0, 1, 1, 1};
         CINTEnvVars envs;
@@ -516,8 +516,8 @@ CACHE_SIZE_T int1e_ovlp_spinor(double complex *out, int *dims, int *shls, int *a
         return CINT1e_spinor_drv(out, dims, &envs, opt, cache, &c2s_sf_1e);
 }
 
-CACHE_SIZE_T int1e_nuc_sph(double *out, int *dims, int *shls, int *atm, int natm,
-                  int *bas, int nbas, double *env, CINTOpt *opt, double *cache)
+CACHE_SIZE_T int1e_nuc_sph(double *out, FINT *dims, FINT *shls, FINT *atm, FINT natm,
+                  FINT *bas, FINT nbas, double *env, CINTOpt *opt, double *cache)
 {
         int ng[] = {0, 0, 0, 0, 0, 1, 0, 1};
         CINTEnvVars envs;
@@ -525,14 +525,14 @@ CACHE_SIZE_T int1e_nuc_sph(double *out, int *dims, int *shls, int *atm, int natm
         envs.f_gout = &CINTgout1e_nuc;
         return CINT1e_drv(out, dims, &envs, opt, cache, &c2s_sph_1e);
 }
-void int1e_nuc_optimizer(CINTOpt **opt, int *atm, int natm,
-                         int *bas, int nbas, double *env)
+void int1e_nuc_optimizer(CINTOpt **opt, FINT *atm, FINT natm,
+                         FINT *bas, FINT nbas, double *env)
 {
         int ng[] = {0, 0, 0, 0, 0, 1, 0, 1};
         CINTall_1e_optimizer(opt, ng, atm, natm, bas, nbas, env);
 }
-CACHE_SIZE_T int1e_nuc_cart(double *out, int *dims, int *shls, int *atm, int natm,
-                   int *bas, int nbas, double *env, CINTOpt *opt, double *cache)
+CACHE_SIZE_T int1e_nuc_cart(double *out, FINT *dims, FINT *shls, FINT *atm, FINT natm,
+                   FINT *bas, FINT nbas, double *env, CINTOpt *opt, double *cache)
 {
         int ng[] = {0, 0, 0, 0, 0, 1, 0, 1};
         CINTEnvVars envs;
@@ -541,8 +541,8 @@ CACHE_SIZE_T int1e_nuc_cart(double *out, int *dims, int *shls, int *atm, int nat
         return CINT1e_drv(out, dims, &envs, opt, cache, &c2s_cart_1e);
 }
 
-CACHE_SIZE_T int1e_nuc_spinor(double complex *out, int *dims, int *shls, int *atm, int natm,
-                     int *bas, int nbas, double *env, CINTOpt *opt, double *cache)
+CACHE_SIZE_T int1e_nuc_spinor(double complex *out, FINT *dims, FINT *shls, FINT *atm, FINT natm,
+                     FINT *bas, FINT nbas, double *env, CINTOpt *opt, double *cache)
 {
         int ng[] = {0, 0, 0, 0, 0, 1, 0, 1};
         CINTEnvVars envs;

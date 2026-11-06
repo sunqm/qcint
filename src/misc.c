@@ -20,6 +20,7 @@
 
 #include <math.h>
 #include <complex.h>
+#include "cint_config.h"
 
 #if defined(__GNUC__)
 #define RESTRICT __restrict__
@@ -104,7 +105,7 @@ static double _gaussian_int(int n, double alpha)
  *
  * Ref: H. B. Schlegel and M. J. Frisch, Int. J. Quant.  Chem., 54(1995), 83-87.
  */
-double CINTgto_norm(int n, double a)
+double CINTgto_norm(FINT n, double a)
 {
         return 1. / sqrt(_gaussian_int(n*2+2, 2*a));
 }

@@ -32,8 +32,8 @@
         type *RESTRICT GY = G + envs->g_size     * SIMDD; \
         type *RESTRICT GZ = G + envs->g_size * 2 * SIMDD
 
-void CINTinit_int1e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
-                            int *atm, int natm, int *bas, int nbas, double *env)
+void CINTinit_int1e_EnvVars(CINTEnvVars *envs, int *ng, FINT *shls,
+                            FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env)
 {
         envs->natm = natm;
         envs->nbas = nbas;
@@ -260,7 +260,7 @@ MM_STORE(gz+n*SIMDD, MM_LOAD(p1z+n*SIMDD) + MM_SET1(rirj[2]) * MM_LOAD(p0z+n*SIM
  * Calculate temporary parameter tau for nuclear charge distribution.
  * The charge parameter zeta is defined as    rho(r) = Norm * exp(-zeta*r^2)
  */
-double CINTnuc_mod(double aij, int nuc_id, int *atm, double *env)
+double CINTnuc_mod(double aij, int nuc_id, FINT *atm, double *env)
 {
         double zeta;
         if (nuc_id < 0) {
@@ -281,7 +281,7 @@ double CINTnuc_mod(double aij, int nuc_id, int *atm, double *env)
 void CINTg1e_nuc(double *g, CINTEnvVars *envs, int count, int nuc_id)
 {
         int nrys_roots = envs->nrys_roots;
-        int *atm = envs->atm;
+        FINT *atm = envs->atm;
         double *env = envs->env;
         double *RESTRICT rij = envs->rij;
         double *RESTRICT gx = g;

@@ -10,9 +10,9 @@
 #if !defined HAVE_DEFINED_CINTINTEGRALFUNCTION
 #define HAVE_DEFINED_CINTINTEGRALFUNCTION
 typedef void CINTOptimizerFunction(CINTOpt **opt,
-                                   int *atm, int natm, int *bas, int nbas, double *env);
-typedef CACHE_SIZE_T CINTIntegralFunction(double *out, int *dims, int *shls,
-                                 int *atm, int natm, int *bas, int nbas, double *env,
+                                   FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env);
+typedef CACHE_SIZE_T CINTIntegralFunction(double *out, FINT *dims, FINT *shls,
+                                 FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env,
                                  CINTOpt *opt, double *cache);
 #endif
 

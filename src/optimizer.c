@@ -37,8 +37,8 @@
 #include "misc.h"
 
 // generate caller to CINTinit_2e_optimizer for each type of function
-void CINTinit_2e_optimizer(CINTOpt **opt, int *atm, int natm,
-                           int *bas, int nbas, double *env)
+void CINTinit_2e_optimizer(CINTOpt **opt, FINT *atm, FINT natm,
+                           FINT *bas, FINT nbas, double *env)
 {
         CINTOpt *opt0 = (CINTOpt *)malloc(sizeof(CINTOpt));
         opt0->index_xyz_array = NULL;
@@ -49,8 +49,8 @@ void CINTinit_2e_optimizer(CINTOpt **opt, int *atm, int natm,
         opt0->pairdata = NULL;
         *opt = opt0;
 }
-void CINTinit_optimizer(CINTOpt **opt, int *atm, int natm,
-                        int *bas, int nbas, double *env)
+void CINTinit_optimizer(CINTOpt **opt, FINT *atm, FINT natm,
+                        FINT *bas, FINT nbas, double *env)
 {
         CINTinit_2e_optimizer(opt, atm, natm, bas, nbas, env);
 }
@@ -89,13 +89,13 @@ void CINTdel_optimizer(CINTOpt **opt)
         CINTdel_2e_optimizer(opt);
 }
 
-void CINTno_optimizer(CINTOpt **opt, int *atm, int natm,
-                      int *bas, int nbas, double *env)
+void CINTno_optimizer(CINTOpt **opt, FINT *atm, FINT natm,
+                      FINT *bas, FINT nbas, double *env)
 {
         *opt = NULL;
 }
 
-static int _make_fakebas(int *fakebas, int *bas, int nbas, double *env)
+static int _make_fakebas(FINT *fakebas, FINT *bas, FINT nbas, double *env)
 {
         int i;
         int max_l = 0;
@@ -135,18 +135,18 @@ static int *_allocate_index_xyz(CINTOpt *opt, int max_l, int l_allow, int order)
 }
 static void gen_idx(CINTOpt *opt, void (*finit)(), void (*findex_xyz)(),
                     int order, int l_allow, int *ng,
-                    int *atm, int natm, int *bas, int nbas, double *env)
+                    FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env)
 {
         int i, j, k, l, ptr;
-        int fakebas[BAS_SLOTS*LMAX1];
+        FINT fakebas[BAS_SLOTS*LMAX1];
         int max_l = _make_fakebas(fakebas, bas, nbas, env);
-        int fakenbas = max_l+1;
+        FINT fakenbas = max_l+1;
         // index_xyz bufsize may blow up for large max_l
         l_allow = MIN(max_l, l_allow);
         int *buf = _allocate_index_xyz(opt, max_l, l_allow, order);
 
         CINTEnvVars envs;
-        int shls[4] = {0,};
+        FINT shls[4] = {0,};
         if (order == 2) {
                 for (i = 0; i <= l_allow; i++) {
                 for (j = 0; j <= l_allow; j++) {
@@ -189,7 +189,7 @@ static void gen_idx(CINTOpt *opt, void (*finit)(), void (*findex_xyz)(),
 }
 
 void CINTall_1e_optimizer(CINTOpt **opt, int *ng,
-                          int *atm, int natm, int *bas, int nbas, double *env)
+                          FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env)
 {
         CINTinit_2e_optimizer(opt, atm, natm, bas, nbas, env);
         CINTOpt_set_log_maxc(*opt, atm, natm, bas, nbas, env);
@@ -199,7 +199,7 @@ void CINTall_1e_optimizer(CINTOpt **opt, int *ng,
 }
 
 void CINTall_2e_optimizer(CINTOpt **opt, int *ng,
-                          int *atm, int natm, int *bas, int nbas, double *env)
+                          FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env)
 {
         CINTinit_2e_optimizer(opt, atm, natm, bas, nbas, env);
         CINTOpt_setij(*opt, ng, atm, natm, bas, nbas, env);
@@ -209,7 +209,7 @@ void CINTall_2e_optimizer(CINTOpt **opt, int *ng,
 }
 
 void CINTall_3c2e_optimizer(CINTOpt **opt, int *ng,
-                            int *atm, int natm, int *bas, int nbas, double *env)
+                            FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env)
 {
         CINTinit_2e_optimizer(opt, atm, natm, bas, nbas, env);
         CINTOpt_setij(*opt, ng, atm, natm, bas, nbas, env);
@@ -219,7 +219,7 @@ void CINTall_3c2e_optimizer(CINTOpt **opt, int *ng,
 }
 
 void CINTall_2c2e_optimizer(CINTOpt **opt, int *ng,
-                            int *atm, int natm, int *bas, int nbas, double *env)
+                            FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env)
 {
         CINTinit_2e_optimizer(opt, atm, natm, bas, nbas, env);
         CINTOpt_set_log_maxc(*opt, atm, natm, bas, nbas, env);
@@ -229,7 +229,7 @@ void CINTall_2c2e_optimizer(CINTOpt **opt, int *ng,
 }
 
 void CINTall_3c1e_optimizer(CINTOpt **opt, int *ng,
-                            int *atm, int natm, int *bas, int nbas, double *env)
+                            FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env)
 {
         CINTinit_2e_optimizer(opt, atm, natm, bas, nbas, env);
         CINTOpt_setij(*opt, ng, atm, natm, bas, nbas, env);
@@ -239,7 +239,7 @@ void CINTall_3c1e_optimizer(CINTOpt **opt, int *ng,
 }
 
 void CINTall_1e_grids_optimizer(CINTOpt **opt, int *ng,
-                                int *atm, int natm, int *bas, int nbas, double *env)
+                                FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env)
 {
         CINTinit_2e_optimizer(opt, atm, natm, bas, nbas, env);
         CINTOpt_set_log_maxc(*opt, atm, natm, bas, nbas, env);
@@ -250,7 +250,7 @@ void CINTall_1e_grids_optimizer(CINTOpt **opt, int *ng,
 
 #ifdef WITH_F12
 void CINTall_2e_stg_optimizer(CINTOpt **opt, int *ng,
-                              int *atm, int natm, int *bas, int nbas, double *env)
+                              FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env)
 {
         CINTinit_2e_optimizer(opt, atm, natm, bas, nbas, env);
         CINTOpt_setij(*opt, ng, atm, natm, bas, nbas, env);
@@ -274,8 +274,8 @@ void CINTOpt_log_max_pgto_coeff(double *log_maxc, double *coeff, int nprim, int 
 }
 
 
-void CINTOpt_set_log_maxc(CINTOpt *opt, int *atm, int natm,
-                          int *bas, int nbas, double *env)
+void CINTOpt_set_log_maxc(CINTOpt *opt, FINT *atm, FINT natm,
+                          FINT *bas, FINT nbas, double *env)
 {
         int i, iprim, ictr;
         double *ci;
@@ -378,7 +378,7 @@ int CINTset_pairdata(PairData *pairdata, double *ai, double *aj, double *ri, dou
 }
 
 void CINTOpt_setij(CINTOpt *opt, int *ng,
-                   int *atm, int natm, int *bas, int nbas, double *env)
+                   FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env)
 {
         int i, j, ip, jp;
         int iprim, jprim, li, lj;
@@ -493,8 +493,8 @@ void CINTOpt_non0coeff_byshell(int *sortedidx, int *non0ctr, double *ci,
         }
 }
 
-void CINTOpt_set_non0coeff(CINTOpt *opt, int *atm, int natm,
-                           int *bas, int nbas, double *env)
+void CINTOpt_set_non0coeff(CINTOpt *opt, FINT *atm, FINT natm,
+                           FINT *bas, FINT nbas, double *env)
 {
         int i, iprim, ictr;
         double *ci;

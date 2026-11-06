@@ -34,49 +34,49 @@ void CINTdcmplx_nn(const int n, double complex *z, const double *re, const doubl
 
 double CINTsquare_dist(const double *r1, const double *r2);
 
-double CINTgto_norm(int n, double a);
+double CINTgto_norm(FINT n, double a);
 
 
 #ifdef WITH_CINT2_INTERFACE
 #define ALL_CINT(NAME) \
-int c##NAME##_cart(double *out, int *shls, int *atm, int natm, \
-            int *bas, int nbas, double *env, CINTOpt *opt) { \
+FINT c##NAME##_cart(double *out, FINT *shls, FINT *atm, FINT natm, \
+            FINT *bas, FINT nbas, double *env, CINTOpt *opt) { \
         return NAME##_cart(out, NULL, shls, atm, natm, bas, nbas, env, opt, NULL); \
 } \
-void c##NAME##_cart_optimizer(CINTOpt **opt, int *atm, int natm, \
-                         int *bas, int nbas, double *env) { \
+void c##NAME##_cart_optimizer(CINTOpt **opt, FINT *atm, FINT natm, \
+                         FINT *bas, FINT nbas, double *env) { \
         NAME##_optimizer(opt, atm, natm, bas, nbas, env); \
 } \
-int c##NAME##_sph(double *out, int *shls, int *atm, int natm, \
-            int *bas, int nbas, double *env, CINTOpt *opt) { \
+FINT c##NAME##_sph(double *out, FINT *shls, FINT *atm, FINT natm, \
+            FINT *bas, FINT nbas, double *env, CINTOpt *opt) { \
         return NAME##_sph(out, NULL, shls, atm, natm, bas, nbas, env, opt, NULL); \
 } \
-void c##NAME##_sph_optimizer(CINTOpt **opt, int *atm, int natm, \
-                         int *bas, int nbas, double *env) { \
+void c##NAME##_sph_optimizer(CINTOpt **opt, FINT *atm, FINT natm, \
+                         FINT *bas, FINT nbas, double *env) { \
         NAME##_optimizer(opt, atm, natm, bas, nbas, env); \
 } \
-int c##NAME(double *out, int *shls, int *atm, int natm, \
-            int *bas, int nbas, double *env, CINTOpt *opt) { \
+FINT c##NAME(double *out, FINT *shls, FINT *atm, FINT natm, \
+            FINT *bas, FINT nbas, double *env, CINTOpt *opt) { \
         return NAME##_spinor((double complex *)out, NULL, shls, \
                              atm, natm, bas, nbas, env, opt, NULL); \
 } \
-void c##NAME##_optimizer(CINTOpt **opt, int *atm, int natm, \
-                         int *bas, int nbas, double *env) { \
+void c##NAME##_optimizer(CINTOpt **opt, FINT *atm, FINT natm, \
+                         FINT *bas, FINT nbas, double *env) { \
         NAME##_optimizer(opt, atm, natm, bas, nbas, env); \
 }
 
 
 #define ALL_CINT1E(NAME) \
-int c##NAME##_cart(double *out, int *shls, int *atm, int natm, \
-            int *bas, int nbas, double *env) { \
+FINT c##NAME##_cart(double *out, FINT *shls, FINT *atm, FINT natm, \
+            FINT *bas, FINT nbas, double *env) { \
         return NAME##_cart(out, NULL, shls, atm, natm, bas, nbas, env, NULL, NULL); \
 } \
-int c##NAME##_sph(double *out, int *shls, int *atm, int natm, \
-            int *bas, int nbas, double *env) { \
+FINT c##NAME##_sph(double *out, FINT *shls, FINT *atm, FINT natm, \
+            FINT *bas, FINT nbas, double *env) { \
         return NAME##_sph(out, NULL, shls, atm, natm, bas, nbas, env, NULL, NULL); \
 } \
-int c##NAME(double *out, int *shls, int *atm, int natm, \
-            int *bas, int nbas, double *env) { \
+FINT c##NAME(double *out, FINT *shls, FINT *atm, FINT natm, \
+            FINT *bas, FINT nbas, double *env) { \
         return NAME##_spinor((double complex *)out, NULL, shls, \
                              atm, natm, bas, nbas, env, NULL, NULL); \
 }

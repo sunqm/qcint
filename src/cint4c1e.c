@@ -138,13 +138,13 @@
         *empty = 0;
 
 void CINTg4c1e_ovlp(double *g, double *buf, CINTEnvVars *envs, int count);
-void CINTinit_int4c1e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
-                              int *atm, int natm, int *bas, int nbas, double *env);
+void CINTinit_int4c1e_EnvVars(CINTEnvVars *envs, int *ng, FINT *shls,
+                              FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env);
 
 int CINT4c1e_loop_nopt(double *out, CINTEnvVars *envs, double *cache, int *empty)
 {
-        int *shls = envs->shls;
-        int *bas = envs->bas;
+        FINT *shls = envs->shls;
+        FINT *bas = envs->bas;
         double *env = envs->env;
         int i_sh = shls[0];
         int j_sh = shls[1];
@@ -330,8 +330,8 @@ k_contracted: ;
 
 
 #define PAIRDATA_NON0IDX_SIZE(ps) \
-                int *bas = envs->bas; \
-                int *shls  = envs->shls; \
+                FINT *bas = envs->bas; \
+                FINT *shls  = envs->shls; \
                 int i_prim = bas(NPRIM_OF, shls[0]); \
                 int j_prim = bas(NPRIM_OF, shls[1]); \
                 int k_prim = bas(NPRIM_OF, shls[2]); \
@@ -343,7 +343,7 @@ k_contracted: ;
                            + (i_prim+j_prim+k_prim+l_prim)*2 \
                            + envs->nf*3);
 
-CACHE_SIZE_T CINT4c1e_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *opt,
+CACHE_SIZE_T CINT4c1e_drv(double *out, FINT *dims, CINTEnvVars *envs, CINTOpt *opt,
                           double *cache, void (*f_c2s)())
 {
         int *x_ctr = envs->x_ctr;
@@ -386,7 +386,7 @@ CACHE_SIZE_T CINT4c1e_drv(double *out, int *dims, CINTEnvVars *envs, CINTOpt *op
         int empty = 1;
         CINT4c1e_loop_nopt(gctr, envs, cache, &empty);
 
-        int counts[4];
+        FINT counts[4];
         if (f_c2s == &c2s_sph_2e1) {
                 counts[0] = (envs->i_l*2+1) * x_ctr[0];
                 counts[1] = (envs->j_l*2+1) * x_ctr[1];
@@ -435,8 +435,8 @@ void CINTgout4c1e(double *gout, double *g, int *idx, CINTEnvVars *envs, int coun
         }
 }
 
-CACHE_SIZE_T int4c1e_sph(double *out, int *dims, int *shls, int *atm, int natm,
-                         int *bas, int nbas, double *env, CINTOpt *opt, double *cache)
+CACHE_SIZE_T int4c1e_sph(double *out, FINT *dims, FINT *shls, FINT *atm, FINT natm,
+                         FINT *bas, FINT nbas, double *env, CINTOpt *opt, double *cache)
 {
         int ng[] = {0, 0, 0, 0, 0, 1, 1, 1};
         CINTEnvVars envs;
@@ -444,14 +444,14 @@ CACHE_SIZE_T int4c1e_sph(double *out, int *dims, int *shls, int *atm, int natm,
         envs.f_gout = &CINTgout4c1e;
         return CINT4c1e_drv(out, dims, &envs, opt, cache, &c2s_sph_2e1);
 }
-void int4c1e_optimizer(CINTOpt **opt, int *atm, int natm,
-                       int *bas, int nbas, double *env)
+void int4c1e_optimizer(CINTOpt **opt, FINT *atm, FINT natm,
+                       FINT *bas, FINT nbas, double *env)
 {
         *opt = NULL;
 }
 
-CACHE_SIZE_T int4c1e_cart(double *out, int *dims, int *shls, int *atm, int natm,
-                          int *bas, int nbas, double *env, CINTOpt *opt, double *cache)
+CACHE_SIZE_T int4c1e_cart(double *out, FINT *dims, FINT *shls, FINT *atm, FINT natm,
+                          FINT *bas, FINT nbas, double *env, CINTOpt *opt, double *cache)
 {
         int ng[] = {0, 0, 0, 0, 0, 1, 1, 1};
         CINTEnvVars envs;
@@ -460,8 +460,8 @@ CACHE_SIZE_T int4c1e_cart(double *out, int *dims, int *shls, int *atm, int natm,
         return CINT4c1e_drv(out, dims, &envs, opt, cache, &c2s_cart_2e1);
 }
 
-CACHE_SIZE_T int4c1e_spinor(double complex *out, int *dims, int *shls, int *atm, int natm,
-                            int *bas, int nbas, double *env, CINTOpt *opt, double *cache)
+CACHE_SIZE_T int4c1e_spinor(double complex *out, FINT *dims, FINT *shls, FINT *atm, FINT natm,
+                            FINT *bas, FINT nbas, double *env, CINTOpt *opt, double *cache)
 {
         fprintf(stderr, "int4c1e_spinor not implemented\n");
         exit(1);

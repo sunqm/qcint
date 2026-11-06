@@ -4871,7 +4871,7 @@ static void zcopy_iklj(double complex *fijkl, double *gctrR, double *gctrI,
         }
 }
 
-void c2s_dset0(double *out, int *dims, int *counts)
+void c2s_dset0(double *out, FINT *dims, FINT *counts)
 {
         int ni = dims[0];
         int nj = dims[1];
@@ -4901,7 +4901,7 @@ void c2s_dset0(double *out, int *dims, int *counts)
                 out += nijk;
         }
 }
-void c2s_zset0(double complex *out, int *dims, int *counts)
+void c2s_zset0(double complex *out, FINT *dims, FINT *counts)
 {
         int ni = dims[0];
         int nj = dims[1];
@@ -4932,17 +4932,17 @@ void c2s_zset0(double complex *out, int *dims, int *counts)
         }
 }
 
-void c2s_grids_dset0(double *out, int *dims, int *counts)
+void c2s_grids_dset0(double *out, FINT *dims, FINT *counts)
 {
-        int counts1[4] = {counts[2], counts[0], counts[1], counts[3]};
-        int dims1[4] = {dims[2], dims[0], dims[1],dims [3]};
+        FINT counts1[4] = {counts[2], counts[0], counts[1], counts[3]};
+        FINT dims1[4] = {dims[2], dims[0], dims[1],dims [3]};
         c2s_dset0(out, dims1, counts1);
 }
 
-void c2s_grids_zset0(double complex *out, int *dims, int *counts)
+void c2s_grids_zset0(double complex *out, FINT *dims, FINT *counts)
 {
-        int counts1[4] = {counts[2], counts[0], counts[1], counts[3]};
-        int dims1[4] = {dims[2], dims[0], dims[1],dims [3]};
+        FINT counts1[4] = {counts[2], counts[0], counts[1], counts[3]};
+        FINT dims1[4] = {dims[2], dims[0], dims[1],dims [3]};
         c2s_zset0(out, dims1, counts1);
 }
 
@@ -4997,7 +4997,7 @@ static double *sph2e_inner(double *gsph, double *gcart,
 /*
  * 1e integrals, cartesian to real spheric.
  */
-void c2s_sph_1e(double *opij, double *gctr, int *dims,
+void c2s_sph_1e(double *opij, double *gctr, FINT *dims,
                 CINTEnvVars *envs, double *cache)
 {
         int i_l = envs->i_l;
@@ -5033,11 +5033,11 @@ void c2s_sph_1e(double *opij, double *gctr, int *dims,
 /*
  * 1e integrals, cartesian to spin-free spinor.
  */
-void c2s_sf_1e(double complex *opij, double *gctr, int *dims,
+void c2s_sf_1e(double complex *opij, double *gctr, FINT *dims,
                CINTEnvVars *envs, double *cache)
 {
-        int *shls = envs->shls;
-        int *bas = envs->bas;
+        FINT *shls = envs->shls;
+        FINT *bas = envs->bas;
         int i_sh = shls[0];
         int j_sh = shls[1];
         int i_l = envs->i_l;
@@ -5069,11 +5069,11 @@ void c2s_sf_1e(double complex *opij, double *gctr, int *dims,
                 gctr += nf;
         } }
 }
-void c2s_sf_1ei(double complex *opij, double *gctr, int *dims,
+void c2s_sf_1ei(double complex *opij, double *gctr, FINT *dims,
                 CINTEnvVars *envs, double *cache)
 {
-        int *shls = envs->shls;
-        int *bas = envs->bas;
+        FINT *shls = envs->shls;
+        FINT *bas = envs->bas;
         int i_sh = shls[0];
         int j_sh = shls[1];
         int i_l = envs->i_l;
@@ -5110,11 +5110,11 @@ void c2s_sf_1ei(double complex *opij, double *gctr, int *dims,
 /*
  * 1e integrals, cartesian to spinor.
  */
-void c2s_si_1e(double complex *opij, double *gctr, int *dims,
+void c2s_si_1e(double complex *opij, double *gctr, FINT *dims,
                CINTEnvVars *envs, double *cache)
 {
-        int *shls = envs->shls;
-        int *bas = envs->bas;
+        FINT *shls = envs->shls;
+        FINT *bas = envs->bas;
         int i_sh = shls[0];
         int j_sh = shls[1];
         int i_l = envs->i_l;
@@ -5156,11 +5156,11 @@ void c2s_si_1e(double complex *opij, double *gctr, int *dims,
                 gc_1 += nf;
         } }
 }
-void c2s_si_1ei(double complex *opij, double *gctr, int *dims,
+void c2s_si_1ei(double complex *opij, double *gctr, FINT *dims,
                 CINTEnvVars *envs, double *cache)
 {
-        int *shls = envs->shls;
-        int *bas = envs->bas;
+        FINT *shls = envs->shls;
+        FINT *bas = envs->bas;
         int i_sh = shls[0];
         int j_sh = shls[1];
         int i_l = envs->i_l;
@@ -5203,7 +5203,7 @@ void c2s_si_1ei(double complex *opij, double *gctr, int *dims,
         } }
 }
 
-void c2s_sph_1e_grids(double *out, double *gctr, int *dims,
+void c2s_sph_1e_grids(double *out, double *gctr, FINT *dims,
                       CINTEnvVars *envs, double *cache)
 {
         int ngrids = envs->ngrids;
@@ -5244,7 +5244,7 @@ void c2s_sph_1e_grids(double *out, double *gctr, int *dims,
         }
 }
 
-void c2s_cart_1e_grids(double *out, double *gctr, int *dims,
+void c2s_cart_1e_grids(double *out, double *gctr, FINT *dims,
                        CINTEnvVars *envs, double *cache)
 {
         int ngrids = envs->ngrids;
@@ -5276,12 +5276,12 @@ void c2s_cart_1e_grids(double *out, double *gctr, int *dims,
 /*
  * 1e-grids integrals, cartesian to spin-free spinor.
  */
-void c2s_sf_1e_grids(double complex *out, double *gctr, int *dims,
+void c2s_sf_1e_grids(double complex *out, double *gctr, FINT *dims,
                      CINTEnvVars *envs, double *cache)
 {
         int ngrids = envs->ngrids;
-        int *shls = envs->shls;
-        int *bas = envs->bas;
+        FINT *shls = envs->shls;
+        FINT *bas = envs->bas;
         int i_sh = shls[0];
         int j_sh = shls[1];
         int i_l = envs->i_l;
@@ -5324,12 +5324,12 @@ void c2s_sf_1e_grids(double complex *out, double *gctr, int *dims,
                 } }
         }
 }
-void c2s_sf_1e_gridsi(double complex *out, double *gctr, int *dims,
+void c2s_sf_1e_gridsi(double complex *out, double *gctr, FINT *dims,
                       CINTEnvVars *envs, double *cache)
 {
         int ngrids = envs->ngrids;
-        int *shls = envs->shls;
-        int *bas = envs->bas;
+        FINT *shls = envs->shls;
+        FINT *bas = envs->bas;
         int i_sh = shls[0];
         int j_sh = shls[1];
         int i_l = envs->i_l;
@@ -5372,12 +5372,12 @@ void c2s_sf_1e_gridsi(double complex *out, double *gctr, int *dims,
                 } }
         }
 }
-void c2s_si_1e_grids(double complex *out, double *gctr, int *dims,
+void c2s_si_1e_grids(double complex *out, double *gctr, FINT *dims,
                      CINTEnvVars *envs, double *cache)
 {
         int ngrids = envs->ngrids;
-        int *shls = envs->shls;
-        int *bas = envs->bas;
+        FINT *shls = envs->shls;
+        FINT *bas = envs->bas;
         int i_sh = shls[0];
         int j_sh = shls[1];
         int i_l = envs->i_l;
@@ -5430,12 +5430,12 @@ void c2s_si_1e_grids(double complex *out, double *gctr, int *dims,
                 } }
         }
 }
-void c2s_si_1e_gridsi(double complex *out, double *gctr, int *dims,
+void c2s_si_1e_gridsi(double complex *out, double *gctr, FINT *dims,
                       CINTEnvVars *envs, double *cache)
 {
         int ngrids = envs->ngrids;
-        int *shls = envs->shls;
-        int *bas = envs->bas;
+        FINT *shls = envs->shls;
+        FINT *bas = envs->bas;
         int i_sh = shls[0];
         int j_sh = shls[1];
         int i_l = envs->i_l;
@@ -5495,7 +5495,7 @@ void c2s_si_1e_gridsi(double complex *out, double *gctr, int *dims,
  *
  * gctr: Cartesian GTO integrals, ordered as <ik|lj>
  */
-void c2s_sph_2e1(double *out, double *gctr, int *dims,
+void c2s_sph_2e1(double *out, double *gctr, FINT *dims,
                  CINTEnvVars *envs, double *cache)
 {
         int i_l = envs->i_l;
@@ -5556,11 +5556,11 @@ void c2s_sph_2e1(double *out, double *gctr, int *dims,
  * gctr: Cartesian GTO integrals, ordered as <ik|lj>
  * opij: partially transformed GTO integrals, ordered as <ik|lj>
  */
-void c2s_sf_2e1(double *opij, double *gctr, int *dims,
+void c2s_sf_2e1(double *opij, double *gctr, FINT *dims,
                 CINTEnvVars *envs, double *cache)
 {
-        int *shls = envs->shls;
-        int *bas = envs->bas;
+        FINT *shls = envs->shls;
+        FINT *bas = envs->bas;
         int i_sh = shls[0];
         int j_sh = shls[1];
         int i_l = envs->i_l;
@@ -5595,11 +5595,11 @@ void c2s_sf_2e1(double *opij, double *gctr, int *dims,
         }
 }
 
-void c2s_sf_2e1i(double *opij, double *gctr, int *dims,
+void c2s_sf_2e1i(double *opij, double *gctr, FINT *dims,
                  CINTEnvVars *envs, double *cache)
 {
-        int *shls = envs->shls;
-        int *bas = envs->bas;
+        FINT *shls = envs->shls;
+        FINT *bas = envs->bas;
         int i_sh = shls[0];
         int j_sh = shls[1];
         int i_l = envs->i_l;
@@ -5640,11 +5640,11 @@ void c2s_sf_2e1i(double *opij, double *gctr, int *dims,
  *
  * opij: partial transformed GTO integrals, ordered as <ik|lj>
  */
-void c2s_sf_2e2(double complex *fijkl, double *opij, int *dims,
+void c2s_sf_2e2(double complex *fijkl, double *opij, FINT *dims,
                 CINTEnvVars *envs, double *cache)
 {
-        int *shls = envs->shls;
-        int *bas = envs->bas;
+        FINT *shls = envs->shls;
+        FINT *bas = envs->bas;
         int i_sh = shls[0];
         int j_sh = shls[1];
         int k_sh = shls[2];
@@ -5698,11 +5698,11 @@ void c2s_sf_2e2(double complex *fijkl, double *opij, int *dims,
                 opij += nop * OF_CMPLX;
         } } } }
 }
-void c2s_sf_2e2i(double complex *fijkl, double *opij, int *dims,
+void c2s_sf_2e2i(double complex *fijkl, double *opij, FINT *dims,
                  CINTEnvVars *envs, double *cache)
 {
-        int *shls = envs->shls;
-        int *bas = envs->bas;
+        FINT *shls = envs->shls;
+        FINT *bas = envs->bas;
         int i_sh = shls[0];
         int j_sh = shls[1];
         int k_sh = shls[2];
@@ -5763,11 +5763,11 @@ void c2s_sf_2e2i(double complex *fijkl, double *opij, int *dims,
  * gctr: Cartesian GTO integrals, ordered as <ik|lj>
  * opij: partial transformed GTO integrals, ordered as <ik|lj>
  */
-void c2s_si_2e1(double *opij, double *gctr, int *dims,
+void c2s_si_2e1(double *opij, double *gctr, FINT *dims,
                 CINTEnvVars *envs, double *cache)
 {
-        int *shls = envs->shls;
-        int *bas = envs->bas;
+        FINT *shls = envs->shls;
+        FINT *bas = envs->bas;
         int i_sh = shls[0];
         int j_sh = shls[1];
         int i_l = envs->i_l;
@@ -5810,11 +5810,11 @@ void c2s_si_2e1(double *opij, double *gctr, int *dims,
                 opij += no * OF_CMPLX;
         }
 }
-void c2s_si_2e1i(double *opij, double *gctr, int *dims,
+void c2s_si_2e1i(double *opij, double *gctr, FINT *dims,
                  CINTEnvVars *envs, double *cache)
 {
-        int *shls = envs->shls;
-        int *bas = envs->bas;
+        FINT *shls = envs->shls;
+        FINT *bas = envs->bas;
         int i_sh = shls[0];
         int j_sh = shls[1];
         int i_l = envs->i_l;
@@ -5858,11 +5858,11 @@ void c2s_si_2e1i(double *opij, double *gctr, int *dims,
         }
 }
 
-void c2s_si_2e2(double complex *fijkl, double *opij, int *dims,
+void c2s_si_2e2(double complex *fijkl, double *opij, FINT *dims,
                 CINTEnvVars *envs, double *cache)
 {
-        int *shls = envs->shls;
-        int *bas = envs->bas;
+        FINT *shls = envs->shls;
+        FINT *bas = envs->bas;
         int i_sh = shls[0];
         int j_sh = shls[1];
         int k_sh = shls[2];
@@ -5923,11 +5923,11 @@ void c2s_si_2e2(double complex *fijkl, double *opij, int *dims,
         } } } }
 }
 
-void c2s_si_2e2i(double complex *fijkl, double *opij, int *dims,
+void c2s_si_2e2i(double complex *fijkl, double *opij, FINT *dims,
                  CINTEnvVars *envs, double *cache)
 {
-        int *shls = envs->shls;
-        int *bas = envs->bas;
+        FINT *shls = envs->shls;
+        FINT *bas = envs->bas;
         int i_sh = shls[0];
         int j_sh = shls[1];
         int k_sh = shls[2];
@@ -5991,7 +5991,7 @@ void c2s_si_2e2i(double complex *fijkl, double *opij, int *dims,
 /*
  * 1e integrals, reorder cartesian integrals.
  */
-void c2s_cart_1e(double *opij, double *gctr, int *dims,
+void c2s_cart_1e(double *opij, double *gctr, FINT *dims,
                  CINTEnvVars *envs, double *cache)
 {
         int i_ctr = envs->x_ctr[0];
@@ -6016,7 +6016,7 @@ void c2s_cart_1e(double *opij, double *gctr, int *dims,
 /*
  * 2e integrals, reorder cartesian integrals.
  */
-void c2s_cart_2e1(double *fijkl, double *gctr, int *dims, CINTEnvVars *envs,
+void c2s_cart_2e1(double *fijkl, double *gctr, FINT *dims, CINTEnvVars *envs,
                   double *cache)
 {
         int i_ctr = envs->x_ctr[0];
@@ -6055,7 +6055,7 @@ void c2s_cart_2e2() {};
  * 3-center 2-electron integral transformation
  *
  *************************************************/
-void c2s_sph_3c2e1(double *bufijk, double *gctr, int *dims,
+void c2s_sph_3c2e1(double *bufijk, double *gctr, FINT *dims,
                    CINTEnvVars *envs, double *cache)
 {
         int i_l = envs->i_l;
@@ -6097,7 +6097,7 @@ void c2s_sph_3c2e1(double *bufijk, double *gctr, int *dims,
         } } }
 }
 
-void c2s_cart_3c2e1(double *bufijk, double *gctr, int *dims,
+void c2s_cart_3c2e1(double *bufijk, double *gctr, FINT *dims,
                     CINTEnvVars *envs, double *cache)
 {
         int i_ctr = envs->x_ctr[0];
@@ -6127,7 +6127,7 @@ void c2s_cart_3c2e1(double *bufijk, double *gctr, int *dims,
 /*
  * ssc ~ (spheric,spheric|cartesian)
  */
-void c2s_sph_3c2e1_ssc(double *bufijk, double *gctr, int *dims,
+void c2s_sph_3c2e1_ssc(double *bufijk, double *gctr, FINT *dims,
                        CINTEnvVars *envs, double *cache)
 {
         int i_l = envs->i_l;
@@ -6168,11 +6168,11 @@ void c2s_sph_3c2e1_ssc(double *bufijk, double *gctr, int *dims,
 /*
  * 3c2e spinor integrals, cartesian to spin-free spinor for electron 1.
  */
-void c2s_sf_3c2e1(double complex *opijk, double *gctr, int *dims,
+void c2s_sf_3c2e1(double complex *opijk, double *gctr, FINT *dims,
                   CINTEnvVars *envs, double *cache)
 {
-        int *shls = envs->shls;
-        int *bas = envs->bas;
+        FINT *shls = envs->shls;
+        FINT *bas = envs->bas;
         int i_sh = shls[0];
         int j_sh = shls[1];
         int i_l = envs->i_l;
@@ -6221,11 +6221,11 @@ void c2s_sf_3c2e1(double complex *opijk, double *gctr, int *dims,
                 gctr += nf;
         } } }
 }
-void c2s_sf_3c2e1i(double complex *opijk, double *gctr, int *dims,
+void c2s_sf_3c2e1i(double complex *opijk, double *gctr, FINT *dims,
                    CINTEnvVars *envs, double *cache)
 {
-        int *shls = envs->shls;
-        int *bas = envs->bas;
+        FINT *shls = envs->shls;
+        FINT *bas = envs->bas;
         int i_sh = shls[0];
         int j_sh = shls[1];
         int i_l = envs->i_l;
@@ -6279,11 +6279,11 @@ void c2s_sf_3c2e1i(double complex *opijk, double *gctr, int *dims,
 /*
  * 3c2e integrals, cartesian to spinor for electron 1.
  */
-void c2s_si_3c2e1(double complex *opijk, double *gctr, int *dims,
+void c2s_si_3c2e1(double complex *opijk, double *gctr, FINT *dims,
                   CINTEnvVars *envs, double *cache)
 {
-        int *shls = envs->shls;
-        int *bas = envs->bas;
+        FINT *shls = envs->shls;
+        FINT *bas = envs->bas;
         int i_sh = shls[0];
         int j_sh = shls[1];
         int i_l = envs->i_l;
@@ -6351,11 +6351,11 @@ void c2s_si_3c2e1(double complex *opijk, double *gctr, int *dims,
         } } }
 }
 // CHECK
-void c2s_si_3c2e1i(double complex *opijk, double *gctr, int *dims,
+void c2s_si_3c2e1i(double complex *opijk, double *gctr, FINT *dims,
                    CINTEnvVars *envs, double *cache)
 {
-        int *shls = envs->shls;
-        int *bas = envs->bas;
+        FINT *shls = envs->shls;
+        FINT *bas = envs->bas;
         int i_sh = shls[0];
         int j_sh = shls[1];
         int i_l = envs->i_l;
@@ -6421,11 +6421,11 @@ void c2s_si_3c2e1i(double complex *opijk, double *gctr, int *dims,
         } } }
 }
 
-void c2s_sf_3c2e1_ssc(double complex *opijk, double *gctr, int *dims,
+void c2s_sf_3c2e1_ssc(double complex *opijk, double *gctr, FINT *dims,
                       CINTEnvVars *envs, double *cache)
 {
-        int *shls = envs->shls;
-        int *bas = envs->bas;
+        FINT *shls = envs->shls;
+        FINT *bas = envs->bas;
         int i_sh = shls[0];
         int j_sh = shls[1];
         int i_l = envs->i_l;
@@ -6467,11 +6467,11 @@ void c2s_sf_3c2e1_ssc(double complex *opijk, double *gctr, int *dims,
         } } }
 }
 // CHECK
-void c2s_sf_3c2e1i_ssc(double complex *opijk, double *gctr, int *dims,
+void c2s_sf_3c2e1i_ssc(double complex *opijk, double *gctr, FINT *dims,
                        CINTEnvVars *envs, double *cache)
 {
-        int *shls = envs->shls;
-        int *bas = envs->bas;
+        FINT *shls = envs->shls;
+        FINT *bas = envs->bas;
         int i_sh = shls[0];
         int j_sh = shls[1];
         int i_l = envs->i_l;
@@ -6512,11 +6512,11 @@ void c2s_sf_3c2e1i_ssc(double complex *opijk, double *gctr, int *dims,
                 gctr += nf;
         } } }
 }
-void c2s_si_3c2e1_ssc(double complex *opijk, double *gctr, int *dims,
+void c2s_si_3c2e1_ssc(double complex *opijk, double *gctr, FINT *dims,
                       CINTEnvVars *envs, double *cache)
 {
-        int *shls = envs->shls;
-        int *bas = envs->bas;
+        FINT *shls = envs->shls;
+        FINT *bas = envs->bas;
         int i_sh = shls[0];
         int j_sh = shls[1];
         int i_l = envs->i_l;
@@ -6567,11 +6567,11 @@ void c2s_si_3c2e1_ssc(double complex *opijk, double *gctr, int *dims,
                 gc_1 += nf;
         } } }
 }
-void c2s_si_3c2e1i_ssc(double complex *opijk, double *gctr, int *dims,
+void c2s_si_3c2e1i_ssc(double complex *opijk, double *gctr, FINT *dims,
                        CINTEnvVars *envs, double *cache)
 {
-        int *shls = envs->shls;
-        int *bas = envs->bas;
+        FINT *shls = envs->shls;
+        FINT *bas = envs->bas;
         int i_sh = shls[0];
         int j_sh = shls[1];
         int i_l = envs->i_l;
@@ -6629,13 +6629,13 @@ void c2s_si_3c2e1i_ssc(double complex *opijk, double *gctr, int *dims,
  * 3-center 1-electron integral transformation
  *
  *************************************************/
-void c2s_sph_3c1e(double *out, double *gctr, int *dims,
+void c2s_sph_3c1e(double *out, double *gctr, FINT *dims,
                   CINTEnvVars *envs, double *cache)
 {
         c2s_sph_3c2e1(out, gctr, dims, envs, cache);
 }
 
-void c2s_cart_3c1e(double *out, double *gctr, int *dims,
+void c2s_cart_3c1e(double *out, double *gctr, FINT *dims,
                    CINTEnvVars *envs, double *cache)
 {
         c2s_cart_3c2e1(out, gctr, dims, envs, cache);
@@ -6647,21 +6647,21 @@ void c2s_cart_3c1e(double *out, double *gctr, int *dims,
  * transform vectors
  *
  *************************************************/
-double *CINTc2s_bra_sph(double *gsph, int nket, double *gcart, int l)
+double *CINTc2s_bra_sph(double *gsph, FINT nket, double *gcart, FINT l)
 {
         return (c2s_bra_sph[l])(gsph, nket, gcart, l);
 }
-double *CINTc2s_ket_sph(double *gsph, int nbra, double *gcart, int l)
+double *CINTc2s_ket_sph(double *gsph, FINT nbra, double *gcart, FINT l)
 {
         return (c2s_ket_sph[l])(gsph, gcart, nbra, nbra, l);
 }
-double *CINTc2s_ket_sph1(double *sph, double *cart, int lds, int ldc, int l)
+double *CINTc2s_ket_sph1(double *sph, double *cart, FINT lds, FINT ldc, FINT l)
 {
         return (c2s_ket_sph1[l])(sph, cart, lds, ldc, l);
 }
 
-void CINTc2s_bra_spinor_e1sf(double complex *gsp, int nket,
-                             double *gcart, int kappa, int l)
+void CINTc2s_bra_spinor_e1sf(double complex *gsp, FINT nket,
+                             double *gcart, FINT kappa, FINT l)
 {
         int nf = _len_cart[l];
         int nd = _len_spinor(kappa, l);
@@ -6704,8 +6704,8 @@ void CINTc2s_bra_spinor_e1sf(double complex *gsp, int nket,
         } }
 }
 
-void CINTc2s_bra_spinor_sf(double complex *gsp, int nket,
-                           double complex *gcart, int kappa, int l)
+void CINTc2s_bra_spinor_sf(double complex *gsp, FINT nket,
+                           double complex *gcart, FINT kappa, FINT l)
 {
         int nf = _len_cart[l];
         int nd = _len_spinor(kappa, l);
@@ -6749,8 +6749,8 @@ void CINTc2s_bra_spinor_sf(double complex *gsp, int nket,
         } }
 }
 
-void CINTc2s_ket_spinor(double complex *gsp, int nbra,
-                        double complex *gcart, int kappa, int l)
+void CINTc2s_ket_spinor(double complex *gsp, FINT nbra,
+                        double complex *gcart, FINT kappa, FINT l)
 {
         int nf = _len_cart[l];
         int nf2 = nf * 2;
@@ -6788,8 +6788,8 @@ void CINTc2s_ket_spinor(double complex *gsp, int nbra,
         }
 }
 
-void CINTc2s_iket_spinor(double complex *gsp, int nbra,
-                         double complex *gcart, int kappa, int l)
+void CINTc2s_iket_spinor(double complex *gsp, FINT nbra,
+                         double complex *gcart, FINT kappa, FINT l)
 {
         int nf = _len_cart[l];
         int nf2 = nf * 2;
@@ -6827,8 +6827,8 @@ void CINTc2s_iket_spinor(double complex *gsp, int nbra,
         }
 }
 
-void CINTc2s_bra_spinor(double complex *gsp, int nket,
-                        double complex *gcart, int kappa, int l)
+void CINTc2s_bra_spinor(double complex *gsp, FINT nket,
+                        double complex *gcart, FINT kappa, FINT l)
 {
         int nf = _len_cart[l];
         int nf2 = nf * 2;
@@ -6864,8 +6864,8 @@ void CINTc2s_bra_spinor(double complex *gsp, int nket,
         } }
 }
 
-void CINTc2s_bra_spinor_si(double complex *gsp, int nket,
-                           double complex *gcart, int kappa, int l)
+void CINTc2s_bra_spinor_si(double complex *gsp, FINT nket,
+                           double complex *gcart, FINT kappa, FINT l)
 {
         int nf = _len_cart[l];
         int nf2 = nf * 2;
@@ -6913,7 +6913,7 @@ void CINTc2s_bra_spinor_si(double complex *gsp, int nket,
  * two-component vector
  */
 void CINTc2s_ket_spinor_sf1(double complex *gspa, double complex *gspb, double *gcart,
-                            int lds, int ldc, int nctr, int kappa, int l)
+                            FINT lds, FINT ldc, FINT nctr, FINT kappa, FINT l)
 {
         int nf = _len_cart[l];
         int nd = _len_spinor(kappa, l);
@@ -6962,7 +6962,7 @@ void CINTc2s_ket_spinor_sf1(double complex *gspa, double complex *gspb, double *
 }
 
 void CINTc2s_iket_spinor_sf1(double complex *gspa, double complex *gspb, double *gcart,
-                             int lds, int ldc, int nctr, int kappa, int l)
+                             FINT lds, FINT ldc, FINT nctr, FINT kappa, FINT l)
 {
         int nf = _len_cart[l];
         int nd = _len_spinor(kappa, l);
@@ -7011,7 +7011,7 @@ void CINTc2s_iket_spinor_sf1(double complex *gspa, double complex *gspb, double 
 }
 
 void CINTc2s_ket_spinor_si1(double complex *gspa, double complex *gspb, double *gcart,
-                            int lds, int ldc, int nctr, int kappa, int l)
+                            FINT lds, FINT ldc, FINT nctr, FINT kappa, FINT l)
 {
         int nf = _len_cart[l];
         int nd = _len_spinor(kappa, l);
@@ -7071,7 +7071,7 @@ void CINTc2s_ket_spinor_si1(double complex *gspa, double complex *gspb, double *
 }
 
 void CINTc2s_iket_spinor_si1(double complex *gspa, double complex *gspb, double *gcart,
-                             int lds, int ldc, int nctr, int kappa, int l)
+                             FINT lds, FINT ldc, FINT nctr, FINT kappa, FINT l)
 {
         int nf = _len_cart[l];
         int nd = _len_spinor(kappa, l);

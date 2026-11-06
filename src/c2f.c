@@ -37,34 +37,34 @@
  * for cint_bas.c
  */
 
-int cintlen_spinor_(const int *bas_id, const int *bas)
+FINT cintlen_spinor_(const FINT *bas_id, const FINT *bas)
 {
         return CINTlen_spinor(*bas_id, bas);
 }
 
-int cintcgtos_cart_(const int *bas_id, const int *bas)
+FINT cintcgtos_cart_(const FINT *bas_id, const FINT *bas)
 {
         return CINTcgto_cart(*bas_id, bas);
 }
-int cintcgto_cart_(const int *bas_id, const int *bas)
+FINT cintcgto_cart_(const FINT *bas_id, const FINT *bas)
 {
         return CINTcgto_cart(*bas_id, bas);
 }
 
-int cintcgtos_spheric_(const int *bas_id, const int *bas)
+FINT cintcgtos_spheric_(const FINT *bas_id, const FINT *bas)
 {
         return CINTcgto_spheric(*bas_id, bas);
 }
-int cintcgto_spheric_(const int *bas_id, const int *bas)
+FINT cintcgto_spheric_(const FINT *bas_id, const FINT *bas)
 {
         return CINTcgto_spheric(*bas_id, bas);
 }
 
-int cintcgtos_spinor_(const int *bas_id, const int *bas)
+FINT cintcgtos_spinor_(const FINT *bas_id, const FINT *bas)
 {
         return CINTcgto_spinor(*bas_id, bas);
 }
-int cintcgto_spinor_(const int *bas_id, const int *bas)
+FINT cintcgto_spinor_(const FINT *bas_id, const FINT *bas)
 {
         return CINTcgto_spinor(*bas_id, bas);
 }
@@ -72,7 +72,7 @@ int cintcgto_spinor_(const int *bas_id, const int *bas)
 /* 
  * tot. primitive atomic spheric GTOs in a shell
  */
-int cinttot_pgto_spheric_(const int *bas, const int *nbas)
+FINT cinttot_pgto_spheric_(const FINT *bas, const FINT *nbas)
 {
         return CINTtot_pgto_spheric(bas, *nbas);
 }
@@ -80,7 +80,7 @@ int cinttot_pgto_spheric_(const int *bas, const int *nbas)
 /* 
  * tot. primitive atomic spinors in a shell
  */
-int cinttot_pgto_spinor_(const int *bas, const int *nbas)
+FINT cinttot_pgto_spinor_(const FINT *bas, const FINT *nbas)
 {
         return CINTtot_pgto_spinor(bas, *nbas);
 }
@@ -88,7 +88,7 @@ int cinttot_pgto_spinor_(const int *bas, const int *nbas)
 /* 
  * tot. contracted atomic cartesian GTOs in a shell
  */
-int cinttot_cgto_cart_(const int *bas, const int *nbas)
+FINT cinttot_cgto_cart_(const FINT *bas, const FINT *nbas)
 {
         return CINTtot_cgto_cart(bas, *nbas);
 }
@@ -96,7 +96,7 @@ int cinttot_cgto_cart_(const int *bas, const int *nbas)
 /* 
  * tot. contracted atomic spheric GTOs in a shell
  */
-int cinttot_cgto_spheric_(const int *bas, const int *nbas)
+FINT cinttot_cgto_spheric_(const FINT *bas, const FINT *nbas)
 {
         return CINTtot_cgto_spheric(bas, *nbas);
 }
@@ -104,7 +104,7 @@ int cinttot_cgto_spheric_(const int *bas, const int *nbas)
 /* 
  * tot. contracted atomic spinors in a shell
  */
-int cinttot_cgto_spinor_(const int *bas, const int *nbas)
+FINT cinttot_cgto_spinor_(const FINT *bas, const FINT *nbas)
 {
         return CINTtot_cgto_spinor(bas, *nbas);
 }
@@ -112,7 +112,7 @@ int cinttot_cgto_spinor_(const int *bas, const int *nbas)
 /* 
  * offset of each shell for cartesian GTOs
  */
-void cintshells_cart_offset_(int ao_loc[], const int *bas, const int *nbas)
+void cintshells_cart_offset_(FINT ao_loc[], const FINT *bas, const FINT *nbas)
 {
         CINTshells_cart_offset(ao_loc, bas, *nbas);
 }
@@ -120,7 +120,7 @@ void cintshells_cart_offset_(int ao_loc[], const int *bas, const int *nbas)
 /* 
  * offset of each shell for real spheric GTOs
  */
-void cintshells_spheric_offset_(int ao_loc[], const int *bas, const int *nbas)
+void cintshells_spheric_offset_(FINT ao_loc[], const FINT *bas, const FINT *nbas)
 {
         CINTshells_spheric_offset(ao_loc, bas, *nbas);
 }
@@ -128,7 +128,7 @@ void cintshells_spheric_offset_(int ao_loc[], const int *bas, const int *nbas)
 /* 
  * offset of each shell for AO spinors
  */
-void cintshells_spinor_offset_(int ao_loc[], const int *bas, const int *nbas)
+void cintshells_spinor_offset_(FINT ao_loc[], const FINT *bas, const FINT *nbas)
 {
         CINTshells_spinor_offset(ao_loc, bas, *nbas);
 }
@@ -137,13 +137,27 @@ void cintshells_spinor_offset_(int ao_loc[], const int *bas, const int *nbas)
 /* 
  * GTO = x^{nx}y^{ny}z^{nz}e^{-ar^2}
  */
-void cintcart_comp_(int *nx, int *ny, int *nz, const int *lmax)
+void cintcart_comp_(FINT *nx, FINT *ny, FINT *nz, const FINT *lmax)
 {
+#ifdef I8
+        // CINTcart_comp works on int arrays, which are also used internally
+        int i;
+        int n = CINTlen_cart(*lmax);
+        int *buf = malloc(sizeof(int) * n * 3);
+        CINTcart_comp(buf, buf+n, buf+n*2, *lmax);
+        for (i = 0; i < n; i++) {
+                nx[i] = buf[i];
+                ny[i] = buf[n+i];
+                nz[i] = buf[n*2+i];
+        }
+        free(buf);
+#else
         CINTcart_comp(nx, ny, nz, *lmax);
+#endif
 }
 
 
-double cintgto_norm_(int *n, double *a)
+double cintgto_norm_(FINT *n, double *a)
 {
         return CINTgto_norm(*n, *a);
 }
@@ -157,15 +171,15 @@ double cintgto_norm_(int *n, double *a)
 /*
 typedef long CINTOptPtrAsInteger8;
 void cintinit_2e_optimizer_(CINTOptPtrAsInteger8 *optptr,
-                            int *atm, int *natm,
-                            int *bas, int *nbas, double *env)
+                            FINT *atm, FINT *natm,
+                            FINT *bas, FINT *nbas, double *env)
 {
         CINTOpt **opt = (CINTOpt **)optptr;
         CINTinit_2e_optimizer(opt, atm, *natm, bas, *nbas, env);
 }
 void cintinit_optimizer_(CINTOptPtrAsInteger8 *optptr,
-                         int *atm, int *natm,
-                         int *bas, int *nbas, double *env)
+                         FINT *atm, FINT *natm,
+                         FINT *bas, FINT *nbas, double *env)
 {
         cintinit_2e_optimizer_(optptr, atm, natm, bas, nbas, env);
 }

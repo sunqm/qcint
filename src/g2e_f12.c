@@ -42,8 +42,8 @@ void CINTg0_2e_stg_lj2d4d_simd1(double *g, Rys2eT *bc, CINTEnvVars *envs);
 void CINTg0_lj_4d(double *g, CINTEnvVars *envs);
 void CINTg0_lj_4d_simd1(double *g, CINTEnvVars *envs);
 
-void CINTinit_int2e_yp_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
-                               int *atm, int natm, int *bas, int nbas, double *env)
+void CINTinit_int2e_yp_EnvVars(CINTEnvVars *envs, int *ng, FINT *shls,
+                               FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env)
 {
         envs->natm = natm;
         envs->nbas = nbas;
@@ -170,8 +170,8 @@ void CINTinit_int2e_yp_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
         }
 }
 
-void CINTinit_int2e_stg_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
-                                int *atm, int natm, int *bas, int nbas, double *env)
+void CINTinit_int2e_stg_EnvVars(CINTEnvVars *envs, int *ng, FINT *shls,
+                                FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env)
 {
         CINTinit_int2e_yp_EnvVars(envs, ng, shls, atm, natm, bas, nbas, env);
         envs->f_g0_2e = &CINTg0_2e_stg;

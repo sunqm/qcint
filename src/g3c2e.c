@@ -28,8 +28,8 @@
 #include "misc.h"
 #include "g2e.h"
 
-void CINTinit_int3c2e_EnvVars(CINTEnvVars *envs, int *ng, int *shls,
-                              int *atm, int natm, int *bas, int nbas, double *env)
+void CINTinit_int3c2e_EnvVars(CINTEnvVars *envs, int *ng, FINT *shls,
+                              FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env)
 {
         envs->natm = natm;
         envs->nbas = nbas;

@@ -23,22 +23,22 @@
 #define NOVALUE                 ((void *)0xffffffffffffffffuL)
 #define MAX_PGTO_FOR_PAIRDATA   2048
 
-void CINTinit_2e_optimizer(CINTOpt **opt, int *atm, int natm,
-                           int *bas, int nbas, double *env);
-void CINTinit_optimizer(CINTOpt **opt, int *atm, int natm,
-                        int *bas, int nbas, double *env);
+void CINTinit_2e_optimizer(CINTOpt **opt, FINT *atm, FINT natm,
+                           FINT *bas, FINT nbas, double *env);
+void CINTinit_optimizer(CINTOpt **opt, FINT *atm, FINT natm,
+                        FINT *bas, FINT nbas, double *env);
 void CINTdel_2e_optimizer(CINTOpt **opt);
 void CINTdel_optimizer(CINTOpt **opt);
 void CINTdel_pairdata_optimizer(CINTOpt *cintopt);
 void CINTOpt_log_max_pgto_coeff(double *log_maxc, double *coeff, int nprim, int nctr);
-void CINTOpt_set_log_maxc(CINTOpt *opt, int *atm, int natm,
-                          int *bas, int nbas, double *env);
+void CINTOpt_set_log_maxc(CINTOpt *opt, FINT *atm, FINT natm,
+                          FINT *bas, FINT nbas, double *env);
 void CINTOpt_setij(CINTOpt *opt, int *ng,
-                   int *atm, int natm, int *bas, int nbas, double *env);
+                   FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env);
 void CINTOpt_non0coeff_byshell(int *sortedidx, int *non0ctr, double *ci,
                                int iprim, int ictr);
-void CINTOpt_set_non0coeff(CINTOpt *opt, int *atm, int natm,
-                           int *bas, int nbas, double *env);
+void CINTOpt_set_non0coeff(CINTOpt *opt, FINT *atm, FINT natm,
+                           FINT *bas, FINT nbas, double *env);
 double CINTmin_exponent(double *a, int nprim);
 int CINTset_pairdata(PairData *pairdata, double *ai, double *aj, double *ri, double *rj,
                      double *log_maxci, double *log_maxcj,
@@ -46,24 +46,24 @@ int CINTset_pairdata(PairData *pairdata, double *ai, double *aj, double *ri, dou
                      double rr_ij, double expcutoff, double *env);
 
 // optimizer examples
-void CINTno_optimizer(CINTOpt **opt, int *atm, int natm,
-                      int *bas, int nbas, double *env);
+void CINTno_optimizer(CINTOpt **opt, FINT *atm, FINT natm,
+                      FINT *bas, FINT nbas, double *env);
 void CINTall_1e_optimizer(CINTOpt **opt, int *ng,
-                          int *atm, int natm, int *bas, int nbas, double *env);
+                          FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env);
 void CINTall_2e_optimizer(CINTOpt **opt, int *ng,
-                          int *atm, int natm, int *bas, int nbas, double *env);
+                          FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env);
 void CINTall_3c2e_optimizer(CINTOpt **opt, int *ng,
-                            int *atm, int natm, int *bas, int nbas, double *env);
+                            FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env);
 void CINTall_2c2e_optimizer(CINTOpt **opt, int *ng,
-                            int *atm, int natm, int *bas, int nbas, double *env);
+                            FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env);
 void CINTall_3c1e_optimizer(CINTOpt **opt, int *ng,
-                            int *atm, int natm, int *bas, int nbas, double *env);
+                            FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env);
 void CINTall_1e_grids_optimizer(CINTOpt **opt, int *ng,
-                                int *atm, int natm, int *bas, int nbas, double *env);
+                                FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env);
 
 #ifdef WITH_F12
 void CINTall_2e_stg_optimizer(CINTOpt **opt, int *ng,
-                              int *atm, int natm, int *bas, int nbas, double *env);
+                              FINT *atm, FINT natm, FINT *bas, FINT nbas, double *env);
 #endif
 
 #ifndef HAVE_DEFINED_APPROX_LOG
